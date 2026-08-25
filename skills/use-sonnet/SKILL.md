@@ -20,7 +20,7 @@ Sonnet is accessed via the native `claude` CLI (headless `-p`). The helper scrip
 
 ## Dispatch Contract (shared)
 
-Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `/Users/you/.agents/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
+Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `~/.agents/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
 
 ## Usage-limit banner (claude backend only)
 

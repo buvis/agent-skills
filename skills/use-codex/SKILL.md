@@ -21,7 +21,7 @@ Always run Codex through the `codex-run.sh` helper. The helper auto-detects its 
 
 ## Dispatch Contract (shared)
 
-Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `/Users/you/.agents/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
+Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `~/.agents/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
 
 Codex-specific delta: each run is independent by default; `--resume-thread` (codex backend only, requires `-o`) continues a prior codex session so its context carries over.
 

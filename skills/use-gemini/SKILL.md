@@ -26,7 +26,7 @@ stable flag interface onto two backends and resolves the mise-managed binary.
 
 ## Dispatch Contract (shared)
 
-Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `/Users/you/.agents/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
+Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `~/.agents/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
 
 Gemini-specific delta: if the helper reports no backend CLI found, or the Copilot monthly quota is exhausted, report that and stop - do not silently fall back to another tool. For a quota error you may offer `GEMINI_BACKEND=gemini` (native CLI) as an alternative.
 
@@ -70,7 +70,7 @@ Pass `-m MODEL` only when the user asks for a specific model.
 | Resume recent session | `-c` |
 | Resume specific session | `-r <ID>` |
 
-Gotcha: in repos where `dev/local` is a symlink outside the workspace (buvis convention: `-> ~/.local/tmp/claude-dev`), gemini cannot read through it - pass `-d /Users/you/.local/tmp/claude-dev` so those files resolve (verified fix).
+Gotcha: in repos where `dev/local` is a symlink outside the workspace (buvis convention: `-> ~/.local/tmp/claude-dev`), gemini cannot read through it - pass `-d ~/.local/tmp/claude-dev` so those files resolve (verified fix).
 
 ## Helper Script
 
