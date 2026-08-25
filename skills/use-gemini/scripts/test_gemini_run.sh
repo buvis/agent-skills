@@ -250,6 +250,32 @@ else
          "got exit code $RC"
 fi
 
+# ══ T9: recursion guard ═══════════════════════════════════════════════════════
+# A dispatch from inside a CLI agent must refuse with exit 3 and spawn no child.
+# Both triggers are covered -- the depth counter (set by an outer runner) and the
+# vendor marker (set by the CLI itself).
+guard_case() {
+    local name="$1" label="$2"
+    shift 2
+    export COPILOT_ARGV_FILE="$WORK/$name.copilot.argv"
+    export COPILOT_STDIN_FILE="$WORK/$name.copilot.stdin"
+    export GEMINI_ARGV_FILE="$WORK/$name.gemini.argv"
+    export GEMINI_STDIN_FILE="$WORK/$name.gemini.stdin"
+    rm -f "$COPILOT_ARGV_FILE" "$GEMINI_ARGV_FILE"
+    local rc=0 out
+    out=$(PATH="$RUN_PATH" env "$@" bash "$GEMINI_RUN_SH" -f "$PROMPT_FILE_T" 2>&1 < /dev/null) || rc=$?
+    if [ "$rc" -eq 3 ] && [ ! -f "$COPILOT_ARGV_FILE" ] && [ ! -f "$GEMINI_ARGV_FILE" ]; then
+        PASS "$label"
+    else
+        FAIL "$label" "exit: $rc (want 3) -- child argv files present: $(ls "$COPILOT_ARGV_FILE" "$GEMINI_ARGV_FILE" 2>/dev/null | tr '\n' ' ')(want none) -- output: $out"
+    fi
+}
+
+# 16-18. Refuses nested dispatch, without invoking any backend.
+guard_case t9a "AUTOPILOT_DISPATCH_DEPTH=1: refuses with exit 3, no backend call" AUTOPILOT_DISPATCH_DEPTH=1
+guard_case t9b "CODEX_SESSION_ID set: refuses with exit 3, no backend call" CODEX_SESSION_ID=deadbeef
+guard_case t9c "COPILOT_CLI set: refuses with exit 3, no backend call" COPILOT_CLI=1
+
 # ══ summary ═══════════════════════════════════════════════════════════════════
 echo ""
 echo "SUMMARY: $PASS_COUNT passed, $FAIL_COUNT failed"

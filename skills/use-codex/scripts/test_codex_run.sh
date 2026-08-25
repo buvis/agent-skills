@@ -720,6 +720,32 @@ else
 fi
 
 # =============================================================================
+# Recursion guard: a dispatch from inside a CLI agent must refuse with exit 3
+# and spawn no child. Both triggers are covered -- the depth counter (set by an
+# outer codex-run.sh) and the vendor marker (set by the CLI itself).
+# =============================================================================
+guard_case() {
+    # $1 = human label, $2.. = VAR=VALUE env assignments that should trip it
+    local label="$1"
+    shift
+    : > "$STUB_ARGV_FILE"
+    local out
+    out=$(PATH="$RUN_PATH" STUB_ARGV_FILE="$STUB_ARGV_FILE" STUB_STDIN_FILE="$STUB_STDIN_FILE" \
+        env "$@" bash "$CODEX_RUN_SH" "probe" 2>&1 < /dev/null)
+    local rc=$?
+    if [ "$rc" -eq 3 ] && [ ! -s "$STUB_ARGV_FILE" ]; then
+        PASS "$label"
+    else
+        FAIL "$label" "exit: $rc (want 3) -- stub argv bytes: $(wc -c < "$STUB_ARGV_FILE" | tr -d ' ') (want 0) -- output: $out"
+    fi
+}
+
+# 39-41. Refuses nested dispatch, without invoking codex.
+guard_case "AUTOPILOT_DISPATCH_DEPTH=1: refuses with exit 3, no codex call" AUTOPILOT_DISPATCH_DEPTH=1
+guard_case "CODEX_SESSION_ID set: refuses with exit 3, no codex call" CODEX_SESSION_ID=deadbeef
+guard_case "COPILOT_CLI set: refuses with exit 3, no codex call" COPILOT_CLI=1
+
+# =============================================================================
 echo ""
 echo "SUMMARY: $PASS_COUNT passed, $FAIL_COUNT failed"
 

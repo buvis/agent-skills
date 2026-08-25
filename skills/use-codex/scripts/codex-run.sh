@@ -6,6 +6,20 @@
 
 set -eo pipefail
 
+# Recursion guard. Refuse to dispatch a CLI agent from inside a CLI agent.
+# ponytail: depth backstop is the real guard; the marker check is a nicety.
+# Exported by this script, never from settings.json - a nested CLI never sees
+# that env block. Markers are documented in ../references/host-markers.md.
+if [ -n "${AUTOPILOT_DISPATCH_DEPTH:-}" ] && [ "$AUTOPILOT_DISPATCH_DEPTH" -ge 1 ]; then
+    echo "refusing nested dispatch (depth=$AUTOPILOT_DISPATCH_DEPTH)" >&2
+    exit 3
+fi
+if [ -n "${CODEX_SESSION_ID:-}" ] || [ -n "${COPILOT_CLI:-}" ]; then
+    echo "refusing nested dispatch (already inside a CLI agent)" >&2
+    exit 3
+fi
+export AUTOPILOT_DISPATCH_DEPTH=$(( ${AUTOPILOT_DISPATCH_DEPTH:-0} + 1 ))
+
 # Ensure mise-managed tools (like copilot) are on PATH
 if command -v mise &>/dev/null; then
     PATH="$(mise env -s bash < /dev/null 2>/dev/null | sed -n "s/^export PATH='\\(.*\\)'/\\1/p"):$PATH"
