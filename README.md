@@ -32,6 +32,11 @@ ln -s ~/git/agent-skills/bin/braid ~/.agents/bin/braid
 Codex and Copilot are done at that point. Claude Code needs the `braid` step.
 Restart the assistant if a running session does not notice new skills.
 
+`~/.codex/skills` has a different job and is not the shared source. Codex and
+its installers use it for Codex-owned and system skills (notably
+`~/.codex/skills/.system`). Do not symlink it wholesale. User-authored
+cross-agent skills belong in `~/.agents/skills`.
+
 ## braid
 
 `braid` creates one absolute symlink per skill at `$CLAUDE_ROOT/skills/<name>`,
@@ -127,3 +132,15 @@ the envelope while its agents remain host-specific. Copilot recognizes several
 manifest locations including `.claude-plugin/plugin.json`, and Kiro supports
 Agent Plugins 1.0, but a recognized manifest only means installable. Test the
 hooks, agents, resource paths, and permissions on every host you claim.
+
+## References
+
+- [OpenAI: Build skills](https://learn.chatgpt.com/docs/build-skills)
+- [OpenAI: Plugins](https://learn.chatgpt.com/docs/plugins)
+- [Claude Code: skills and symlink discovery](https://code.claude.com/docs/en/slash-commands)
+- [GitHub Copilot: agent skills](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills)
+- [GitHub Copilot: plugins](https://docs.github.com/en/copilot/concepts/agents/about-plugins)
+- [GitHub Copilot: plugin manifest reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference)
+- [Kiro: skills](https://kiro.dev/docs/skills/)
+- [Kiro: Agent Plugins support](https://kiro.dev/blog/powers-supports-plugins/)
+- [Agent Plugins specification](https://agent-plugins.org/)
