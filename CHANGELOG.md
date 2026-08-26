@@ -40,6 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it ships, the banner it carries, and why plugin paths are written
   `<name-plugin-root>/...` instead of a placeholder that expands to nothing.
 
+- **work**: correct the qwen helper paths in the documentation copy, which named
+  `~/.agents/skills/use-qwen/` for the helper, the approved-model registry and
+  the regression suite. `use-qwen` is a Claude-only skill under
+  `~/.claude/skills/` and was never composed into the union, so all three
+  resolved to nothing. Fixed upstream in the autopilot plugin first.
 - **tests**: guard skill placement - no skill in `skills/` may declare itself
   Claude-only, and every documentation copy must carry its banner, its
   `Documentation copy of the <plugin> plugin skill` line, a
