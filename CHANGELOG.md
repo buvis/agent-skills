@@ -28,9 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   three strunk skills that had no copy here at all.
 - **docs**: publish the runtime-bound plugin skills as specifications under
   `docs/plugin-skills/` - claude-checkup's seven audits, agoge's `run-agoge`,
-  and autopilot's seven. They carry the procedure and its references; the
-  scripts, CLI and agents stay in the plugins, and a banner in each says so.
-  They sit outside `skills/`, so no host discovers them as runnable skills.
+  autopilot's seven, and aegis's `gateguard`. They carry the procedure and its
+  references; the scripts, CLI, hooks and agents stay in the plugins, and a
+  banner in each says so. They sit outside `skills/`, so no host discovers them
+  as runnable skills.
+- **docs**: a `docs/plugin-skills/README.md` saying what a documentation copy
+  is, how it differs from a compatibility copy, the four rules one follows, and
+  the condition for deleting it - the directory is a holding pen that should
+  empty as plugins become installable off Claude Code.
 - **AGENTS.md**: describe the documentation-copy class - where it lives, what
   it ships, the banner it carries, and why plugin paths are written
   `<name-plugin-root>/...` instead of a placeholder that expands to nothing.

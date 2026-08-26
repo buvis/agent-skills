@@ -23,9 +23,6 @@ web-patterns
 web-performance
 web-security
 
-# aegis
-gateguard
-
 # autopilot
 use-codex
 use-gemini

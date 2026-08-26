@@ -213,7 +213,7 @@ Current local policy:
 | `git-ferry` | Keep its six skills as standalone compatibility copies in `~/.agents`; skip them in `braid`. |
 | `strunk` | Keep the language/testing skills as standalone compatibility copies; skip them in `braid`. |
 | `claude-checkup` | Claude owns the audits and they need its config layout, so the copies here are documentation only and sit in `docs/plugin-skills/`. |
-| `aegis` | `gateguard` documents a Claude hook and remains Claude-specific; no cross-host behavior without an adapter. |
+| `aegis` | `gateguard` documents a Claude hook and does nothing without it, so it is a documentation copy in `docs/plugin-skills/`. No cross-host behavior without a hook adapter. |
 | `warden` | Already carries Codex and Copilot adapters in addition to Claude integration; continue moving it toward one multi-host plugin. |
 | `loupe` | Hook-heavy Claude plugin; port the hook/event adapter before reuse. |
 | `agoge` | Claude agent pack; its prompts are reusable, but agent declarations and orchestration need host adapters. |

@@ -1,8 +1,15 @@
 ---
 name: gateguard
 description: Use when the gateguard PreToolUse hook denies a tool call with a "[Fact-Forcing Gate]" message - explains the fact list to present before retrying. Triggers on "fact-forcing gate", "gateguard", "why was my edit blocked".
-compatibility: "Claude Code-specific; documents the aegis gateguard hook and does nothing without that plugin hook."
+compatibility: "Documentation copy of the aegis plugin skill; the hook it describes ships only in that plugin, and it needs a host with an equivalent pre-tool-use hook lifecycle."
 ---
+
+> **Paths in this pack.** This copy carries the explanation, not the code: the
+> hook it describes ships in the aegis plugin. Every path written as
+> `<aegis-plugin-root>/...` resolves against that plugin's installed root -
+> substitute it yourself. Never pass the literal marker to a shell. Without the
+> plugin there is no gate to be stopped by, so read this as a description of a
+> Claude Code mechanism rather than a procedure you can run.
 
 # GateGuard — Fact-Forcing Pre-Action Gate
 
@@ -84,4 +91,5 @@ The hook silently allows:
 
 ## Related
 
-- `protect_config.py` hook - existing PreToolUse guard for config files
+- `<aegis-plugin-root>/hooks/protect_config.py` - existing PreToolUse guard for
+  config files
