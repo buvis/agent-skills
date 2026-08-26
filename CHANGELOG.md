@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   references; the scripts, CLI, hooks and agents stay in the plugins, and a
   banner in each says so. They sit outside `skills/`, so no host discovers them
   as runnable skills.
+- **skills**: publish `assess-evolution` and `debrief-meeting`, the two
+  Claude-only skills whose coupling turned out to be cosmetic. Both now reach
+  Codex, Copilot and Gemini: `assess-evolution` lost a `~/.claude/rules/`
+  pointer it only needed the principle from, and `debrief-meeting`'s twelve
+  `CLAUDE_SKILL_DIR` paths became `~/.agents/skills/` ones. Its parser is
+  stdlib-only, so it needs no dependency the repo did not already have.
 - **docs**: a `docs/plugin-skills/README.md` saying what a documentation copy
   is, how it differs from a compatibility copy, the four rules one follows, and
   the condition for deleting it - the directory is a holding pen that should

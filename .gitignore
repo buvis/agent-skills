@@ -3,6 +3,10 @@
 /build/
 /dev/local/
 /dist/
+# A skill that ships a front end builds its template locally; the built
+# artifact is committed as assets/, the build tree is not.
+node_modules/
+skills/*/app/dist/
 __pycache__/
 *.py[cod]
 /*.egg-info/
