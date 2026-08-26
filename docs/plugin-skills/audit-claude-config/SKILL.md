@@ -4,6 +4,13 @@ description: Use when running EVERY audit at once into one merged report, not a 
 compatibility: "Documentation copy of the claude-checkup plugin skill; the audits it drives ship their scripts only in that plugin, and Claude Code uses the namespaced plugin skill."
 ---
 
+> **Paths in this pack.** This copy carries the procedure, not the code: the
+> audit scripts it drives ship in the claude-checkup plugin. Every path written
+> as `<claude-checkup-plugin-root>/...` resolves against that plugin's installed
+> root - substitute it yourself before running anything. Never pass the literal
+> marker to a shell. Without the plugin, read this as the specification rather
+> than a runnable procedure.
+
 # Audit Claude Config
 
 Run the audit skills, print one dashboard, and build a prioritized remediation
@@ -13,8 +20,9 @@ plan. Findings, severities, and the consent boundary follow
 ## Dependencies
 
 - Invokes the audits in the registry below. On Claude Code they resolve to the
-  `claude-checkup` plugin (`claude-checkup:audit-config` and siblings); on other
-  hosts, to the copies in this repository.
+  `claude-checkup` plugin (`claude-checkup:audit-config` and siblings). No other
+  host can run them: the copies here are specifications, kept out of `skills/`
+  so nothing routes to a procedure whose scripts it does not have.
 - `/doctor` and `/warden:review-decisions` are optional. When either is absent,
   skip it silently rather than recording a failure.
 - The audits carry their deterministic half in the plugin's `scripts/`. Without

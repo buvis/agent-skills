@@ -40,6 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it ships, the banner it carries, and why plugin paths are written
   `<name-plugin-root>/...` instead of a placeholder that expands to nothing.
 
+- **tests**: guard skill placement - no skill in `skills/` may declare itself
+  Claude-only, and every documentation copy must carry its banner, its
+  `Documentation copy of the <plugin> plugin skill` line, a
+  `<name-plugin-root>/` marker, and no `.braidignore` entry. The first of those
+  is the `gateguard` case, which reached three hosts because nothing checked it.
+- **ci**: run the suite on Python 3.10 and 3.13, plus `ruff check`,
+  `ruff format --check`, and the skill validator over every skill.
+
 ### Removed
 
 - **skills**: retire the ten Codex audit forks (`audit-codex-config`,

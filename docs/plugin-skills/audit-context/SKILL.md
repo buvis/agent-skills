@@ -4,6 +4,12 @@ description: Use when auditing token overhead or context budget. Estimates per-c
 compatibility: "Documentation copy of the claude-checkup plugin skill; the scripts it runs ship only in that plugin, and Claude Code uses the namespaced plugin skill."
 ---
 
+> **This copy carries the procedure, not the code.** Paths written as
+> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin, and the
+> audit reads the Claude config dir (`$CLAUDE_CONFIG_DIR`, default `~/.claude`).
+> Without that plugin, read this as the audit's specification: what it scans,
+> the output schema, and how to report.
+
 # Audit Context Budget
 
 Estimate always-loaded token overhead per component and report the biggest
@@ -11,12 +17,6 @@ trim opportunities. The counting, token math, classification, and totals run in
 `scripts/audit_context.py` (deterministic -- the model cannot reliably char-count
 across hundreds of files). You supply the one thing the script cannot see: the
 live MCP tool count.
-
-> **This copy carries the procedure, not the code.** Paths written as
-> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin, and the
-> audit reads the Claude config dir (`$CLAUDE_CONFIG_DIR`, default `~/.claude`).
-> Without that plugin, read this as the audit's specification: what it scans,
-> the output schema, and how to report.
 
 ## Step 1: Count live MCP tools
 

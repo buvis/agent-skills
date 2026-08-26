@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor from pyproject's requires-python, and current.
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Run the suite
+        run: uv run --python ${{ matrix.python-version }} pytest
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Lint braid
+        run: uv run ruff check
+
+      - name: Check formatting
+        run: uv run ruff format --check
+
+      # Every skill braid can project, through the repo's own validator. The
+      # suite already lints their bash blocks; this adds the frontmatter and
+      # portable-path rules the validator owns.
+      - name: Validate every skill
+        run: |
+          status=0
+          for skill in skills/*/; do
+            uv run python3 skills/create-skill/scripts/validate_skill.py "$skill" || status=1
+          done
+          exit $status

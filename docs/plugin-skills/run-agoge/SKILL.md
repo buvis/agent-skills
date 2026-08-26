@@ -4,6 +4,11 @@ description: Use when running the agoge product-QA pack at a repo - recon, armed
 compatibility: "Documentation copy of the agoge plugin skill; the seven specialist agents and the PRD-number claimer ship only in that plugin, and Claude Code uses the namespaced plugin skill."
 ---
 
+> **This copy carries the doctrine, not the pack.** The seven agent files and
+> the PRD-number claimer ship in the agoge plugin; paths written as
+> `<agoge-plugin-root>/...` point there. Without that plugin the playbooks below
+> still read as QA doctrine, but no lane can be dispatched.
+
 # Run agoge
 
 Agoge is the product-time lens. Every other review reads a diff; this one runs
@@ -15,11 +20,6 @@ security).
 The one rule the whole pack exists to enforce: **a lane that did not run is
 never a pass.** Every result carries `verified`, `unverified`, `mocked` or
 `skipped`, and only `verified` is a real defect.
-
-> **This copy carries the doctrine, not the pack.** The seven agent files and
-> the PRD-number claimer ship in the agoge plugin; paths written as
-> `<agoge-plugin-root>/...` point there. Without that plugin the playbooks below
-> still read as QA doctrine, but no lane can be dispatched.
 
 ## Dependencies
 

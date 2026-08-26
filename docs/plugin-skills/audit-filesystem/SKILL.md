@@ -7,17 +7,17 @@ description: >-
 compatibility: "Documentation copy of the claude-checkup plugin skill; the scripts it runs ship only in that plugin, and Claude Code uses the namespaced plugin skill."
 ---
 
+> **This copy carries the procedure, not the code.** Paths written as
+> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin. Without
+> that plugin installed, read this as the audit's specification: what it scans,
+> the finding schema, and how to report. Nothing here is runnable on its own.
+
 # Audit Filesystem
 
 Find reclaimable and stale state under the Claude config dir: plugin caches,
 project-config orphans, and memory index/staleness. Deterministic work runs in
 `scripts/audit_filesystem.py`; this skill runs it and turns findings into safe,
 actionable cleanup.
-
-> **This copy carries the procedure, not the code.** Paths written as
-> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin. Without
-> that plugin installed, read this as the audit's specification: what it scans,
-> the finding schema, and how to report. Nothing here is runnable on its own.
 
 ## Step 1: Run the audit
 

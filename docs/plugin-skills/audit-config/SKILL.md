@@ -7,17 +7,17 @@ description: >-
 compatibility: "Documentation copy of the claude-checkup plugin skill; the scripts it runs ship only in that plugin, and Claude Code uses the namespaced plugin skill."
 ---
 
+> **This copy carries the procedure, not the code.** Paths written as
+> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin. Without
+> that plugin installed, read this as the audit's specification: what it scans,
+> the finding schema, and how to report. Nothing here is runnable on its own.
+
 # Audit Config
 
 Audit settings.json (global + project) for security and consistency: permission
 risk, hook health, settings conflicts, hardcoded secrets, risky MCP. All
 deterministic work runs in `scripts/audit_config.py`; this skill runs it and
 turns its findings into a prioritized, actionable report.
-
-> **This copy carries the procedure, not the code.** Paths written as
-> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin. Without
-> that plugin installed, read this as the audit's specification: what it scans,
-> the finding schema, and how to report. Nothing here is runnable on its own.
 
 ## Step 1: Run the audit
 

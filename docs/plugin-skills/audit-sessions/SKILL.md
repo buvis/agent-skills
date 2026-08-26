@@ -7,6 +7,12 @@ description: >-
 compatibility: "Documentation copy of the claude-checkup plugin skill; the analyzer it runs ships only in that plugin, and Claude Code uses the namespaced plugin skill."
 ---
 
+> **This copy carries the procedure, not the code.** Paths written as
+> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin, and the
+> analyzer reads the Claude config dir (`$CLAUDE_CONFIG_DIR`, default
+> `~/.claude`). Without that plugin, read this as the audit's specification:
+> what it scans, the finding schema, and how to report.
+
 # Audit Session Patterns
 
 Surface automation opportunities, retry storms, skill effectiveness gaps,
@@ -14,12 +20,6 @@ and rule violations from recent session transcripts. The deterministic
 counting (parsing, n-grams, regex rule checks, set differences) lives in
 `scripts/analyze.py`. This skill orchestrates the run and translates raw
 findings into prioritized, actionable recommendations.
-
-> **This copy carries the procedure, not the code.** Paths written as
-> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin, and the
-> analyzer reads the Claude config dir (`$CLAUDE_CONFIG_DIR`, default
-> `~/.claude`). Without that plugin, read this as the audit's specification:
-> what it scans, the finding schema, and how to report.
 
 Accepts an optional argument: number of days to look back (default: 30).
 

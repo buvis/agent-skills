@@ -7,6 +7,11 @@ description: >-
 compatibility: "Documentation copy of the claude-checkup plugin skill; the scripts it runs ship only in that plugin, and Claude Code uses the namespaced plugin skill."
 ---
 
+> **This copy carries the procedure, not the code.** Paths written as
+> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin. Without
+> that plugin installed, the model-led judgment parts below still stand on their
+> own; the deterministic validation step does not.
+
 # Audit Authoring
 
 Review the quality of authored config content: skills and rule files. Structural
@@ -14,11 +19,6 @@ skill validation is deterministic and runs in `scripts/validate_skill.py`;
 everything else here is a judgment call and is done by you, the model, because no
 rubric captures "do these two rules contradict" or "is this description
 confusable".
-
-> **This copy carries the procedure, not the code.** Paths written as
-> `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin. Without
-> that plugin installed, the model-led judgment parts below still stand on their
-> own; the deterministic validation step does not.
 
 Present every finding using the shared schema and the severity report block in
 `<claude-checkup-plugin-root>/reference/conventions.md`.

@@ -4,14 +4,14 @@ description: Use when auditing MCP servers or cleaning up stale ones. Cross-refe
 compatibility: "Documentation copy of the claude-checkup plugin skill; it reads the Claude config dir, and Claude Code uses the namespaced plugin skill."
 ---
 
-# Audit MCP Server Health
-
-Cross-reference configured MCP servers against the live deferred tool list. Detect disconnected, unused, or bloated servers. Report with actionable findings.
-
 > **This copy carries the procedure, not the code.** The audit reads the Claude
 > config dir (`$CLAUDE_CONFIG_DIR`, default `~/.claude`); paths written as
 > `<claude-checkup-plugin-root>/...` live in the claude-checkup plugin. On a host
 > with a different config layout, read this as the audit's specification.
+
+# Audit MCP Server Health
+
+Cross-reference configured MCP servers against the live deferred tool list. Detect disconnected, unused, or bloated servers. Report with actionable findings.
 
 ## Step 1: Gather configured servers
 
