@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `settings.json`; sessions live in `sessions/<year>/<month>/`, not
   `projects/<encoded>/sessions-index.json`; `skills/` holds only `.system`; and
   `rules/` is one file. They scanned what was not there and reported clean.
+- **skills**: retire the four Codex storage workflows (`agent-sort`,
+  `restore-tasks`, `resume-session`, `save-session`) for the same reason. They
+  read `~/.codex/tasks`, `~/.codex/projects`, `~/.codex/decisions`,
+  `~/.codex/commands` and `~/.codex/dev`; none of those exist.
 
 ### Changed
 

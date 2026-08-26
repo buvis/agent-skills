@@ -22,12 +22,6 @@ audit-context
 audit-mcp-health
 audit-sessions
 
-# Codex storage/config workflows; no valid Claude projection.
-agent-sort
-restore-tasks
-resume-session
-save-session
-
 # claude-checkup and agoge own these on Claude.
 audit-authoring
 audit-claude-config
