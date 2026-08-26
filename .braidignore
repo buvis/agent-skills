@@ -40,10 +40,22 @@ restore-tasks
 resume-session
 save-session
 
-# claude-checkup, agoge and the tenth autopilot skill own these on Claude.
-design-solution
+# claude-checkup and agoge own these on Claude.
 audit-authoring
 audit-claude-config
 audit-config
 audit-filesystem
 run-agoge
+
+# The autopilot plugin owns these on Claude. The copies here carry the
+# procedure only; the scripts, CLI and reviewer agents stay in the plugin.
+design-solution
+plan-tasks
+review-blindly
+review-plan
+review-work-completion
+run-autopilot
+use-codex
+use-gemini
+use-sonnet
+work

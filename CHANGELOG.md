@@ -24,6 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AGENTS.md**: repository working rules covering portable path references,
   the `${CLAUDE_SKILL_DIR}` substitution trap, plugin dependency declarations,
   and the pre-commit checks.
+- **skills**: publish `web-patterns`, `web-performance`, and `web-security`, the
+  three strunk skills that had no copy here at all.
+- **skills**: publish the runtime-bound plugin skills as documentation copies -
+  claude-checkup's `audit-authoring`, `audit-claude-config`, `audit-config` and
+  `audit-filesystem`, agoge's `run-agoge`, and autopilot's ten. They carry the
+  procedure and its references; the scripts, CLI and agents stay in the plugins,
+  and a banner in each says so.
+- **AGENTS.md**: describe the documentation-copy class - what it ships, the
+  banner it carries, and why plugin paths are written `<name-plugin-root>/...`
+  instead of a placeholder that expands to nothing.
 
 ### Changed
 
@@ -60,3 +70,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **apply-design-system**: rename `design-system` to match its strunk twin,
   replace the superseded body, and ignore the name so Claude Code stops loading
   a second, contradictory design skill alongside the plugin one.
+- **gateguard**: point at the aegis hook with a marker that cannot half-resolve,
+  replacing a `${CLAUDE_PLUGIN_ROOT}` that expands to nothing off Claude Code.

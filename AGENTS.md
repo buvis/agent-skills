@@ -51,6 +51,24 @@ carries a `compatibility:` frontmatter line saying so, and its name goes in
 command into `~/.claude/skills`. The copy stays for Codex, Copilot, and Kiro,
 which have no plugin system.
 
+**Documentation copies.** Some plugin skills are half instructions, half
+executable: autopilot ships a CLI, agoge ships seven agents, claude-checkup
+ships audit scripts. Duplicating that code here would fork a released product
+and drop its tests into `uv run pytest`, so these copies carry `SKILL.md` and
+`references/` only. Three rules keep them honest:
+
+- the `compatibility:` line opens with "Documentation copy of the `<plugin>`
+  plugin skill" and names what stayed behind;
+- a banner above the first heading repeats it, so a model that skipped the
+  frontmatter still learns the skill is not runnable as it stands;
+- every path into the plugin is written `<name-plugin-root>/...`. Never
+  `${CLAUDE_PLUGIN_ROOT}`: a host that does not substitute it passes the
+  literal to a shell, where it expands to nothing and the path silently
+  becomes `/skills/...`. A marker that never resolves fails loudly instead.
+
+Sync a documentation copy the same way as any other: diff it against its twin,
+then re-apply these three rules to whatever the diff brought over.
+
 **Cross-references.** When a skill names a skill it does not own, declare it
 in a `## Dependencies` section placed right after the intro:
 

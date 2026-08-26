@@ -8,7 +8,7 @@ compatibility: "Claude Code-specific; documents the aegis gateguard hook and doe
 
 A PreToolUse hook that forces investigation before editing. Instead of self-evaluation ("are you sure?"), it demands concrete facts. The act of investigation creates context that changes the output.
 
-The hook lives at `${CLAUDE_PLUGIN_ROOT}/hooks/gateguard_fact_force.py` and is registered via this plugin's `hooks/hooks.json` for `Edit|Write|MultiEdit|Bash`.
+The hook lives at `<aegis-plugin-root>/hooks/gateguard_fact_force.py` and is registered via that plugin's `hooks/hooks.json` for `Edit|Write|MultiEdit|Bash`.
 
 ## Three-Stage Behavior
 
