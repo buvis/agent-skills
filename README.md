@@ -77,12 +77,18 @@ Codex discover it directly.
 
 ## How each assistant sees skills
 
-| Assistant | Personal discovery path | Recommended setup |
-|---|---|---|
-| Codex | `~/.agents/skills` | Native. No extra link is needed. |
-| Claude Code | `~/.claude/skills` | Run `braid`; it creates per-skill links. |
-| GitHub Copilot | `~/.agents/skills` | Native. It also understands `.github/skills`, `.copilot/skills`, and `.claude/skills`. |
-| Kiro | `~/.kiro/skills` | Add `skill://~/.agents/skills/*/SKILL.md` to a custom agent, or create equivalent per-skill links. Kiro's import command copies rather than links. |
+| Assistant | Personal discovery path | Setup | Verified |
+|---|---|---|---|
+| Claude Code | `~/.claude/skills` | Run `braid`; it creates per-skill links. | Yes - `braid --check` reports zero drift and the links resolve. |
+| GitHub Copilot | `~/.agents/skills` | Native, no extra link. It also reads `~/.copilot/skills`, and per project `.github/skills`, `.agents/skills`, `.claude/skills`. | Yes - `copilot skill --help` lists the source and `copilot skill list` returns the union. |
+| Codex | `~/.agents/skills` | Native, no extra link. | Partly - the binary interns `.agents/skills` beside `.codex/config.toml`, but the CLI has no `skill list`, so nothing has confirmed the listing end to end. |
+| Kiro | `~/.kiro/skills` | Add `skill://~/.agents/skills/*/SKILL.md` to a custom agent, or create equivalent per-skill links. Kiro's import command copies rather than links. | No - `~/.kiro` does not exist here and this row has never been run. |
+
+Neither Copilot nor Codex can be pointed away from `~/.agents/skills`: Copilot's
+personal source list is fixed and Codex interns the path. Whatever `braid` links
+into the union is what those two hosts offer, so a name that must not reach them
+has to stay out of `skills/` altogether. That is why the documentation copies of
+runtime-bound plugin skills live in `docs/plugin-skills/`.
 
 Do not link all of `~/.agents/skills` over `~/.claude/skills`: Claude-only
 skills and plugin-owned skills also live there. `braid` links one skill at a
@@ -136,11 +142,14 @@ is required.
 
 `.braidignore` is intentional policy, not an error list. Braid loads it from
 the tool repository, `~/.agents`, every source repository, and the machine-local
-config directory. It excludes:
+config directory. It holds exactly one class of name: a skill Claude gets from a
+plugin, where a standalone copy would become a duplicate unnamespaced command.
+Those copies still run on Codex and Copilot, so they stay in the union view and
+are skipped only on the way to `~/.claude/skills`.
 
-- Claude plugin-owned skills, to avoid a duplicate unnamespaced command;
-- Codex-specific forks that inspect `~/.codex` state;
-- workflows superseded or consolidated by a Claude plugin.
+It is not a way to hide a skill from Codex or Copilot. Those two read the union
+directly, so an exclusion never reaches them; the only lever is what braid links
+into `~/.agents/skills` in the first place.
 
 ## Updating a skill
 
@@ -164,11 +173,15 @@ The current tree uses these compatibility classes:
 - **Portable compatibility copy** — the skill is owned by a Claude plugin, but
   a standalone copy remains under `~/.agents` for agents without that plugin.
   It is skipped when projecting back to Claude.
+- **Documentation copy** — the prose of a plugin skill whose scripts, CLI, or
+  agents stayed in the plugin. It is a specification, not a runnable procedure,
+  so it lives in `docs/plugin-skills/` and no host discovers it.
 - **Personal runtime** — callable from another assistant, but depends on this
   author's Claude/autoclaude files, wrappers, quotas, or review protocol.
 - **Codex-specific / Claude-specific** — depends on that host's config,
-  transcript format, hook lifecycle, or tool names. The frontmatter says so and
-  `.braidignore` prevents an invalid projection where needed.
+  transcript format, hook lifecycle, or tool names. The frontmatter says so, and
+  a skill that only Claude can run is kept out of `skills/` rather than ignored,
+  since `.braidignore` cannot hide it from Codex or Copilot.
 
 ## Plugins: reuse versus port
 
@@ -199,7 +212,7 @@ Current local policy:
 |---|---|
 | `git-ferry` | Keep its six skills as standalone compatibility copies in `~/.agents`; skip them in `braid`. |
 | `strunk` | Keep the language/testing skills as standalone compatibility copies; skip them in `braid`. |
-| `claude-checkup` | Claude owns the consolidated audits. Existing `~/.agents` audits are Codex-specific forks and are not projected to Claude. |
+| `claude-checkup` | Claude owns the audits and they need its config layout, so the copies here are documentation only and sit in `docs/plugin-skills/`. |
 | `aegis` | `gateguard` documents a Claude hook and remains Claude-specific; no cross-host behavior without an adapter. |
 | `warden` | Already carries Codex and Copilot adapters in addition to Claude integration; continue moving it toward one multi-host plugin. |
 | `loupe` | Hook-heavy Claude plugin; port the hook/event adapter before reuse. |

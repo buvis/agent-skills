@@ -13,6 +13,12 @@ change.
 A skill is a directory under `skills/` holding `SKILL.md`, plus optional
 `scripts/`, `references/`, and `assets/`.
 
+`skills/` is the only directory braid scans (`_skills_directory`), and every
+host discovers what braid links from it. Putting a `SKILL.md` there advertises
+it as runnable on Claude Code, Codex, and Copilot alike. Prose that documents a
+procedure without shipping the code to run it belongs in `docs/plugin-skills/`,
+which nothing scans.
+
 ## Referencing files from a skill
 
 The same `SKILL.md` runs on Claude Code, Codex, Copilot, and Kiro. Every path
@@ -55,8 +61,18 @@ which have no plugin system.
 executable: autopilot ships a CLI, agoge ships seven agents, claude-checkup
 ships audit scripts. Duplicating that code here would fork a released product
 and drop its tests into `uv run pytest`, so these copies carry `SKILL.md` and
-`references/` only. Three rules keep them honest:
+`references/` only.
 
+They live in `docs/plugin-skills/<name>/`, never in `skills/`. Half a skill is
+not a skill: with only the prose, Codex and Copilot would list it, route to it,
+and fail, because the half that runs ships in a Claude plugin they cannot
+install. `.braidignore` cannot save them - it applies on the way to
+`~/.claude/skills` and those two hosts read the union view directly. Keeping
+the copies outside `skills/` is what makes them undiscoverable, so a
+documentation copy never gets a `.braidignore` entry. Four rules keep them
+honest:
+
+- it sits under `docs/plugin-skills/`, so no host discovers it;
 - the `compatibility:` line opens with "Documentation copy of the `<plugin>`
   plugin skill" and names what stayed behind;
 - a banner above the first heading repeats it, so a model that skipped the
@@ -67,7 +83,7 @@ and drop its tests into `uv run pytest`, so these copies carry `SKILL.md` and
   becomes `/skills/...`. A marker that never resolves fails loudly instead.
 
 Sync a documentation copy the same way as any other: diff it against its twin,
-then re-apply these three rules to whatever the diff brought over.
+then re-apply these four rules to whatever the diff brought over.
 
 **Cross-references.** When a skill names a skill it does not own, declare it
 in a `## Dependencies` section placed right after the intro:
