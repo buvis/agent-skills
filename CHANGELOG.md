@@ -35,10 +35,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   banner it carries, and why plugin paths are written `<name-plugin-root>/...`
   instead of a placeholder that expands to nothing.
 
+### Removed
+
+- **skills**: retire the ten Codex audit forks (`audit-codex-config`,
+  `audit-hooks`, `audit-memory`, `audit-permissions`, `audit-plugins`,
+  `audit-project-orphans`, `audit-rules`, `audit-security`, `audit-settings`,
+  `audit-skills`). They were the Claude audits with `.claude` swapped for
+  `.codex`, and Codex keeps none of those paths: config is `config.toml`, not
+  `settings.json`; sessions live in `sessions/<year>/<month>/`, not
+  `projects/<encoded>/sessions-index.json`; `skills/` holds only `.system`; and
+  `rules/` is one file. They scanned what was not there and reported clean.
+
 ### Changed
 
 - **braid**: read exclusions from `.braidignore` policy files in each source,
   replacing the single `~/.agents/braid.ignore` file.
+- **audit-context**, **audit-mcp-health**, **audit-sessions**: replace the Codex
+  forks with documentation copies of their claude-checkup twins, which say which
+  config dir they read instead of implying a Codex-native one.
 - **skills**: declare plugin dependencies in a `## Dependencies` section and
   namespace plugin skills as `plugin:skill` in `convene-council`, `create-prd`,
   `debug-stuck-agent`, and `elicit-requirements`.
@@ -57,8 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **skills**: describe the personal-runtime compatibility class without naming
   the author, which also removes the collision with the autopilot reviewer
   persona of the same name.
-- **tests**: `uv run pytest` now collects every `test_*.py` a skill ships, which
-  brings the previously unrun `audit-security` suite into the default run.
+- **tests**: `uv run pytest` now collects every `test_*.py` a skill ships, so a
+  suite bundled with a skill can no longer sit unrun.
 - **explain-interactively**: lead the description with its trigger, and clone a
   GitHub source into the session scratchpad instead of `/tmp`.
 - **explain-interactively**: `build.sh` takes the course directory as an argument

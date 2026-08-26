@@ -22,18 +22,6 @@ audit-context
 audit-mcp-health
 audit-sessions
 
-# claude-checkup consolidates these narrower Codex audit forks.
-audit-codex-config
-audit-hooks
-audit-memory
-audit-permissions
-audit-plugins
-audit-project-orphans
-audit-rules
-audit-security
-audit-settings
-audit-skills
-
 # Codex storage/config workflows; no valid Claude projection.
 agent-sort
 restore-tasks
