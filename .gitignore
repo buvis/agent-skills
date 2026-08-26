@@ -1,5 +1,11 @@
+/.braid-state.json
+/backups/
+/build/
+/dev/local/
+/dist/
 __pycache__/
 *.py[cod]
+/*.egg-info/
 .pytest_cache/
 .ruff_cache/
 .serena/

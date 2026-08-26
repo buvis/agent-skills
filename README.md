@@ -1,137 +1,215 @@
 # agent-skills
 
-Skills that work in more than one AI coding assistant, plus `braid`, the small
-composer that projects them into a host that cannot discover them natively.
+Portable personal skills for AI coding assistants, plus `braid`, the composer
+that assembles multiple source repositories and projects their skills into
+host-specific discovery paths.
 
-A skill is a directory containing `SKILL.md`. Supporting `scripts/`,
+`~/.agents/skills` is the generated discovery view, not the canonical Git
+source. A skill is a directory containing `SKILL.md`; supporting `scripts/`,
 `references/`, and `assets/` stay beside it.
-
-## Which assistants see these
-
-| Assistant | Discovery path | Setup |
-|---|---|---|
-| Codex | `~/.agents/skills` | Native. Nothing to do. |
-| GitHub Copilot | `~/.agents/skills` | Native. Also reads `.github/skills`, `.copilot/skills`, `.claude/skills`. |
-| Claude Code | `~/.claude/skills` | Run `braid`. It links each skill individually. |
-| Kiro | `~/.kiro/skills` | Add `skill://~/.agents/skills/*/SKILL.md` to a custom agent, or link per skill. Kiro's import copies rather than links. |
 
 ## Install
 
-```bash
-git clone https://github.com/buvis/agent-skills ~/git/agent-skills
-
-mkdir -p ~/.agents
-ln -s ~/git/agent-skills/skills ~/.agents/skills   # single-source setup
-ln -s ~/git/agent-skills/bin/braid ~/.agents/bin/braid
-
-~/.agents/bin/braid --dry-run    # preview
-~/.agents/bin/braid              # apply
-~/.agents/bin/braid --check      # verify, exits 1 on drift
-```
-
-Codex and Copilot are done at that point. Claude Code needs the `braid` step.
-Restart the assistant if a running session does not notice new skills.
-
-`~/.codex/skills` has a different job and is not the shared source. Codex and
-its installers use it for Codex-owned and system skills (notably
-`~/.codex/skills/.system`). Do not symlink it wholesale. User-authored
-cross-agent skills belong in `~/.agents/skills`.
-
-## braid
-
-`braid` creates one absolute symlink per skill at `$CLAUDE_ROOT/skills/<name>`,
-pointing into `$AGENTS_ROOT/skills/<name>`. It is deliberately boring:
-
-- **One skill at a time.** It never links the whole tree over `~/.claude/skills`,
-  because Claude-only skills and plugin-owned skills also live there.
-- **Destination-only entries survive.** Anything in `~/.claude/skills` that
-  braid did not put there is left alone.
-- **Nothing is deleted.** A name that is already a real directory, or a link
-  pointing elsewhere, is moved to `~/.claude/skills-backup/<timestamp>-<pid>/`
-  first.
-- **`--check` is CI-friendly.** Exits 1 on any mismatch.
-
-Both roots are environment variables, so a non-standard layout needs no edit:
+Keep the repository as a normal checkout and install Braid in editable mode so
+the command continues to use that checkout as the personal source:
 
 ```bash
-AGENTS_ROOT=~/work/agents CLAUDE_ROOT=~/.claude braid
+git clone https://github.com/buvis/agent-skills \
+  ~/git/src/github.com/buvis/agent-skills
+cd ~/git/src/github.com/buvis/agent-skills
+uv tool install --editable .
+braid --dry-run
+braid
+braid --check
 ```
 
-## braid.ignore
+Without installation, run `python bin/braid.py`. On Windows, use
+`py bin\\braid.py`; Braid falls back to NTFS junctions when directory symlink
+privileges are unavailable.
 
-Names listed in `$AGENTS_ROOT/braid.ignore`, one per line, `#` for comments, are
-never projected to Claude. This is policy, not an error list. Copy
-`braid.ignore.example` to `~/.agents/braid.ignore` and edit.
+## Source and overlay architecture
 
-The usual reason to ignore a name is that Claude already gets that skill from a
-plugin. Linking a standalone copy beside it produces two entries under one name
-and an ambiguous unnamespaced command. Ignore the standalone copy and let the
-plugin win.
-
-## Composing several sources
-
-The layout above has one source. The reason `braid` links per skill rather than
-linking the tree is so that `~/.agents/skills` can be a union of several
-checkouts that do not belong in the same repository, most commonly a public
-personal one and a private employer one:
+Do **not** make `~/.agents` a submodule of the home dotfiles repository. Keep
+each ownership/security domain in its own normal checkout and compose them into
+`~/.agents/skills` with per-skill symlinks:
 
 ```text
-~/git/agent-skills/skills/               # public
-~/git/<employer>/agent-skills/skills/    # private, never public
+~/git/src/github.com/buvis/agent-skills/       # public personal source
+~/git/src/<employer>/agent-skills/             # private internal source
+
+~/.config/agent-skills/sources.d/
+├── personal                                   # dotfiles-managed
+└── work                                       # work-machine only; never public
 
 ~/.agents/skills/
-├── create-prd     -> <public>/skills/create-prd
-├── release-train  -> <private>/skills/release-train
+├── create-prd -> <personal-source>/skills/create-prd
+├── company-release -> <work-source>/skills/company-release
 └── ...
 ```
 
-Rules that keep this honest:
+The dotfiles repository should track only bootstrap/composition configuration,
+not a submodule gitlink for `~/.agents`. This avoids a second parent commit
+whenever the public skill repository advances.
 
-- Edit a skill in its owning checkout, never through `~/.agents/skills`. Links
-  reflect content edits immediately; you only recompose after adding, removing,
-  or renaming a skill.
-- Never copy employer skills into the public checkout, and never create tracked
-  links from it to them.
-- Prefer a repository-scoped `<repo>/.agents/skills` for a skill that only
-  applies to one project. The global union is for skills that genuinely apply
-  everywhere.
-- Reject duplicate skill names rather than resolving them by discovery order.
-  Host discovery order is not a contract, and a silent winner is a bug you find
-  months later.
+Maintenance rules:
 
-Composing the union is currently manual: create the per-skill links yourself.
-`braid` handles the host projection step only.
+- Edit a skill in its owning source checkout. Existing links reflect content
+  edits immediately; recomposition is needed only after adding, removing, or
+  renaming a skill.
+- Commit and push personal changes in the public `agent-skills` repository.
+  Pull on another machine only to receive changes made elsewhere.
+- Keep employer skills in a separate internal repository. Never copy them into,
+  or create tracked links from, the public checkout.
+- Prefer repository-scoped employer skills (`<work-repo>/.agents/skills`) when
+  they apply only to that repository. Put a work skill in the global union only
+  when it genuinely applies across work projects.
+- The composer must reject duplicate skill names by default. Resolve a
+  collision by renaming or by an explicit machine-local precedence rule; never
+  depend on an assistant's host-specific discovery order.
+- A generated-state manifest must record every link the composer owns. Cleanup
+  may remove only those recorded links, never arbitrary files under
+  `~/.agents/skills`.
 
-## Portability
+`braid` discovers every configured source, rejects duplicate skill names before
+writing, composes per-skill links under `~/.agents/skills`, and then projects
+eligible skills to Claude. Kiro can use the same assembled view; Copilot and
+Codex discover it directly.
 
-Skills declare how portable they are in a `compatibility:` frontmatter field:
+## How each assistant sees skills
 
-- **Portable** — ordinary filesystem, Git, and language tooling. Any capable
-  assistant can follow it.
-- **Portable compatibility copy** — a plugin owns this skill on one host; the
-  standalone copy is here for assistants without that plugin, and is ignored
-  when projecting back to that host.
-- **Personal runtime** — callable anywhere, but depends on specific wrappers,
-  quotas, or a review protocol that will not exist on your machine.
-- **Host-specific** — depends on one host's config, transcript format, hook
-  lifecycle, or tool names.
+| Assistant | Personal discovery path | Recommended setup |
+|---|---|---|
+| Codex | `~/.agents/skills` | Native. No extra link is needed. |
+| Claude Code | `~/.claude/skills` | Run `braid`; it creates per-skill links. |
+| GitHub Copilot | `~/.agents/skills` | Native. It also understands `.github/skills`, `.copilot/skills`, and `.claude/skills`. |
+| Kiro | `~/.kiro/skills` | Add `skill://~/.agents/skills/*/SKILL.md` to a custom agent, or create equivalent per-skill links. Kiro's import command copies rather than links. |
 
-Be honest in that field. A Claude hook, a Codex session store, and a proprietary
-sub-agent API are not portable, and pretending otherwise just moves the failure
-to someone else's machine.
+Do not link all of `~/.agents/skills` over `~/.claude/skills`: Claude-only
+skills and plugin-owned skills also live there. `braid` links one skill at a
+time, preserves destination-only entries, and skips names in
+`.braidignore` policy files.
 
-## Plugins are a different thing
+`~/.codex/skills` has a different job. Codex and its installers use it for
+Codex-owned/system skills (notably `~/.codex/skills/.system`) and other
+Codex-specific installations. Do not make it the shared source and do not
+symlink it wholesale. User-authored cross-agent skills belong in
+`~/.agents/skills`.
 
-A plugin packages skills and possibly agents, hooks, MCP servers, and commands.
-Sharing a `skills/` directory is not sharing a plugin.
+## braid
 
-[Agent Plugins](https://agent-plugins.org/) v1 defines exactly two component
-types, skills and MCP servers. Agents, hooks, and commands sit outside v1 and
-live under a reverse-domain client namespace. So a package can be portable at
-the envelope while its agents remain host-specific. Copilot recognizes several
-manifest locations including `.claude-plugin/plugin.json`, and Kiro supports
-Agent Plugins 1.0, but a recognized manifest only means installable. Test the
-hooks, agents, resource paths, and permissions on every host you claim.
+Preview, apply, or verify the union and Claude projection:
+
+```bash
+braid --dry-run
+braid
+braid --check
+```
+
+Put one source path per line in files under
+`~/.config/agent-skills/sources.d/`. Lines may contain `#` comments. Keep the
+public source in a dotfiles-managed `personal` file and the employer source in
+a work-machine-only `work` file:
+
+```text
+# ~/.config/agent-skills/sources.d/personal
+~/git/src/github.com/buvis/agent-skills
+
+# ~/.config/agent-skills/sources.d/work
+~/git/src/<employer>/agent-skills
+```
+
+`--source PATH` adds an ad hoc repository or `skills/` directory. `--no-claude`
+updates only the shared union. `AGENTS_ROOT`, `CLAUDE_ROOT`, and
+`AGENT_SKILLS_CONFIG` override the default roots.
+
+For each non-ignored canonical skill, `braid` creates an absolute symlink at
+`~/.claude/skills/<name>`. If that name is already a real directory or points
+somewhere else, it is moved first to
+`~/.claude/skills-backup/<timestamp>-<pid>/`. Claude-only destination entries
+are untouched. Restart the assistant after changing skills if its current
+session does not notice the update.
+
+On Windows, Braid tries directory symlinks first and falls back to NTFS
+junctions if Developer Mode or elevated symlink privileges are unavailable.
+The same Python CLI and flags work on macOS, Linux, and Windows; no Bash runtime
+is required.
+
+`.braidignore` is intentional policy, not an error list. Braid loads it from
+the tool repository, `~/.agents`, every source repository, and the machine-local
+config directory. It excludes:
+
+- Claude plugin-owned skills, to avoid a duplicate unnamespaced command;
+- Codex-specific forks that inspect `~/.codex` state;
+- workflows superseded or consolidated by a Claude plugin.
+
+## Updating a skill
+
+1. Resolve `~/.agents/skills/<name>` to its owning source checkout and edit the
+   source, not the generated link farm.
+2. If a newer standalone Claude definition exists, merge it into that source
+   directory, keep its resources together, and replace avoidable host tool
+   names with capability language (for example, “ask the user” or “spawn a
+   sub-agent”).
+3. If host coupling is real, keep it explicit in the `compatibility` frontmatter
+   field. Do not pretend Claude hooks, Codex session storage, or a proprietary
+   sub-agent API is portable.
+4. Validate with the public repository's validator, then run `braid --check`.
+5. Commit and push in the owning source repository. Recompose only if skill
+   membership or names changed.
+
+The current tree uses these compatibility classes:
+
+- **Portable** — instructions and resources use ordinary filesystem, Git, or
+  language tooling and can be followed by any capable assistant.
+- **Portable compatibility copy** — the skill is owned by a Claude plugin, but
+  a standalone copy remains under `~/.agents` for agents without that plugin.
+  It is skipped when projecting back to Claude.
+- **Personal runtime** — callable from another assistant, but depends on Bob's
+  Claude/autoclaude files, wrappers, quotas, or review protocol.
+- **Codex-specific / Claude-specific** — depends on that host's config,
+  transcript format, hook lifecycle, or tool names. The frontmatter says so and
+  `.braidignore` prevents an invalid projection where needed.
+
+## Plugins: reuse versus port
+
+A plugin is a package around skills and possibly agents, hooks, MCP servers,
+commands, or executables. Sharing its `skills/` directory is not the same as
+sharing the whole plugin.
+
+- Reuse the same package when it implements the Agent Plugins 1.0/Open Plugin
+  conventions supported by the target host and keeps host-specific behavior in
+  namespaced adapters.
+- Reuse portable `SKILL.md` content and MCP server definitions directly where
+  the host supports them.
+- Port the manifest and integration layer when the package is a legacy Claude
+  plugin. Claude hook events, tool names, permissions, commands, agents, and
+  `${CLAUDE_PLUGIN_ROOT}` are not automatically meaningful to another host.
+- A recognized manifest is only an installability signal; test hooks, agents,
+  resource paths, and permissions on every target.
+
+GitHub Copilot recognizes several plugin manifest locations, including
+`.claude-plugin/plugin.json`, and supports Agent Plugins. Kiro supports Agent
+Plugins 1.0. Codex has its own plugin packaging and can reuse portable skills,
+MCP, and host adapters, but a legacy Claude bundle is not automatically a Codex
+plugin.
+
+Current local policy:
+
+| Claude plugin | Treatment outside Claude |
+|---|---|
+| `git-ferry` | Keep its six skills as standalone compatibility copies in `~/.agents`; skip them in `braid`. |
+| `strunk` | Keep the language/testing skills as standalone compatibility copies; skip them in `braid`. |
+| `claude-checkup` | Claude owns the consolidated audits. Existing `~/.agents` audits are Codex-specific forks and are not projected to Claude. |
+| `aegis` | `gateguard` documents a Claude hook and remains Claude-specific; no cross-host behavior without an adapter. |
+| `warden` | Already carries Codex and Copilot adapters in addition to Claude integration; continue moving it toward one multi-host plugin. |
+| `loupe` | Hook-heavy Claude plugin; port the hook/event adapter before reuse. |
+| `agoge` | Claude agent pack; its prompts are reusable, but agent declarations and orchestration need host adapters. |
+| `frontend-design` | Treat as vendor/plugin-owned; install the host's corresponding plugin or keep a separate portable skill. |
+
+For a new cross-host plugin, prefer one repository with portable `skills/` and
+MCP definitions at the root, plus small `.claude-plugin`, `.codex-plugin`, and
+other host adapters. Do not maintain divergent copies of the skill prose unless
+the behavior truly differs.
 
 ## References
 
