@@ -15,7 +15,7 @@ List, triage, and act on dependency update PRs across all accessible repos.
 Run the discovery script:
 
 ```bash
-"/Users/you/.agents/skills/review-deps-prs/scripts/list-dep-prs.sh"
+"~/.agents/skills/review-deps-prs/scripts/list-dep-prs.sh"
 ```
 
 This discovers repos via `gh repo list` and finds dependency PRs by:

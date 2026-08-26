@@ -33,7 +33,7 @@ These variables are replaced in SKILL.md content before Claude sees it:
 | `$ARGUMENTS[N]` | Specific argument by 0-based index |
 | `$0`, `$1`, `$2` | Shorthand for `$ARGUMENTS[0]`, `$ARGUMENTS[1]`, etc. |
 | `${CLAUDE_SESSION_ID}` | Current session ID |
-| `/Users/you/.agents/skills/create-skill` | Directory containing this skill's SKILL.md |
+| `${CLAUDE_SKILL_DIR}` | Directory containing this skill's SKILL.md |
 
 If `$ARGUMENTS` is not referenced in the content, arguments are appended as `ARGUMENTS: <value>`.
 
@@ -42,7 +42,7 @@ If `$ARGUMENTS` is not referenced in the content, arguments are appended as `ARG
 ```markdown
 Read the file at `$0` and summarize the function at line `$1`.
 
-Use the helper script at `/Users/you/.agents/skills/create-skill/scripts/analyze.py`.
+Use the helper script at `${CLAUDE_SKILL_DIR}/scripts/analyze.py`.
 ```
 
 Invoked as `/my-skill src/main.py 42`, Claude sees:

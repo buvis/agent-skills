@@ -225,7 +225,7 @@ naming its replacement: `grep`/`find`/`cat`/`head`/`tail` (even inside pipes)
 → `rg`/Read/bare-run; a standalone `NAME=value` assignment → inline the value
 (shell state never survives to the next Bash call); a `cd x && y` chain → use
 absolute paths; a bare script path outside a skills dir → invoke via its
-interpreter; an author `$VAR` → inline it or use `/Users/you/.agents/skills/create-skill`. A
+interpreter; an author `$VAR` → inline it or use `${CLAUDE_SKILL_DIR}`. A
 skill that ships commands its own hooks would deny is self-sabotage; this gate
 is where it stops (PRD 00083).
 
@@ -244,7 +244,7 @@ Sharpening a skill that must perform unattended or on another harness is benchma
 
 See [references/platform.md](references/platform.md) for:
 - Skill placement hierarchy (personal, project, enterprise, plugin)
-- String substitutions (`$ARGUMENTS`, `/Users/you/.agents/skills/create-skill`, etc.)
+- String substitutions (`$ARGUMENTS`, `${CLAUDE_SKILL_DIR}`, etc.)
 - Dynamic context injection with shell commands
 - Invocation control matrix
 - Relationship to legacy `.claude/commands/` files

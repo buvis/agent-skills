@@ -23,3 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **braid**: read exclusions from `.braidignore` policy files in each source,
   replacing the single `~/.agents/braid.ignore` file.
+
+### Fixed
+
+- **skills**: replace hardcoded home paths with the portable
+  `~/.agents/skills/<name>/` form, so helper scripts resolve on any machine.
+- **create-skill**: restore the `${CLAUDE_SKILL_DIR}` placeholder that a
+  rendered save had replaced with an absolute path.
+- **create-skill**: run the validator acceptance test against this repository
+  instead of a machine-specific skills directory, and exempt
+  `~/.agents/skills/` from the bare-script-path lint.

@@ -17,9 +17,9 @@ Run the scripts and read the files in parallel; don't serialize.
 **Scripts** (skip on failure, note the gap):
 
 ```bash
-"/Users/you/.agents/skills/catchup/scripts/branch-diff.sh"   # skip if on master
-"/Users/you/.agents/skills/catchup/scripts/github-state.sh"  # skip if no gh / no remote
-"/Users/you/.agents/skills/catchup/scripts/load-memories.sh" # skip if no memories
+"~/.agents/skills/catchup/scripts/branch-diff.sh"   # skip if on master
+"~/.agents/skills/catchup/scripts/github-state.sh"  # skip if no gh / no remote
+"~/.agents/skills/catchup/scripts/load-memories.sh" # skip if no memories
 ```
 
 If a script fails, read it and run its git/gh commands directly.
@@ -126,7 +126,7 @@ Rules: don't restate README/CLAUDE.md/config (already in context). Focus on cros
 Auto-restore the task list from the most-recent prior session. No prompt; silent if nothing to restore.
 
 ```bash
-"/Users/you/.agents/skills/catchup/scripts/list-task-sessions.sh"   # JSON: {"sessions":[...]} or {"error":...}
+"~/.agents/skills/catchup/scripts/list-task-sessions.sh"   # JSON: {"sessions":[...]} or {"error":...}
 ```
 
 Handle the result:
@@ -138,7 +138,7 @@ Handle the result:
 When proceeding, dump the chosen session:
 
 ```bash
-"/Users/you/.agents/skills/catchup/scripts/dump-tasks.sh" <sessionId>   # JSON array of {id,subject,description,activeForm,status,blocks,blockedBy}
+"~/.agents/skills/catchup/scripts/dump-tasks.sh" <sessionId>   # JSON array of {id,subject,description,activeForm,status,blocks,blockedBy}
 ```
 
 For each task in original `id` order: call `TaskCreate` with `subject`, `description`, `activeForm`. Then for any task with non-empty `blockedBy`, call `TaskUpdate` with `addBlockedBy`. Do NOT restore `status` — every restored task starts pending so the new session re-evaluates progress.

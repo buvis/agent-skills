@@ -166,7 +166,8 @@ def lint_bash_commands(content: str) -> list[str]:
         # ~/.claude/skills/**), so those are exempt; a stray path elsewhere is not.
         if ("/" in first or first.startswith("./")) and Path(first).name not in PERMISSION_BINARIES:
             skill_helper = any(m in first for m in (
-                "/.claude/skills/", "${CLAUDE_SKILL_DIR}", "${CLAUDE_PLUGIN_ROOT}", "${CLAUDE_CONFIG_DIR}"))
+                "/.claude/skills/", "/.agents/skills/", "${CLAUDE_SKILL_DIR}",
+                "${CLAUDE_PLUGIN_ROOT}", "${CLAUDE_CONFIG_DIR}"))
             if not skill_helper and re.search(r"\.(py|sh|mjs|js|rb|pl)$", first):
                 errors.append(f"bash `{cmd}`: bare script path `{first}` relies on the exec bit; invoke via its interpreter (e.g. `python3 {first}`)")
         # (e) undocumented $VAR

@@ -81,10 +81,10 @@ PROJECT ORPHANS AUDIT
 
 Project Path                                    Status      Last Session   Disk
 ────────────────────────────────────────────────────────────────────────────────
-/Users/you/.codex                              EXISTS      2026-04-03      8MB
-/Users/you/git/.../acme/webapp                  EXISTS      2026-03-28      4MB
-/Users/you/Downloads/spike-demo                    ORPHAN      2026-01-15      1MB
-/Users/you/vifm/Trash/000/spike-demo               ORPHAN      2025-12-01    512KB
+/Users/you/.codex                             EXISTS      2026-04-03      8MB
+/Users/you/git/.../acme/webapp                 EXISTS      2026-03-28      4MB
+/Users/you/Downloads/spike-demo                ORPHAN      2026-01-15      1MB
+/Users/you/Trash/000/spike-demo                ORPHAN      2025-12-01    512KB
 
 Orphans: 2 configs, ~1.5MB reclaimable
 Dormant (>90 days, not orphaned): 0
