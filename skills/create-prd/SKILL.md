@@ -7,7 +7,18 @@ description: Use when converting a plan, design doc, brainstorming output, or di
 
 Transform a plan or design document into an RPG-compliant PRD and save to the backlog.
 
-**RPG means Repository Planning Graph**: Microsoft Research's method for dependency-aware repository planning (see <https://docs.task-master.dev/capabilities/rpg-method> and `assets/example_prd_rpg.md`). It separates WHAT (functional decomposition) from WHERE (structural decomposition) and connects them with an explicit dependency graph. It does NOT mean role-playing game: a PRD is a plain engineering document. Never add narrative framing, quest logs, or fantasy flavor; downstream tooling (`/plan-tasks`, the review coverage gate) parses the literal section headings, including `#### Feature:`.
+**RPG means Repository Planning Graph**: Microsoft Research's method for dependency-aware repository planning (see <https://docs.task-master.dev/capabilities/rpg-method> and `assets/example_prd_rpg.md`). It separates WHAT (functional decomposition) from WHERE (structural decomposition) and connects them with an explicit dependency graph. It does NOT mean role-playing game: a PRD is a plain engineering document. Never add narrative framing, quest logs, or fantasy flavor; downstream tooling (`/autopilot:plan-tasks`, the review coverage gate) parses the literal section headings, including `#### Feature:`.
+
+## Dependencies
+
+- Plugin skills (`autopilot` plugin), consumers of what this skill writes:
+  `autopilot:plan-tasks` parses the literal section headings and owns
+  `default_model`; `autopilot:run-autopilot` reads the PRD frontmatter at
+  Phase 0; `autopilot:design-solution` runs the `design:` sub-step. Without
+  the plugin the PRD is still valid - only the automated pipeline is missing,
+  so plan and implement it by hand.
+- Personal skill (optional): `spike`, offered by the guess-density gate when
+  the draft is too fuzzy to freeze.
 
 ## Workflow
 
@@ -74,15 +85,15 @@ While drafting, mark every contract detail you invented rather than sourced from
 
 ### Optional frontmatter fields
 
-PRD frontmatter is a YAML block at the top of the file delimited by `---` lines. Seven optional fields are recognized by the autopilot pipeline (six parsed by `/run-autopilot` Phase 0; `default_model` is owned and re-read by `/plan-tasks`):
+PRD frontmatter is a YAML block at the top of the file delimited by `---` lines. Seven optional fields are recognized by the autopilot pipeline (six parsed by `/autopilot:run-autopilot` Phase 0; `default_model` is owned and re-read by `/autopilot:plan-tasks`):
 
 - `catchup: run | skip | force` — controls Phase 1 (Catchup) behavior. `run` (default) honors the batch cache; `skip` bypasses catchup entirely; `force` ignores the batch cache and re-runs full catchup. Use `skip` for PRDs that need no fresh project context (e.g. small docs-only changes). Use `force` after a major structural change you want catchup to pick up.
 - `rework_cap: <int>` — caps how many review-rework cycles Phase 5 will run before pausing. Default `2` (lowered from 3 on 2026-08-01: 13 of 14 completed PRDs ran to cap 3 without converging, so the third cycle was buying ~0.5 real findings for ~25% of review cost). `rework_cap: 5` allows five review cycles before pause. Raise this for genuinely hard PRDs that need more cycles; the default suits most work.
-- `design: run | skip` — controls the Phase 1.5 design sub-step (between catchup and planning). `run` (default) generates a reviewed design doc via `/design-solution` before planning; `skip` bypasses design entirely. Use `skip` for trivial PRDs that need no implementation design.
+- `design: run | skip` — controls the Phase 1.5 design sub-step (between catchup and planning). `run` (default) generates a reviewed design doc via `/autopilot:design-solution` before planning; `skip` bypasses design entirely. Use `skip` for trivial PRDs that need no implementation design.
 - `design_gate: user` — when set, Phase 1.5 PAUSEs for your review of the design doc (summary + unresolved non-blockers) before planning. Absent by default (design runs autonomously, no pause). Set it on PRDs where you want to vet the design before tasks are planned.
 - `doubt_reviewer: codex | fable` — selects the doubt-review (Phase 8) reviewer set for this PRD. `codex` (default) uses the standard codex doubt reviewer; `fable` opts into the Eve (Claude Fable 5) doubt-review leg. Absent by default. (Only adds/parses the flag today; the Phase 8 consumer lands in a follow-on PRD.)
 - `consensus_engine: legacy | shadow | workflow` — selects the engine behind Alice's consensus leg in the review phase. `legacy` (default) runs today's single review subagent. `workflow` runs the `review-fanout` workflow instead: review dimensions in parallel with schema-forced findings, dedup, and adversarial verification of every CRITICAL/HIGH before it can block. `shadow` runs both — legacy Alice gates the cycle and the workflow runs beside her, non-gating, so you can compare before opting in. Absent by default.
-- `default_model: <tier>` — floor for the per-task model tier. Owned by `/plan-tasks` step 4.7 (the single source of truth): `final_tier = max(classifier_tier, default_model)`, re-read from this frontmatter at Phase 6 runtime, never persisted to state. Absent by default (classifier tier passes through).
+- `default_model: <tier>` — floor for the per-task model tier. Owned by `/autopilot:plan-tasks` step 4.7 (the single source of truth): `final_tier = max(classifier_tier, default_model)`, re-read from this frontmatter at Phase 6 runtime, never persisted to state. Absent by default (classifier tier passes through).
 
 Example combining several:
 

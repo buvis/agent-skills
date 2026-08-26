@@ -8,6 +8,13 @@ description: Use when an agent is failing repeatedly, looping on tools, drifting
 A workflow skill, not a hidden runtime: it teaches the agent to debug itself
 systematically before escalating to a human.
 
+## Dependencies
+
+- Plugin skills (`autopilot` plugin), referenced only as escalation pointers
+  and never invoked here: `autopilot:review-work-completion`,
+  `autopilot:review-blindly`. Without the plugin, verify recovered work with
+  whatever review the host offers; nothing in this workflow hard-fails.
+
 ## Scope Boundaries
 
 Activate this skill for:
@@ -17,7 +24,7 @@ Activate this skill for:
 - tool failures likely recoverable with diagnosis and a smaller corrective action
 
 Do not use this skill as the primary source for:
-- feature verification after code changes; use `review-work-completion` or `review-blindly`
+- feature verification after code changes; use `autopilot:review-work-completion` or `autopilot:review-blindly`
 - framework-specific debugging when a narrower skill already exists
 - runtime promises the current harness cannot enforce automatically
 
@@ -86,7 +93,7 @@ plan only if the check supports it.
 
 ## Related Skills
 
-- `review-work-completion` after recovery if code was changed
+- `autopilot:review-work-completion` after recovery if code was changed
 - `convene-council` when the issue is decision ambiguity, not technical failure
 - `git-ferry:resolve-git-conflicts` when the failure came from conflicting local state
 - `git-ferry:catchup` if the failure came from missing project context

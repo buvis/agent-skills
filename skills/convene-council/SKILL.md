@@ -11,6 +11,16 @@ Convene four advisors for ambiguous decisions: the in-context assistant
 Roles table). For **decision-making under ambiguity** only — see When NOT to
 Use.
 
+## Dependencies
+
+- Host capability (hard): three isolated sub-agent or model sessions. Without
+  isolation the anti-anchoring mechanism is gone and the council is theater -
+  run the three roles as separate fresh sessions instead.
+- Plugin skills (`autopilot` plugin), named in When NOT to Use as the better
+  fit for non-decision work, never invoked here: `autopilot:plan-tasks`,
+  `autopilot:review-blindly`, `autopilot:review-work-completion`. Without the
+  plugin those rows simply do not apply.
+
 ## When to Use
 
 Use convene-council when a decision has multiple credible paths and no obvious winner,
@@ -22,10 +32,10 @@ polyrepo, ship now vs hold, feature flag vs full rollout).
 
 | Instead of convene-council | Use |
 | --- | --- |
-| Verifying whether output is correct | `review-with-doubt` or `review-blindly` |
-| Breaking a feature into implementation steps | `plan-tasks` |
-| Reviewing code for bugs or security | `review-blindly` or `review-with-doubt` |
-| Validating completed work | `review-work-completion` |
+| Verifying whether output is correct | `review-with-doubt` or `autopilot:review-blindly` |
+| Breaking a feature into implementation steps | `autopilot:plan-tasks` |
+| Reviewing code for bugs or security | `autopilot:review-blindly` or `review-with-doubt` |
+| Validating completed work | `autopilot:review-work-completion` |
 | Straight factual questions | just answer directly |
 | Obvious execution tasks | just do the task |
 
@@ -51,8 +61,9 @@ Reduce the decision to one explicit prompt:
 
 If the question is vague, ask one clarifying question before convening the
 council. In unattended mode, skip the question, take the stated defaults, and
-log `defaulted:<decision>` in the verdict. Bob's autopilot-specific unattended
-contract is in `~/.agents/skills/run-autopilot/references/unattended-contract.md`.
+log `defaulted:<decision>` in the verdict. Where the `autopilot` plugin is
+installed, its `autopilot:run-autopilot` skill carries a stricter unattended
+contract; follow that one instead.
 
 ### 2. Gather only the necessary context
 

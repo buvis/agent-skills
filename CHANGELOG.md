@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **braid**: read exclusions from `.braidignore` policy files in each source,
   replacing the single `~/.agents/braid.ignore` file.
+- **skills**: declare plugin dependencies in a `## Dependencies` section and
+  namespace plugin skills as `plugin:skill` in `convene-council`, `create-prd`,
+  `debug-stuck-agent`, and `elicit-requirements`.
 
 ### Fixed
 
@@ -33,3 +36,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **create-skill**: run the validator acceptance test against this repository
   instead of a machine-specific skills directory, and exempt
   `~/.agents/skills/` from the bare-script-path lint.
+- **convene-council**: drop the dead pointer to a `run-autopilot` reference
+  file that moved to the autopilot plugin.

@@ -8,13 +8,16 @@ argument-hint: "[<rough idea or path to brainstorming output>]"
 
 Turn a rough idea into a validated discovery document that `/create-prd` can consume. Asks structured questions at adaptive depth, analyzes existing code when relevant, and produces a traceable requirements artifact.
 
-**Pipeline position:** rough idea -> `/elicit-requirements` -> `/review-discovery-doc` -> `/create-prd` -> `/plan-tasks` -> `/run-autopilot`
+**Pipeline position:** rough idea -> `/elicit-requirements` -> `/review-discovery-doc` -> `/create-prd` -> `/autopilot:plan-tasks` -> `/autopilot:run-autopilot`
 
 ## Dependencies
 
 - Personal skills: `spike` (the spike fork runs the spike loop on a second non-answer)
 - Harness tool: `AskUserQuestion`
 - Optional pointers, suggested to the user but never invoked here: `review-discovery-doc`, `create-prd`
+- Plugin skills (`autopilot` plugin), the pipeline downstream of this skill, never invoked here:
+  `autopilot:plan-tasks`, `autopilot:run-autopilot`. Without the plugin the discovery doc still
+  lands; only the automated continuation is missing.
 
 ## Workflow
 
