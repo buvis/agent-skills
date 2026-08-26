@@ -1,6 +1,6 @@
 ---
 name: explain-interactively
-description: Turn a codebase into an interactive HTML course for non-technical learners. Triggers on "turn this into a course", "explain interactively", "codebase walkthrough", "teach this code".
+description: Use when turning a codebase into an interactive HTML course for non-technical learners. Triggers on "turn this into a course", "explain interactively", "codebase walkthrough", "teach this code".
 metadata:
   original-author: zarazhangrui/codebase-to-course
 ---
@@ -23,7 +23,7 @@ When the skill is first triggered and the user hasn't specified a codebase yet, 
 >
 > I'll read through the code, figure out how everything fits together, and generate a beautiful single-page HTML course with animated diagrams, plain-English code explanations, and interactive quizzes. The whole thing runs in your browser — no setup needed.
 
-If the user provides a GitHub link, clone the repo first (`git clone <url> /tmp/<repo-name>`) before starting the analysis. If they say "this codebase" or similar, use the current working directory.
+If the user provides a GitHub link, clone the repo first into the session scratchpad directory (`git clone <url> <scratchpad>/<repo-name>`) before starting the analysis. If they say "this codebase" or similar, use the current working directory.
 
 ## Who This Is For
 

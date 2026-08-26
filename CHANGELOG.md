@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   persona of the same name.
 - **tests**: `uv run pytest` now collects every `test_*.py` a skill ships, which
   brings the previously unrun `audit-security` suite into the default run.
+- **explain-interactively**: lead the description with its trigger, and clone a
+  GitHub source into the session scratchpad instead of `/tmp`.
 - **python-testing**, **rust-patterns**: restore the rulings the plugin twins
   fixed, which the first import had carried over in their thinned form.
 - **apply-design-system**: rename `design-system` to match its strunk twin,
