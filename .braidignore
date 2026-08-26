@@ -14,6 +14,9 @@ python-patterns
 python-testing
 rust-patterns
 rust-testing
+web-patterns
+web-performance
+web-security
 gateguard
 audit-context
 audit-mcp-health
@@ -36,3 +39,11 @@ agent-sort
 restore-tasks
 resume-session
 save-session
+
+# claude-checkup, agoge and the tenth autopilot skill own these on Claude.
+design-solution
+audit-authoring
+audit-claude-config
+audit-config
+audit-filesystem
+run-agoge

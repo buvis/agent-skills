@@ -4,6 +4,7 @@ A Bash tool call starts in its own working directory, so a build script that
 reads relative paths silently assembles the wrong thing (or nothing) when the
 caller is somewhere else. These tests run it from an unrelated cwd.
 """
+
 import subprocess
 from pathlib import Path
 
@@ -11,9 +12,7 @@ BUILD = Path(__file__).resolve().parents[1] / "references" / "build.sh"
 
 
 def run(*args, cwd):
-    return subprocess.run(
-        ["bash", str(BUILD), *args], cwd=cwd, capture_output=True, text=True
-    )
+    return subprocess.run(["bash", str(BUILD), *args], cwd=cwd, capture_output=True, text=True)
 
 
 def make_course(root: Path) -> Path:
