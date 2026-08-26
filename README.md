@@ -81,14 +81,21 @@ Codex discover it directly.
 |---|---|---|---|
 | Claude Code | `~/.claude/skills` | Run `braid`; it creates per-skill links. | Yes - `braid --check` reports zero drift and the links resolve. |
 | GitHub Copilot | `~/.agents/skills` | Native, no extra link. It also reads `~/.copilot/skills`, and per project `.github/skills`, `.agents/skills`, `.claude/skills`. | Yes - `copilot skill --help` lists the source and `copilot skill list` returns the union. |
+| Gemini CLI | `~/.agents/skills` | Native, no extra link. `gemini skills list --all` shows what it found; `gemini skills disable <name>` hides one per host. | Yes - `gemini skills list --all` returns the union, each entry located under `~/.agents/skills/`. |
 | Codex | `~/.agents/skills` | Native, no extra link. | Partly - the binary interns `.agents/skills` beside `.codex/config.toml`, but the CLI has no `skill list`, so nothing has confirmed the listing end to end. |
 | Kiro | `~/.kiro/skills` | Add `skill://~/.agents/skills/*/SKILL.md` to a custom agent, or create equivalent per-skill links. Kiro's import command copies rather than links. | No - `~/.kiro` does not exist here and this row has never been run. |
+| Goose | unknown | Not investigated. | No - not installed here. |
 
-Neither Copilot nor Codex can be pointed away from `~/.agents/skills`: Copilot's
-personal source list is fixed and Codex interns the path. Whatever `braid` links
-into the union is what those two hosts offer, so a name that must not reach them
-has to stay out of `skills/` altogether. That is why the documentation copies of
-runtime-bound plugin skills live in `docs/plugin-skills/`.
+None of the native hosts can be pointed away from `~/.agents/skills`: Copilot's
+personal source list is fixed, Codex interns the path, and Gemini discovers it
+without configuration. Whatever `braid` links into the union is what all three
+offer, so a name that must not reach them has to stay out of `skills/`
+altogether. That is why the documentation copies of runtime-bound plugin skills
+live in `docs/plugin-skills/`.
+
+Gemini is the one host with a native per-skill switch (`gemini skills disable`).
+It is per host and set on that machine, so it is a local override, not a
+substitute for repository policy.
 
 Do not link all of `~/.agents/skills` over `~/.claude/skills`: Claude-only
 skills and plugin-owned skills also live there. `braid` links one skill at a
