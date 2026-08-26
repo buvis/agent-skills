@@ -26,14 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the pre-commit checks.
 - **skills**: publish `web-patterns`, `web-performance`, and `web-security`, the
   three strunk skills that had no copy here at all.
-- **skills**: publish the runtime-bound plugin skills as documentation copies -
-  claude-checkup's `audit-authoring`, `audit-claude-config`, `audit-config` and
-  `audit-filesystem`, agoge's `run-agoge`, and autopilot's ten. They carry the
-  procedure and its references; the scripts, CLI and agents stay in the plugins,
-  and a banner in each says so.
-- **AGENTS.md**: describe the documentation-copy class - what it ships, the
-  banner it carries, and why plugin paths are written `<name-plugin-root>/...`
-  instead of a placeholder that expands to nothing.
+- **docs**: publish the runtime-bound plugin skills as specifications under
+  `docs/plugin-skills/` - claude-checkup's seven audits, agoge's `run-agoge`,
+  and autopilot's seven. They carry the procedure and its references; the
+  scripts, CLI and agents stay in the plugins, and a banner in each says so.
+  They sit outside `skills/`, so no host discovers them as runnable skills.
+- **AGENTS.md**: describe the documentation-copy class - where it lives, what
+  it ships, the banner it carries, and why plugin paths are written
+  `<name-plugin-root>/...` instead of a placeholder that expands to nothing.
 
 ### Removed
 
@@ -54,9 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **braid**: read exclusions from `.braidignore` policy files in each source,
   replacing the single `~/.agents/braid.ignore` file.
-- **audit-context**, **audit-mcp-health**, **audit-sessions**: replace the Codex
-  forks with documentation copies of their claude-checkup twins, which say which
-  config dir they read instead of implying a Codex-native one.
+- **audit-context**, **audit-mcp-health**, **audit-sessions**: retire the Codex
+  forks and keep their claude-checkup twins as specifications under
+  `docs/plugin-skills/`, which say which config dir they read instead of
+  implying a Codex-native one.
 - **skills**: declare plugin dependencies in a `## Dependencies` section and
   namespace plugin skills as `plugin:skill` in `convene-council`, `create-prd`,
   `debug-stuck-agent`, and `elicit-requirements`.

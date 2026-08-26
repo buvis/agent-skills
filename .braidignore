@@ -1,11 +1,16 @@
-# Claude gets these from plugins. Linking standalone copies would create
-# duplicate, unnamespaced commands.
+# Compatibility copies. These run fine on Codex and Copilot, but Claude gets
+# them from a plugin, so linking a standalone copy would create a duplicate,
+# unnamespaced command.
+
+# git-ferry
 catchup
 catchup-upstream
 resolve-git-conflicts
 review-deps-prs
 sync-plan-issue
 watch-ci
+
+# strunk
 apply-design-system
 check-python-compat
 e2e-testing
@@ -17,27 +22,11 @@ rust-testing
 web-patterns
 web-performance
 web-security
+
+# aegis
 gateguard
-audit-context
-audit-mcp-health
-audit-sessions
 
-# claude-checkup and agoge own these on Claude.
-audit-authoring
-audit-claude-config
-audit-config
-audit-filesystem
-run-agoge
-
-# The autopilot plugin owns these on Claude. The copies here carry the
-# procedure only; the scripts, CLI and reviewer agents stay in the plugin.
-design-solution
-plan-tasks
-review-blindly
-review-plan
-review-work-completion
-run-autopilot
+# autopilot
 use-codex
 use-gemini
 use-sonnet
-work
