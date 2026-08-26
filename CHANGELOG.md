@@ -51,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   brings the previously unrun `audit-security` suite into the default run.
 - **explain-interactively**: lead the description with its trigger, and clone a
   GitHub source into the session scratchpad instead of `/tmp`.
+- **explain-interactively**: `build.sh` takes the course directory as an argument
+  and resolves every path from it, so assembling no longer depends on the caller
+  having changed into the course directory first. It refuses, without writing,
+  when the argument is missing or the directory has no `modules/`.
 - **python-testing**, **rust-patterns**: restore the rulings the plugin twins
   fixed, which the first import had carried over in their thinned form.
 - **apply-design-system**: rename `design-system` to match its strunk twin,

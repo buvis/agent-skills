@@ -188,14 +188,18 @@ Each agent writes its module file(s) to `course-name/modules/`. Short modules (3
 
 After all agents finish, do a quick consistency check in the main context: nav dots match modules, transitions between modules are coherent, no obvious tone shifts.
 
-**Step 4 (both paths): Assemble** — Set the shell tool's working directory to
-the course directory and run:
+**Step 4 (both paths): Assemble** — Run `build.sh` with the course directory as
+its argument. It resolves every path from that argument, so there is no `cd` and
+no dependence on the working directory (a fresh Bash call starts wherever it
+likes):
 
 ```bash
-bash build.sh
+bash <abs-path>/course-name/build.sh <abs-path>/course-name
 ```
 
-This produces `index.html`. Open it in the browser.
+This produces `course-name/index.html`. Open it in the browser. The script exits
+non-zero without writing anything if the argument is missing or the directory has
+no `modules/`.
 
 **Critical rules:**
 
