@@ -164,8 +164,8 @@ The current tree uses these compatibility classes:
 - **Portable compatibility copy** — the skill is owned by a Claude plugin, but
   a standalone copy remains under `~/.agents` for agents without that plugin.
   It is skipped when projecting back to Claude.
-- **Personal runtime** — callable from another assistant, but depends on Bob's
-  Claude/autoclaude files, wrappers, quotas, or review protocol.
+- **Personal runtime** — callable from another assistant, but depends on this
+  author's Claude/autoclaude files, wrappers, quotas, or review protocol.
 - **Codex-specific / Claude-specific** — depends on that host's config,
   transcript format, hook lifecycle, or tool names. The frontmatter says so and
   `.braidignore` prevents an invalid projection where needed.

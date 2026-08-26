@@ -41,3 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `~/.agents/skills/` from the bare-script-path lint.
 - **convene-council**: drop the dead pointer to a `run-autopilot` reference
   file that moved to the autopilot plugin.
+- **skills**: describe the personal-runtime compatibility class without naming
+  the author, which also removes the collision with the autopilot reviewer
+  persona of the same name.

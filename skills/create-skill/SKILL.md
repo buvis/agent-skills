@@ -1,7 +1,7 @@
 ---
 name: create-skill
 description: Use when running the skill validator or applying frontmatter conventions (trigger-led description, <=250 chars). Triggers on "validate skill", "skill validator", "skill-creator", "create skill", "lint skill", "skill compliance", "sharpen skill".
-compatibility: "Portable Agent Skills authoring; the bundled validator also contains Bob Claude Code live-profile lints."
+compatibility: "Portable Agent Skills authoring; the bundled validator also carries opinionated Claude Code live-profile lints."
 ---
 
 # Skill Creator

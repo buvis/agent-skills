@@ -1,7 +1,7 @@
 ---
 name: catchup-ecc
 description: Use when scanning new commits in the external affaan-m/everything-claude-code repo for ideas worth adopting. Triggers on "catchup ecc", "check ecc", "what is new in ecc", "check affaan".
-compatibility: "Requires Bob personal Claude/autoclaude environment or equivalent host adapters for sub-agents, state, and review handoffs."
+compatibility: "Requires this author's personal Claude/autoclaude environment, or equivalent host adapters for sub-agents, state, and review handoffs."
 ---
 
 # Catchup ECC
