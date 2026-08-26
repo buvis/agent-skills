@@ -32,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   references; the scripts, CLI, hooks and agents stay in the plugins, and a
   banner in each says so. They sit outside `skills/`, so no host discovers them
   as runnable skills.
+- **skills**: publish `brief-portfolio` and `use-qwen`. `brief-portfolio` needed
+  only its asset paths rewritten; its Claude-config-maintenance row now reports
+  "never" off Claude Code and says so. `use-qwen` needed more: two helper
+  scripts resolved a root by walking three levels up, which lands on `~/.agents`
+  through the link farm, and `promote-default.sh` copied a file it never checked
+  existed, so a promotion silently skipped updating the integration doc. Both
+  fixed; its 99 shell tests pass from the new location.
 - **skills**: publish `assess-evolution` and `debrief-meeting`, the two
   Claude-only skills whose coupling turned out to be cosmetic. Both now reach
   Codex, Copilot and Gemini: `assess-evolution` lost a `~/.claude/rules/`
@@ -46,11 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it ships, the banner it carries, and why plugin paths are written
   `<name-plugin-root>/...` instead of a placeholder that expands to nothing.
 
-- **work**: correct the qwen helper paths in the documentation copy, which named
-  `~/.agents/skills/use-qwen/` for the helper, the approved-model registry and
-  the regression suite. `use-qwen` is a Claude-only skill under
-  `~/.claude/skills/` and was never composed into the union, so all three
-  resolved to nothing. Fixed upstream in the autopilot plugin first.
+- **work**: the qwen helper paths in the documentation copy resolve again. They
+  named `~/.agents/skills/use-qwen/` while `use-qwen` sat outside the union, so
+  all three pointed at nothing. Publishing `use-qwen` here fixes it at the
+  source; the copy is byte-identical to the released plugin again.
 - **tests**: guard skill placement - no skill in `skills/` may declare itself
   Claude-only, and every documentation copy must carry its banner, its
   `Documentation copy of the <plugin> plugin skill` line, a
