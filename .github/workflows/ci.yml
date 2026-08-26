@@ -26,7 +26,7 @@ jobs:
 
       # enable-cache defaults to "auto", which caches on GitHub-hosted runners
       # for every event this workflow triggers on.
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.0.1
 
       - name: Run the suite
         run: uv run --python ${{ matrix.python-version }} pytest
@@ -38,7 +38,7 @@ jobs:
 
       # enable-cache defaults to "auto", which caches on GitHub-hosted runners
       # for every event this workflow triggers on.
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.0.1
 
       - name: Lint braid
         run: uv run ruff check
