@@ -22,11 +22,11 @@ jobs:
         # The floor from pyproject's requires-python, and current.
         python-version: ["3.10", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
+      # enable-cache defaults to "auto", which caches on GitHub-hosted runners
+      # for every event this workflow triggers on.
+      - uses: astral-sh/setup-uv@v10
 
       - name: Run the suite
         run: uv run --python ${{ matrix.python-version }} pytest
@@ -34,11 +34,11 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
+      # enable-cache defaults to "auto", which caches on GitHub-hosted runners
+      # for every event this workflow triggers on.
+      - uses: astral-sh/setup-uv@v10
 
       - name: Lint braid
         run: uv run ruff check
