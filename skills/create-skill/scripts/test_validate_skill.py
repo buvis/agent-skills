@@ -41,6 +41,21 @@ def test_bare_script_path_flagged_but_skill_helpers_exempt():
     assert lint_bash_commands(block("python3 ${CLAUDE_SKILL_DIR}/scripts/run.py")) == []
 
 
+def test_only_a_script_suffix_is_flagged_never_a_binary_name():
+    """What exempts a path is having no script suffix, not being a known binary.
+
+    A list of allowlisted binary names used to sit here and could never fire:
+    its entries were extensionless, and the check only flags script suffixes,
+    so the two conditions were mutually exclusive. It leaked one machine's
+    permission config into a public repo for nothing.
+    """
+    # extensionless binary paths pass, whether or not the name is well known
+    assert lint_bash_commands(block("/opt/tools/git --version")) == []
+    assert lint_bash_commands(block("/opt/tools/some-private-tool --dump")) == []
+    # a script suffix is flagged even when the stem is a household binary name
+    assert any("bare script path" in e for e in lint_bash_commands(block("/opt/tools/git.sh")))
+
+
 def test_undocumented_shell_var_flagged_but_substitutions_allowed():
     assert any("$F" in e for e in lint_bash_commands(block("rm -rf $F")))
     for good in ("${CLAUDE_SKILL_DIR}", "$PWD", "$HOME", "$ARGUMENTS", "${CLAUDE_PLUGIN_ROOT}"):

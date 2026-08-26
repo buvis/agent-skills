@@ -65,19 +65,12 @@ AEGIS_DENY = {
     "head": "run the command bare (Bash truncates) or redirect to a file and Read it",
     "tail": "run the command bare (Bash truncates) or redirect to a file and Read it",
 }
-# Binaries the settings.json permission allowlist recognizes as a prefix. A
-# bare path first-token whose basename is not one of these relies on the exec
-# bit + shebang and trips the permission gate; invoke via an interpreter.
-PERMISSION_BINARIES = {
-    "git", "rm", "gh", "cargo", "node", "python", "python3", "pip", "npm",
-    "pnpm", "npx", "yarn", "uv", "uvx", "ruff", "mypy", "pytest", "showboat",
-    "zdb", "ast-grep", "mdbook", "codex", "copilot", "claude", "mise", "curl",
-    "ls", "bash", "pwd", "cat", "echo", "rg", "wc", "sort", "diff", "tree",
-    "which", "xxd", "test", "timeout", "lsof", "dig", "ffmpeg", "ffprobe",
-    "mkdocs", "rmdir", "shellcheck", "rustc", "gpgconf", "ddb", "cp", "mv",
-    "mkdir", "touch", "sed", "awk", "kill", "pkill", "docker", "kubectl",
-    "sqlite3", "jq", "stat", "du",
-}
+# A bare script path relies on the exec bit + shebang and trips the permission
+# gate; invoke it via an interpreter. Only the script extensions below are
+# flagged, so an extensionless binary path is left alone - there is no
+# allowlist of binary names to keep, and a machine's own permission config
+# stays out of this repository.
+SCRIPT_SUFFIX_RE = re.compile(r"\.(py|sh|mjs|js|rb|pl)$")
 # $VAR names that ARE a documented substitution or an always-set env var; every
 # other $NAME in a fenced block is an author variable that a fresh Bash call
 # leaves unset (shell state never persists between calls).
@@ -164,11 +157,11 @@ def lint_bash_commands(content: str) -> list[str]:
         # (d) bare unallowlisted script path invoked directly. A skill invoking a
         # helper under a skills dir is the documented pattern (warden allows
         # ~/.claude/skills/**), so those are exempt; a stray path elsewhere is not.
-        if ("/" in first or first.startswith("./")) and Path(first).name not in PERMISSION_BINARIES:
+        if "/" in first or first.startswith("./"):
             skill_helper = any(m in first for m in (
                 "/.claude/skills/", "/.agents/skills/", "${CLAUDE_SKILL_DIR}",
                 "${CLAUDE_PLUGIN_ROOT}", "${CLAUDE_CONFIG_DIR}"))
-            if not skill_helper and re.search(r"\.(py|sh|mjs|js|rb|pl)$", first):
+            if not skill_helper and SCRIPT_SUFFIX_RE.search(first):
                 errors.append(f"bash `{cmd}`: bare script path `{first}` relies on the exec bit; invoke via its interpreter (e.g. `python3 {first}`)")
         # (e) undocumented $VAR
         for name in _VAR_RE.findall(scan):

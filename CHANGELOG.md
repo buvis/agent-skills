@@ -94,6 +94,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **create-skill**: drop the `PERMISSION_BINARIES` allowlist from the validator.
+  Every entry was extensionless while the check it fed only flags script
+  suffixes, so the two conditions were mutually exclusive and the list could
+  never change a verdict - it just published one machine's permission config,
+  private tool names included. A test now pins the real rule: a script suffix
+  is flagged, an extensionless binary path is not, whatever it is called.
 - **skills**: replace hardcoded home paths with the portable
   `~/.agents/skills/<name>/` form, so helper scripts resolve on any machine.
 - **create-skill**: restore the `${CLAUDE_SKILL_DIR}` placeholder that a
