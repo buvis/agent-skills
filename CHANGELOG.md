@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   privileges are unavailable.
 - **braid**: ship as an installable package (`uv tool install --editable .`)
   exposing a `braid` command.
+- **skills**: migrate `spike`, `review-design-doc`, `review-discovery-doc`, and
+  `review-prd-backlog` from the Claude-only tree, so the skills that reference
+  them are no longer pointing at something a user cannot obtain.
 - **AGENTS.md**: repository working rules covering portable path references,
   the `${CLAUDE_SKILL_DIR}` substitution trap, plugin dependency declarations,
   and the pre-commit checks.
@@ -44,3 +47,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **skills**: describe the personal-runtime compatibility class without naming
   the author, which also removes the collision with the autopilot reviewer
   persona of the same name.
+- **tests**: `uv run pytest` now collects every `test_*.py` a skill ships, which
+  brings the previously unrun `audit-security` suite into the default run.

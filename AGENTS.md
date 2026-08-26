@@ -74,9 +74,10 @@ uv run python3 skills/create-skill/scripts/validate_skill.py skills/<changed-ski
 braid --check
 ```
 
-`uv run pytest` covers both suites: `tests/` for braid, and
-`skills/create-skill/scripts/` for the skill validator, whose acceptance test
-runs every skill in this repo through the live-profile bash lint.
+`uv run pytest` collects `tests/` for braid plus every `test_*.py` a skill
+ships under `skills/`. A skill that adds tests is picked up with no config
+change. One of them, the `create-skill` validator's acceptance test, runs every
+skill in this repo through the live-profile bash lint.
 
 This repository is public. Keep personal paths, usernames, hostnames,
 employer names, and private project names out of it, including inside

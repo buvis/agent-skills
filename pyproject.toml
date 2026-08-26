@@ -24,7 +24,7 @@ packages = ["src/agent_skills_braid"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
-testpaths = ["tests", "skills/create-skill/scripts"]
+testpaths = ["tests", "skills"]
 
 [tool.ruff]
 extend-exclude = ["skills"]
