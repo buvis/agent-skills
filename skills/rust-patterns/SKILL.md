@@ -12,12 +12,12 @@ Pick a side. These are the rulings, not a tutorial.
 
 | Rule | Why |
 |------|-----|
-| Borrow, don't clone | Pass `&T` unless you must own. |
+| Borrow, don't clone | Pass `&T` unless you must own. Never clone to satisfy the borrow checker without understanding the root cause. |
 | Make illegal states unrepresentable | Model only valid states with enums. |
-| `?` over `unwrap()` | Propagate; never panic in production paths. |
+| `?` over `unwrap()` | Propagate; never panic in production paths. Reserve `unwrap()`/`expect()` for tests and truly unreachable states. |
 | Parse, don't validate | Convert unstructured input to typed structs at the boundary. |
 | Newtype for type safety | Wrap primitives so arguments can't be swapped. |
-| Iterators over loops | Declarative chains are clearer and often faster. |
+| Iterators over loops | Iterator chains for transformations; loops for complex control flow. |
 | `#[must_use]` on `Result`-like returns | Force callers to handle them. |
 | `Cow<'_, T>` for maybe-owned data | Skip allocation when borrowing suffices. |
 | Exhaustive matching | No wildcard `_` on business-critical enums — the compiler should force new variants on you. |

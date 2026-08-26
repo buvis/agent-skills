@@ -29,8 +29,7 @@ TDD: write the failing test (RED), make it pass (GREEN), refactor. One behavior 
 **Config**
 - One config in `pyproject.toml` (`[tool.pytest.ini_options]`), not a separate `pytest.ini`.
 - `--strict-markers` so a typo'd marker fails instead of silently passing.
-- Register custom markers (`slow`, `integration`).
-- Categorise with `@pytest.mark.unit` / `@pytest.mark.integration`, and register them so `--strict-markers` catches a typo.
+- Register custom markers — e.g. `slow`, `@pytest.mark.unit`, `@pytest.mark.integration` — so `--strict-markers` catches a typo.
 - Coverage locally: `pytest --cov=src --cov-report=term-missing` — the missing-line report is the point; a bare percentage is not actionable.
 
 **Async (pytest-asyncio)**

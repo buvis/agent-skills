@@ -6,6 +6,7 @@ resolve-git-conflicts
 review-deps-prs
 sync-plan-issue
 watch-ci
+apply-design-system
 check-python-compat
 e2e-testing
 frontend-patterns
