@@ -75,9 +75,19 @@ SCRIPT_SUFFIX_RE = re.compile(r"\.(py|sh|mjs|js|rb|pl)$")
 # other $NAME in a fenced block is an author variable that a fresh Bash call
 # leaves unset (shell state never persists between calls).
 ALLOWED_SUBST = {
-    "CLAUDE_SKILL_DIR", "CLAUDE_PLUGIN_ROOT", "CLAUDE_PROJECT_DIR",
-    "CLAUDE_CONFIG_DIR", "ARGUMENTS", "HOME", "PWD", "USER", "PATH", "SHELL",
-    "TMPDIR", "NTFY_URL", "NTFY_TOPIC",
+    "CLAUDE_SKILL_DIR",
+    "CLAUDE_PLUGIN_ROOT",
+    "CLAUDE_PROJECT_DIR",
+    "CLAUDE_CONFIG_DIR",
+    "ARGUMENTS",
+    "HOME",
+    "PWD",
+    "USER",
+    "PATH",
+    "SHELL",
+    "TMPDIR",
+    "NTFY_URL",
+    "NTFY_TOPIC",
 }
 
 _QUOTED_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
@@ -97,7 +107,7 @@ def _first_token(segment: str) -> str:
         m = _SUBSHELL_OPEN_RE.match(seg)
         if not m:
             break
-        seg = seg[m.end():].lstrip()
+        seg = seg[m.end() :].lstrip()
     tokens = re.split(r"\s+", seg) if seg else []
     i = 0
     while i < len(tokens) and _ASSIGN_RE.match(tokens[i]):
@@ -141,32 +151,49 @@ def lint_bash_commands(content: str) -> list[str]:
         for seg in segments:
             tok = _first_token(seg)
             if tok in AEGIS_DENY:
-                errors.append(f"bash `{cmd}`: `{tok}` is denied by aegis prefer_tools - {AEGIS_DENY[tok]}")
+                errors.append(
+                    f"bash `{cmd}`: `{tok}` is denied by aegis prefer_tools - {AEGIS_DENY[tok]}"
+                )
                 break
         first = _first_token(segments[0]) if segments else ""
         # (b) STANDALONE shell-variable assignment (whole command is NAME=value).
         # A self-contained env-prefix (`FOO=bar cmd`) is left alone - it does not
         # rely on shell state surviving to the next call, which is the anti-pattern.
         if _ASSIGN_RE.match(scan.strip()) and len(scan.strip().split()) == 1:
-            errors.append(f"bash `{cmd}`: standalone shell-variable assignment - shell state does not persist between Bash calls; inline the value at each use site")
+            errors.append(
+                f"bash `{cmd}`: standalone shell-variable assignment - shell state does not persist between Bash calls; inline the value at each use site"
+            )
         # (c) cd chain
         for seg in segments:
             if _first_token(seg) == "cd" and len(segments) > 1:
-                errors.append(f"bash `{cmd}`: `cd` chain - cwd persists across Bash calls and breaks hooks; use absolute paths, no `cd`")
+                errors.append(
+                    f"bash `{cmd}`: `cd` chain - cwd persists across Bash calls and breaks hooks; use absolute paths, no `cd`"
+                )
                 break
         # (d) bare unallowlisted script path invoked directly. A skill invoking a
         # helper under a skills dir is the documented pattern (warden allows
         # ~/.claude/skills/**), so those are exempt; a stray path elsewhere is not.
         if "/" in first or first.startswith("./"):
-            skill_helper = any(m in first for m in (
-                "/.claude/skills/", "/.agents/skills/", "${CLAUDE_SKILL_DIR}",
-                "${CLAUDE_PLUGIN_ROOT}", "${CLAUDE_CONFIG_DIR}"))
+            skill_helper = any(
+                m in first
+                for m in (
+                    "/.claude/skills/",
+                    "/.agents/skills/",
+                    "${CLAUDE_SKILL_DIR}",
+                    "${CLAUDE_PLUGIN_ROOT}",
+                    "${CLAUDE_CONFIG_DIR}",
+                )
+            )
             if not skill_helper and SCRIPT_SUFFIX_RE.search(first):
-                errors.append(f"bash `{cmd}`: bare script path `{first}` relies on the exec bit; invoke via its interpreter (e.g. `python3 {first}`)")
+                errors.append(
+                    f"bash `{cmd}`: bare script path `{first}` relies on the exec bit; invoke via its interpreter (e.g. `python3 {first}`)"
+                )
         # (e) undocumented $VAR
         for name in _VAR_RE.findall(scan):
             if name not in ALLOWED_SUBST and not name.isdigit():
-                errors.append(f"bash `{cmd}`: `${name}` is an author shell variable a fresh Bash call leaves unset; inline the path or use ${{CLAUDE_SKILL_DIR}}")
+                errors.append(
+                    f"bash `{cmd}`: `${name}` is an author shell variable a fresh Bash call leaves unset; inline the path or use ${{CLAUDE_SKILL_DIR}}"
+                )
                 break
     return errors
 
@@ -226,17 +253,12 @@ def validate_skill(skill_path: Path) -> tuple[list[str], list[str]]:
                 )
             elif name.startswith("-") or name.endswith("-") or "--" in name:
                 errors.append(
-                    f"name '{name}' cannot start/end with hyphen "
-                    "or contain consecutive hyphens"
+                    f"name '{name}' cannot start/end with hyphen or contain consecutive hyphens"
                 )
             if len(name) > MAX_SKILL_NAME_LENGTH:
-                errors.append(
-                    f"name is too long ({len(name)} chars, max {MAX_SKILL_NAME_LENGTH})"
-                )
+                errors.append(f"name is too long ({len(name)} chars, max {MAX_SKILL_NAME_LENGTH})")
             if name != skill_path.name:
-                warnings.append(
-                    f"name '{name}' does not match directory name '{skill_path.name}'"
-                )
+                warnings.append(f"name '{name}' does not match directory name '{skill_path.name}'")
 
     # Validate description
     description = frontmatter.get("description", "")
@@ -296,7 +318,7 @@ def validate_skill(skill_path: Path) -> tuple[list[str], list[str]]:
             errors.append(f"paths must be a string or list, got {type(paths).__name__}")
 
     # Check body
-    body = content[match.end():].strip()
+    body = content[match.end() :].strip()
     if not body:
         warnings.append("SKILL.md body is empty - add instructions")
     elif re.search(r"^TODO:", body, re.MULTILINE):

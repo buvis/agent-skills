@@ -1,4 +1,5 @@
 """Tests for validate_skill.py's live-profile bash lints (PRD 00083)."""
+
 import sys
 from pathlib import Path
 
@@ -35,7 +36,9 @@ def test_bare_script_path_flagged_but_skill_helpers_exempt():
     assert any("bare script path" in e for e in lint_bash_commands(block("/tmp/deploy.sh --go")))
     assert any("bare script path" in e for e in lint_bash_commands(block("./run.py")))
     # a skill's own helper (warden allows ~/.claude/skills/**) is the documented pattern
-    assert lint_bash_commands(block("~/.claude/skills/use-codex/scripts/codex-run.sh -f /tmp/p")) == []
+    assert (
+        lint_bash_commands(block("~/.claude/skills/use-codex/scripts/codex-run.sh -f /tmp/p")) == []
+    )
     # the cross-agent union path is the portable form of the same pattern
     assert lint_bash_commands(block("~/.agents/skills/catchup/scripts/branch-diff.sh")) == []
     assert lint_bash_commands(block("python3 ${CLAUDE_SKILL_DIR}/scripts/run.py")) == []
@@ -82,6 +85,9 @@ def test_all_personal_skills_pass():
     """Acceptance: every shipped personal skill survives the extended validator."""
     skills = sorted(Path(__file__).resolve().parents[2].glob("*/SKILL.md"))
     assert len(skills) >= 30  # sanity: we actually found the corpus
-    offenders = {s.parent.name: lint_bash_commands(s.read_text())
-                 for s in skills if lint_bash_commands(s.read_text())}
+    offenders = {
+        s.parent.name: lint_bash_commands(s.read_text())
+        for s in skills
+        if lint_bash_commands(s.read_text())
+    }
     assert offenders == {}, offenders

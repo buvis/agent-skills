@@ -31,6 +31,28 @@ jobs:
       - name: Run the suite
         run: uv run --python ${{ matrix.python-version }} pytest
 
+  # Five skills ship bash suites their helper scripts are the subject of.
+  # pytest never sees them, so without this job they pass or fail invisibly.
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run every skill's shell suite
+        run: |
+          status=0
+          for suite in skills/*/scripts/test_*.sh; do
+            echo "::group::$suite"
+            if bash "$suite"; then
+              echo "::endgroup::"
+            else
+              echo "::endgroup::"
+              echo "::error file=$suite::shell suite failed"
+              status=1
+            fi
+          done
+          exit $status
+
   lint:
     runs-on: ubuntu-latest
     steps:

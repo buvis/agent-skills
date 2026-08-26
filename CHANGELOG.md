@@ -64,6 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is the `gateguard` case, which reached three hosts because nothing checked it.
 - **ci**: run the suite on Python 3.10 and 3.13, plus `ruff check`,
   `ruff format --check`, and the skill validator over every skill.
+- **ci**: run every skill's bash suite too. Five skills ship one
+  (`use-codex`, `use-gemini`, `use-sonnet`, and `use-qwen`'s two, 172 tests
+  between them) and pytest never sees them, so until now they passed or failed
+  invisibly while CI reported green.
 
 ### Removed
 
