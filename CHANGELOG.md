@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   privileges are unavailable.
 - **braid**: ship as an installable package (`uv tool install --editable .`)
   exposing a `braid` command.
+- **AGENTS.md**: repository working rules covering portable path references,
+  the `${CLAUDE_SKILL_DIR}` substitution trap, plugin dependency declarations,
+  and the pre-commit checks.
 
 ### Changed
 
