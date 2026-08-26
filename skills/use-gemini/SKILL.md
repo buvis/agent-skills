@@ -1,15 +1,15 @@
 ---
 name: use-gemini
 description: Use when running Google Gemini via the native Gemini CLI for code analysis, refactoring, or editing. Triggers on "run gemini", "gemini analyze", "ask gemini".
-compatibility: "Documentation copy of the autopilot plugin skill; the dispatch recipe is host-independent, but the named model CLI and the helper scripts it calls ship only in that plugin."
+compatibility: "Portable standalone compatibility copy of the autopilot plugin skill; it ships its own helper script and needs the named model CLI on PATH. Claude Code uses the namespaced plugin skill."
 ---
 
-> **Paths in this pack.** This copy carries the procedure, not the code. Every
-> path written as `<autopilot-plugin-root>/...` resolves against the autopilot
-> plugin's installed root; substitute it yourself before running anything, here
-> and in the `references/` files. Without that plugin, read this as the
-> specification rather than a runnable procedure.
-> Bare `scripts/`, `cli/`, `prompts/` and `agents/` paths are plugin-relative too.
+> **Paths in this pack.** The helper this skill runs ships here, under
+> `~/.agents/skills/use-gemini/scripts/`. A path written as
+> `<autopilot-plugin-root>/...` is the exception: it lives in the autopilot
+> plugin, which ships the rest of the pack, and that step is unavailable without
+> it. Substitute the plugin's root yourself; never pass the literal marker to a
+> shell.
 
 # Gemini Skill Guide
 
@@ -25,7 +25,7 @@ stable flag interface onto two backends and resolves the mise-managed binary.
 ## Dependencies
 
 - Files read from other skill dirs:
-  `<autopilot-plugin-root>/skills/use-codex/references/dispatch-contract.md` - mandatory,
+  `~/.agents/skills/use-codex/references/dispatch-contract.md` - mandatory,
   applies verbatim (see below)
 - CLIs: `copilot` (preferred - the only backend serving
   `gemini-3.1-pro-preview`) or the native `gemini` CLI; `mise which` for
@@ -33,7 +33,7 @@ stable flag interface onto two backends and resolves the mise-managed binary.
 
 ## Dispatch Contract (shared)
 
-Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `<autopilot-plugin-root>/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
+Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `~/.agents/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
 
 Gemini-specific delta: if the helper reports no backend CLI found, or the Copilot monthly quota is exhausted, report that and stop - do not silently fall back to another tool. For a quota error you may offer `GEMINI_BACKEND=gemini` (native CLI) as an alternative.
 
@@ -83,16 +83,16 @@ Gotcha: in repos where `dev/local` is a symlink outside the workspace (buvis con
 
 ```bash
 # Write prompt to temp file (see the shared dispatch contract), then run
-bash <autopilot-plugin-root>/skills/use-gemini/scripts/gemini-run.sh -f /tmp/gemini-prompt.txt
+bash ~/.agents/skills/use-gemini/scripts/gemini-run.sh -f /tmp/gemini-prompt.txt
 
 # With auto-approve edit tools
-bash <autopilot-plugin-root>/skills/use-gemini/scripts/gemini-run.sh -a -f /tmp/gemini-prompt.txt
+bash ~/.agents/skills/use-gemini/scripts/gemini-run.sh -a -f /tmp/gemini-prompt.txt
 
 # Full permissions (all tools)
-bash <autopilot-plugin-root>/skills/use-gemini/scripts/gemini-run.sh -y -f /tmp/gemini-prompt.txt
+bash ~/.agents/skills/use-gemini/scripts/gemini-run.sh -y -f /tmp/gemini-prompt.txt
 
 # Resume most recent session
-bash <autopilot-plugin-root>/skills/use-gemini/scripts/gemini-run.sh -c
+bash ~/.agents/skills/use-gemini/scripts/gemini-run.sh -c
 ```
 
-Run `<autopilot-plugin-root>/skills/use-gemini/scripts/gemini-run.sh --help` for all options.
+Run `~/.agents/skills/use-gemini/scripts/gemini-run.sh --help` for all options.

@@ -1,15 +1,15 @@
 ---
 name: use-sonnet
 description: Use when running Anthropic Claude Sonnet via the native claude CLI (headless) for code analysis, refactoring, or editing. Triggers on "run sonnet", "sonnet analyze", "ask sonnet".
-compatibility: "Documentation copy of the autopilot plugin skill; the dispatch recipe is host-independent, but the named model CLI and the helper scripts it calls ship only in that plugin."
+compatibility: "Portable standalone compatibility copy of the autopilot plugin skill; it ships its own helper script and needs the named model CLI on PATH. Claude Code uses the namespaced plugin skill."
 ---
 
-> **Paths in this pack.** This copy carries the procedure, not the code. Every
-> path written as `<autopilot-plugin-root>/...` resolves against the autopilot
-> plugin's installed root; substitute it yourself before running anything, here
-> and in the `references/` files. Without that plugin, read this as the
-> specification rather than a runnable procedure.
-> Bare `scripts/`, `cli/`, `prompts/` and `agents/` paths are plugin-relative too.
+> **Paths in this pack.** The helper this skill runs ships here, under
+> `~/.agents/skills/use-sonnet/scripts/`. A path written as
+> `<autopilot-plugin-root>/...` is the exception: it lives in the autopilot
+> plugin, which ships the rest of the pack, and that step is unavailable without
+> it. Substitute the plugin's root yourself; never pass the literal marker to a
+> shell.
 
 # Sonnet Skill Guide
 
@@ -18,7 +18,7 @@ Sonnet is accessed via the native `claude` CLI (headless `-p`). The helper scrip
 ## Dependencies
 
 - Files read from other skill dirs:
-  `<autopilot-plugin-root>/skills/use-codex/references/dispatch-contract.md` - mandatory,
+  `~/.agents/skills/use-codex/references/dispatch-contract.md` - mandatory,
   applies verbatim (see below)
   - `<autopilot-plugin-root>/skills/run-autopilot/scripts/detect_usage_limit.py` - optional,
     for a deterministic reset-epoch parse of a usage-limit banner (see
@@ -27,7 +27,7 @@ Sonnet is accessed via the native `claude` CLI (headless `-p`). The helper scrip
 
 ## Dispatch Contract (shared)
 
-Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `<autopilot-plugin-root>/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
+Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `~/.agents/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
 
 ## Usage-limit banner (claude backend only)
 
@@ -74,22 +74,22 @@ Background dispatch and waiting (TaskOutput-only waiting), following up, error h
 
 ```bash
 # Write prompt to temp file (see the shared dispatch contract), then run
-bash <autopilot-plugin-root>/skills/use-sonnet/scripts/sonnet-run.sh -f /tmp/sonnet-prompt.txt
+bash ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -f /tmp/sonnet-prompt.txt
 
 # With auto-approve edits (Bash still gated)
-bash <autopilot-plugin-root>/skills/use-sonnet/scripts/sonnet-run.sh -a -f /tmp/sonnet-prompt.txt
+bash ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -a -f /tmp/sonnet-prompt.txt
 
 # Override model (only after user approval - costlier tier)
-bash <autopilot-plugin-root>/skills/use-sonnet/scripts/sonnet-run.sh -m opus -f /tmp/sonnet-prompt.txt
+bash ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -m opus -f /tmp/sonnet-prompt.txt
 
 # Full permissions
-bash <autopilot-plugin-root>/skills/use-sonnet/scripts/sonnet-run.sh -y -f /tmp/sonnet-prompt.txt
+bash ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -f /tmp/sonnet-prompt.txt
 
 # Resume session
-bash <autopilot-plugin-root>/skills/use-sonnet/scripts/sonnet-run.sh -r
+bash ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -r
 
 # Capture output to file
-bash <autopilot-plugin-root>/skills/use-sonnet/scripts/sonnet-run.sh -a -o /tmp/result.txt -f /tmp/sonnet-prompt.txt
+bash ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -a -o /tmp/result.txt -f /tmp/sonnet-prompt.txt
 ```
 
-Run `<autopilot-plugin-root>/skills/use-sonnet/scripts/sonnet-run.sh --help` for all options.
+Run `~/.agents/skills/use-sonnet/scripts/sonnet-run.sh --help` for all options.

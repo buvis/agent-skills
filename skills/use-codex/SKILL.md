@@ -1,16 +1,15 @@
 ---
 name: use-codex
 description: Use when running OpenAI Codex via the codex CLI (copilot CLI fallback) for code analysis, refactoring, or editing. Triggers on "run codex", "codex analyze", "ask codex", "copilot with codex".
-compatibility: "Documentation copy of the autopilot plugin skill; the dispatch recipe is host-independent, but the named model CLI and the helper scripts it calls ship only in that plugin."
+compatibility: "Portable standalone compatibility copy of the autopilot plugin skill; it ships its own helper script and needs the named model CLI on PATH. Claude Code uses the namespaced plugin skill."
 ---
 
-> **Paths in this pack.** This copy carries the procedure, not the code: the
-> scripts, CLI and agent files it names ship in the autopilot plugin. Every
-> path written as `<autopilot-plugin-root>/...` resolves against that plugin's
-> installed root - substitute it yourself before running anything, here and in
-> the `references/` files. Never pass the literal marker to a shell. Without the
-> plugin, read this as the specification rather than a runnable procedure.
-> Bare `scripts/`, `cli/`, `prompts/` and `agents/` paths are plugin-relative too.
+> **Paths in this pack.** The helper this skill runs ships here, under
+> `~/.agents/skills/use-codex/scripts/`. A path written as
+> `<autopilot-plugin-root>/...` is the exception: it lives in the autopilot
+> plugin, which ships the rest of the pack, and that step is unavailable without
+> it. Substitute the plugin's root yourself; never pass the literal marker to a
+> shell.
 
 # Codex Skill Guide
 
@@ -29,7 +28,7 @@ Always run Codex through the `codex-run.sh` helper. The helper auto-detects its 
 
 ## Dispatch Contract (shared)
 
-Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `<autopilot-plugin-root>/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
+Background dispatch and waiting (TaskOutput-only waiting), following up, error handling, and the always-use-`-f` prompt rule are defined once in `~/.agents/skills/use-codex/references/dispatch-contract.md`. Read it before dispatching; it applies verbatim to this skill.
 
 Codex-specific delta: each run is independent by default; `--resume-thread` (codex backend only, requires `-o`) continues a prior codex session so its context carries over.
 
@@ -73,19 +72,19 @@ Every run is non-interactive. By default each call is a fresh, one-shot Codex se
 
 ```bash
 # Write prompt to temp file (see the shared dispatch contract), then run
-bash <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -f /tmp/codex-prompt.txt
+bash ~/.agents/skills/use-codex/scripts/codex-run.sh -f /tmp/codex-prompt.txt
 
 # With auto-approve tools
-bash <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -a -f /tmp/codex-prompt.txt
+bash ~/.agents/skills/use-codex/scripts/codex-run.sh -a -f /tmp/codex-prompt.txt
 
 # Override model (on copilot backend, only after user approval - higher multiplier may apply)
-bash <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -m gpt-5.5 -f /tmp/codex-prompt.txt
+bash ~/.agents/skills/use-codex/scripts/codex-run.sh -m gpt-5.5 -f /tmp/codex-prompt.txt
 
 # Full permissions
-bash <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -y -f /tmp/codex-prompt.txt
+bash ~/.agents/skills/use-codex/scripts/codex-run.sh -y -f /tmp/codex-prompt.txt
 
 # Capture output to file
-bash <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -a -o /tmp/result.txt -f /tmp/codex-prompt.txt
+bash ~/.agents/skills/use-codex/scripts/codex-run.sh -a -o /tmp/result.txt -f /tmp/codex-prompt.txt
 ```
 
-Run `<autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh --help` for all options.
+Run `~/.agents/skills/use-codex/scripts/codex-run.sh --help` for all options.

@@ -90,3 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a second, contradictory design skill alongside the plugin one.
 - **gateguard**: point at the aegis hook with a marker that cannot half-resolve,
   replacing a `${CLAUDE_PLUGIN_ROOT}` that expands to nothing off Claude Code.
+- **use-codex**, **use-gemini**, **use-sonnet**: ship the helper scripts. They
+  carry no Claude coupling, so publishing them as documentation was wrong, and
+  it broke a path Codex's own rules file allow-lists. Their SKILL.md now points
+  at `~/.agents/skills/<name>/scripts/`, which resolves on every host.
