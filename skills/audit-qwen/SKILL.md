@@ -11,7 +11,9 @@ One deterministic script computes every number; the model only narrates.
 ## Dependencies
 
 - Script: `scripts/audit_qwen.py` (stdlib-only, read-only sweep).
-- CLI: `gita` (repo discovery; falls back to `~/.claude` alone with a loud note).
+- CLI: `gita` (repo discovery; falls back to the working directory with a loud
+  note). A config directory carrying its own `dev/local/autopilot` joins the
+  scan either way.
 - Data owned elsewhere, parse targets pinned in the script's constants block:
   `run-autopilot/cli/render_report.py` + `cli/golden/expected/report-section.md`
   (Implementor Mix layout), `run-autopilot/references/state-schema.md`

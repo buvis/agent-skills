@@ -2,9 +2,9 @@
 """audit_qwen.py - qwen utilization report card (PRD 00112).
 
 Sweeps batch reports, autopilot state files and attempt ledgers across the
-gita-registered repos plus ~/.claude, computes utilization rates
-deterministically, and prints a markdown report card ending in a
-WIDEN/NARROW/HOLD verdict.
+gita-registered repos, plus any config or working directory that carries a
+`dev/local/autopilot` of its own, computes utilization rates deterministically,
+and prints a markdown report card ending in a WIDEN/NARROW/HOLD verdict.
 stdlib only; every figure is a code-side parse, the skill only narrates.
 
 Quinn precision (the PRD's fifth number) is not computable and is reported
@@ -83,11 +83,7 @@ def parse_report(path: Path) -> dict:
     for line in text.splitlines():
         if line.startswith("## "):
             m = RE_PRD_HEADING.match(line)
-            current = (
-                {"prd": m.group(1), "stalled": bool(m.group(2)), "mix": None}
-                if m
-                else None
-            )
+            current = {"prd": m.group(1), "stalled": bool(m.group(2)), "mix": None} if m else None
             if current:
                 result["sections"].append(current)
             in_mix = False
@@ -121,8 +117,7 @@ def parse_report(path: Path) -> dict:
         result["unparsed"] = "no PRD sections found"
     elif "implementor" in text.lower() and not saw_mix_heading:
         result["unparsed"] = (
-            "mentions 'Implementor' but no '### Implementor Mix' heading parsed"
-            " - format drift?"
+            "mentions 'Implementor' but no '### Implementor Mix' heading parsed - format drift?"
         )
     return result
 
@@ -249,7 +244,8 @@ def classify_gate(attempt: dict) -> str:
 
 
 def discover_repos() -> tuple[list[Path], str]:
-    """gita-registered repo paths (the brief-portfolio source) + ~/.claude."""
+    """gita-registered repo paths (the brief-portfolio source), plus any config
+    or working directory that carries a `dev/local/autopilot` of its own."""
     paths: list[Path] = []
     note = ""
     try:
@@ -446,9 +442,7 @@ def verdict(agg: dict) -> tuple[str, str]:
         )
     if rate is not None and classifiable >= WIDEN_MIN and rate >= WIDEN_RATE:
         fences = sorted(agg["plan"].items(), key=lambda kv: (-kv[1], kv[0]))
-        ranking = (
-            ", ".join(f"{b} ({n} tasks)" for b, n in fences) or "no exclusions recorded"
-        )
+        ranking = ", ".join(f"{b} ({n} tasks)" for b, n in fences) or "no exclusions recorded"
         caveat = (
             " CAVEAT: zero gate failures appear anywhere in these chains, and"
             " chains predating PRD 00065 cannot record one - verify the chains"
@@ -512,9 +506,7 @@ def render(records: list[dict], agg: dict, note: str) -> str:
         "| Batch | Repo | Source | PRD | Qwen attempts | Notes |",
         "|-------|------|--------|-----|---------------|-------|",
     ]
-    lines += [
-        "| " + " | ".join(str(c) for c in row) + " |" for row in agg["batch_rows"]
-    ]
+    lines += ["| " + " | ".join(str(c) for c in row) + " |" for row in agg["batch_rows"]]
     if not agg["batch_rows"]:
         lines.append("| — | — | — | — | 0 | no batches found |")
     gate_rate = (
