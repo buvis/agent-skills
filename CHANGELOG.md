@@ -32,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   references; the scripts, CLI, hooks and agents stay in the plugins, and a
   banner in each says so. They sit outside `skills/`, so no host discovers them
   as runnable skills.
+- **skills**: publish `purge-devlocal`, the `dev/local` garbage collector that
+  `brush` delegates to. Its classifier was already stdlib-only; the port
+  rewrote four `CLAUDE_SKILL_DIR` paths and pointed the post-apply link check
+  at `~/.agents/skills/review-prd-backlog/`, which now resolves for every host
+  rather than one. The optional `engram` harvest and the per-project memory
+  store are declared as optional instead of assumed, and `--all`'s Go-style
+  layout assumption is stated where a reader meets it.
 - **skills**: publish `brush`, the project hygiene pass. Its git core was
   already host-neutral; five `CLAUDE_SKILL_DIR` paths became `~/.agents/skills/`
   ones, and the two Claude-only enrichments now say so instead of assuming: the
