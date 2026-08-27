@@ -32,7 +32,9 @@ manifest, and trash batches older than 30 days are emptied on later runs.
    `--all` walks `~/git/src/<host>/<org>/<repo>/dev/local` (the Go-style
    checkout layout) plus `~/.claude/dev/local` when it exists. On any other
    layout, scope it yourself: `--repo <repo-root>` (repeatable, and it also
-   takes a `dev/local` path directly). Add `-v` to list every candidate file.
+   takes a `dev/local` path directly). A path that is neither - no `dev/local`
+   under it, not named `local`, no `prds/` in it - is refused rather than swept
+   as if it were a store. Add `-v` to list every candidate file.
 
 2. Sanity-check the output. `prds/**`, keepers (capsule, decisions,
    assumptions, agoge-profile, cursors - canonical home `meta/`, root compat

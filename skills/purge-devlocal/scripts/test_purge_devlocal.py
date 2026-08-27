@@ -42,6 +42,24 @@ def manifest(store: Path) -> str:
     return p.read_text() if p.exists() else ""
 
 
+def test_refuses_a_project_that_is_not_a_store(tmp_path):
+    """--repo at a project without dev/local must not sweep the project."""
+    touch(tmp_path / "README.md")
+    touch(tmp_path / "src" / "main.py")
+    with pytest.raises(SystemExit):
+        run(tmp_path, "--apply")
+    assert (tmp_path / "src" / "main.py").exists()
+    assert not (tmp_path / gc.TRASH_DIR).exists()
+
+
+def test_accepts_a_store_named_local_without_prds(tmp_path):
+    """The guard refuses strangers, not a store that is merely still empty."""
+    store = tmp_path / "dev" / "local"
+    touch(store / "tmp" / "scratch.md", days_old=90)
+    assert run(store, "--apply") == 0
+    assert "stale-tmp\ttmp/scratch.md" in manifest(store)
+
+
 def test_trashes_design_of_done_prd(tmp_path):
     store = make_store(tmp_path)
     touch(store / "prds" / "done" / "00042-foo.md")

@@ -130,11 +130,19 @@ def find_stores(home: Path) -> dict[str, Path]:
 
 
 def resolve_store(path: Path) -> Path:
-    """Accept a repo root or a dev/local path itself."""
+    """Accept a repo root or a dev/local path itself, and nothing else.
+
+    Anything else used to be swept as if it were a store: point --repo at a
+    project with no dev/local and its own README and src/ classify as
+    stale-stray and stale-foreign. Trash-first made that survivable, never
+    safe, and the wire-in runs --apply unattended."""
     cand = path / "dev" / "local"
     if cand.is_dir() or cand.is_symlink():
         return Path(os.path.realpath(cand))
-    return Path(os.path.realpath(path))
+    store = Path(os.path.realpath(path))
+    if store.name != "local" and not (store / "prds").is_dir():
+        raise SystemExit(f"{path}: not a dev/local store (no dev/local, no prds/)")
+    return store
 
 
 def prd_numbers(store: Path) -> tuple[set[str], set[str]]:

@@ -38,7 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   at `~/.agents/skills/review-prd-backlog/`, which now resolves for every host
   rather than one. The optional `engram` harvest and the per-project memory
   store are declared as optional instead of assumed, and `--all`'s Go-style
-  layout assumption is stated where a reader meets it.
+  layout assumption is stated where a reader meets it. `--repo` now refuses a
+  path that is not a store instead of sweeping the project it points at, which
+  mattered because the wire-in runs `--apply` unattended.
 - **skills**: publish `brush`, the project hygiene pass. Its git core was
   already host-neutral; five `CLAUDE_SKILL_DIR` paths became `~/.agents/skills/`
   ones, and the two Claude-only enrichments now say so instead of assuming: the
