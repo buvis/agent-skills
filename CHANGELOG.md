@@ -32,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   references; the scripts, CLI, hooks and agents stay in the plugins, and a
   banner in each says so. They sit outside `skills/`, so no host discovers them
   as runnable skills.
+- **skills**: publish `audit-qwen`, the report card for the `use-qwen` fence.
+  Its telemetry was already read per repo under `dev/local/autopilot`, so the
+  only tie was repo discovery appending `~/.claude` unconditionally; it is now
+  included when it actually holds a ledger, and the no-gita fallback scans the
+  working directory instead of one host's config dir.
 - **skills**: publish `brief-portfolio` and `use-qwen`. `brief-portfolio` needed
   only its asset paths rewritten; its Claude-config-maintenance row now reports
   "never" off Claude Code and says so. `use-qwen` needed more: two helper
