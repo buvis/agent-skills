@@ -98,6 +98,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **use-qwen**: `promote-default.sh` rewrites its files on Linux too. It used
+  the BSD spelling `sed -i ''`, which GNU sed reads as two filenames, so every
+  literal-id replacement failed with "can't read s|...|" and a promotion left
+  the files untouched. Now edits through a temp file and writes back with
+  `cat`, preserving the mode of the executable test script it rewrites.
 - **create-skill**: drop the `PERMISSION_BINARIES` allowlist from the validator.
   Every entry was extensionless while the check it fed only flags script
   suffixes, so the two conditions were mutually exclusive and the list could

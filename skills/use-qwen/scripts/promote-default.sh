@@ -86,11 +86,28 @@ restore() {
 # the only sed-special char among them is `.`, harmless here as a wildcard
 # since these ids are unique enough in these files that nothing else could
 # coincidentally match; escape properly if an id ever gains a `[`/`*`/`^`/`$`.
+# `sed -i` cannot be spelled portably: BSD sed reads the backup suffix as a
+# separate argument, GNU sed takes it inline, so `-i ''` makes GNU sed treat
+# both '' and the script as filenames. Edit through a temp file instead, and
+# write back with `cat` so the original inode and mode survive - one of the
+# files rewritten here is an executable test script.
+sed_in_place() {
+    local script="$1" file="$2" tmp
+    tmp="$(mktemp)" || return 1
+    if sed "$script" "$file" > "$tmp"; then
+        cat "$tmp" > "$file"
+    else
+        rm -f "$tmp"
+        return 1
+    fi
+    rm -f "$tmp"
+}
+
 lit_replace() {
     local file="$1" from="$2" to="$3" from_esc to_esc
     from_esc="$(printf '%s' "$from" | sed -e 's/\\/\\\\/g' -e 's/|/\\|/g')"
     to_esc="$(printf '%s' "$to" | sed -e 's/\\/\\\\/g' -e 's/|/\\|/g' -e 's/&/\\&/g')"
-    sed -i '' "s|$from_esc|$to_esc|g" "$file"
+    sed_in_place "s|$from_esc|$to_esc|g" "$file"
 }
 
 lit_replace "$SKILL_MD" "$OLD_ID" "$NEW_ID"
@@ -114,7 +131,7 @@ EOF
 # rationale by hand afterward if useful.
 NEW_BULLET="- **Default: \`$NEW_ID\`.** Qualified $QUAL_DATE ($QUAL_SCORE agentic eval, zero false claims - see \`references/eval-runbook.md\`)."
 NEW_BULLET_ESC="$(printf '%s' "$NEW_BULLET" | sed -e 's/\\/\\\\/g' -e 's/|/\\|/g' -e 's/&/\\&/g')"
-sed -i '' "s|^- \\*\\*Default:.*\$|$NEW_BULLET_ESC|" "$SKILL_MD"
+sed_in_place "s|^- \\*\\*Default:.*\$|$NEW_BULLET_ESC|" "$SKILL_MD"
 
 echo "Running the regression suite to confirm the promotion is consistent..."
 if bash "$TEST_SH" > "$BACKUP_DIR/test-output.txt" 2>&1; then
