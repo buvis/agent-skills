@@ -73,6 +73,20 @@ def test_ctx_refuses_home_work_tree(repo: Path,
     assert "home work-tree" in cf.gather_repo_ctx(repo)["refusals"][0]
 
 
+def test_missing_pgrep_reports_no_live_batch(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A host without pgrep loses the batch probe, not the whole preflight."""
+    real = cf.subprocess.run
+
+    def no_pgrep(cmd, *a, **kw):
+        if cmd[0] == "pgrep":
+            raise FileNotFoundError(cmd[0])
+        return real(cmd, *a, **kw)
+
+    monkeypatch.setattr(cf.subprocess, "run", no_pgrep)
+    assert cf.gather_repo_ctx(repo)["autopilot_live"] is False
+
+
 def test_branch_drift_counts(repo: Path) -> None:
     _git(repo, "branch", "feat")
     (repo / "f2").write_text("y")

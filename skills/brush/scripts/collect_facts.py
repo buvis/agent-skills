@@ -68,8 +68,11 @@ def gather_repo_ctx(start: Path) -> dict:
     ctx.update(root=str(root), git_dir=git_dir,
                head=git_out(root, "rev-parse", "HEAD").strip()[:12],
                branch=git_out(root, "branch", "--show-current").strip() or None)
-    ctx["autopilot_live"] = subprocess.run(
-        ["pgrep", "-f", "autoclaude"], capture_output=True).returncode == 0
+    try:
+        ctx["autopilot_live"] = subprocess.run(
+            ["pgrep", "-f", "autoclaude"], capture_output=True).returncode == 0
+    except OSError:  # no pgrep here; the batch guard is the human's then
+        ctx["autopilot_live"] = False
     ops = [m for m in ("rebase-merge", "rebase-apply", "MERGE_HEAD",
                        "CHERRY_PICK_HEAD", "BISECT_LOG", "REVERT_HEAD")
            if (Path(git_dir) / m).exists()]

@@ -22,7 +22,8 @@ Brush only orchestrates; these skills do the work. A missing or failing one:
 record under Failures, skip its phase, continue. Never substitute hand-rolled
 cleanup for a missing skill (especially purge-devlocal).
 
-- `git-ferry:catchup` (phase 1) - repo context
+- `catchup` (phase 1) - repo context; `git-ferry:catchup` on Claude Code,
+  where the plugin owns the name and the standalone copy is not linked
 - `purge-devlocal` (phase 2) - sole owner of dev/local GC
 - `assess-evolution` (phase 3), `review-prd-backlog` (phase 4),
   `manage-agents-md` (phase 5)
@@ -54,7 +55,7 @@ cleanup for a missing skill (especially purge-devlocal).
 
 ## Phases
 
-1. **Context**: run the `git-ferry:catchup` skill.
+1. **Context**: run the `catchup` skill (`git-ferry:catchup` on Claude Code).
 2. **Git hygiene**: follow the Phase-2 order in hygiene-rules.md (fetch,
    re-collect facts, then act): execute every AUTO row; queue ASK rows as
    BR-items and MANUAL rows as section 3 items. Trash moves only via

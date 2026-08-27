@@ -44,7 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ones, and the two Claude-only enrichments now say so instead of assuming: the
   notify ping skips when the script is absent, and phase 5 promotes memories
   only where the host keeps a per-project store. The preflight refusal that
-  named one machine's dotfiles repo now refuses any work-tree that is `$HOME`.
+  named one machine's dotfiles repo now refuses any work-tree that is `$HOME`,
+  the batch probe no longer takes the preflight down on a host without `pgrep`,
+  and phase 1 names the standalone `catchup` copy the other hosts actually get.
 - **skills**: publish `audit-qwen`, the report card for the `use-qwen` fence.
   Its telemetry was already read per repo under `dev/local/autopilot`, so the
   only tie was repo discovery appending `~/.claude` unconditionally; it is now
