@@ -82,7 +82,7 @@ Codex discover it directly.
 | Claude Code | `~/.claude/skills` | Run `braid`; it creates per-skill links. | Yes - `braid --check` reports zero drift and the links resolve. |
 | GitHub Copilot | `~/.agents/skills` | Native, no extra link. It also reads `~/.copilot/skills`, and per project `.github/skills`, `.agents/skills`, `.claude/skills`. | Yes - `copilot skill --help` lists the source and `copilot skill list` returns the union. |
 | Gemini CLI | `~/.agents/skills` | Native, no extra link. `gemini skills list --all` shows what it found; `gemini skills disable <name>` hides one per host. | Yes - `gemini skills list --all` returns the union, each entry located under `~/.agents/skills/`. |
-| Codex | `~/.agents/skills` | Native, no extra link. | Partly - the binary interns `.agents/skills` beside `.codex/config.toml`, but the CLI has no `skill list`, so nothing has confirmed the listing end to end. |
+| Codex | `~/.agents/skills` | Native, no extra link. | Yes - the CLI has no `skill list`, so a `codex exec` session was asked to name what it sees; it returned the union exactly, and none of `docs/plugin-skills/`. |
 | Kiro | `~/.kiro/skills` | Add `skill://~/.agents/skills/*/SKILL.md` to a custom agent, or create equivalent per-skill links. Kiro's import command copies rather than links. | No - `~/.kiro` does not exist here and this row has never been run. |
 | Goose | unknown | Not investigated. | No - not installed here. |
 
