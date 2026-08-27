@@ -55,12 +55,15 @@ notifier is installed, it pings you when decisions are pending.
 
 Untracked never means disposable: default is KEEP. File removals are
 trash-first moves into `dev/local/.trash/<date>/` with a manifest line
-(purge-devlocal format and GC window); restore is `mv` back. dev/local
-itself is owned by purge-devlocal; brush never hand-cleans it.
+(purge-devlocal's columns, batch dir and 30-day GC window; its paths are
+store-relative, brush's repo-relative, so restore each row from the directory
+it was written against). Restore is `mv` back. dev/local itself is owned by
+purge-devlocal; brush never hand-cleans it.
 
 ## Recovery
 
-- Trashed file: see `dev/local/.trash/manifest.tsv`, `mv` it back.
+- Trashed file: see `dev/local/.trash/manifest.tsv`, `mv` it back from the
+  repo root for a brush row, from `dev/local/` for a purge-devlocal one.
 - Deleted branch: report row has the SHA - `git branch <name> <sha>`.
 - Hygiene commit: `git revert <sha>` (sha in the report).
 
