@@ -32,6 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   references; the scripts, CLI, hooks and agents stay in the plugins, and a
   banner in each says so. They sit outside `skills/`, so no host discovers them
   as runnable skills.
+- **skills**: publish `survey`, the on-demand codebase brief. Its one tie to
+  Claude Code was a `sys.path` insert reaching a hook library for a cached
+  optional import of `tree_sitter_language_pack`; the skill now does that import
+  itself in six lines and no longer writes an audit entry on a host without the
+  package, which is what made a survey create a store it promises never to
+  create. The hardcoded skip list lost the twenty directory names taken from one
+  host's config tree: they would have dropped a real `tasks/`, `logs/` or
+  `jobs/` layer out of anyone else's brief, and only build and dependency output
+  is skipped now. tree-sitter stays optional and the degraded note still says
+  when it was absent.
 - **skills**: publish `purge-devlocal`, the `dev/local` garbage collector that
   `brush` delegates to. Its classifier was already stdlib-only; the port
   rewrote four `CLAUDE_SKILL_DIR` paths and pointed the post-apply link check
