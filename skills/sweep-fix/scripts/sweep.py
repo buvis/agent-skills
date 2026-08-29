@@ -338,16 +338,17 @@ def verify_control(pattern, kind, control_repo, control_term):
     raise SystemExit(1)
 
 
-def _render_hits_section(hits):
+def _render_hits_section(hits, kind):
     lines = [f"Hits ({len(hits)}):"]
     for hit in hits:
         lines.append(f"- {hit['repo']} {hit['file']}:{hit['line']}: {hit['snippet']}")
     lines.append("")
 
-    uncovered_exts = sorted({Path(hit["file"]).suffix or hit["file"] for hit in hits if hit["lang"] is None})
-    if uncovered_exts:
-        lines.append(f"Uncovered languages (no ast-grep lang mapping): {', '.join(uncovered_exts)}")
-        lines.append("")
+    if kind == "astgrep":
+        uncovered_exts = sorted({Path(hit["file"]).suffix or hit["file"] for hit in hits if hit["lang"] is None})
+        if uncovered_exts:
+            lines.append(f"Uncovered languages (no ast-grep lang mapping): {', '.join(uncovered_exts)}")
+            lines.append("")
 
     return lines
 
@@ -491,7 +492,7 @@ def render_report(derivation, hits, gaps, suppressed, failed):
         f"Reason: {derivation['reason']}",
         "",
     ]
-    lines.extend(_render_hits_section(hits))
+    lines.extend(_render_hits_section(hits, derivation["kind"]))
     lines.extend(_render_suppressed_section(suppressed))
     lines.extend(_render_failed_section(failed))
     lines.extend(_render_gaps_section(gaps))
