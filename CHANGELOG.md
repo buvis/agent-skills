@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   showing one coarse "config maintenance" row. Every machine audit gets its own
   overdue row against its own horizon, and `purge-devlocal` is tracked per repo.
 
+### Fixed
+
+- **purge-devlocal**: stamp today's `.trash/<date>/` batch directory on every
+  `--apply` run, not only when something was actually trashed. A run over an
+  already-clean store used to leave no trace, so anything reading that
+  directory as "when did this last run" could never advance.
+
 ### Added
 
 - **capture-experiment**: write up a spike or experiment session as a single

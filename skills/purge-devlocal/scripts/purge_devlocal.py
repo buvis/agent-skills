@@ -435,6 +435,7 @@ def process_store(
 
     emptied = 0
     if args.apply:
+        (store / TRASH_DIR / batch).mkdir(parents=True, exist_ok=True)
         prune_empty_dirs(store)
         emptied = empty_old_trash(store, now, args.empty_trash_days)
 
