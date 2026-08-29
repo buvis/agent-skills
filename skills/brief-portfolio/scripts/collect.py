@@ -256,8 +256,7 @@ def collect_purge_devlocal(path):
     trash = Path(path) / "dev/local/.trash"
     if not trash.is_dir():
         return None
-    dated = sorted(e.name for e in trash.iterdir() if e.is_dir() and DATE_DIR_RE.match(e.name))
-    return dated[-1] if dated else None
+    return max((e.name for e in trash.iterdir() if e.is_dir() and DATE_DIR_RE.match(e.name)), default=None)
 
 
 def collect_claude_skill_adherence(base=None):

@@ -103,7 +103,7 @@ assert.equal(ext[0].urgency, 'now')
 assert.equal(quadrant(ext[0]), 'do')
 assert.equal(ext[1].effort, 'quick')
 
-// --- per-audit cadence nags (PRD 00081): every AUDIT_CADENCE entry gets its own row,
+// --- per-audit cadence nags (PRD 00006): every AUDIT_CADENCE entry gets its own row,
 // firing at >= that audit's horizon or never, silent when fresh. Several rows carry
 // kind 'maintenance' at once, so each assertion selects its audit by id, never by kind.
 // (`day(n)` is defined below in the brush-cadence block; both blocks share it.)
@@ -146,9 +146,6 @@ const purgeRows = externalTodos({}, [
 ]).filter((t) => t.id.includes(':audit:purge-devlocal:'))
 assert.equal(purgeRows.length, 1)
 assert.equal(purgeRows[0].id, `o/stale:audit:purge-devlocal:${day(60)}`)
-
-// --- regression: a null external payload still yields no rows at all, audits included ---
-assert.deepEqual(externalTodos(null), [])
 
 // --- merged list + quick wins ---
 const all = allTodos([repo], { todos: [{ id: 'o/r:judgment:x', repo: 'o/r', kind: 'judgment', urgency: 'now', action: 'A', why: 'w' }] }, null)
@@ -237,7 +234,7 @@ const errFirstAgain = errorTodoWithWhy('gh auth login')
 assert.equal(errFirst.id, errFirstAgain.id, 'the same error string must produce the same id every run')
 
 // No error present -> no error-shaped todo at all, regardless of id scheme
-assert.equal(externalTodos(null).length, 0)
+assert.equal(externalTodos(null).length, 0) // no external payload -> no nag, no crash (auditTodos' machine-scope null guard)
 assert.equal(externalTodos({ review_requested: [], authored: [] }).filter((t) => t.kind === 'external').length, 0)
 
 console.log('derive.test.js: all assertions passed')

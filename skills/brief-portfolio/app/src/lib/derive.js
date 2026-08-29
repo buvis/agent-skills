@@ -311,31 +311,30 @@ export function auditTodos(external, repos = []) {
   const out = []
   const why = (aged, horizonDays) =>
     (aged === null ? 'never run' : `last run ${aged}d ago`) + ` -- target: one pass per ${horizonDays}d`
+  const row = (id, repo, aged, horizonDays, command) => ({ id, repo, kind: 'maintenance',
+    urgency: 'soon', importance: 'low', effort: 'medium', agent: command, url: null, external: true,
+    action: `Run ${command}`, why: why(aged, horizonDays) })
   for (const { skill, horizonDays, command, scope } of AUDIT_CADENCE) {
     if (scope === 'repo') {
       for (const r of repos) {
         const last = r.purge_last_run
         const aged = daysAgo(last)
         if (aged === null || aged >= horizonDays)
-          out.push({ id: `${slug(r)}:audit:${skill}:${last ?? 'never'}`, repo: slug(r), kind: 'maintenance',
-            urgency: 'soon', importance: 'low', effort: 'medium', agent: command, url: null, external: true,
-            action: `Run ${command}`, why: why(aged, horizonDays) })
+          out.push(row(`${slug(r)}:audit:${skill}:${last ?? 'never'}`, slug(r), aged, horizonDays, command))
       }
     } else if (external) {
       const last = external.audit_cadence?.[skill]
       const aged = daysAgo(last)
       if (aged === null || aged >= horizonDays)
-        out.push({ id: `claude:audit:${skill}:${last ?? 'never'}`, repo: '~/.claude', kind: 'maintenance',
-          urgency: 'soon', importance: 'low', effort: 'medium', agent: command, url: null, external: true,
-          action: `Run ${command}`, why: why(aged, horizonDays) })
+        out.push(row(`claude:audit:${skill}:${last ?? 'never'}`, '~/.claude', aged, horizonDays, command))
     }
   }
   return out
 }
 
 // PRs outside the gita portfolio that involve the user (collect.py `external`),
-// plus the ~/.claude maintenance-cadence nag (PRD 00081) — it rides this
-// channel because ~/.claude is not a gita repo row.
+// plus maintenance-cadence nags (PRD 00006): machine-wide ~/.claude audits and
+// repo-scoped purge-devlocal rows both ride this channel via auditTodos.
 export function externalTodos(external, repos = []) {
   const out = []
   for (const p of external?.review_requested ?? [])
