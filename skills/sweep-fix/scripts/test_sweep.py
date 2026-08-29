@@ -390,6 +390,36 @@ def test_scan_excludes_untracked_file_from_buvis_bare_search_scope(
     assert "scratch.tmp" not in matched_files
 
 
+def test_enumerate_repos_scopes_registered_work_tree_row_to_tracked_files_only(
+    tmp_path, monkeypatch
+):
+    fixture_home, registry = _setup_buvis_bare_fixture(
+        tmp_path,
+        monkeypatch,
+        ["tracked.txt"],
+        untracked=["secret.env"],
+    )
+    (fixture_home / "tracked.txt").write_text("REGISTEREDWORKTREEMARKER content\n")
+    (fixture_home / "secret.env").write_text("REGISTEREDWORKTREEMARKER content\n")
+    _write_registry(registry, [str(fixture_home)])
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()  # process cwd is elsewhere, not the registered work tree
+
+    repos, _gaps = sweep.enumerate_repos(registry, cwd)
+
+    bare_entries = [
+        repo for repo in repos if isinstance(repo, dict) and repo["cwd"] == fixture_home
+    ]
+    assert len(bare_entries) == 1  # never lands twice, and never as a raw Path
+    assert fixture_home not in [repo for repo in repos if not isinstance(repo, dict)]
+
+    hits, _suppressed = sweep.scan("REGISTEREDWORKTREEMARKER", "rg", repos)
+
+    matched_files = {Path(hit["file"]).name for hit in hits}
+    assert "tracked.txt" in matched_files
+    assert "secret.env" not in matched_files
+
+
 def test_enumerate_repos_finds_buvis_bare_tracked_files_regardless_of_process_cwd(
     tmp_path, monkeypatch
 ):

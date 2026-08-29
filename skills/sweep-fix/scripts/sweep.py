@@ -94,6 +94,23 @@ BUVIS_BARE = {
 }
 
 
+def _buvis_bare_entry():
+    """Build the scan-scope entry for the buvis bare dotfiles work tree:
+    `{"cwd": work_tree, "files": [...]}`, restricted to its tracked files
+    (via `git ls-files` against `BUVIS_BARE["git_dir"]`)."""
+    work_tree = BUVIS_BARE["work_tree"]
+    git_dir = BUVIS_BARE["git_dir"]
+    result = subprocess.run(
+        ["git", f"--git-dir={git_dir}", f"--work-tree={work_tree}", "ls-files", "-z"],
+        cwd=work_tree,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    files = [rel for rel in result.stdout.split("\0") if rel]
+    return {"cwd": work_tree, "files": files}
+
+
 def enumerate_repos(registry, cwd):
     """Enumerate the repos sweep should operate on.
 
@@ -101,13 +118,14 @@ def enumerate_repos(registry, cwd):
     skipped). Returns `(repos, gaps)`:
 
     - `repos`: registered paths that have a `.git` dir, plus `cwd` if it is
-      not already covered. If `cwd` is the buvis bare dotfiles work tree
-      (`BUVIS_BARE["work_tree"]`), it is replaced by a single scan-scope
-      entry (`{"cwd": work_tree, "files": [...]}`) restricted to its tracked
-      files (via `git ls-files` against `BUVIS_BARE["git_dir"]`), so the
-      bare repo counts as one repo rather than one entry per tracked file,
-      since a directory walk would not find files living outside the
-      home-relative repo layout.
+      not already covered. If `cwd` or a registered row is the buvis bare
+      dotfiles work tree (`BUVIS_BARE["work_tree"]`), it is represented by a
+      single scan-scope entry (`{"cwd": work_tree, "files": [...]}`, built by
+      `_buvis_bare_entry`) restricted to its tracked files, added exactly
+      once even when both are true, so the bare repo counts as one repo
+      rather than one entry per tracked file, since a directory walk would
+      not find files living outside the home-relative repo layout (and would
+      pull in untracked files sweep must not search).
     - `gaps`: `.git` repos found on disk at `PORTFOLIO_ROOT/<org>/<repo>`
       that are missing from the registry, as path strings.
 
@@ -118,24 +136,11 @@ def enumerate_repos(registry, cwd):
 
     registered = [Path(row[0].strip()) for row in csv.reader(registry.open()) if row and row[0].strip()]
 
-    repos = [
-        path
-        for path in registered
-        if (path / ".git").exists() or path == BUVIS_BARE["work_tree"]
-    ]
-
     work_tree = BUVIS_BARE["work_tree"]
-    if cwd == work_tree:
-        git_dir = BUVIS_BARE["git_dir"]
-        result = subprocess.run(
-            ["git", f"--git-dir={git_dir}", f"--work-tree={work_tree}", "ls-files", "-z"],
-            cwd=work_tree,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        files = [rel for rel in result.stdout.split("\0") if rel]
-        repos.append({"cwd": work_tree, "files": files})
+    repos = [path for path in registered if path != work_tree and (path / ".git").exists()]
+
+    if work_tree in registered or cwd == work_tree:
+        repos.append(_buvis_bare_entry())
     elif cwd not in repos:
         repos.append(cwd)
 
@@ -195,8 +200,7 @@ def _repo_cwd_and_targets(repo):
     return repo, ["."]
 
 
-def _scan_rg(pattern, repo):
-    cwd, targets = _repo_cwd_and_targets(repo)
+def _scan_rg(pattern, cwd, targets):
     result = _run_rg(["--json", pattern, *targets], cwd)
     hits = []
     for line in result.stdout.splitlines():
@@ -211,8 +215,7 @@ def _scan_rg(pattern, repo):
     return hits
 
 
-def _scan_astgrep(pattern, repo):
-    cwd, targets = _repo_cwd_and_targets(repo)
+def _scan_astgrep(pattern, cwd, targets):
     result = subprocess.run(
         [resolve_ast_grep(), "run", "--pattern", pattern, "--json", *targets],
         cwd=cwd,
@@ -243,15 +246,15 @@ def scan(pattern, kind, repos, cap=20):
     hits = []
     suppressed = {}
     for repo in repos:
+        cwd, targets = _repo_cwd_and_targets(repo)
         if kind == "rg":
-            repo_hits = _scan_rg(pattern, repo)
+            repo_hits = _scan_rg(pattern, cwd, targets)
         elif kind == "astgrep":
-            repo_hits = _scan_astgrep(pattern, repo)
+            repo_hits = _scan_astgrep(pattern, cwd, targets)
         else:
             raise ValueError(f"unknown kind: {kind!r}")
 
         if len(repo_hits) > cap:
-            cwd, _targets = _repo_cwd_and_targets(repo)
             suppressed[str(cwd)] = len(repo_hits) - cap
             repo_hits = repo_hits[:cap]
 
