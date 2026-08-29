@@ -245,6 +245,28 @@ def _scan_astgrep(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT):
     return hits
 
 
+def _scan_repo(repo, pattern, kind, ast_grep_error, timeout):
+    """Scan a single `repo` entry. Returns `(cwd_key, hits, error)`, where
+    `error` is set (and `hits` empty) when the repo could not be scanned."""
+    if isinstance(repo, dict) and "error" in repo:
+        return str(repo["cwd"]), [], repo["error"]
+
+    cwd, targets = _repo_cwd_and_targets(repo)
+
+    if ast_grep_error is not None:
+        return str(cwd), [], ast_grep_error
+
+    try:
+        if kind == "rg":
+            repo_hits = _scan_rg(pattern, cwd, targets, timeout=timeout)
+        else:
+            repo_hits = _scan_astgrep(pattern, cwd, targets, timeout=timeout)
+    except Exception as exc:
+        return str(cwd), [], str(exc)
+
+    return str(cwd), repo_hits, None
+
+
 def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT):
     """Search `pattern` across `repos` using `kind` ("rg" or "astgrep").
 
@@ -273,27 +295,13 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT):
     suppressed = {}
     failed = {}
     for repo in repos:
-        if isinstance(repo, dict) and "error" in repo:
-            failed[str(repo["cwd"])] = repo["error"]
-            continue
-
-        cwd, targets = _repo_cwd_and_targets(repo)
-
-        if ast_grep_error is not None:
-            failed[str(cwd)] = ast_grep_error
-            continue
-
-        try:
-            if kind == "rg":
-                repo_hits = _scan_rg(pattern, cwd, targets, timeout=timeout)
-            else:
-                repo_hits = _scan_astgrep(pattern, cwd, targets, timeout=timeout)
-        except Exception as exc:
-            failed[str(cwd)] = str(exc)
+        cwd_key, repo_hits, error = _scan_repo(repo, pattern, kind, ast_grep_error, timeout)
+        if error is not None:
+            failed[cwd_key] = error
             continue
 
         if len(repo_hits) > cap:
-            suppressed[str(cwd)] = len(repo_hits) - cap
+            suppressed[cwd_key] = len(repo_hits) - cap
             repo_hits = repo_hits[:cap]
 
         hits.extend(repo_hits)
@@ -516,6 +524,39 @@ def _positive_int(value):
     return parsed
 
 
+def _parse_args(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--kind", required=True, choices=["astgrep", "rg"])
+    parser.add_argument("--pattern", required=True)
+    parser.add_argument("--reason", required=True)
+    parser.add_argument("--control-term", required=True)
+    parser.add_argument("--control-repo", required=True)
+    parser.add_argument("--registry", default=str(GITA_CSV))
+    parser.add_argument("--cwd", default=str(Path.cwd()))
+    parser.add_argument("--cap", type=_positive_int, default=20)
+    parser.add_argument("--out")
+    return parser.parse_args(argv)
+
+
+def _resolve_report_path(cwd_path, out, reason):
+    """Resolve `--out` under `cwd_path`, defaulting to a slugged report
+    name; refuses (exit 1) if it would land outside `cwd_path`."""
+    if not out:
+        slug = re.sub(r"[^a-z0-9]+", "-", reason[:40].lower()).strip("-")
+        out = f"dev/local/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
+
+    out_path = (cwd_path / out).resolve()
+    if not out_path.is_relative_to(cwd_path):
+        print(
+            f"sweep: --out {out!r} resolves to {out_path}, which is outside "
+            f"the --cwd repo {cwd_path}",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+    return out_path
+
+
 def main(argv=None):
     """CLI entry point: wire enumerate_repos, scan and render_report
     together, then write the rendered report to `--out`.
@@ -530,17 +571,7 @@ def main(argv=None):
 
     Returns 0 on success.
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--kind", required=True, choices=["astgrep", "rg"])
-    parser.add_argument("--pattern", required=True)
-    parser.add_argument("--reason", required=True)
-    parser.add_argument("--control-term", required=True)
-    parser.add_argument("--control-repo", required=True)
-    parser.add_argument("--registry", default=str(GITA_CSV))
-    parser.add_argument("--cwd", default=str(Path.cwd()))
-    parser.add_argument("--cap", type=_positive_int, default=20)
-    parser.add_argument("--out")
-    args = parser.parse_args(argv)
+    args = _parse_args(argv)
 
     try:
         repos, gaps = enumerate_repos(args.registry, args.cwd)
@@ -560,20 +591,7 @@ def main(argv=None):
     report = render_report(derivation, hits, gaps, suppressed, failed)
 
     cwd_path = Path(args.cwd).resolve()
-
-    out = args.out
-    if not out:
-        slug = re.sub(r"[^a-z0-9]+", "-", args.reason[:40].lower()).strip("-")
-        out = f"dev/local/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
-
-    out_path = (cwd_path / out).resolve()
-    if not out_path.is_relative_to(cwd_path):
-        print(
-            f"sweep: --out {out!r} resolves to {out_path}, which is outside "
-            f"the --cwd repo {cwd_path}",
-            file=sys.stderr,
-        )
-        raise SystemExit(1)
+    out_path = _resolve_report_path(cwd_path, args.out, args.reason)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(report)
