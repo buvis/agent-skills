@@ -129,7 +129,7 @@ def test_audit_cadence_returns_newest_day_per_skill_and_none_for_no_rows(tmp_pat
     assert result["claude-checkup:audit-context"] is None
 
 
-def test_audit_cadence_has_no_lookback_cutoff_for_a_400_day_old_row(tmp_path):
+def test_audit_cadence_has_no_lookback_cutoff_for_a_very_old_row(tmp_path):
     f = tmp_path / "skills.jsonl"
     f.write_text(
         json.dumps(
