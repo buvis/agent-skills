@@ -1,6 +1,7 @@
 """Tests for sweep.py (resolve_rg, resolve_ast_grep)."""
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 
@@ -549,3 +550,314 @@ def test_verify_control_raises_unverified_for_broken_backslash_pipe_alternation(
     assert "unverified" in message
     assert "foo" in message
     assert str(control_repo) in message
+
+
+# -- render_report -----------------------------------------------------
+
+
+def _extract_rule_pack_blocks(report):
+    """Pull fenced code blocks that look like an ast-grep rule-pack (contain
+    both a `rule:` and a `pattern:` YAML key) out of a rendered report."""
+    fenced = re.findall(r"```[^\n]*\n(.*?)```", report, re.DOTALL)
+    return [block for block in fenced if "rule:" in block and "pattern:" in block]
+
+
+def test_render_report_gaps_header_states_zero_count_for_empty_gaps():
+    derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
+
+    report = sweep.render_report(derivation, [], [], {})
+
+    assert "Gaps (0):" in report
+
+
+def test_render_report_gaps_header_states_actual_count_for_nonempty_gaps():
+    derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
+    gaps = [
+        "/portfolio/org/gap-one",
+        "/portfolio/org/gap-two",
+        "/portfolio/org/gap-three",
+    ]
+
+    report = sweep.render_report(derivation, [], gaps, {})
+
+    assert "Gaps (3):" in report
+    for gap in gaps:
+        assert gap in report
+
+
+def test_render_report_includes_repo_file_and_line_for_every_hit():
+    derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
+    hits = [
+        {
+            "repo": "/repo/alpha",
+            "file": "src/mod.py",
+            "line": 10,
+            "snippet": "x = 1",
+            "lang": "python",
+        },
+        {
+            "repo": "/repo/beta",
+            "file": "lib/util.rs",
+            "line": 22,
+            "snippet": "y = 2",
+            "lang": "rust",
+        },
+    ]
+
+    report = sweep.render_report(derivation, hits, [], {})
+
+    for hit in hits:
+        assert hit["repo"] in report
+        assert hit["file"] in report
+        assert str(hit["line"]) in report
+
+
+def test_render_report_states_uncovered_languages_when_a_hit_has_no_lang():
+    derivation = {"kind": "astgrep", "pattern": "X", "reason": "y", "control_term": "z"}
+    hits = [
+        {
+            "repo": "/repo/alpha",
+            "file": "notes.md",
+            "line": 3,
+            "snippet": "X here",
+            "lang": None,
+        },
+        {
+            "repo": "/repo/alpha",
+            "file": "src/mod.py",
+            "line": 10,
+            "snippet": "x = 1",
+            "lang": "python",
+        },
+    ]
+
+    report = sweep.render_report(derivation, hits, [], {})
+
+    assert "uncovered" in report.lower()
+    assert ".md" in report
+
+
+def test_render_report_omits_uncovered_languages_line_when_every_hit_has_a_lang():
+    derivation = {"kind": "astgrep", "pattern": "X", "reason": "y", "control_term": "z"}
+    hits = [
+        {
+            "repo": "/repo/alpha",
+            "file": "src/mod.py",
+            "line": 10,
+            "snippet": "x = 1",
+            "lang": "python",
+        },
+        {
+            "repo": "/repo/beta",
+            "file": "lib/util.rs",
+            "line": 22,
+            "snippet": "y = 2",
+            "lang": "rust",
+        },
+    ]
+
+    report = sweep.render_report(derivation, hits, [], {})
+
+    assert "uncovered" not in report.lower()
+
+
+def test_render_report_shows_suppressed_count_for_every_repo_present():
+    derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
+    suppressed = {"/repo/alpha": 37, "/repo/beta": 141}
+
+    report = sweep.render_report(derivation, [], [], suppressed)
+
+    for repo, count in suppressed.items():
+        assert repo in report
+        assert str(count) in report
+
+
+def test_render_report_never_raises_for_all_empty_input():
+    derivation = {
+        "kind": "rg",
+        "pattern": "EMPTYCASE",
+        "reason": "no matches",
+        "control_term": "z",
+    }
+
+    report = sweep.render_report(derivation, [], [], {})
+
+    assert isinstance(report, str)
+    assert report.strip() != ""
+    assert "Gaps (0):" in report
+    assert derivation["pattern"] in report
+    assert derivation["kind"] in report
+
+
+def test_render_report_ends_with_nonempty_how_to_proceed_block_after_all_sections():
+    derivation = {
+        "kind": "rg",
+        "pattern": "ZQMARKER",
+        "reason": "flag legacy calls",
+        "control_term": "ZQCTRL",
+    }
+    hits = [
+        {
+            "repo": "/repo/zed",
+            "file": "path/to/file.py",
+            "line": 99,
+            "snippet": "ZQMARKER here",
+            "lang": "python",
+        }
+    ]
+    gaps = ["/repo/missing-gap"]
+    suppressed = {"/repo/zed": 44}
+
+    report = sweep.render_report(derivation, hits, gaps, suppressed)
+
+    candidates = [
+        (derivation["pattern"], report.rfind(derivation["pattern"])),
+        (derivation["reason"], report.rfind(derivation["reason"])),
+        (hits[0]["file"], report.rfind(hits[0]["file"])),
+        (str(hits[0]["line"]), report.rfind(str(hits[0]["line"]))),
+        (gaps[0], report.rfind(gaps[0])),
+        (str(suppressed["/repo/zed"]), report.rfind(str(suppressed["/repo/zed"]))),
+    ]
+    assert all(pos != -1 for _text, pos in candidates), "expected content missing from report"
+    tail_start = max(pos + len(text) for text, pos in candidates)
+    tail = report[tail_start:]
+
+    assert len(tail.strip()) > 0
+
+
+def test_render_report_is_deterministic_for_same_inputs():
+    derivation = {
+        "kind": "rg",
+        "pattern": "DETMARKER",
+        "reason": "check determinism",
+        "control_term": "z",
+    }
+    hits = [
+        {
+            "repo": "/repo/det",
+            "file": "a.py",
+            "line": 5,
+            "snippet": "DETMARKER x",
+            "lang": "python",
+        }
+    ]
+    gaps = ["/repo/det-gap"]
+    suppressed = {"/repo/det": 9}
+
+    first = sweep.render_report(dict(derivation), list(hits), list(gaps), dict(suppressed))
+    second = sweep.render_report(dict(derivation), list(hits), list(gaps), dict(suppressed))
+
+    assert first == second
+
+
+def test_render_report_rg_kind_emits_no_ast_grep_rule_block():
+    derivation = {
+        "kind": "rg",
+        "pattern": "NOASTGREP",
+        "reason": "y",
+        "control_term": "z",
+    }
+    hits = [
+        {
+            "repo": "/repo/x",
+            "file": "a.py",
+            "line": 1,
+            "snippet": "NOASTGREP here",
+            "lang": "python",
+        }
+    ]
+
+    report = sweep.render_report(derivation, hits, [], {})
+
+    assert not _extract_rule_pack_blocks(report)
+    assert "severity: warning" not in report
+
+
+def test_render_report_astgrep_rule_block_runs_unedited_and_finds_planted_matches(
+    tmp_path,
+):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "sample.py").write_text("processInput(42)\n")
+    (repo / "sample.js").write_text("processInput(42);\n")
+
+    derivation = {
+        "kind": "astgrep",
+        "pattern": "processInput($X)",
+        "reason": "flag legacy handler calls",
+        "control_term": "processInput",
+    }
+    hits = [
+        {
+            "repo": str(repo),
+            "file": "sample.py",
+            "line": 1,
+            "snippet": "processInput(42)",
+            "lang": "python",
+        },
+        {
+            "repo": str(repo),
+            "file": "sample.js",
+            "line": 1,
+            "snippet": "processInput(42);",
+            "lang": "javascript",
+        },
+    ]
+
+    report = sweep.render_report(derivation, hits, [], {})
+
+    blocks = _extract_rule_pack_blocks(report)
+    assert blocks, "expected an ast-grep rule-pack block in the report"
+    rule_text = "\n---\n".join(blocks) if len(blocks) > 1 else blocks[0]
+    assert "id:" in rule_text
+    assert "language: python" in rule_text
+    assert "language: javascript" in rule_text
+    assert "severity: warning" in rule_text
+    assert "message:" in rule_text
+    assert "pattern: processInput($X)" in rule_text
+
+    rule_file = tmp_path / "extracted-rule.yml"
+    rule_file.write_text(rule_text)
+
+    result = subprocess.run(
+        [sweep.resolve_ast_grep(), "scan", "--rule", str(rule_file), str(repo)],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "sample.py" in result.stdout
+    assert "sample.js" in result.stdout
+
+
+def test_render_report_performs_no_subprocess_or_file_io(monkeypatch):
+    def _forbidden(*_args, **_kwargs):
+        raise AssertionError("render_report must not perform I/O")
+
+    monkeypatch.setattr(sweep.subprocess, "run", _forbidden)
+    monkeypatch.setattr(Path, "write_text", _forbidden)
+    monkeypatch.setattr(Path, "read_text", _forbidden)
+    monkeypatch.setattr("builtins.open", _forbidden)
+
+    derivation = {
+        "kind": "astgrep",
+        "pattern": "IOMARKER($X)",
+        "reason": "y",
+        "control_term": "z",
+    }
+    hits = [
+        {
+            "repo": "/repo/io",
+            "file": "a.py",
+            "line": 1,
+            "snippet": "IOMARKER(1)",
+            "lang": "python",
+        }
+    ]
+    gaps = ["/repo/io-gap"]
+    suppressed = {"/repo/io": 3}
+
+    report = sweep.render_report(derivation, hits, gaps, suppressed)
+
+    assert isinstance(report, str)
+    assert report.strip() != ""
