@@ -8,7 +8,9 @@ description: Use when planning a port of a skill, tool, or plugin into a target 
 Plans a port of a skill, tool, or plugin from a source into a target. The
 output is a plan document, not a code change. This skill inventories,
 classifies, and sequences; it does not move code and it does not repoint
-consumers.
+consumers. It writes no PRD, no design doc, and no repo-health roadmap -
+those are owned by `create-prd`, `autopilot:design-solution`, and
+`assess-evolution` respectively.
 
 ## Dependencies
 
