@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **capture-experiment**: write up a spike or experiment session as a single
+  zettelkasten note - hypothesis, setup, summarized observations, dead ends,
+  and verdict - before the details are lost to compaction or a new session.
+  Request-only, needs only a title.
 - **plan-port**: plan a port of a skill, tool, or plugin into a target -
   inventory the source's documented behavior one row at a time, classify each
   row `port`, `redesign`, or `drop` with a mandatory reason, walk every
