@@ -828,3 +828,16 @@ def test_collect_repo_purge_last_run_key_equals_collect_purge_devlocal_result(
     result = collect_repo(tmp_path, 60, False)
 
     assert result["purge_last_run"] == "2026-08-20"
+
+
+def test_main_external_carries_audit_cadence_and_drops_claude_maintenance_last(
+    tmp_path,
+    monkeypatch,
+):
+    _, out_dir = run_collector(tmp_path, monkeypatch, ["alpha"], [])
+    data = json.loads((out_dir / "data.json").read_text())
+    external = data["external"]
+    assert "audit_cadence" in external
+    for skill in MACHINE_AUDIT_SKILLS:
+        assert skill in external["audit_cadence"]
+    assert "claude_maintenance_last" not in external
