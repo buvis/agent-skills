@@ -30,15 +30,12 @@ consumers.
 Build the feature list from what the source shows a user, not from its call
 graph. Read the source's docs and user-facing surface first - SKILL.md or
 README, `--help` output, config schema, public API - and record every
-documented command, flag, and behavior as a matrix row. Docs and surface
-first. Only after that pass is complete does the skill read the source code,
-and only to catch behavior the docs never mention. A row found only that way
-is marked `code-only`, because it is a row nobody has judged yet.
-
-Ordering is a hard rule: the skill produces a matrix row for every documented
-command and flag before doing anything else. The code cross-check runs
-strictly after the docs pass, and it only ever adds `code-only` rows for
-behavior the docs never mention.
+documented command, flag, and behavior as a matrix row. Ordering is a hard
+rule: the skill produces a matrix row for every documented command and flag
+before doing anything else. Only after that pass is complete does the skill
+read the source code, and only to catch behavior the docs never mention. A
+row found only that way is marked `code-only`, because it is a row nobody
+has judged yet.
 
 ## Classification
 
@@ -79,5 +76,7 @@ backlog by lowest sequence number.
 ## Output
 
 Fill in `assets/port-plan-template.md` with the matrix, the drop packets,
-the consumer analysis, and the phase list, and emit the completed document
-as the plan.
+the consumer analysis, and the phase list. Derive the source repo, the old
+location, and one acceptance criterion per `port`-classified row from the
+matrix, and fill in the template's `## Retirement` block from the same
+matrix, before emitting the completed document as the plan.
