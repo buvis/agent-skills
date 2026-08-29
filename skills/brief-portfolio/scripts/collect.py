@@ -458,6 +458,20 @@ def write_snapshot(data, outdir):
     tmp_file.replace(data_file)
 
 
+def collect_external_section(known):
+    try:
+        external = collect_external(known)
+    except Exception as e:
+        print(f"WARN external: {e}", file=sys.stderr)
+        external = {"review_requested": [], "authored": [], "error": str(e)}
+    try:
+        external["audit_cadence"] = collect_audit_cadence()
+    except Exception as e:
+        print(f"WARN audit_cadence: {e}", file=sys.stderr)
+        external["audit_cadence"] = _seeded_audit_cadence()
+    return external
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=60)
@@ -488,16 +502,7 @@ def main():
             "since_days": args.days, "repos": repos}
     data["skipped"] = skipped
     known = {f'{r["owner"]}/{r["name"]}' for r in collected}
-    try:
-        data["external"] = collect_external(known)
-    except Exception as e:
-        print(f"WARN external: {e}", file=sys.stderr)
-        data["external"] = {"review_requested": [], "authored": [], "error": str(e)}
-    try:
-        data["external"]["audit_cadence"] = collect_audit_cadence()
-    except Exception as e:
-        print(f"WARN audit_cadence: {e}", file=sys.stderr)
-        data["external"]["audit_cadence"] = _seeded_audit_cadence()
+    data["external"] = collect_external_section(known)
     data["skill_adherence"] = collect_claude_skill_adherence()
     write_snapshot(data, outdir)
     hist = {"at": data["generated_at"], "skipped": len(skipped),
