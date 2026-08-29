@@ -872,3 +872,30 @@ def test_main_completes_when_audit_cadence_metrics_file_is_unreadable(tmp_path, 
     new_data = json.loads((out_dir / "data.json").read_text())
     assert "generated_at" in new_data
     assert len(new_data["repos"]) == 1
+
+
+def test_main_writes_data_json_when_audit_cadence_raises_unexpected_exception(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    def raising_collect_audit_cadence():
+        raise ValueError("unexpected: not an OSError")
+
+    monkeypatch.setattr(collect, "collect_audit_cadence", raising_collect_audit_cadence)
+
+    _, out_dir = run_collector(tmp_path, monkeypatch, ["alpha"], [])
+
+    assert (out_dir / "data.json").exists()
+    new_data = json.loads((out_dir / "data.json").read_text())
+    assert len(new_data["repos"]) == 1
+
+    # The fix is expected to make this call site mirror collect_external's
+    # degrade-and-warn shape: catch the exception, warn on stderr, and still
+    # populate data["external"]["audit_cadence"] with a seeded/empty value
+    # rather than silently dropping the key. Accept either signal (the key is
+    # still present, or the failure is visible on stderr) rather than pinning
+    # the exact degraded value, so this stays a "run completed, failure not
+    # swallowed" assertion instead of a brittle shape check.
+    captured = capsys.readouterr()
+    assert "audit_cadence" in new_data["external"] or "audit_cadence" in captured.err
