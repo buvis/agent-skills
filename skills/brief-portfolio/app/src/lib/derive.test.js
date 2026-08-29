@@ -103,17 +103,52 @@ assert.equal(ext[0].urgency, 'now')
 assert.equal(quadrant(ext[0]), 'do')
 assert.equal(ext[1].effort, 'quick')
 
-// --- ~/.claude maintenance nag (PRD 00081): fires at >=30d or never, silent when fresh ---
+// --- per-audit cadence nags (PRD 00081): every AUDIT_CADENCE entry gets its own row,
+// firing at >= that audit's horizon or never, silent when fresh. Several rows carry
+// kind 'maintenance' at once, so each assertion selects its audit by id, never by kind.
 // (`day(n)` is defined below in the brush-cadence block; both blocks share it.)
-const maintNever = externalTodos({ review_requested: [], authored: [] }).find((t) => t.kind === 'maintenance')
-assert.equal(maintNever.id, 'claude:maintenance:never')
+const isFsAudit = (t) => t.id.startsWith('claude:audit:claude-checkup:audit-filesystem:')
+const maintNever = externalTodos({ review_requested: [], authored: [] }).find(isFsAudit)
+assert.equal(maintNever.id, 'claude:audit:claude-checkup:audit-filesystem:never')
 assert.match(maintNever.action, /audit-filesystem/)
-const maint45 = externalTodos({ claude_maintenance_last: day(45) }).find((t) => t.kind === 'maintenance')
-assert.match(maint45.why, /45d old/)
-assert.equal(maint45.id, `claude:maintenance:${day(45)}`)
-assert(externalTodos({ claude_maintenance_last: day(30) }).some((t) => t.kind === 'maintenance')) // due at 30
-assert.equal(externalTodos({ claude_maintenance_last: day(10) }).find((t) => t.kind === 'maintenance'), undefined)
-assert.equal(externalTodos(null).length, 0) // no external payload -> no nag, no crash
+const maint45 = externalTodos({ audit_cadence: { 'claude-checkup:audit-filesystem': day(45) } }).find(isFsAudit)
+assert.match(maint45.why, /^last run 45d ago/)
+assert.equal(maint45.id, `claude:audit:claude-checkup:audit-filesystem:${day(45)}`)
+assert(externalTodos({ audit_cadence: { 'claude-checkup:audit-filesystem': day(30) } }).some(isFsAudit)) // due at 30
+assert.equal(externalTodos({ audit_cadence: { 'claude-checkup:audit-filesystem': day(10) } }).find(isFsAudit), undefined)
+assert.equal(externalTodos(null).length, 0) // no external payload -> no nag, no crash (auditTodos' machine-scope null guard)
+
+// --- cadence boundaries on both horizons: the row fires AT the horizon, not a day later ---
+// 30d horizon, repo scope: purge-devlocal reads each repo's `purge_last_run`.
+const purgeRowAt = (n) => externalTodos({}, [{ owner: 'o', name: 'r', purge_last_run: day(n) }])
+  .find((t) => t.id.startsWith('o/r:audit:purge-devlocal:'))
+assert.equal(purgeRowAt(0), undefined)
+assert.equal(purgeRowAt(29), undefined)
+assert.ok(purgeRowAt(30), 'purge-devlocal must fire at exactly its 30d horizon')
+assert.ok(purgeRowAt(31), 'purge-devlocal must fire past its 30d horizon')
+assert.equal(
+  externalTodos({}, [{ owner: 'o', name: 'r' }]).find((t) => t.id.startsWith('o/r:audit:purge-devlocal:')).id,
+  'o/r:audit:purge-devlocal:never',
+)
+// 90d horizon, machine scope: audit-context is one of the ~/.claude audits.
+const isCtxAudit = (t) => t.id.startsWith('claude:audit:claude-checkup:audit-context:')
+const ctxRowAt = (n) => externalTodos({ audit_cadence: { 'claude-checkup:audit-context': day(n) } }).find(isCtxAudit)
+assert.equal(ctxRowAt(0), undefined)
+assert.equal(ctxRowAt(89), undefined)
+assert.ok(ctxRowAt(90), 'audit-context must fire at exactly its 90d horizon')
+assert.equal(ctxRowAt(91).why, 'last run 91d ago -- target: one pass per 90d')
+assert.equal(externalTodos({ audit_cadence: {} }).find(isCtxAudit).id, 'claude:audit:claude-checkup:audit-context:never')
+
+// --- repo-scoped cadence: only the overdue repo is nagged, and the row carries its slug ---
+const purgeRows = externalTodos({}, [
+  { owner: 'o', name: 'stale', purge_last_run: day(60) },
+  { owner: 'o', name: 'fresh', purge_last_run: day(1) },
+]).filter((t) => t.id.includes(':audit:purge-devlocal:'))
+assert.equal(purgeRows.length, 1)
+assert.equal(purgeRows[0].id, `o/stale:audit:purge-devlocal:${day(60)}`)
+
+// --- regression: a null external payload still yields no rows at all, audits included ---
+assert.deepEqual(externalTodos(null), [])
 
 // --- merged list + quick wins ---
 const all = allTodos([repo], { todos: [{ id: 'o/r:judgment:x', repo: 'o/r', kind: 'judgment', urgency: 'now', action: 'A', why: 'w' }] }, null)
