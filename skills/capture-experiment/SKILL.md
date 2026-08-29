@@ -88,10 +88,7 @@ Fill in:
   happened is a defect. If nothing was tried and abandoned, say so explicitly
   rather than deleting the section.
 - **Follow-up** — unchecked boxes (`- [ ]`), each naming the skill that would
-  do the next piece of work where one applies (`/spike`, `create-prd`). Do
-  not record cost or wall-clock time: `costs.jsonl` rows are cumulative per
-  session id, so any per-experiment figure derived from them would overstate
-  the real cost.
+  do the next piece of work where one applies (`/spike`, `create-prd`).
 
 ---
 
