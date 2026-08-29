@@ -1,4 +1,5 @@
 """Resolve the rg and ast-grep binaries used by the sweep-fix skill."""
+import argparse
 import csv
 import functools
 import json
@@ -334,3 +335,40 @@ def render_report(derivation, hits, gaps, suppressed):
     )
 
     return "\n".join(lines)
+
+
+def main(argv=None):
+    """CLI entry point: wire enumerate_repos, verify_control, scan, and
+    render_report together, then write the rendered report to `--out`.
+
+    Returns 0 on success.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--kind", required=True)
+    parser.add_argument("--pattern", required=True)
+    parser.add_argument("--reason", required=True)
+    parser.add_argument("--control-term", required=True)
+    parser.add_argument("--control-repo", required=True)
+    parser.add_argument("--registry", required=True)
+    parser.add_argument("--cwd", required=True)
+    parser.add_argument("--out", required=True)
+    args = parser.parse_args(argv)
+
+    repos, gaps = enumerate_repos(args.registry, args.cwd)
+    verify_control(args.pattern, args.kind, Path(args.control_repo), args.control_term)
+    hits, suppressed = scan(args.pattern, args.kind, repos)
+
+    derivation = {
+        "kind": args.kind,
+        "pattern": args.pattern,
+        "reason": args.reason,
+        "control_term": args.control_term,
+    }
+    report = render_report(derivation, hits, gaps, suppressed)
+    Path(args.out).write_text(report)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
