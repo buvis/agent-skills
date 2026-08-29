@@ -861,3 +861,54 @@ def test_render_report_performs_no_subprocess_or_file_io(monkeypatch):
 
     assert isinstance(report, str)
     assert report.strip() != ""
+
+
+# -- main (CLI end-to-end) --------------------------------------------------
+
+
+def test_main_wires_pipeline_and_writes_report_with_one_row_per_planted_bug(
+    tmp_path, monkeypatch
+):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    repo_a = _make_repo(tmp_path / "org" / "repo-a")
+    repo_b = _make_repo(tmp_path / "org" / "repo-b")
+    repo_c = _make_repo(tmp_path / "org" / "repo-c")
+    for repo in (repo_a, repo_b, repo_c):
+        _plant_matches(repo, "MAINE2EMARKER", 1)
+
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text("MAINE2EMARKER control line\n")
+
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(repo_a), str(repo_b), str(repo_c)])
+
+    out_path = tmp_path / "report.md"
+
+    exit_code = sweep.main(
+        [
+            "--kind", "rg",
+            "--pattern", "MAINE2EMARKER",
+            "--reason", "planted bug for phase 1 e2e test",
+            "--control-term", "MAINE2EMARKER",
+            "--control-repo", str(control_repo),
+            "--registry", str(registry),
+            "--cwd", str(repo_a),
+            "--out", str(out_path),
+        ]
+    )
+
+    assert isinstance(exit_code, int)
+    assert exit_code == 0
+    assert out_path.exists()
+
+    report = out_path.read_text()
+
+    assert "Hits (3):" in report
+    hit_lines = re.findall(r"^- .+:\d+: .*MAINE2EMARKER.*$", report, re.MULTILINE)
+    assert len(hit_lines) == 3
+    for repo in (repo_a, repo_b, repo_c):
+        assert str(repo) in report
