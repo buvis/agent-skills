@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import ModuleType
 
@@ -11,6 +12,7 @@ from types import ModuleType
 _CACHE_ROOT = Path.home() / ".claude" / "plugins" / "cache" / "buvis-plugins" / "claude-checkup"
 _MIN_VERSION = "0.2.2"
 _REQUIRED_PARSER_SYMBOLS = ("parse_session", "SessionData")
+_PROJECTS_ROOT = Path.home() / ".claude" / "projects"
 
 
 class StaleParserError(RuntimeError):
@@ -68,3 +70,31 @@ def assert_contract(version: str, parser_module: ModuleType, minimum: str = _MIN
             f"claude-checkup {version}'s parser.py is missing {missing} - "
             "it no longer matches this skill's contract."
         )
+
+
+def select_transcripts(days: int = 30, project: str | None = None, all: bool = False) -> list[Path]:
+    """Return the sorted list of transcript paths under _PROJECTS_ROOT that
+    fall within the last `days` days, optionally restricted to project
+    directories whose name ends with `project`. `all=True` skips the date
+    filter entirely. A transcript is kept whenever its date can't be
+    determined (parse_session() returns None, or SessionData.latest is
+    None), since there's no evidence to justify dropping it."""
+    module, version = resolve_parser()
+    assert_contract(version, module)
+    cutoff = None if all else datetime.now(timezone.utc) - timedelta(days=days)
+
+    results = []
+    for project_dir in _PROJECTS_ROOT.iterdir():
+        if not project_dir.is_dir():
+            continue
+        if project is not None and not project_dir.name.endswith(project):
+            continue
+        for transcript in project_dir.glob("*.jsonl"):
+            if cutoff is None:
+                results.append(transcript)
+                continue
+            session_data = module.parse_session(transcript)
+            if session_data is None or session_data.latest is None or session_data.latest >= cutoff:
+                results.append(transcript)
+
+    return sorted(results)
