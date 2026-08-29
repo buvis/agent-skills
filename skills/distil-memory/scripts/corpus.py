@@ -48,3 +48,20 @@ def resolve_parser(cache_root: Path = _CACHE_ROOT) -> tuple[ModuleType, str]:
     assert loader is not None
     loader.exec_module(module)
     return module, winner.name
+
+
+def assert_contract(version: str, module: ModuleType, minimum: str = _MIN_VERSION) -> None:
+    """Raise StaleParserError if `version` is below `minimum`, or if `module`
+    is missing any of `_REQUIRED_PARSER_SYMBOLS`."""
+    if _version_key(version) < _version_key(minimum):
+        raise StaleParserError(
+            f"claude-checkup {version} is older than the required {minimum} "
+            "(the release carrying d10ecb1's promptSource=='sdk' fix) - "
+            "the resolved parser over-counts user prompts by roughly 41%. "
+            f"Install claude-checkup {minimum} or newer."
+        )
+    missing = [symbol for symbol in _REQUIRED_PARSER_SYMBOLS if not hasattr(module, symbol)]
+    if missing:
+        raise StaleParserError(
+            f"claude-checkup {version} parser is missing required symbols: {', '.join(missing)}"
+        )
