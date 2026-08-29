@@ -22,6 +22,14 @@ DIGEST_COMMITS = 50
 MAX_BRANCHES = 50
 SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 ROTATE_MIN_AGE = timedelta(hours=4)
+MACHINE_AUDIT_SKILLS = [
+    "claude-checkup:audit-filesystem",
+    "claude-checkup:audit-context",
+    "claude-checkup:audit-config",
+    "claude-checkup:audit-authoring",
+    "claude-checkup:audit-sessions",
+    "claude-checkup:audit-mcp-health",
+]
 
 
 def should_rotate(existing_generated_at: str, now: datetime) -> bool:
@@ -283,6 +291,32 @@ def collect_claude_maintenance(base=None):
     if not times:
         return None
     return datetime.fromtimestamp(max(times), timezone.utc).strftime("%Y-%m-%d")
+
+
+def collect_audit_cadence(path):
+    """Newest day (ISO YYYY-MM-DD) per skill from a skills.jsonl of {"skill", "ts"}
+    rows (same file/format as collect_claude_skill_adherence). Seeded with all
+    MACHINE_AUDIT_SKILLS keys as None; also picks up any other skill found in
+    the file. None when the file is missing or a skill has no rows."""
+    result = {skill: None for skill in MACHINE_AUDIT_SKILLS}
+    f = Path(path)
+    if not f.is_file():
+        return result
+    for line in f.read_text(errors="replace").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        skill, ts = row.get("skill"), row.get("ts")
+        if not skill or not ts:
+            continue
+        day = iso_day(ts)
+        if result.get(skill) is None or day > result[skill]:
+            result[skill] = day
+    return result
 
 
 def collect_external(known_slugs):
