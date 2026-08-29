@@ -39,6 +39,11 @@ read the source code, and only to catch behavior the docs never mention. A
 row found only that way is marked `code-only`, because it is a row nobody
 has judged yet.
 
+If the source documents nothing - no SKILL.md or README, no `--help`, no
+public API - the docs-first pass yields zero rows and the code pass carries
+the whole inventory. Every row it produces is marked `code-only`, since
+nobody has judged any of them, and classification proceeds from there.
+
 ## Classification
 
 Decide what happens to each row in the target: `port` (moves over as is),
@@ -96,3 +101,7 @@ The plan is written to the target repo's `dev/local/discovery/`, sharing
 that repo's PRD sequence - the source repo's, when the target does not
 exist yet. The retirement PRD is written in the source repo, alongside the
 final port phase.
+
+If a plan already exists at that path, the skill does not overwrite it. It
+names the existing plan and asks whether to replace it, so a re-run is a
+refresh the user rules on rather than a silent clobber.
