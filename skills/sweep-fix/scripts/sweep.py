@@ -72,7 +72,10 @@ def resolve_ast_grep():
         sys.exit(1)
 
     result = subprocess.run(
-        ["mise", "which", "ast-grep"], capture_output=True, text=True
+        ["mise", "which", "ast-grep"],
+        capture_output=True,
+        text=True,
+        timeout=DEFAULT_SCAN_TIMEOUT,
     )
     if result.returncode != 0:
         print(
@@ -83,6 +86,8 @@ def resolve_ast_grep():
 
     return result.stdout.strip()
 
+
+DEFAULT_SCAN_TIMEOUT = 30
 
 PORTFOLIO_ROOT = Path.home() / "git" / "src" / "github.com"
 
@@ -106,6 +111,7 @@ def _buvis_bare_entry():
         capture_output=True,
         text=True,
         check=True,
+        timeout=DEFAULT_SCAN_TIMEOUT,
     )
     files = [rel for rel in result.stdout.split("\0") if rel]
     return {"cwd": work_tree, "files": files}
@@ -174,13 +180,14 @@ def _build_hit(repo, file, line, snippet):
     }
 
 
-def _run_rg(args, cwd):
+def _run_rg(args, cwd, timeout=DEFAULT_SCAN_TIMEOUT):
     result = subprocess.run(
         ["rg", *args],
         executable=resolve_rg(),
         cwd=cwd,
         capture_output=True,
         text=True,
+        timeout=timeout,
     )
     if result.returncode not in (0, 1):
         raise RuntimeError(f"rg failed: {result.stderr}")
@@ -200,10 +207,10 @@ def _repo_cwd_and_targets(repo):
     return repo, ["."]
 
 
-def _scan_rg(pattern, cwd, targets):
+def _scan_rg(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT):
     if not targets:
         return []
-    result = _run_rg(["--json", pattern, *targets], cwd)
+    result = _run_rg(["--json", "--", pattern, *targets], cwd, timeout=timeout)
     hits = []
     for line in result.stdout.splitlines():
         event = json.loads(line)
@@ -217,14 +224,15 @@ def _scan_rg(pattern, cwd, targets):
     return hits
 
 
-def _scan_astgrep(pattern, cwd, targets):
+def _scan_astgrep(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT):
     if not targets:
         return []
     result = subprocess.run(
-        [resolve_ast_grep(), "run", "--pattern", pattern, "--json", *targets],
+        [resolve_ast_grep(), "run", "--pattern", pattern, "--json", "--", *targets],
         cwd=cwd,
         capture_output=True,
         text=True,
+        timeout=timeout,
     )
     if result.returncode not in (0, 1):
         raise RuntimeError(f"ast-grep failed: {result.stderr}")
@@ -238,25 +246,36 @@ def _scan_astgrep(pattern, cwd, targets):
     return hits
 
 
-def scan(pattern, kind, repos, cap=20):
+def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT):
     """Search `pattern` across `repos` using `kind` ("rg" or "astgrep").
 
-    Read-only: never writes to a repo. Returns `(hits, suppressed)`. Each
-    hit is a dict with `repo`, `file`, `line`, `snippet`, and `lang`
+    Read-only: never writes to a repo. Returns `(hits, suppressed, failed)`.
+    Each hit is a dict with `repo`, `file`, `line`, `snippet`, and `lang`
     (looked up in AST_GREP_LANGUAGES by file extension, None when unmapped).
     Hits are capped at `cap` per repo; `suppressed` maps `str(repo)` to the
     number of hits dropped beyond the cap, for repos that exceeded it only.
+
+    Each subprocess search is bounded by `timeout` seconds. A repo whose
+    search raises for any reason (crashes, times out, does not exist) does
+    not abort the sweep: it is recorded in `failed` (`str(repo)` -> reason
+    string) and the remaining repos are still scanned.
     """
+    if kind not in ("rg", "astgrep"):
+        raise ValueError(f"unknown kind: {kind!r}")
+
     hits = []
     suppressed = {}
+    failed = {}
     for repo in repos:
         cwd, targets = _repo_cwd_and_targets(repo)
-        if kind == "rg":
-            repo_hits = _scan_rg(pattern, cwd, targets)
-        elif kind == "astgrep":
-            repo_hits = _scan_astgrep(pattern, cwd, targets)
-        else:
-            raise ValueError(f"unknown kind: {kind!r}")
+        try:
+            if kind == "rg":
+                repo_hits = _scan_rg(pattern, cwd, targets, timeout=timeout)
+            else:
+                repo_hits = _scan_astgrep(pattern, cwd, targets, timeout=timeout)
+        except Exception as exc:
+            failed[str(cwd)] = str(exc)
+            continue
 
         if len(repo_hits) > cap:
             suppressed[str(cwd)] = len(repo_hits) - cap
@@ -264,7 +283,7 @@ def scan(pattern, kind, repos, cap=20):
 
         hits.extend(repo_hits)
 
-    return hits, suppressed
+    return hits, suppressed, failed
 
 
 def verify_control(pattern, kind, control_repo, control_term):
@@ -280,7 +299,7 @@ def verify_control(pattern, kind, control_repo, control_term):
     (e.g. the Rust-regex `\\|` literal-pipe trap): prints a message naming
     `control_term` and `control_repo`, then exits with status 1.
     """
-    hits, _suppressed = scan(pattern, kind, [control_repo])
+    hits, _suppressed, _failed = scan(pattern, kind, [control_repo])
     if hits:
         return None
 
@@ -316,6 +335,16 @@ def _render_suppressed_section(suppressed):
         lines.append("Suppressed:")
         for repo, count in suppressed.items():
             lines.append(f"- {repo}: {count} more hits suppressed (cap reached)")
+        lines.append("")
+    return lines
+
+
+def _render_failed_section(failed):
+    lines = []
+    if failed:
+        lines.append("Failed:")
+        for repo, reason in failed.items():
+            lines.append(f"- {repo}: could not be scanned ({reason})")
         lines.append("")
     return lines
 
@@ -357,15 +386,17 @@ def _render_astgrep_rule_block(derivation, hits):
     return lines
 
 
-def render_report(derivation, hits, gaps, suppressed):
+def render_report(derivation, hits, gaps, suppressed, failed):
     """Render a plain-text sweep report from scan results.
 
     Pure string formatting: no subprocess calls, no file I/O. `derivation`
     carries `kind`, `pattern`, `reason`, `control_term` describing the sweep
-    that was run. When `kind` is "astgrep", appends an ast-grep rule-pack
-    YAML block (one document per distinct language seen in `hits`, joined
-    with `---`) that can be saved to a `.yml` file and run unedited with
-    `ast-grep scan --rule`.
+    that was run. `failed` maps `str(repo)` to a reason string for repos
+    that could not be scanned at all, distinct from `suppressed` (repos that
+    were scanned but had hits truncated at the cap). When `kind` is
+    "astgrep", appends an ast-grep rule-pack YAML block (one document per
+    distinct language seen in `hits`, joined with `---`) that can be saved
+    to a `.yml` file and run unedited with `ast-grep scan --rule`.
     """
     lines = [
         f"Kind: {derivation['kind']}",
@@ -375,6 +406,7 @@ def render_report(derivation, hits, gaps, suppressed):
     ]
     lines.extend(_render_hits_section(hits))
     lines.extend(_render_suppressed_section(suppressed))
+    lines.extend(_render_failed_section(failed))
     lines.extend(_render_gaps_section(gaps))
     lines.extend(_render_astgrep_rule_block(derivation, hits))
 
@@ -408,7 +440,7 @@ def main(argv=None):
 
     repos, gaps = enumerate_repos(args.registry, args.cwd)
     verify_control(args.pattern, args.kind, Path(args.control_repo), args.control_term)
-    hits, suppressed = scan(args.pattern, args.kind, repos, cap=args.cap)
+    hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap)
 
     derivation = {
         "kind": args.kind,
@@ -416,7 +448,7 @@ def main(argv=None):
         "reason": args.reason,
         "control_term": args.control_term,
     }
-    report = render_report(derivation, hits, gaps, suppressed)
+    report = render_report(derivation, hits, gaps, suppressed, failed)
 
     out = args.out
     if not out:
