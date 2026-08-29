@@ -51,8 +51,10 @@ def resolve_parser(cache_root: Path = _CACHE_ROOT) -> tuple[ModuleType, str]:
 
 
 def assert_contract(version: str, parser_module: ModuleType, minimum: str = _MIN_VERSION) -> None:
-    """Raise StaleParserError if `version` is below `minimum`, or if `module`
-    is missing any of `_REQUIRED_PARSER_SYMBOLS`."""
+    """Raise StaleParserError naming the resolved version and the minimum
+    when `version < minimum`, or naming any of _REQUIRED_PARSER_SYMBOLS
+    missing from `parser_module`. Message states the over-count consequence
+    (claude-checkup d10ecb1's promptSource=="sdk" fix), not "parse failed"."""
     if _version_key(version) < _version_key(minimum):
         raise StaleParserError(
             f"claude-checkup {version} is older than the required {minimum} "
