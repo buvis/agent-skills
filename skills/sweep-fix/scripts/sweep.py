@@ -541,11 +541,22 @@ def main(argv=None):
     }
     report = render_report(derivation, hits, gaps, suppressed, failed)
 
+    cwd_path = Path(args.cwd).resolve()
+
     out = args.out
     if not out:
         slug = re.sub(r"[^a-z0-9]+", "-", args.reason[:40].lower()).strip("-")
         out = f"dev/local/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
-    out_path = Path(out)
+
+    out_path = (cwd_path / out).resolve()
+    if out_path != cwd_path and cwd_path not in out_path.parents:
+        print(
+            f"sweep: --out {out!r} resolves to {out_path}, which is outside "
+            f"the --cwd repo {cwd_path}",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(report)
 

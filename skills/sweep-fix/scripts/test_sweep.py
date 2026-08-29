@@ -1112,7 +1112,7 @@ def test_main_survives_broken_buvis_bare_git_call_and_reports_it_as_failed(
     control_repo.mkdir()
     (control_repo / "file.txt").write_text("BAREFAILMARKER control line\n")
 
-    out_path = tmp_path / "report.md"
+    out_path = fixture_home / "report.md"
     argv = [
         "--kind", "rg",
         "--pattern", "BAREFAILMARKER",
