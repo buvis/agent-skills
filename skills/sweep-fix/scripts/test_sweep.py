@@ -1,12 +1,15 @@
 """Tests for sweep.py (resolve_rg, resolve_ast_grep)."""
+import ast
 import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import time
 
 import pytest
+import yaml  # test-only round-trip parser; sweep.py itself must stay stdlib-only
 
 import sweep
 
@@ -1279,3 +1282,123 @@ def test_render_report_collapses_multiline_failed_reason_into_a_single_line():
     matching_lines = [line for line in report.splitlines() if "/repo/multiline" in line]
     assert len(matching_lines) == 1
     assert "line one line two line three" in matching_lines[0]
+
+
+# -- module imports -----------------------------------------------------
+
+
+def test_sweep_module_imports_only_stdlib_modules():
+    # Pins the "runs on a bare python3" contract: no third-party import at
+    # module load time, so the script cannot die on import before it
+    # parses a single argument on a machine that never installed anything
+    # for it. Parses the source rather than inspecting sys.modules, so this
+    # fails on the import statement itself rather than on whatever happens
+    # to be installed on the machine running the suite.
+    source = Path(sweep.__file__).read_text()
+    tree = ast.parse(source, filename=sweep.__file__)
+
+    top_level_modules = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                top_level_modules.add(alias.name.split(".")[0])
+        elif isinstance(node, ast.ImportFrom):
+            if node.level == 0 and node.module:
+                top_level_modules.add(node.module.split(".")[0])
+
+    non_stdlib = sorted(top_level_modules - sys.stdlib_module_names)
+    assert not non_stdlib, f"sweep.py imports non-stdlib module(s): {non_stdlib}"
+
+
+# -- render_report: ast-grep rule block quoting --------------------------
+
+
+def _render_astgrep_rule_text(reason, pattern):
+    """Render a single-language ast-grep rule-pack block and return its raw
+    text. render_report performs no I/O (see
+    test_render_report_performs_no_subprocess_or_file_io), so this needs no
+    tmp_path or files on disk -- just a derivation and one hit."""
+    derivation = {
+        "kind": "astgrep",
+        "pattern": pattern,
+        "reason": reason,
+        "control_term": "control-term",
+    }
+    hits = [
+        {
+            "repo": "/repo/quoting",
+            "file": "sample.py",
+            "line": 1,
+            "snippet": "irrelevant",
+            "lang": "python",
+        }
+    ]
+
+    report = sweep.render_report(derivation, hits, [], {}, {})
+
+    blocks = _extract_rule_pack_blocks(report)
+    assert blocks, "expected an ast-grep rule-pack block in the report"
+    return blocks[0]
+
+
+def test_render_report_astgrep_rule_block_roundtrips_colon_space_value():
+    value = "flag foo: bar handler calls"
+
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert parsed["rule"]["pattern"] == value
+
+
+def test_render_report_astgrep_rule_block_roundtrips_double_quote_value():
+    value = 'flag "quoted" handler calls'
+
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert parsed["rule"]["pattern"] == value
+
+
+def test_render_report_astgrep_rule_block_roundtrips_single_quote_value():
+    value = "flag it's handler calls"
+
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert parsed["rule"]["pattern"] == value
+
+
+def test_render_report_astgrep_rule_block_roundtrips_hash_value():
+    value = "flag #legacy handler calls"
+
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert parsed["rule"]["pattern"] == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["null", "true", "- leading dash handler"],
+    ids=["null-token", "true-token", "leading-dash"],
+)
+def test_render_report_astgrep_rule_block_roundtrips_whole_value_yaml_token(value):
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert parsed["rule"]["pattern"] == value
+
+
+def test_render_report_astgrep_rule_block_roundtrips_newline_value():
+    value = "flag handler calls\nacross two lines"
+
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert parsed["rule"]["pattern"] == value
