@@ -81,6 +81,8 @@ def resolve_ast_grep():
 
 PORTFOLIO_ROOT = Path.home() / "git" / "src" / "github.com"
 
+GITA_CSV = Path.home() / ".config" / "gita" / "repos.csv"
+
 BUVIS_BARE = {
     "git_dir": Path.home() / ".buvis",
     "work_tree": Path.home(),
@@ -107,10 +109,7 @@ def enumerate_repos(registry, cwd):
     registry = Path(registry)
     cwd = Path(cwd)
 
-    registered = []
-    for row in csv.reader(registry.open()):
-        if row and row[0].strip():
-            registered.append(Path(row[0].strip()))
+    registered = [Path(row[0].strip()) for row in csv.reader(registry.open()) if row and row[0].strip()]
 
     repos = [
         path
@@ -135,15 +134,8 @@ def enumerate_repos(registry, cwd):
 
     gaps = []
     if PORTFOLIO_ROOT.is_dir():
-        for org_dir in sorted(PORTFOLIO_ROOT.iterdir()):
-            if not org_dir.is_dir():
-                continue
-            for repo_dir in sorted(org_dir.iterdir()):
-                if (
-                    repo_dir.is_dir()
-                    and (repo_dir / ".git").exists()
-                    and repo_dir not in repos
-                ):
-                    gaps.append(str(repo_dir))
+        for repo_dir in sorted(PORTFOLIO_ROOT.glob("*/*")):
+            if repo_dir.is_dir() and (repo_dir / ".git").exists() and repo_dir not in repos:
+                gaps.append(str(repo_dir))
 
     return repos, gaps
