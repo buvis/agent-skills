@@ -373,6 +373,7 @@ def main(argv=None):
     if not out:
         slug = re.sub(r"[^a-z0-9]+", "-", args.reason[:40].lower()).strip("-")
         out = f"dev/local/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
     Path(out).write_text(report)
 
     return 0
