@@ -289,7 +289,7 @@ def render_report(derivation, hits, gaps, suppressed):
         lines.append(f"- {hit['repo']} {hit['file']}:{hit['line']}: {hit['snippet']}")
     lines.append("")
 
-    uncovered_exts = sorted({Path(hit["file"]).suffix for hit in hits if hit["lang"] is None})
+    uncovered_exts = sorted({Path(hit["file"]).suffix or hit["file"] for hit in hits if hit["lang"] is None})
     if uncovered_exts:
         lines.append(f"Uncovered languages (no ast-grep lang mapping): {', '.join(uncovered_exts)}")
         lines.append("")
