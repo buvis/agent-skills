@@ -1,4 +1,5 @@
 """Resolve the rg and ast-grep binaries used by the sweep-fix skill."""
+import csv
 import functools
 import os
 import shutil
@@ -107,23 +108,26 @@ def enumerate_repos(registry, cwd):
     cwd = Path(cwd)
 
     registered = []
-    for line in registry.read_text().splitlines():
-        line = line.strip()
-        if line:
-            registered.append(Path(line))
+    for row in csv.reader(registry.open()):
+        if row and row[0].strip():
+            registered.append(Path(row[0].strip()))
 
-    repos = [path for path in registered if (path / ".git").is_dir()]
+    repos = [
+        path
+        for path in registered
+        if (path / ".git").exists() or path == BUVIS_BARE["work_tree"]
+    ]
 
     work_tree = BUVIS_BARE["work_tree"]
     if cwd == work_tree:
         git_dir = BUVIS_BARE["git_dir"]
         result = subprocess.run(
-            ["git", f"--git-dir={git_dir}", f"--work-tree={work_tree}", "ls-files"],
+            ["git", f"--git-dir={git_dir}", f"--work-tree={work_tree}", "ls-files", "-z"],
             capture_output=True,
             text=True,
             check=True,
         )
-        for rel in result.stdout.splitlines():
+        for rel in result.stdout.split("\0"):
             if rel:
                 repos.append(work_tree / rel)
     elif cwd not in repos:
@@ -137,8 +141,8 @@ def enumerate_repos(registry, cwd):
             for repo_dir in sorted(org_dir.iterdir()):
                 if (
                     repo_dir.is_dir()
-                    and (repo_dir / ".git").is_dir()
-                    and repo_dir not in registered
+                    and (repo_dir / ".git").exists()
+                    and repo_dir not in repos
                 ):
                     gaps.append(str(repo_dir))
 
