@@ -11,7 +11,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent))
 import collect
 from collect import (
+    MACHINE_AUDIT_SKILLS,
     ROTATE_MIN_AGE,
+    collect_audit_cadence,
     collect_brush,
     collect_claude_maintenance,
     collect_claude_skill_adherence,
@@ -107,6 +109,92 @@ def test_skill_adherence_empty_when_all_stale(tmp_path):
     f = tmp_path / "skills.jsonl"
     f.write_text(json.dumps({"skill": "work", "ts": old}) + "\n")
     assert collect_claude_skill_adherence(f) == {"count": 0, "distinct": 0, "top": []}
+
+
+def test_machine_audit_skills_is_six_skills_in_order():
+    assert MACHINE_AUDIT_SKILLS == [
+        "claude-checkup:audit-filesystem",
+        "claude-checkup:audit-context",
+        "claude-checkup:audit-config",
+        "claude-checkup:audit-authoring",
+        "claude-checkup:audit-sessions",
+        "claude-checkup:audit-mcp-health",
+    ]
+
+
+def test_audit_cadence_all_none_when_file_missing(tmp_path):
+    result = collect_audit_cadence(tmp_path / "skills.jsonl")
+    assert result == {skill: None for skill in MACHINE_AUDIT_SKILLS}
+
+
+def test_audit_cadence_returns_newest_day_per_skill_and_none_for_no_rows(tmp_path):
+    f = tmp_path / "skills.jsonl"
+    f.write_text(
+        "\n".join(
+            json.dumps(r)
+            for r in [
+                {
+                    "skill": "claude-checkup:audit-filesystem",
+                    "ts": "2026-08-15T10:30:00+00:00",
+                },
+                {
+                    "skill": "claude-checkup:audit-filesystem",
+                    "ts": "2026-08-10T09:00:00+00:00",
+                },
+                {"skill": "purge-devlocal", "ts": "2026-08-12T00:00:00+00:00"},
+            ]
+        )
+        + "\n",
+    )
+    result = collect_audit_cadence(f)
+    assert result["claude-checkup:audit-filesystem"] == "2026-08-15"
+    assert result["purge-devlocal"] == "2026-08-12"
+    assert result["claude-checkup:audit-context"] is None
+
+
+def test_audit_cadence_seeds_all_six_keys_and_includes_unnamespaced_skill(tmp_path):
+    f = tmp_path / "skills.jsonl"
+    f.write_text(
+        "\n".join(
+            json.dumps(r)
+            for r in [
+                {
+                    "skill": "claude-checkup:audit-sessions",
+                    "ts": "2026-08-20T00:00:00+00:00",
+                },
+                {"skill": "purge-devlocal", "ts": "2026-08-18T00:00:00+00:00"},
+            ]
+        )
+        + "\n",
+    )
+    result = collect_audit_cadence(f)
+    for skill in MACHINE_AUDIT_SKILLS:
+        assert skill in result
+    assert result["claude-checkup:audit-sessions"] == "2026-08-20"
+    for skill in MACHINE_AUDIT_SKILLS:
+        if skill != "claude-checkup:audit-sessions":
+            assert result[skill] is None
+    assert result["purge-devlocal"] == "2026-08-18"
+
+
+def test_audit_cadence_skips_malformed_json_line_without_raising(tmp_path):
+    f = tmp_path / "skills.jsonl"
+    f.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "skill": "claude-checkup:audit-config",
+                        "ts": "2026-08-14T00:00:00+00:00",
+                    },
+                ),
+                "not json",
+            ]
+        )
+        + "\n",
+    )
+    result = collect_audit_cadence(f)
+    assert result["claude-checkup:audit-config"] == "2026-08-14"
 
 
 def test_stub_from_path_builds_owner_name_org_and_reason_from_path():
