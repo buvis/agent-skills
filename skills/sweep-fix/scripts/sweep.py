@@ -142,38 +142,37 @@ def enumerate_repos(registry, cwd):
     return repos, gaps
 
 
-LANGUAGES_BY_EXT = {
-    ".py": "python",
+AST_GREP_LANGUAGES = {
     ".js": "javascript",
     ".jsx": "javascript",
     ".ts": "typescript",
-    ".tsx": "tsx",
-    ".go": "go",
+    ".tsx": "typescript",
+    ".py": "python",
     ".rs": "rust",
-    ".java": "java",
-    ".c": "c",
-    ".cpp": "cpp",
-    ".cs": "csharp",
-    ".rb": "ruby",
-    ".php": "php",
-    ".html": "html",
-    ".css": "css",
-    ".json": "json",
-    ".yaml": "yaml",
-    ".yml": "yaml",
-    ".sh": "bash",
+    ".go": "go",
 }
 
-DEFAULT_SCAN_CAP = 20
+
+def _build_hit(repo, file, line, snippet):
+    return {
+        "repo": str(repo),
+        "file": file,
+        "line": line,
+        "snippet": snippet,
+        "lang": AST_GREP_LANGUAGES.get(Path(file).suffix),
+    }
 
 
 def _scan_rg(pattern, repo):
     result = subprocess.run(
-        ["rg", "--json", pattern, str(repo)],
+        ["rg", "--json", pattern, "."],
         executable=resolve_rg(),
+        cwd=repo,
         capture_output=True,
         text=True,
     )
+    if result.returncode not in (0, 1):
+        raise RuntimeError(f"rg failed: {result.stderr}")
     hits = []
     for line in result.stdout.splitlines():
         event = json.loads(line)
@@ -182,45 +181,36 @@ def _scan_rg(pattern, repo):
         data = event["data"]
         file = data["path"]["text"]
         hits.append(
-            {
-                "repo": str(repo),
-                "file": file,
-                "line": data["line_number"],
-                "snippet": data["lines"]["text"].rstrip("\n"),
-                "lang": LANGUAGES_BY_EXT.get(Path(file).suffix),
-            }
+            _build_hit(repo, file, data["line_number"], data["lines"]["text"].rstrip("\n"))
         )
     return hits
 
 
 def _scan_astgrep(pattern, repo):
     result = subprocess.run(
-        [resolve_ast_grep(), "run", "--pattern", pattern, "--json", str(repo)],
+        [resolve_ast_grep(), "run", "--pattern", pattern, "--json", "."],
+        cwd=repo,
         capture_output=True,
         text=True,
     )
+    if result.returncode != 0:
+        raise RuntimeError(f"ast-grep failed: {result.stderr}")
     matches = json.loads(result.stdout) if result.stdout.strip() else []
     hits = []
     for match in matches:
         file = match["file"]
         hits.append(
-            {
-                "repo": str(repo),
-                "file": file,
-                "line": match["range"]["start"]["line"] + 1,
-                "snippet": match["lines"],
-                "lang": LANGUAGES_BY_EXT.get(Path(file).suffix),
-            }
+            _build_hit(repo, file, match["range"]["start"]["line"] + 1, match["lines"])
         )
     return hits
 
 
-def scan(pattern, kind, repos, cap=DEFAULT_SCAN_CAP):
+def scan(pattern, kind, repos, cap=20):
     """Search `pattern` across `repos` using `kind` ("rg" or "astgrep").
 
     Read-only: never writes to a repo. Returns `(hits, suppressed)`. Each
     hit is a dict with `repo`, `file`, `line`, `snippet`, and `lang`
-    (looked up in LANGUAGES_BY_EXT by file extension, None when unmapped).
+    (looked up in AST_GREP_LANGUAGES by file extension, None when unmapped).
     Hits are capped at `cap` per repo; `suppressed` maps `str(repo)` to the
     number of hits dropped beyond the cap, for repos that exceeded it only.
     """
@@ -231,6 +221,8 @@ def scan(pattern, kind, repos, cap=DEFAULT_SCAN_CAP):
             repo_hits = _scan_rg(pattern, repo)
         elif kind == "astgrep":
             repo_hits = _scan_astgrep(pattern, repo)
+        else:
+            raise ValueError(f"unknown kind: {kind!r}")
 
         if len(repo_hits) > cap:
             suppressed[str(repo)] = len(repo_hits) - cap
