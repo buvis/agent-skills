@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import sys
+import yaml
 from pathlib import Path
 
 
@@ -305,19 +306,19 @@ def render_report(derivation, hits, gaps, suppressed):
     lines.append("")
 
     if derivation["kind"] == "astgrep":
-        seen_langs = []
-        for hit in hits:
-            lang = hit["lang"]
-            if lang and lang not in seen_langs:
-                seen_langs.append(lang)
+        seen_langs = list(dict.fromkeys(hit["lang"] for hit in hits if hit["lang"]))
         if seen_langs:
             rule_docs = [
-                f"id: sweep-{lang}\n"
-                f"language: {lang}\n"
-                "severity: warning\n"
-                f"message: {derivation['reason']}\n"
-                "rule:\n"
-                f"  pattern: {derivation['pattern']}"
+                yaml.safe_dump(
+                    {
+                        "id": f"sweep-{lang}",
+                        "language": lang,
+                        "severity": "warning",
+                        "message": derivation["reason"],
+                        "rule": {"pattern": derivation["pattern"]},
+                    },
+                    sort_keys=False,
+                ).rstrip("\n")
                 for lang in seen_langs
             ]
             lines.append("```yaml")
