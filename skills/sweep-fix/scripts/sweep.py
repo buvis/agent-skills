@@ -250,15 +250,21 @@ def verify_control(pattern, kind, control_repo, control_term):
     if hits:
         return None
 
-    control_hits, _suppressed = scan(control_term, kind, [control_repo])
-    if not control_hits:
+    result = subprocess.run(
+        ["rg", "-F", "--", control_term, "."],
+        executable=resolve_rg(),
+        cwd=control_repo,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode not in (0, 1):
+        raise RuntimeError(f"rg failed: {result.stderr}")
+    if result.returncode == 1:
         return None
 
     message = (
-        f"unverified: control term {control_term!r} found hits in "
-        f"{control_repo}, but pattern {pattern!r} found none there"
+        f'sweep unverified: pattern found 0 hits but control term "{control_term}" is present in {control_repo} '
+        "-- the pattern shape is likely broken (e.g. \\| alternation, which rg's Rust regex treats as a literal backslash-pipe)"
     )
     print(message, file=sys.stderr)
-    exc = SystemExit(message)
-    exc.code = 1
-    raise exc
+    raise SystemExit(1)

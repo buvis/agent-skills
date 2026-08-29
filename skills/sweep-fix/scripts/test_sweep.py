@@ -515,7 +515,7 @@ def test_verify_control_returns_none_when_pattern_and_control_term_both_absent(
 
 
 def test_verify_control_raises_unverified_when_pattern_misses_but_control_term_present(
-    tmp_path,
+    tmp_path, capsys
 ):
     control_repo = tmp_path / "control"
     control_repo.mkdir()
@@ -525,14 +525,14 @@ def test_verify_control_raises_unverified_when_pattern_misses_but_control_term_p
         sweep.verify_control("NOTPRESENTPATTERN", "rg", control_repo, "CONTROLTERM")
 
     assert exc_info.value.code == 1
-    message = str(exc_info.value)
+    message = capsys.readouterr().err
     assert "unverified" in message
     assert "CONTROLTERM" in message
     assert str(control_repo) in message
 
 
 def test_verify_control_raises_unverified_for_broken_backslash_pipe_alternation(
-    tmp_path,
+    tmp_path, capsys
 ):
     # The classic Rust-regex trap: `\|` is a literal pipe, not "OR", so this
     # pattern never matches "foo" alone even though the author meant
@@ -545,7 +545,7 @@ def test_verify_control_raises_unverified_for_broken_backslash_pipe_alternation(
         sweep.verify_control("foo\\|bar", "rg", control_repo, "foo")
 
     assert exc_info.value.code == 1
-    message = str(exc_info.value)
+    message = capsys.readouterr().err
     assert "unverified" in message
     assert "foo" in message
     assert str(control_repo) in message
