@@ -788,6 +788,28 @@ def test_render_report_omits_uncovered_languages_line_when_every_hit_has_a_lang(
     assert "uncovered" not in report.lower()
 
 
+def test_render_report_omits_uncovered_languages_line_for_rg_kind_sweep_with_unmapped_lang_hit():
+    # rg is a plain textual search: no ast-grep rule is ever derived or
+    # attempted, so a hit in a file with no ast-grep language (lang=None)
+    # is not "uncovered" by anything. The uncovered-languages line exists
+    # to warn that an astgrep sweep was quietly partial; it must not fire
+    # for a mode that never had ast-grep coverage to begin with.
+    derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
+    hits = [
+        {
+            "repo": "/repo/alpha",
+            "file": "notes.md",
+            "line": 3,
+            "snippet": "X here",
+            "lang": None,
+        },
+    ]
+
+    report = sweep.render_report(derivation, hits, [], {}, {})
+
+    assert "uncovered" not in report.lower()
+
+
 def test_render_report_shows_suppressed_count_for_every_repo_present():
     derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
     suppressed = {"/repo/alpha": 37, "/repo/beta": 141}
