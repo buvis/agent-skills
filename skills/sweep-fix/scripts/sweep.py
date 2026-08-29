@@ -386,16 +386,18 @@ _YAML_RESERVED_WORDS = {"null", "~", "true", "false", "yes", "no", "on", "off"}
 
 
 _YAML_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_YAML_CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f]")
+_YAML_INF_NAN_RE = re.compile(r"^[-+]?\.(inf|nan)$", re.IGNORECASE)
 
 
 def _needs_yaml_quoting(value):
     """True if `value` cannot be emitted as a bare YAML plain scalar: it
     would either fail to parse (a colon-space, a trailing colon, a leading
-    indicator character, an embedded newline) or silently parse back as a
-    different type (an empty string; a whole value that is itself a YAML
-    null/bool token; leading/trailing whitespace; or a value that resolves
-    implicitly to a number or a date)."""
-    if value == "" or "\n" in value:
+    indicator character, an embedded newline or other control character) or
+    silently parse back as a different type (an empty string; a whole value
+    that is itself a YAML null/bool token; leading/trailing whitespace; or a
+    value that resolves implicitly to a number or a date)."""
+    if value == "" or _YAML_CONTROL_CHARS_RE.search(value):
         return True
     if value[0] in _YAML_INDICATOR_CHARS:
         return True
@@ -419,6 +421,8 @@ def _needs_yaml_quoting(value):
         return True
     except ValueError:
         pass
+    if _YAML_INF_NAN_RE.match(value):
+        return True
     return False
 
 

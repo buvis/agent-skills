@@ -1423,3 +1423,18 @@ def test_render_report_astgrep_rule_block_roundtrips_type_coercion_value(value):
 
     assert parsed["message"] == value
     assert parsed["rule"]["pattern"] == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["flag\thandler calls", ".inf", "-.inf", ".nan"],
+    ids=["tab", "dot-inf", "dot-neg-inf", "dot-nan"],
+)
+def test_render_report_astgrep_rule_block_roundtrips_control_and_special_float_value(value):
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert isinstance(parsed["message"], str)
+    assert parsed["rule"]["pattern"] == value
+    assert isinstance(parsed["rule"]["pattern"], str)
