@@ -116,8 +116,8 @@ def test_never_touches_prds_or_keepers(tmp_path):
 
 
 def test_keepers_keep_in_meta_and_root_but_not_in_tmp(tmp_path):
-    """meta/ is the keepers' canonical home (2026-08-23); a root compat
-    symlink stays; a keeper NAME buried in tmp/ is a copy, not a keeper;
+    """meta/ is the keepers' only home (2026-08-23); a root keeper entry on an
+    unmigrated store still stays; a keeper NAME in tmp/ is a copy, not a keeper;
     a non-keeper smuggled into meta/ ages out via stale-leftover."""
     store = make_store(tmp_path)
     touch(store / "meta" / "project-capsule.md", days_old=300)

@@ -30,7 +30,7 @@ If a script fails, read it and run its git/gh commands directly.
 - `README.md`, `agent_docs/*`, PRDs in `dev/local/prds/wip/`
 - Build/config: `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `Makefile`, etc.
 - Top 3 levels of `src/`/`lib/`/`app/`; domain model dirs (`models/`, `types/`, `schemas/`, `entities/`)
-- `dev/local/project-capsule.md` (prior invariants/health), `dev/local/decisions.md`, `dev/local/troubleshooting.md`, `~/.claude/decisions.md`
+- `dev/local/meta/project-capsule.md` (prior invariants/health), `dev/local/meta/decisions.md`, `dev/local/meta/troubleshooting.md`, `~/.claude/decisions.md`. These keepers live in `dev/local/meta/`; if `meta/` has no copy, read the older `dev/local/<name>` instead (unmigrated store).
 
 **Recent master:**
 
@@ -87,7 +87,7 @@ gh pr view --json title,body,comments,reviews   # if an open PR exists
 
 ## Phase 3: Synthesize
 
-Update or create `dev/local/project-capsule.md`. It is NOT a summary of what you read — it captures cross-file insight no single file holds.
+Update or create `dev/local/meta/project-capsule.md`, creating `meta/` if absent. Write there even when an older `dev/local/project-capsule.md` is what you read. It is NOT a summary of what you read — it captures cross-file insight no single file holds.
 
 ```markdown
 # Project Capsule: {project name}

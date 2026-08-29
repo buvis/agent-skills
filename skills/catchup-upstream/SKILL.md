@@ -45,7 +45,7 @@ If empty, report "No new upstream commits — already caught up" and stop.
 
 **First-run fallback:** If the list is huge (>50 commits), no `-s ours` merge has ever happened. Ask the user for a starting point (specific hash, "last 20", or "merge-base") and use that as the lower bound for review. The closing merge in Step 5 will still cover everything up to `<remote>/<branch>` HEAD.
 
-**Legacy cursor migration:** If `dev/local/upstream-cursor` exists, treat it as the starting point for this run, then delete it after Step 5 succeeds — the merge graph supersedes it.
+**Legacy cursor migration:** If `dev/local/meta/upstream-cursor` or `dev/local/upstream-cursor` exists, treat it as the starting point for this run, then delete it after Step 5 succeeds — the merge graph supersedes it.
 
 ## Step 3 — Review each commit
 
@@ -98,7 +98,7 @@ git rev-list --count HEAD..<remote>/<branch>
 
 Must print `0`. If not, the merge didn't take effect; investigate before declaring success.
 
-Also delete `dev/local/upstream-cursor` if it existed (legacy artifact).
+Also delete `dev/local/meta/upstream-cursor` and `dev/local/upstream-cursor` if either existed (legacy artifact).
 
 ## Step 7 — Report
 

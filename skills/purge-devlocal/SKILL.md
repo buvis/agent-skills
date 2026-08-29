@@ -37,8 +37,9 @@ manifest, and trash batches older than 30 days are emptied on later runs.
    as if it were a store. Add `-v` to list every candidate file.
 
 2. Sanity-check the output. `prds/**`, keepers (capsule, decisions,
-   assumptions, agoge-profile, cursors - canonical home `meta/`, root compat
-   symlinks during the migration era), and anything linked to a
+   assumptions, agoge-profile, cursors - `meta/` is their only home; root is
+   directories only, though a root keeper file on an unmigrated store is still
+   accepted), and anything linked to a
    backlog/wip/hold PRD must never appear as trash. FLAG lines are kept files
    whose PRD vanished, plus young root strays; surface them to the user
    instead of acting. A root stray that should survive gets promoted before
@@ -99,7 +100,7 @@ manifest, and trash batches older than 30 days are emptied on later runs.
 
 | rule | target | action |
 |---|---|---|
-| prds / keeper / live-linked | prds/**, KEEP_NAMES in meta/ (canonical) or at root (compat symlink era), satellites of backlog/wip/hold PRDs (parked is not dead) | keep |
+| prds / keeper / live-linked | prds/**, KEEP_NAMES in meta/ (their only home) or at root (unmigrated store), satellites of backlog/wip/hold PRDs (parked is not dead) | keep |
 | prd-gone | discovery/specs/notes/walkthroughs/audit-results/spikes with a done or missing PRD | flag, keep |
 | done-linked | any non-prds file carrying a done PRD number | trash |
 | missing-prd | numbered designs/reviews/plans/root files with no PRD anywhere | trash |

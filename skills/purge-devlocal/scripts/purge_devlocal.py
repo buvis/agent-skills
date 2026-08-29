@@ -6,7 +6,7 @@ Relevance rules (first match wins, `live` always wins):
 | rule            | target                                                | action |
 |-----------------|-------------------------------------------------------|--------|
 | prds            | prds/**                                               | keep   |
-| keeper          | KEEP_NAMES in meta/ (canonical) or root (compat link) | keep   |
+| keeper          | KEEP_NAMES in meta/ (only home) or root (unmigrated)  | keep   |
 | live-linked     | 5-digit PRD token found in prds/backlog|wip           | keep   |
 | prd-gone        | discovery/specs/notes/walkthroughs/audit-results/     | flag   |
 |                 | spikes file whose PRD is done or missing              |        |
@@ -83,9 +83,9 @@ FLAG_DIRS = {"discovery", "specs", "notes", "walkthroughs", "audit-results", "sp
 MISSING_SCOPE = {"designs", "reviews", "plans", "(root)"}
 # The layout contract's full top-level vocabulary; anything else is a foreign
 # workspace and ages out like tmp/.
-# meta/ is the keepers' canonical home since 2026-08-23; root KEEP_NAMES
-# entries remain honored for the compatibility-symlink era (released plugins
-# still read the root paths).
+# meta/ is the keepers' only home since 2026-08-23 (root went directories-only
+# on 2026-08-27, PRD 00139); root KEEP_NAMES entries stay honored because other
+# machines migrate their stores later.
 KNOWN_DIRS = {
     "prds",
     "designs",
@@ -200,7 +200,7 @@ def classify_artifact(
 
     if top == "prds":
         return "keep", "prds"
-    # keepers keep in BOTH homes: meta/ (canonical) and root (compat symlink);
+    # keepers keep in BOTH homes: meta/ (only home) and root (unmigrated store);
     # a non-keeper file smuggled into meta/ falls through to stale-leftover.
     if rel.name in KEEP_NAMES and top in ("(root)", "meta"):
         return "keep", "keeper"

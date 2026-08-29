@@ -130,6 +130,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **catchup**: read the keepers from `dev/local/meta/` and write the capsule
+  there, falling back to the older root path only on an unmigrated store. The
+  root compat symlinks are gone, so the previous root-only paths would have
+  minted a second capsule that nothing reads.
+- **catchup-upstream**: look for and delete the legacy upstream cursor at both
+  `dev/local/meta/` and the older root path.
 - **use-qwen**: `promote-default.sh` rewrites its files on Linux too. It used
   the BSD spelling `sed -i ''`, which GNU sed reads as two filenames, so every
   literal-id replacement failed with "can't read s|...|" and a promotion left
