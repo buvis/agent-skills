@@ -751,3 +751,14 @@ def test_dry_run_never_invokes_harvest(tmp_path, monkeypatch):
     assert run_calls == []
     assert review.exists()
     assert not (store / gc.TRASH_DIR).exists()
+
+
+def test_apply_stamps_todays_batch_dir_even_when_nothing_is_trashed(tmp_path):
+    """A caller reads the newest dated .trash/<date>/ as "when did purge-devlocal
+    last run". A clean --apply run over a store with nothing eligible for
+    trashing must still stamp today's dir, or a diligent run on an already-
+    clean store can never advance that reading."""
+    store = make_store(tmp_path)
+    today = time.strftime("%Y-%m-%d", time.localtime(NOW))
+    assert run(store, "--apply") == 0
+    assert (store / gc.TRASH_DIR / today).is_dir()
