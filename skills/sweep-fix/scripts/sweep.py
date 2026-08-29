@@ -231,3 +231,34 @@ def scan(pattern, kind, repos, cap=20):
         hits.extend(repo_hits)
 
     return hits, suppressed
+
+
+def verify_control(pattern, kind, control_repo, control_term):
+    """Verify `pattern` actually matches in `control_repo` before trusting a
+    sweep run elsewhere.
+
+    Searches `control_repo` for `pattern`. If it finds hits, the pattern is
+    confirmed working and this returns None. If it finds none, searches
+    `control_repo` for `control_term` (a string known to be present when the
+    pattern's intended target is present). If `control_term` also finds no
+    hits, the control repo is inconclusive and this returns None. If
+    `control_term` finds hits but `pattern` did not, `pattern` is broken
+    (e.g. the Rust-regex `\\|` literal-pipe trap): prints a message naming
+    `control_term` and `control_repo`, then exits with status 1.
+    """
+    hits, _suppressed = scan(pattern, kind, [control_repo])
+    if hits:
+        return None
+
+    control_hits, _suppressed = scan(control_term, kind, [control_repo])
+    if not control_hits:
+        return None
+
+    message = (
+        f"unverified: control term {control_term!r} found hits in "
+        f"{control_repo}, but pattern {pattern!r} found none there"
+    )
+    print(message, file=sys.stderr)
+    exc = SystemExit(message)
+    exc.code = 1
+    raise exc
