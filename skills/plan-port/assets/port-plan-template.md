@@ -16,6 +16,15 @@ Classification legend:
 
 `code-only` marks a row discovered only in code, absent from docs/SKILL.md/README, and therefore not yet judged by anyone.
 
+## Drop Rulings
+
+One entry per row classified `drop`. Omit this section entirely when the matrix has no `drop` rows.
+
+### {{DROP_ROW}}
+
+- **Evidence presented**: {{DROP_EVIDENCE}}
+- **Ruling**: {{DROP_RULING}}
+
 ## Consumer Cutover
 
 | consumer | current reference | new reference | cutover step |
@@ -48,4 +57,4 @@ Retire {{OLD_LOCATION}} once every criterion below holds:
 - [ ] CI is green on the branch that removes {{OLD_LOCATION}}.
 - [ ] {{ADDITIONAL_CRITERION}}
 
-Hand this Retirement block to `create-prd` to lift verbatim into the retirement PRD once all criteria above are checked.
+Hand this Retirement block to `create-prd` to lift verbatim into the retirement PRD alongside the final port phase, not later. The criteria above are what that PRD is checked against when it executes; they are not a precondition for writing it.
