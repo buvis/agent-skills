@@ -6,15 +6,15 @@ _Freshness: generated {{DATE}} from {{SOURCE_REF}} - regenerate if the source ha
 
 | row | classification | reason | code-only |
 |-----|-----------------|--------|-----------|
-| {{ITEM}} | keep / adapt / drop | {{WHY}} | yes / no |
+| {{ITEM}} | port / redesign / drop | {{WHY}} | yes / no |
 
 Classification legend:
 
-- **keep** - ports unchanged.
-- **adapt** - ports with modification; the `reason` column explains what changes and why.
+- **port** - ports unchanged.
+- **redesign** - ports with modification; the `reason` column explains what changes and why.
 - **drop** - does not port; the `reason` column explains why it stays behind.
 
-`code-only` marks a row whose port is code alone, with no accompanying test, doc, or config change required.
+`code-only` marks a row discovered only in code, absent from docs/SKILL.md/README, and therefore not yet judged by anyone.
 
 ## Consumer Cutover
 
@@ -34,11 +34,14 @@ Do not start a phase until the phase before it has landed and its exit criteria 
 
 ## Retirement
 
+The retirement PRD belongs to {{SOURCE_REPO}} (the repo where the code dies), and is written alongside the final port phase rather than remembered later.
+
 Retire {{OLD_LOCATION}} once every criterion below holds:
 
 - [ ] Every row in the Inventory Matrix is classified, and every row with `code-only` = no has its test/doc/config follow-up landed.
+- [ ] {{PORT_ROW}} ports cleanly: {{PORT_ROW_ACCEPTANCE_CRITERION}} (repeat this line once per `port`-classified row in the Inventory Matrix).
 - [ ] Every consumer listed in the Consumer Cutover table now points at `new reference`, and no code still references `current reference`.
 - [ ] CI is green on the branch that removes {{OLD_LOCATION}}.
 - [ ] {{ADDITIONAL_CRITERION}}
 
-Hand off to {{OWNER}} for final deletion of {{OLD_LOCATION}} once all criteria above are checked.
+Hand this Retirement block to `create-prd` to lift verbatim into the retirement PRD once all criteria above are checked.
