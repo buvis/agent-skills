@@ -346,7 +346,7 @@ def main(argv=None):
     Returns 0 on success.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kind", required=True)
+    parser.add_argument("--kind", required=True, choices=["astgrep", "rg"])
     parser.add_argument("--pattern", required=True)
     parser.add_argument("--reason", required=True)
     parser.add_argument("--control-term", required=True)
@@ -373,8 +373,9 @@ def main(argv=None):
     if not out:
         slug = re.sub(r"[^a-z0-9]+", "-", args.reason[:40].lower()).strip("-")
         out = f"dev/local/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
-    Path(out).parent.mkdir(parents=True, exist_ok=True)
-    Path(out).write_text(report)
+    out_path = Path(out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(report)
 
     return 0
 
