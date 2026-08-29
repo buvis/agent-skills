@@ -271,6 +271,67 @@ def verify_control(pattern, kind, control_repo, control_term):
     raise SystemExit(1)
 
 
+def _render_hits_section(hits):
+    lines = [f"Hits ({len(hits)}):"]
+    for hit in hits:
+        lines.append(f"- {hit['repo']} {hit['file']}:{hit['line']}: {hit['snippet']}")
+    lines.append("")
+
+    uncovered_exts = sorted({Path(hit["file"]).suffix or hit["file"] for hit in hits if hit["lang"] is None})
+    if uncovered_exts:
+        lines.append(f"Uncovered languages (no ast-grep lang mapping): {', '.join(uncovered_exts)}")
+        lines.append("")
+
+    return lines
+
+
+def _render_suppressed_section(suppressed):
+    lines = []
+    if suppressed:
+        lines.append("Suppressed:")
+        for repo, count in suppressed.items():
+            lines.append(f"- {repo}: {count} more hits suppressed (cap reached)")
+        lines.append("")
+    return lines
+
+
+def _render_gaps_section(gaps):
+    lines = [f"Gaps ({len(gaps)}):"]
+    for gap in gaps:
+        lines.append(f"- {gap}")
+    lines.append("")
+    return lines
+
+
+def _render_astgrep_rule_block(derivation, hits):
+    lines = []
+    if derivation["kind"] != "astgrep":
+        return lines
+
+    seen_langs = list(dict.fromkeys(hit["lang"] for hit in hits if hit["lang"]))
+    if not seen_langs:
+        return lines
+
+    rule_docs = [
+        yaml.safe_dump(
+            {
+                "id": f"sweep-{lang}",
+                "language": lang,
+                "severity": "warning",
+                "message": derivation["reason"],
+                "rule": {"pattern": derivation["pattern"]},
+            },
+            sort_keys=False,
+        ).rstrip("\n")
+        for lang in seen_langs
+    ]
+    lines.append("```yaml")
+    lines.append("\n---\n".join(rule_docs))
+    lines.append("```")
+    lines.append("")
+    return lines
+
+
 def render_report(derivation, hits, gaps, suppressed):
     """Render a plain-text sweep report from scan results.
 
@@ -286,48 +347,11 @@ def render_report(derivation, hits, gaps, suppressed):
         f"Pattern: {derivation['pattern']}",
         f"Reason: {derivation['reason']}",
         "",
-        f"Hits ({len(hits)}):",
     ]
-    for hit in hits:
-        lines.append(f"- {hit['repo']} {hit['file']}:{hit['line']}: {hit['snippet']}")
-    lines.append("")
-
-    uncovered_exts = sorted({Path(hit["file"]).suffix or hit["file"] for hit in hits if hit["lang"] is None})
-    if uncovered_exts:
-        lines.append(f"Uncovered languages (no ast-grep lang mapping): {', '.join(uncovered_exts)}")
-        lines.append("")
-
-    if suppressed:
-        lines.append("Suppressed:")
-        for repo, count in suppressed.items():
-            lines.append(f"- {repo}: {count} more hits suppressed (cap reached)")
-        lines.append("")
-
-    lines.append(f"Gaps ({len(gaps)}):")
-    for gap in gaps:
-        lines.append(f"- {gap}")
-    lines.append("")
-
-    if derivation["kind"] == "astgrep":
-        seen_langs = list(dict.fromkeys(hit["lang"] for hit in hits if hit["lang"]))
-        if seen_langs:
-            rule_docs = [
-                yaml.safe_dump(
-                    {
-                        "id": f"sweep-{lang}",
-                        "language": lang,
-                        "severity": "warning",
-                        "message": derivation["reason"],
-                        "rule": {"pattern": derivation["pattern"]},
-                    },
-                    sort_keys=False,
-                ).rstrip("\n")
-                for lang in seen_langs
-            ]
-            lines.append("```yaml")
-            lines.append("\n---\n".join(rule_docs))
-            lines.append("```")
-            lines.append("")
+    lines.extend(_render_hits_section(hits))
+    lines.extend(_render_suppressed_section(suppressed))
+    lines.extend(_render_gaps_section(gaps))
+    lines.extend(_render_astgrep_rule_block(derivation, hits))
 
     lines.append("How to proceed:")
     lines.append(

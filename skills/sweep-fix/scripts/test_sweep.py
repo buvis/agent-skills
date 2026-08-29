@@ -772,9 +772,7 @@ def test_render_report_rg_kind_emits_no_ast_grep_rule_block():
     assert "severity: warning" not in report
 
 
-def test_render_report_astgrep_rule_block_runs_unedited_and_finds_planted_matches(
-    tmp_path,
-):
+def _build_astgrep_rule_report(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "sample.py").write_text("processInput(42)\n")
@@ -808,12 +806,24 @@ def test_render_report_astgrep_rule_block_runs_unedited_and_finds_planted_matche
     blocks = _extract_rule_pack_blocks(report)
     assert blocks, "expected an ast-grep rule-pack block in the report"
     rule_text = "\n---\n".join(blocks) if len(blocks) > 1 else blocks[0]
+    return repo, rule_text
+
+
+def test_render_report_astgrep_rule_block_contains_expected_fields(tmp_path):
+    _repo, rule_text = _build_astgrep_rule_report(tmp_path)
+
     assert "id:" in rule_text
     assert "language: python" in rule_text
     assert "language: javascript" in rule_text
     assert "severity: warning" in rule_text
     assert "message:" in rule_text
     assert "pattern: processInput($X)" in rule_text
+
+
+def test_render_report_astgrep_rule_block_runs_unedited_and_finds_planted_matches(
+    tmp_path,
+):
+    repo, rule_text = _build_astgrep_rule_report(tmp_path)
 
     rule_file = tmp_path / "extracted-rule.yml"
     rule_file.write_text(rule_text)
