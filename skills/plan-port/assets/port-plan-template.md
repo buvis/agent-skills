@@ -38,8 +38,12 @@ The retirement PRD belongs to {{SOURCE_REPO}} (the repo where the code dies), an
 
 Retire {{OLD_LOCATION}} once every criterion below holds:
 
-- [ ] Every row in the Inventory Matrix is classified, and every row with `code-only` = no has its test/doc/config follow-up landed.
-- [ ] {{PORT_ROW}} ports cleanly: {{PORT_ROW_ACCEPTANCE_CRITERION}} (repeat this line once per `port`-classified row in the Inventory Matrix).
+| row | classification | reason | code-only |
+|-----|-----------------|--------|-----------|
+| {{ITEM}} | port / redesign / drop | {{WHY}} | yes / no |
+
+- [ ] Every row above is classified, and every row with `code-only` = no has its test/doc/config follow-up landed.
+- [ ] {{PORT_ROW}} ports cleanly: {{PORT_ROW_ACCEPTANCE_CRITERION}} (repeat this line once per `port`-classified row above).
 - [ ] Every consumer listed in the Consumer Cutover table now points at `new reference`, and no code still references `current reference`.
 - [ ] CI is green on the branch that removes {{OLD_LOCATION}}.
 - [ ] {{ADDITIONAL_CRITERION}}
