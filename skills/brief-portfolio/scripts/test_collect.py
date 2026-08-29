@@ -129,6 +129,18 @@ def test_audit_cadence_returns_newest_day_per_skill_and_none_for_no_rows(tmp_pat
     assert result["claude-checkup:audit-context"] is None
 
 
+def test_audit_cadence_has_no_lookback_cutoff_for_a_400_day_old_row(tmp_path):
+    f = tmp_path / "skills.jsonl"
+    f.write_text(
+        json.dumps(
+            {"skill": "claude-checkup:audit-config", "ts": "2020-01-01T00:00:00+00:00"},
+        )
+        + "\n",
+    )
+    result = collect_audit_cadence(base=f)
+    assert result["claude-checkup:audit-config"] == "2020-01-01"
+
+
 def test_audit_cadence_seeds_all_six_keys_and_includes_unnamespaced_skill(tmp_path):
     f = tmp_path / "skills.jsonl"
     f.write_text(
@@ -890,12 +902,10 @@ def test_main_writes_data_json_when_audit_cadence_raises_unexpected_exception(
     new_data = json.loads((out_dir / "data.json").read_text())
     assert len(new_data["repos"]) == 1
 
-    # The fix is expected to make this call site mirror collect_external's
-    # degrade-and-warn shape: catch the exception, warn on stderr, and still
-    # populate data["external"]["audit_cadence"] with a seeded/empty value
-    # rather than silently dropping the key. Accept either signal (the key is
-    # still present, or the failure is visible on stderr) rather than pinning
-    # the exact degraded value, so this stays a "run completed, failure not
-    # swallowed" assertion instead of a brittle shape check.
+    # This call site mirrors collect_external's degrade-and-warn shape: catch
+    # the exception, warn on stderr, and still populate
+    # data["external"]["audit_cadence"] with the seeded map rather than
+    # silently dropping the key. Pin both halves of that contract.
     captured = capsys.readouterr()
-    assert "audit_cadence" in new_data["external"] or "audit_cadence" in captured.err
+    assert new_data["external"]["audit_cadence"] == collect._seeded_audit_cadence()
+    assert "WARN audit_cadence" in captured.err

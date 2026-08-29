@@ -292,7 +292,6 @@ def collect_claude_skill_adherence(base=None):
 
 
 def _seeded_audit_cadence():
-    """Seed dict with all MACHINE_AUDIT_SKILLS keys as None."""
     return {skill: None for skill in MACHINE_AUDIT_SKILLS}
 
 
@@ -300,7 +299,8 @@ def collect_audit_cadence(base=None):
     """Newest day (ISO YYYY-MM-DD) per skill from a skills.jsonl of {"skill", "ts"}
     rows (same file/format as collect_claude_skill_adherence). Seeded with all
     MACHINE_AUDIT_SKILLS keys as None; also picks up any other skill found in
-    the file. None when the file is missing or a skill has no rows."""
+    the file. A missing or unreadable file returns the seeded map; a skill
+    with no rows keeps its seeded None value."""
     result = _seeded_audit_cadence()
     f = Path(base) if base else Path.home() / ".local/share/agents/metrics/skills.jsonl"
     if not f.is_file():

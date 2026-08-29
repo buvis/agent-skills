@@ -309,11 +309,10 @@ export const AUDIT_CADENCE = [
 
 export function auditTodos(external, repos = []) {
   const out = []
-  const why = (aged, horizonDays) =>
-    (aged === null ? 'never run' : `last run ${aged}d ago`) + ` -- target: one pass per ${horizonDays}d`
   const row = (id, repo, aged, horizonDays, command) => ({ id, repo, kind: 'maintenance',
     urgency: 'soon', importance: 'low', effort: 'medium', agent: command, url: null, external: true,
-    action: `Run ${command}`, why: why(aged, horizonDays) })
+    action: `Run ${command}`,
+    why: (aged === null ? 'never run' : `last run ${aged}d ago`) + ` -- target: one pass per ${horizonDays}d` })
   for (const { skill, horizonDays, command, scope } of AUDIT_CADENCE) {
     if (scope === 'repo') {
       for (const r of repos) {
