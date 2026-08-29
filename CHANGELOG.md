@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brief-portfolio**: keep collecting when the skill-metrics log exists but
+  cannot be read. An unreadable `skills.jsonl` used to abort the whole run and
+  discard every repo already collected; the audit-cadence rows now fall back to
+  "never" and the brief still renders.
 - **purge-devlocal**: stamp today's `.trash/<date>/` batch directory on every
   `--apply` run, not only when something was actually trashed. A run over an
   already-clean store used to leave no trace, so anything reading that

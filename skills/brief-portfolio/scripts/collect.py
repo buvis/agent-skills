@@ -301,7 +301,11 @@ def collect_audit_cadence(base=None):
     f = Path(base) if base else Path.home() / ".local/share/agents/metrics/skills.jsonl"
     if not f.is_file():
         return result
-    for line in f.read_text(errors="replace").splitlines():
+    try:
+        lines = f.read_text(errors="replace").splitlines()
+    except OSError:
+        return result
+    for line in lines:
         line = line.strip()
         if not line:
             continue
@@ -485,7 +489,11 @@ def main():
     except Exception as e:
         print(f"WARN external: {e}", file=sys.stderr)
         data["external"] = {"review_requested": [], "authored": [], "error": str(e)}
-    data["external"]["audit_cadence"] = collect_audit_cadence()
+    try:
+        data["external"]["audit_cadence"] = collect_audit_cadence()
+    except Exception as e:
+        print(f"WARN audit_cadence: {e}", file=sys.stderr)
+        data["external"]["audit_cadence"] = {skill: None for skill in MACHINE_AUDIT_SKILLS}
     data["skill_adherence"] = collect_claude_skill_adherence()
     write_snapshot(data, outdir)
     hist = {"at": data["generated_at"], "skipped": len(skipped),
