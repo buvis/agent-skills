@@ -330,13 +330,17 @@ def test_enumerate_repos_excludes_repos_deeper_than_two_levels_from_gaps(
     assert gaps == []
 
 
-def test_enumerate_repos_uses_git_ls_files_for_buvis_bare_cwd(tmp_path, monkeypatch):
+def _setup_buvis_bare_fixture(tmp_path, monkeypatch, tracked, untracked=()):
+    """Build a fixture ~/.buvis-style bare repo: a real git repo with the
+    given tracked/untracked files, wired up as sweep.BUVIS_BARE, plus an
+    empty registry and an empty PORTFOLIO_ROOT so gap detection stays out
+    of scope. Returns (fixture_home, registry)."""
     empty_portfolio_root = tmp_path / "empty_portfolio_root"
     empty_portfolio_root.mkdir()
     monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
 
     fixture_home = tmp_path / "fixture_home"
-    _init_git_repo_with_tracked_files(fixture_home, ["a.txt", "sub/b.txt"])
+    _init_git_repo_with_tracked_files(fixture_home, tracked, untracked=untracked)
     monkeypatch.setattr(
         sweep,
         "BUVIS_BARE",
@@ -345,36 +349,82 @@ def test_enumerate_repos_uses_git_ls_files_for_buvis_bare_cwd(tmp_path, monkeypa
     registry = tmp_path / "repos.csv"
     _write_registry(registry, [])
 
-    repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
-
-    assert fixture_home / "a.txt" in repos
-    assert fixture_home / "sub" / "b.txt" in repos
-    assert fixture_home not in repos  # replaced by its file set, not a directory walk
+    return fixture_home, registry
 
 
-def test_enumerate_repos_excludes_untracked_files_from_buvis_bare_file_set(
+def test_enumerate_repos_bare_output_lets_scan_find_every_tracked_file(
     tmp_path, monkeypatch
 ):
-    empty_portfolio_root = tmp_path / "empty_portfolio_root"
-    empty_portfolio_root.mkdir()
-    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
-
-    fixture_home = tmp_path / "fixture_home"
-    _init_git_repo_with_tracked_files(
-        fixture_home, ["tracked.txt"], untracked=["scratch.tmp"]
+    fixture_home, registry = _setup_buvis_bare_fixture(
+        tmp_path, monkeypatch, ["a.txt", "sub/b.txt"]
     )
-    monkeypatch.setattr(
-        sweep,
-        "BUVIS_BARE",
-        {"git_dir": fixture_home / ".git", "work_tree": fixture_home},
-    )
-    registry = tmp_path / "repos.csv"
-    _write_registry(registry, [])
+    (fixture_home / "a.txt").write_text("BAREBALLOTMARKER content\n")
+    (fixture_home / "sub" / "b.txt").write_text("BAREBALLOTMARKER content\n")
 
     repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
+    assert repos  # the bare repo's tracked files must not come back empty
 
-    assert fixture_home / "tracked.txt" in repos
-    assert fixture_home / "scratch.tmp" not in repos
+    hits, _suppressed = sweep.scan("BAREBALLOTMARKER", "rg", repos)
+
+    matched_files = {Path(hit["file"]).name for hit in hits}
+    assert matched_files == {"a.txt", "b.txt"}
+
+
+def test_scan_excludes_untracked_file_from_buvis_bare_search_scope(
+    tmp_path, monkeypatch
+):
+    fixture_home, registry = _setup_buvis_bare_fixture(
+        tmp_path,
+        monkeypatch,
+        ["tracked.txt"],
+        untracked=["scratch.tmp"],
+    )
+    (fixture_home / "tracked.txt").write_text("UNTRACKEDGUARDMARKER content\n")
+    (fixture_home / "scratch.tmp").write_text("UNTRACKEDGUARDMARKER content\n")
+
+    repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
+    hits, _suppressed = sweep.scan("UNTRACKEDGUARDMARKER", "rg", repos)
+
+    matched_files = {Path(hit["file"]).name for hit in hits}
+    assert "tracked.txt" in matched_files
+    assert "scratch.tmp" not in matched_files
+
+
+def test_enumerate_repos_finds_buvis_bare_tracked_files_regardless_of_process_cwd(
+    tmp_path, monkeypatch
+):
+    fixture_home, registry = _setup_buvis_bare_fixture(
+        tmp_path, monkeypatch, ["top.txt", "sub/nested.txt"]
+    )
+    (fixture_home / "top.txt").write_text("CWDINDEPENDENTMARKER content\n")
+    (fixture_home / "sub" / "nested.txt").write_text("CWDINDEPENDENTMARKER content\n")
+
+    monkeypatch.chdir(fixture_home / "sub")  # process cwd is a subdirectory of the work tree
+
+    repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
+    assert repos  # must not silently come back empty when cwd is inside the work tree
+
+    hits, _suppressed = sweep.scan("CWDINDEPENDENTMARKER", "rg", repos)
+
+    matched_files = {Path(hit["file"]).name for hit in hits}
+    assert "top.txt" in matched_files  # root-level file, hidden by cwd's prefix under the bug
+
+
+def test_scan_caps_buvis_bare_repo_as_a_single_repo_not_per_tracked_file(
+    tmp_path, monkeypatch
+):
+    tracked = [f"file_{i}.txt" for i in range(5)]
+    fixture_home, registry = _setup_buvis_bare_fixture(tmp_path, monkeypatch, tracked)
+    for rel in tracked:
+        (fixture_home / rel).write_text("BARECAPMARKER line\n")
+
+    repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
+    hits, suppressed = sweep.scan("BARECAPMARKER", "rg", repos, cap=3)
+
+    assert len(hits) == 3
+    assert len(suppressed) == 1
+    assert sum(suppressed.values()) == 2
+    assert len({hit["repo"] for hit in hits}) == 1
 
 
 # -- scan ---------------------------------------------------------------
