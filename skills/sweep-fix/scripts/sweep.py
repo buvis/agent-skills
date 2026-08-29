@@ -102,17 +102,23 @@ BUVIS_BARE = {
 def _buvis_bare_entry():
     """Build the scan-scope entry for the buvis bare dotfiles work tree:
     `{"cwd": work_tree, "files": [...]}`, restricted to its tracked files
-    (via `git ls-files` against `BUVIS_BARE["git_dir"]`)."""
+    (via `git ls-files` against `BUVIS_BARE["git_dir"]`). If that `git
+    ls-files` call fails or times out, returns `{"cwd": work_tree, "error":
+    reason}` instead, so `scan()` can surface the bare repo as failed rather
+    than the exception aborting `enumerate_repos`."""
     work_tree = BUVIS_BARE["work_tree"]
     git_dir = BUVIS_BARE["git_dir"]
-    result = subprocess.run(
-        ["git", f"--git-dir={git_dir}", f"--work-tree={work_tree}", "ls-files", "-z"],
-        cwd=work_tree,
-        capture_output=True,
-        text=True,
-        check=True,
-        timeout=DEFAULT_SCAN_TIMEOUT,
-    )
+    try:
+        result = subprocess.run(
+            ["git", f"--git-dir={git_dir}", f"--work-tree={work_tree}", "ls-files", "-z"],
+            cwd=work_tree,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=DEFAULT_SCAN_TIMEOUT,
+        )
+    except Exception as exc:
+        return {"cwd": work_tree, "error": str(exc)}
     files = [rel for rel in result.stdout.split("\0") if rel]
     return {"cwd": work_tree, "files": files}
 
@@ -263,11 +269,27 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT):
     if kind not in ("rg", "astgrep"):
         raise ValueError(f"unknown kind: {kind!r}")
 
+    ast_grep_error = None
+    if kind == "astgrep":
+        try:
+            resolve_ast_grep()
+        except Exception as exc:
+            ast_grep_error = str(exc)
+
     hits = []
     suppressed = {}
     failed = {}
     for repo in repos:
+        if isinstance(repo, dict) and "error" in repo:
+            failed[str(repo["cwd"])] = repo["error"]
+            continue
+
         cwd, targets = _repo_cwd_and_targets(repo)
+
+        if ast_grep_error is not None:
+            failed[str(cwd)] = ast_grep_error
+            continue
+
         try:
             if kind == "rg":
                 repo_hits = _scan_rg(pattern, cwd, targets, timeout=timeout)
@@ -303,7 +325,10 @@ def verify_control(pattern, kind, control_repo, control_term):
     if hits:
         return None
 
-    result = _run_rg(["-F", "--", control_term, "."], control_repo)
+    try:
+        result = _run_rg(["-F", "--", control_term, "."], control_repo)
+    except Exception:
+        return None
     if result.returncode == 1:
         return None
 
@@ -344,7 +369,8 @@ def _render_failed_section(failed):
     if failed:
         lines.append("Failed:")
         for repo, reason in failed.items():
-            lines.append(f"- {repo}: could not be scanned ({reason})")
+            collapsed_reason = " ".join(reason.split())
+            lines.append(f"- {repo}: could not be scanned ({collapsed_reason})")
         lines.append("")
     return lines
 

@@ -1071,6 +1071,54 @@ def test_sweep_is_read_only_and_leaves_non_current_repos_status_byte_identical(
         assert _git_status_porcelain(repo) == status_before[repo]
 
 
+def test_main_survives_broken_buvis_bare_git_call_and_reports_it_as_failed(
+    tmp_path, monkeypatch
+):
+    # _buvis_bare_entry() runs `git ls-files` with check=True against
+    # BUVIS_BARE["git_dir"]; pointing that at a nonexistent git dir makes
+    # the call fail exactly the way a broken bare repo would. The sweep
+    # must still finish and write a report naming the bare repo as failed,
+    # instead of the exception aborting enumerate_repos and main().
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    fixture_home = tmp_path / "fixture_home"
+    fixture_home.mkdir()
+    monkeypatch.setattr(
+        sweep,
+        "BUVIS_BARE",
+        {"git_dir": tmp_path / "does-not-exist" / ".git", "work_tree": fixture_home},
+    )
+
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [])
+
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text("BAREFAILMARKER control line\n")
+
+    out_path = tmp_path / "report.md"
+    argv = [
+        "--kind", "rg",
+        "--pattern", "BAREFAILMARKER",
+        "--reason", "regression test for broken bare entry",
+        "--control-term", "BAREFAILMARKER",
+        "--control-repo", str(control_repo),
+        "--registry", str(registry),
+        "--cwd", str(fixture_home),
+        "--out", str(out_path),
+    ]
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 0
+    assert out_path.exists()
+    report = out_path.read_text()
+    assert "Failed:" in report
+    assert str(fixture_home) in report
+
+
 # -- scan: dash-prefixed patterns --------------------------------------------
 
 
@@ -1187,3 +1235,18 @@ def test_render_report_names_a_failed_repo_with_its_reason_and_not_as_suppressed
     failed_repo_lines = [line for line in report.splitlines() if "/repo/unreachable" in line]
     assert failed_repo_lines
     assert all("suppressed (cap reached)" not in line for line in failed_repo_lines)
+
+
+def test_render_report_collapses_multiline_failed_reason_into_a_single_line():
+    # _run_rg raises RuntimeError(f"rg failed: {result.stderr}"), and rg's
+    # stderr is routinely multi-line (e.g. a regex parse error). The
+    # "Failed:" section's contract is one line per repo, so embedded
+    # newlines/whitespace in the reason must be collapsed before rendering.
+    derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
+    failed = {"/repo/multiline": "rg failed: line one\nline two\n  line three"}
+
+    report = sweep.render_report(derivation, [], [], {}, failed)
+
+    matching_lines = [line for line in report.splitlines() if "/repo/multiline" in line]
+    assert len(matching_lines) == 1
+    assert "line one line two line three" in matching_lines[0]
