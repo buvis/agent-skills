@@ -247,6 +247,19 @@ def collect_brush(path):
     return None
 
 
+DATE_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def collect_purge_devlocal(path):
+    """Newest dated (YYYY-MM-DD) subdirectory name under dev/local/.trash/;
+    None when the trash dir is absent or has no dated subdirectory."""
+    trash = Path(path) / "dev/local/.trash"
+    if not trash.is_dir():
+        return None
+    dated = sorted(e.name for e in trash.iterdir() if e.is_dir() and DATE_DIR_RE.match(e.name))
+    return dated[-1] if dated else None
+
+
 def collect_claude_skill_adherence(base=None):
     """Last-30-day skill-invocation summary from ~/.local/share/agents/metrics/skills.jsonl
     (PRD 00086 R2, numerator-only). Returns {count, distinct, top} or None when
@@ -402,7 +415,8 @@ def collect_repo(path, days, fetch):
                     ("prds", lambda: collect_prds(path)),
                     ("local", lambda: collect_local(path, branch)),
                     ("changelog_unreleased", lambda: collect_changelog(path)),
-                    ("brush_last_run", lambda: collect_brush(path))]:
+                    ("brush_last_run", lambda: collect_brush(path)),
+                    ("purge_last_run", lambda: collect_purge_devlocal(path))]:
         try:
             repo[key] = fn()
         except Exception as e:
