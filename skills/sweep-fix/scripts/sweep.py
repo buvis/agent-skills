@@ -509,6 +509,13 @@ def render_report(derivation, hits, gaps, suppressed, failed):
     return "\n".join(lines)
 
 
+def _positive_int(value):
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("--cap must be a positive integer")
+    return parsed
+
+
 def main(argv=None):
     """CLI entry point: wire enumerate_repos, scan and render_report
     together, then write the rendered report to `--out`.
@@ -531,7 +538,7 @@ def main(argv=None):
     parser.add_argument("--control-repo", required=True)
     parser.add_argument("--registry", default=str(GITA_CSV))
     parser.add_argument("--cwd", default=str(Path.cwd()))
-    parser.add_argument("--cap", type=int, default=20)
+    parser.add_argument("--cap", type=_positive_int, default=20)
     parser.add_argument("--out")
     args = parser.parse_args(argv)
 
