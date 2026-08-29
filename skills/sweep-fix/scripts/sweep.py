@@ -4,10 +4,12 @@ import csv
 import functools
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import yaml
+from datetime import date
 from pathlib import Path
 
 
@@ -349,14 +351,15 @@ def main(argv=None):
     parser.add_argument("--reason", required=True)
     parser.add_argument("--control-term", required=True)
     parser.add_argument("--control-repo", required=True)
-    parser.add_argument("--registry", required=True)
-    parser.add_argument("--cwd", required=True)
-    parser.add_argument("--out", required=True)
+    parser.add_argument("--registry", default=str(GITA_CSV))
+    parser.add_argument("--cwd", default=str(Path.cwd()))
+    parser.add_argument("--cap", type=int, default=20)
+    parser.add_argument("--out")
     args = parser.parse_args(argv)
 
     repos, gaps = enumerate_repos(args.registry, args.cwd)
     verify_control(args.pattern, args.kind, Path(args.control_repo), args.control_term)
-    hits, suppressed = scan(args.pattern, args.kind, repos)
+    hits, suppressed = scan(args.pattern, args.kind, repos, cap=args.cap)
 
     derivation = {
         "kind": args.kind,
@@ -365,7 +368,12 @@ def main(argv=None):
         "control_term": args.control_term,
     }
     report = render_report(derivation, hits, gaps, suppressed)
-    Path(args.out).write_text(report)
+
+    out = args.out
+    if not out:
+        slug = re.sub(r"[^a-z0-9]+", "-", args.reason[:40].lower()).strip("-")
+        out = f"dev/local/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
+    Path(out).write_text(report)
 
     return 0
 
