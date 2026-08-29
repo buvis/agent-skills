@@ -292,20 +292,6 @@ def collect_claude_skill_adherence(base=None):
             "top": [{"skill": s, "n": n} for s, n in top]}
 
 
-def collect_claude_maintenance(base=None):
-    """ISO day of the newest entry under ~/.claude/dev/local/audit-results/;
-    None = never. mtime proxy: audit-filesystem writes no report file, so any
-    audit-results artifact counts (the UI row states the imprecision)."""
-    d = Path(base) if base else Path.home() / ".claude/dev/local/audit-results"
-    try:
-        times = [e.stat().st_mtime for e in d.iterdir()]
-    except OSError:
-        return None
-    if not times:
-        return None
-    return datetime.fromtimestamp(max(times), timezone.utc).strftime("%Y-%m-%d")
-
-
 def collect_audit_cadence(base=None):
     """Newest day (ISO YYYY-MM-DD) per skill from a skills.jsonl of {"skill", "ts"}
     rows (same file/format as collect_claude_skill_adherence). Seeded with all
@@ -499,7 +485,7 @@ def main():
     except Exception as e:
         print(f"WARN external: {e}", file=sys.stderr)
         data["external"] = {"review_requested": [], "authored": [], "error": str(e)}
-    data["external"]["claude_maintenance_last"] = collect_claude_maintenance()
+    data["external"]["audit_cadence"] = collect_audit_cadence()
     data["skill_adherence"] = collect_claude_skill_adherence()
     write_snapshot(data, outdir)
     hist = {"at": data["generated_at"], "skipped": len(skipped),

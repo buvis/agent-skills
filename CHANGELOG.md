@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **brief-portfolio**: nag each config audit on its own cadence instead of
+  showing one coarse "config maintenance" row. Every machine audit gets its own
+  overdue row against its own horizon, and `purge-devlocal` is tracked per repo.
+
 ### Added
 
 - **capture-experiment**: write up a spike or experiment session as a single
