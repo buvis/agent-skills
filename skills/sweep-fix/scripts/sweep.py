@@ -8,6 +8,24 @@ import sys
 
 @functools.lru_cache()
 def resolve_rg():
+    """Resolve the path to invoke for `rg`.
+
+    Returns the real `rg` binary if one is on PATH. Otherwise falls back to
+    the claude binary (CLAUDE_CODE_EXECPATH, or ~/.local/bin/claude), which
+    bundles ripgrep and dispatches based on argv[0].
+
+    In this environment `rg` is a shell function, not a PATH binary, so a
+    bare `subprocess.run(["rg", ...])` raises FileNotFoundError. Callers
+    must instead pass the resolved path as `executable=` while keeping
+    "rg" as argv[0]:
+
+        subprocess.run(["rg", ...], executable=resolve_rg())
+
+    The `executable=` argument is required exactly when the returned path
+    is the claude-binary fallback, but the call above works unconditionally,
+    so callers can always use it. Exits with status 1, naming both
+    candidates checked, if neither resolves.
+    """
     path = shutil.which("rg")
     if path:
         return path
@@ -29,6 +47,12 @@ def resolve_rg():
 
 @functools.lru_cache()
 def resolve_ast_grep():
+    """Resolve the path to invoke for `ast-grep`.
+
+    Returns the real `ast-grep` binary if one is on PATH. Otherwise falls
+    back to `mise which ast-grep` to locate a mise-managed install. Exits
+    with status 1, naming both candidates checked, if neither resolves.
+    """
     path = shutil.which("ast-grep")
     if path:
         return path

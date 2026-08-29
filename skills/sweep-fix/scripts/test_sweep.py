@@ -75,6 +75,7 @@ def test_resolve_rg_returns_a_working_path_when_absent_from_path():
 def test_resolve_rg_exits_naming_both_candidates_when_neither_resolves(
     tmp_path, monkeypatch, capsys
 ):
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")  # no rg here
     monkeypatch.delenv("CLAUDE_CODE_EXECPATH", raising=False)
     monkeypatch.setenv("HOME", str(tmp_path))  # no ~/.local/bin/claude here
 
