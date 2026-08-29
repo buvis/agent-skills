@@ -527,8 +527,9 @@ def main(argv=None):
 
     try:
         repos, gaps = enumerate_repos(args.registry, args.cwd)
-        verify_control(args.pattern, args.kind, Path(args.control_repo), args.control_term)
         hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap)
+        if not hits:
+            verify_control(args.pattern, args.kind, Path(args.control_repo), args.control_term)
     except RuntimeError as exc:
         print(exc, file=sys.stderr)
         return 1
