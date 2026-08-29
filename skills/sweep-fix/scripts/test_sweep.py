@@ -1025,7 +1025,7 @@ def _build_sweep_main_scaffold(tmp_path, monkeypatch, marker, build_repo):
     registry = tmp_path / "repos.csv"
     _write_registry(registry, [str(repo_a), str(repo_b), str(repo_c)])
 
-    out_path = tmp_path / "report.md"
+    out_path = repo_a / "report.md"
 
     argv = [
         "--kind", "rg",
@@ -1453,3 +1453,106 @@ def test_render_report_astgrep_rule_block_roundtrips_escaped_control_char_value(
     assert isinstance(parsed["message"], str)
     assert parsed["rule"]["pattern"] == value
     assert isinstance(parsed["rule"]["pattern"], str)
+
+
+# -- main: default --out is rooted at --cwd, not at the process cwd --------
+
+
+def test_main_default_out_lands_under_cwd_repo_when_process_cwd_is_elsewhere(
+    tmp_path, monkeypatch
+):
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "DEFAULTOUTROOTMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    del argv[out_index : out_index + 2]  # omit --out so main() computes the default
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 0
+
+    expected_dir = repo_a / "dev" / "local" / "audit-results"
+    assert expected_dir.is_dir(), f"expected a report directory at {expected_dir}"
+    reports = list(expected_dir.glob("sweep-*.md"))
+    assert len(reports) == 1, f"expected exactly one report in {expected_dir}"
+    report_name = reports[0].name
+
+    # Filename shape (root aside) is unchanged: sweep-{slug}-{date}.md.
+    today = time.strftime("%Y-%m-%d")
+    assert re.match(rf"^sweep-.+-{re.escape(today)}\.md$", report_name), report_name
+
+    # The old bug rooted the default path at the process cwd instead.
+    assert not (elsewhere / "dev").exists()
+
+
+# -- main: --out is confined to the --cwd repo ------------------------------
+
+
+def test_main_refuses_relative_out_that_escapes_cwd_repo_via_dotdot(
+    tmp_path, monkeypatch, capsys
+):
+    # Assumed failure mechanism: main() raises SystemExit (sys.exit(1)) with
+    # a message on stderr, mirroring verify_control's existing convention
+    # for a caller error that must stop the whole run. An implementer could
+    # instead have main() return a non-zero int without raising; if so, this
+    # test's pytest.raises(SystemExit) would need to become an exit-code
+    # assertion instead.
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "ESCAPEDOTDOTMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    escaping_out = "../escaped-report.md"
+    argv[out_index + 1] = escaping_out
+    target = (repo_a / escaping_out).resolve()
+
+    with pytest.raises(SystemExit) as exc_info:
+        sweep.main(argv)
+
+    assert exc_info.value.code != 0
+    assert not target.exists()
+    message = capsys.readouterr().err
+    assert message.strip() != ""
+    assert escaping_out in message or str(target) in message
+
+
+def test_main_refuses_absolute_out_outside_cwd_repo(tmp_path, monkeypatch, capsys):
+    # Assumed failure mechanism: same as
+    # test_main_refuses_relative_out_that_escapes_cwd_repo_via_dotdot above.
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "ABSOUTSIDEMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    outside_dir = tmp_path / "elsewhere"
+    outside_dir.mkdir()
+    outside_out = outside_dir / "escaped-report.md"
+    argv[out_index + 1] = str(outside_out)
+
+    with pytest.raises(SystemExit) as exc_info:
+        sweep.main(argv)
+
+    assert exc_info.value.code != 0
+    assert not outside_out.exists()
+    message = capsys.readouterr().err
+    assert message.strip() != ""
+    assert str(outside_out) in message
+
+
+def test_main_accepts_out_nested_several_directories_inside_cwd_repo(
+    tmp_path, monkeypatch
+):
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "NESTEDOUTMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    nested_out = repo_a / "dev" / "local" / "audit-results" / "nested-report.md"
+    argv[out_index + 1] = str(nested_out)
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 0
+    assert nested_out.exists()
+    assert nested_out.read_text().strip() != ""
