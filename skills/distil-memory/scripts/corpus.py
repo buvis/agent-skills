@@ -72,7 +72,7 @@ def assert_contract(version: str, parser_module: ModuleType, minimum: str = _MIN
         )
 
 
-def select_transcripts(days: int = 30, project: str | None = None, all: bool = False) -> list[Path]:
+def select_transcripts(days: int = 30, all: bool = False, project: str | None = None) -> list[Path]:
     """Return the sorted list of transcript paths under _PROJECTS_ROOT that
     fall within the last `days` days, optionally restricted to project
     directories whose name ends with `project`. `all=True` skips the date
@@ -87,7 +87,7 @@ def select_transcripts(days: int = 30, project: str | None = None, all: bool = F
     for project_dir in _PROJECTS_ROOT.iterdir():
         if not project_dir.is_dir():
             continue
-        if project is not None and not project_dir.name.endswith(project):
+        if project is not None and not project_dir.name.endswith(f"-{project}"):
             continue
         for transcript in project_dir.glob("*.jsonl"):
             if cutoff is None:
