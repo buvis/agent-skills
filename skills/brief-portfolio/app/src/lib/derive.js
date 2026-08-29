@@ -317,10 +317,11 @@ export function auditTodos(external, repos = []) {
   for (const { skill, horizonDays, command, scope } of AUDIT_CADENCE) {
     if (scope === 'repo') {
       for (const r of repos) {
+        const s = slug(r)
         const last = r.purge_last_run
         const aged = daysAgo(last)
         if (aged === null || aged >= horizonDays)
-          out.push(row(`${slug(r)}:audit:${skill}:${last ?? 'never'}`, slug(r), aged, horizonDays, command))
+          out.push(row(`${s}:audit:${skill}:${last ?? 'never'}`, s, aged, horizonDays, command))
       }
     } else if (external) {
       const last = external.audit_cadence?.[skill]
