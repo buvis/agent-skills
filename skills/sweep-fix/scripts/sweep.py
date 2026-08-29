@@ -385,12 +385,16 @@ _YAML_INDICATOR_CHARS = "-?:,[]{}#&*!|>'\"%@`"
 _YAML_RESERVED_WORDS = {"null", "~", "true", "false", "yes", "no", "on", "off"}
 
 
+_YAML_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
 def _needs_yaml_quoting(value):
     """True if `value` cannot be emitted as a bare YAML plain scalar: it
     would either fail to parse (a colon-space, a trailing colon, a leading
     indicator character, an embedded newline) or silently parse back as a
-    different type (an empty string, or a whole value that is itself a YAML
-    null/bool token)."""
+    different type (an empty string; a whole value that is itself a YAML
+    null/bool token; leading/trailing whitespace; or a value that resolves
+    implicitly to a number or a date)."""
     if value == "" or "\n" in value:
         return True
     if value[0] in _YAML_INDICATOR_CHARS:
@@ -399,7 +403,23 @@ def _needs_yaml_quoting(value):
         return True
     if " #" in value:
         return True
-    return value.lower() in _YAML_RESERVED_WORDS
+    if value.lower() in _YAML_RESERVED_WORDS:
+        return True
+    if value != value.strip():
+        return True
+    if _YAML_DATE_RE.match(value):
+        return True
+    try:
+        int(value, 0)
+        return True
+    except ValueError:
+        pass
+    try:
+        float(value)
+        return True
+    except ValueError:
+        pass
+    return False
 
 
 def _yaml_scalar(value):

@@ -1402,3 +1402,24 @@ def test_render_report_astgrep_rule_block_roundtrips_newline_value():
 
     assert parsed["message"] == value
     assert parsed["rule"]["pattern"] == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [" leading space", "trailing space ", "123", "1.5", "0x1F", "1_000", "2026-08-29"],
+    ids=[
+        "leading-space",
+        "trailing-space",
+        "bare-int",
+        "bare-float",
+        "hex-int",
+        "underscore-int",
+        "bare-date",
+    ],
+)
+def test_render_report_astgrep_rule_block_roundtrips_type_coercion_value(value):
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert parsed["rule"]["pattern"] == value
