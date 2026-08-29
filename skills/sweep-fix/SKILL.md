@@ -7,14 +7,15 @@ description: Use when a fix just landed in this repo and the same bug pattern ma
 
 Take a fix that just landed in the current repo, derive a pattern that
 captures the underlying bug class, and sweep every gita-registered repo for
-the same pattern. Every other repo's hits stay report-only — this skill never
+the same pattern. Every other repo's hits stay report-only. This skill never
 edits outside the current repo, and never runs a git write anywhere.
 
 ## Workflow
 
 ### 1. Derive (model judgment)
 
-Read the fix commit's diff (`git show <sha>` or `git diff <range>`) and decide:
+Read the fix commit's diff (`git show <sha>` or `git diff <range>`; an
+omitted sha or range defaults to `HEAD`) and decide:
 
 - `kind`: `astgrep` (structural code pattern) or `rg` (text/regex pattern)
 - `pattern`: the search pattern for that kind
@@ -22,13 +23,13 @@ Read the fix commit's diff (`git show <sha>` or `git diff <range>`) and decide:
 - `control_term`: a term known to be present in the diff, used to prove the
   sweep actually works before trusting an empty result anywhere else
 
-None of this is computed by `sweep.py` — these are judgment calls made here,
+None of this is computed by `sweep.py`. These are judgment calls made here,
 from reading the diff, not by any function in the script.
 
 ### 2. Sweep (deterministic)
 
 ```bash
-python3 skills/sweep-fix/scripts/sweep.py \
+python3 ~/.agents/skills/sweep-fix/scripts/sweep.py \
   --kind {astgrep,rg} \
   --pattern TEXT \
   --reason TEXT \
@@ -37,9 +38,9 @@ python3 skills/sweep-fix/scripts/sweep.py \
   [--registry PATH] [--cwd PATH] [--cap N] [--out PATH]
 ```
 
-`--control-repo` is the current repo — where the fix commit lives. `main()`
+`--control-repo` is the current repo, where the fix commit lives. `main()`
 resolves the scan tool, enumerates every repo in the gita registry, verifies
-the control term is found in `--control-repo` (aborts loud if not — an
+the control term is found in `--control-repo` (aborts loud if not, because an
 unverified empty sweep is not a clean sweep), scans every registered repo,
 renders the report, and writes it under `dev/local/audit-results/`.
 
@@ -59,14 +60,19 @@ and only after the user approves each one.
 
 ## Dependencies
 
-- `skills/brief-portfolio/scripts/collect.py` — its gita registry read shape
+- `skills/brief-portfolio/scripts/collect.py`: its gita registry read shape
   (parsing `~/.config/gita/repos.csv`) is reused verbatim by
   `enumerate_repos()` to list every repo to sweep.
-- `~/.claude/hooks/cartographer-echo.py` — its `_resolve_rg()` algorithm
-  (cached PATH-then-execpath fallback, for the case where `rg` is a shell
-  function rather than a binary) is ported into `resolve_rg()`.
-- loupe's ast-grep rule-pack path,
-  `~/.claude/plugins/cache/buvis-plugins/loupe/<version>/rules/ast-grep/{lang}/rules.yml`
-  — its rule-block shape (`id`/`language`/`severity`/`message`/
-  `rule: {pattern: ...}`) is the shape `render_report()` emits for `astgrep`
-  findings.
+- Claude Code's cartographer-echo hook (a host-local hook, not shipped with
+  this skill, so it is not present on every host): its `_resolve_rg()`
+  algorithm (cached PATH-then-execpath fallback, for the case where `rg` is
+  a shell function rather than a binary) was ported into `resolve_rg()`.
+  `sweep.py` never reads, imports, or runs the hook itself, so nothing
+  breaks when the hook is absent.
+- loupe (a Claude Code plugin) and its ast-grep rule-pack files, which live
+  at a plugin-cache path that includes loupe's version number: only the
+  shape of a rule block (`id`/`language`/`severity`/`message`/
+  `rule: {pattern: ...}`) is reused, by `render_report()` for `astgrep`
+  findings. `render_report()` emits that shape itself rather than reading
+  loupe's files, so nothing breaks when loupe is absent or on a different
+  version.

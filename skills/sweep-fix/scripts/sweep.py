@@ -571,6 +571,8 @@ def main(argv=None):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(report)
 
+    print(out_path)
+
     return 0
 
 
