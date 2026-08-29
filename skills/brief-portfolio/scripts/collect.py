@@ -293,13 +293,13 @@ def collect_claude_maintenance(base=None):
     return datetime.fromtimestamp(max(times), timezone.utc).strftime("%Y-%m-%d")
 
 
-def collect_audit_cadence(path):
+def collect_audit_cadence(base=None):
     """Newest day (ISO YYYY-MM-DD) per skill from a skills.jsonl of {"skill", "ts"}
     rows (same file/format as collect_claude_skill_adherence). Seeded with all
     MACHINE_AUDIT_SKILLS keys as None; also picks up any other skill found in
     the file. None when the file is missing or a skill has no rows."""
     result = {skill: None for skill in MACHINE_AUDIT_SKILLS}
-    f = Path(path)
+    f = Path(base) if base else Path.home() / ".local/share/agents/metrics/skills.jsonl"
     if not f.is_file():
         return result
     for line in f.read_text(errors="replace").splitlines():
@@ -309,6 +309,8 @@ def collect_audit_cadence(path):
         try:
             row = json.loads(line)
         except json.JSONDecodeError:
+            continue
+        if not isinstance(row, dict):
             continue
         skill, ts = row.get("skill"), row.get("ts")
         if not skill or not ts:
