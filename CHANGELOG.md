@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **plan-port**: plan a port of a skill, tool, or plugin into a target -
+  inventory the source's documented behavior one row at a time, classify each
+  row `port`, `redesign`, or `drop` with a mandatory reason, walk every
+  proposed drop past you individually, and emit a dependency-ordered phase list
+  plus a retirement block that says when the original may finally be deleted.
 - **braid**: compose skills from several source repositories listed in
   `~/.config/agent-skills/sources.d/`, rejecting duplicate skill names before
   writing anything.
