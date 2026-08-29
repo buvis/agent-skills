@@ -1,7 +1,7 @@
 ---
 name: brief-portfolio
 description: Use when the user wants a portfolio-wide status brief of all gita-registered repos as a single-file HTML dashboard with actionable follow-ups. Triggers on "brief portfolio", "state of my repos", "repo dashboard", "cross-repo todos".
-compatibility: "Portable; needs python3, git and gita, plus npm only to rebuild the template. One dashboard row, Claude config maintenance, reads ~/.claude and reports 'never' off Claude Code; everything else is host-neutral."
+compatibility: "Portable; needs python3, git and gita, plus npm only to rebuild the template. The config-audit cadence rows read the Claude skill-metrics log and report 'never' off Claude Code; everything else is host-neutral."
 ---
 
 # Brief Portfolio
@@ -20,6 +20,13 @@ and a pickable cross-repo todo list for every repo in the gita registry
 - Reads per repo: `dev/local/audit-results/brush-report.md` — its `generated:`
   line stamps the last `brush` run and powers the 30-day brush-cadence nag
   (todo + attention reason). Missing report = never brushed = the nag fires.
+- Reads per repo: `dev/local/.trash/<date>/` — the newest dated directory stamps
+  the last `purge-devlocal` run and powers its 30-day cadence nag. No dated
+  directory = never purged = the nag fires.
+- Reads once per run: `~/.local/share/agents/metrics/skills.jsonl` — the newest
+  `ts` per skill stamps the last run of each machine-wide config audit and powers
+  their cadence nags (30 days for `audit-filesystem`, 90 for the rest). Missing
+  or unreadable file = every audit reads "never" and the run still completes.
 - Writes: `~/.local/share/agents/portfolio-brief/`.
 - Optional: `npm` plus node, only for the maintenance-only SPA rebuild below.
   Absent = the pre-built template still renders; you just cannot change `app/`.
@@ -88,7 +95,9 @@ Todo rules:
   dirty-for-N-days, overdue releases with changelog readiness, milestone-due
   and engaged issues, stale-issue triage, PRD pipeline with wip idle-days,
   stray branches and worktrees, review requests outside the portfolio, overdue
-  brush hygiene on a 30-day cadence). Do NOT duplicate those.
+  brush hygiene on a 30-day cadence, and one row per overdue config audit —
+  `purge-devlocal` per repo and the `claude-checkup:*` audits machine-wide,
+  each on its own 30- or 90-day horizon). Do NOT duplicate those.
 - Add only judgment items: composed follow-ups ("this repo has been dirty for
   11 days — resume or park the PRD work"), cross-repo observations, process
   suggestions grounded in the data. A handful, not dozens.
