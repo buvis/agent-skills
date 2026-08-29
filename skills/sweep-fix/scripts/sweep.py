@@ -163,16 +163,21 @@ def _build_hit(repo, file, line, snippet):
     }
 
 
-def _scan_rg(pattern, repo):
+def _run_rg(args, cwd):
     result = subprocess.run(
-        ["rg", "--json", pattern, "."],
+        ["rg", *args],
         executable=resolve_rg(),
-        cwd=repo,
+        cwd=cwd,
         capture_output=True,
         text=True,
     )
     if result.returncode not in (0, 1):
         raise RuntimeError(f"rg failed: {result.stderr}")
+    return result
+
+
+def _scan_rg(pattern, repo):
+    result = _run_rg(["--json", pattern, "."], repo)
     hits = []
     for line in result.stdout.splitlines():
         event = json.loads(line)
@@ -250,21 +255,13 @@ def verify_control(pattern, kind, control_repo, control_term):
     if hits:
         return None
 
-    result = subprocess.run(
-        ["rg", "-F", "--", control_term, "."],
-        executable=resolve_rg(),
-        cwd=control_repo,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode not in (0, 1):
-        raise RuntimeError(f"rg failed: {result.stderr}")
+    result = _run_rg(["-F", "--", control_term, "."], control_repo)
     if result.returncode == 1:
         return None
 
     message = (
         f'sweep unverified: pattern found 0 hits but control term "{control_term}" is present in {control_repo} '
-        "-- the pattern shape is likely broken (e.g. \\| alternation, which rg's Rust regex treats as a literal backslash-pipe)"
+        "-- the pattern shape is likely broken (e.g. `\\|` alternation, which rg's Rust regex treats as a literal backslash-pipe)"
     )
     print(message, file=sys.stderr)
     raise SystemExit(1)
