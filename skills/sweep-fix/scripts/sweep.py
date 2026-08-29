@@ -141,7 +141,7 @@ def enumerate_repos(registry, cwd):
 
     if work_tree in registered or cwd == work_tree:
         repos.append(_buvis_bare_entry())
-    elif cwd not in repos:
+    if cwd != work_tree and cwd not in repos:
         repos.append(cwd)
 
     gaps = []
@@ -201,6 +201,8 @@ def _repo_cwd_and_targets(repo):
 
 
 def _scan_rg(pattern, cwd, targets):
+    if not targets:
+        return []
     result = _run_rg(["--json", pattern, *targets], cwd)
     hits = []
     for line in result.stdout.splitlines():
@@ -216,6 +218,8 @@ def _scan_rg(pattern, cwd, targets):
 
 
 def _scan_astgrep(pattern, cwd, targets):
+    if not targets:
+        return []
     result = subprocess.run(
         [resolve_ast_grep(), "run", "--pattern", pattern, "--json", *targets],
         cwd=cwd,

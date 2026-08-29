@@ -420,6 +420,25 @@ def test_enumerate_repos_scopes_registered_work_tree_row_to_tracked_files_only(
     assert "secret.env" not in matched_files
 
 
+def test_enumerate_repos_includes_both_bare_entry_and_unrelated_cwd_when_work_tree_registered(
+    tmp_path, monkeypatch
+):
+    fixture_home, registry = _setup_buvis_bare_fixture(
+        tmp_path, monkeypatch, ["tracked.txt"]
+    )
+    _write_registry(registry, [str(fixture_home)])
+    cwd = tmp_path / "unrelated-cwd"
+    cwd.mkdir()  # not the work tree, and not itself registered
+
+    repos, _gaps = sweep.enumerate_repos(registry, cwd)
+
+    bare_entries = [
+        repo for repo in repos if isinstance(repo, dict) and repo["cwd"] == fixture_home
+    ]
+    assert len(bare_entries) == 1
+    assert cwd in repos
+
+
 def test_enumerate_repos_finds_buvis_bare_tracked_files_regardless_of_process_cwd(
     tmp_path, monkeypatch
 ):
@@ -455,6 +474,20 @@ def test_scan_caps_buvis_bare_repo_as_a_single_repo_not_per_tracked_file(
     assert len(suppressed) == 1
     assert sum(suppressed.values()) == 2
     assert len({hit["repo"] for hit in hits}) == 1
+
+
+def test_scan_bare_entry_with_no_tracked_files_finds_no_hits_and_does_not_walk_cwd(
+    tmp_path, monkeypatch
+):
+    fixture_home, registry = _setup_buvis_bare_fixture(
+        tmp_path, monkeypatch, [], untracked=["scratch.tmp"]
+    )
+    (fixture_home / "scratch.tmp").write_text("EMPTYINDEXMARKER content\n")
+
+    repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
+    hits, _suppressed = sweep.scan("EMPTYINDEXMARKER", "rg", repos)
+
+    assert hits == []
 
 
 # -- scan ---------------------------------------------------------------
