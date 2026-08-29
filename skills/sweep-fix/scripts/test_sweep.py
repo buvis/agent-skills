@@ -76,19 +76,16 @@ def test_resolve_rg_returns_a_working_path_when_absent_from_path():
 
 
 def test_resolve_rg_exits_naming_both_candidates_when_neither_resolves(
-    tmp_path, monkeypatch, capsys
+    tmp_path, monkeypatch
 ):
     monkeypatch.setenv("PATH", "/usr/bin:/bin")  # no rg here
     monkeypatch.delenv("CLAUDE_CODE_EXECPATH", raising=False)
     monkeypatch.setenv("HOME", str(tmp_path))  # no ~/.local/bin/claude here
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(RuntimeError) as exc_info:
         sweep.resolve_rg()
 
-    assert exc_info.value.code == 1
-
-    out, err = capsys.readouterr()
-    combined = (out + err + str(exc_info.value)).lower()
+    combined = str(exc_info.value).lower()
     assert "rg" in combined
     assert "claude" in combined
 
@@ -136,17 +133,14 @@ def test_resolve_ast_grep_result_is_cached_across_calls(monkeypatch):
 
 
 def test_resolve_ast_grep_exits_naming_both_attempts_when_neither_resolves(
-    monkeypatch, capsys
+    monkeypatch,
 ):
     monkeypatch.setenv("PATH", "/usr/bin:/bin")  # neither ast-grep nor mise here
 
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(RuntimeError) as exc_info:
         sweep.resolve_ast_grep()
 
-    assert exc_info.value.code == 1
-
-    out, err = capsys.readouterr()
-    combined = (out + err + str(exc_info.value)).lower()
+    combined = str(exc_info.value).lower()
     assert "ast-grep" in combined
     assert "mise" in combined
 
@@ -665,6 +659,23 @@ def test_verify_control_raises_unverified_for_broken_backslash_pipe_alternation(
     assert str(control_repo) in message
 
 
+def test_verify_control_warns_to_stderr_when_fallback_check_cannot_run(
+    tmp_path, capsys
+):
+    # control_repo does not exist, so the `_run_rg` fallback call itself
+    # cannot run. That must not be silently reported as "verified, no
+    # issue" -- it must warn, naming the failure and the control repo.
+    control_repo = tmp_path / "does-not-exist"
+
+    result = sweep.verify_control(
+        "NOTPRESENTPATTERN", "rg", control_repo, "NOTPRESENTTERM"
+    )
+
+    assert result is None
+    message = capsys.readouterr().err
+    assert str(control_repo) in message
+
+
 # -- render_report -----------------------------------------------------
 
 
@@ -1172,6 +1183,24 @@ def test_scan_surfaces_an_unscannable_repo_instead_of_dropping_it_silently(
     assert str(bad_repo) in failed
     assert failed[str(bad_repo)]  # carries a non-empty reason
     assert str(bad_repo) not in suppressed
+
+
+def test_scan_records_repo_as_failed_when_search_tool_is_unresolvable(
+    tmp_path, monkeypatch
+):
+    # resolve_ast_grep() raises RuntimeError when neither ast-grep nor mise
+    # is on PATH. scan() must catch that and record the repo as failed
+    # instead of letting the failure escape.
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")  # neither ast-grep nor mise here
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "sample.py").write_text("print(1)\n")
+
+    hits, _suppressed, failed = sweep.scan("print($X)", "astgrep", [repo])
+
+    assert hits == []
+    assert str(repo) in failed
+    assert failed[str(repo)]  # carries a non-empty reason
 
 
 # -- scan: every subprocess call carries a timeout ---------------------------

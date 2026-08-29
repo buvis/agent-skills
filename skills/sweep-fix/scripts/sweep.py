@@ -44,12 +44,10 @@ def resolve_rg():
     if os.access(cc_bin, os.X_OK):
         return cc_bin
 
-    print(
+    raise RuntimeError(
         "Could not resolve rg: not on PATH and no claude binary found "
-        f"(checked CLAUDE_CODE_EXECPATH and {cc_bin})",
-        file=sys.stderr,
+        f"(checked CLAUDE_CODE_EXECPATH and {cc_bin})"
     )
-    sys.exit(1)
 
 
 @functools.lru_cache()
@@ -65,11 +63,9 @@ def resolve_ast_grep():
         return path
 
     if not shutil.which("mise"):
-        print(
-            "Could not resolve ast-grep: not on PATH and mise is not available",
-            file=sys.stderr,
+        raise RuntimeError(
+            "Could not resolve ast-grep: not on PATH and mise is not available"
         )
-        sys.exit(1)
 
     result = subprocess.run(
         ["mise", "which", "ast-grep"],
@@ -78,11 +74,9 @@ def resolve_ast_grep():
         timeout=DEFAULT_SCAN_TIMEOUT,
     )
     if result.returncode != 0:
-        print(
-            "Could not resolve ast-grep: not on PATH and `mise which ast-grep` failed",
-            file=sys.stderr,
+        raise RuntimeError(
+            "Could not resolve ast-grep: not on PATH and `mise which ast-grep` failed"
         )
-        sys.exit(1)
 
     return result.stdout.strip()
 
@@ -327,7 +321,12 @@ def verify_control(pattern, kind, control_repo, control_term):
 
     try:
         result = _run_rg(["-F", "--", control_term, "."], control_repo)
-    except Exception:
+    except Exception as exc:
+        print(
+            f"sweep: could not verify control term \"{control_term}\" in "
+            f"{control_repo}: {exc}",
+            file=sys.stderr,
+        )
         return None
     if result.returncode == 1:
         return None
@@ -464,9 +463,13 @@ def main(argv=None):
     parser.add_argument("--out")
     args = parser.parse_args(argv)
 
-    repos, gaps = enumerate_repos(args.registry, args.cwd)
-    verify_control(args.pattern, args.kind, Path(args.control_repo), args.control_term)
-    hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap)
+    try:
+        repos, gaps = enumerate_repos(args.registry, args.cwd)
+        verify_control(args.pattern, args.kind, Path(args.control_repo), args.control_term)
+        hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap)
+    except RuntimeError as exc:
+        print(exc, file=sys.stderr)
+        return 1
 
     derivation = {
         "kind": args.kind,
