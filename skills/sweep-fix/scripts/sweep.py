@@ -8,7 +8,6 @@ import re
 import shutil
 import subprocess
 import sys
-import yaml
 from datetime import date
 from pathlib import Path
 
@@ -382,6 +381,36 @@ def _render_gaps_section(gaps):
     return lines
 
 
+_YAML_INDICATOR_CHARS = "-?:,[]{}#&*!|>'\"%@`"
+_YAML_RESERVED_WORDS = {"null", "~", "true", "false", "yes", "no", "on", "off"}
+
+
+def _needs_yaml_quoting(value):
+    """True if `value` cannot be emitted as a bare YAML plain scalar: it
+    would either fail to parse (a colon-space, a trailing colon, a leading
+    indicator character, an embedded newline) or silently parse back as a
+    different type (an empty string, or a whole value that is itself a YAML
+    null/bool token)."""
+    if value == "" or "\n" in value:
+        return True
+    if value[0] in _YAML_INDICATOR_CHARS:
+        return True
+    if ": " in value or value.endswith(":"):
+        return True
+    if " #" in value:
+        return True
+    return value.lower() in _YAML_RESERVED_WORDS
+
+
+def _yaml_scalar(value):
+    """Render `value` as a YAML scalar: bare when it is safe as a plain
+    scalar, double-quoted with escapes otherwise."""
+    if not _needs_yaml_quoting(value):
+        return value
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+    return f'"{escaped}"'
+
+
 def _render_astgrep_rule_block(derivation, hits):
     lines = []
     if derivation["kind"] != "astgrep":
@@ -391,17 +420,19 @@ def _render_astgrep_rule_block(derivation, hits):
     if not seen_langs:
         return lines
 
+    message = _yaml_scalar(derivation["reason"])
+    pattern = _yaml_scalar(derivation["pattern"])
     rule_docs = [
-        yaml.safe_dump(
-            {
-                "id": f"sweep-{lang}",
-                "language": lang,
-                "severity": "warning",
-                "message": derivation["reason"],
-                "rule": {"pattern": derivation["pattern"]},
-            },
-            sort_keys=False,
-        ).rstrip("\n")
+        "\n".join(
+            [
+                f"id: sweep-{lang}",
+                f"language: {lang}",
+                "severity: warning",
+                f"message: {message}",
+                "rule:",
+                f"  pattern: {pattern}",
+            ]
+        )
         for lang in seen_langs
     ]
     lines.append("```yaml")
