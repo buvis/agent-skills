@@ -58,3 +58,8 @@ def test_raises_stale_parser_error_when_winning_version_missing_parser_file(tmp_
 
 def test_stale_parser_error_is_a_runtime_error():
     assert issubclass(corpus.StaleParserError, RuntimeError)
+
+
+def test_version_key_sorts_non_numeric_segments_below_real_versions():
+    assert corpus._version_key("0.2.2") > corpus._version_key("0.2.dev")
+    assert corpus._version_key("0.2.dev") == (0, 2, -1)
