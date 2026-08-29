@@ -17,6 +17,7 @@ from collect import (
     collect_brush,
     collect_claude_maintenance,
     collect_claude_skill_adherence,
+    collect_purge_devlocal,
     collect_repo,
     main,
     should_rotate,
@@ -756,3 +757,74 @@ def test_main_completes_when_existing_generated_at_is_timezone_naive(
     assert new_data["generated_at"] != "2026-08-01T00:00:00"
     assert len(new_data["repos"]) == 1
     assert not (out_dir / "data-prev.json").exists()
+
+
+def make_trash_dir(tmp_path: Path, *, dirs=(), files=()) -> Path:
+    """Build tmp_path/dev/local/.trash/ with the given subdirectory and file
+    names created directly inside it."""
+    trash = tmp_path / "dev/local/.trash"
+    trash.mkdir(parents=True)
+    for name in dirs:
+        (trash / name).mkdir()
+    for name in files:
+        (trash / name).write_text("")
+    return trash
+
+
+def test_collect_purge_devlocal_returns_none_when_trash_dir_absent(tmp_path):
+    assert collect_purge_devlocal(tmp_path) is None
+
+
+def test_collect_purge_devlocal_returns_the_only_dated_subdirectory(tmp_path):
+    make_trash_dir(tmp_path, dirs=["2026-08-01"])
+    assert collect_purge_devlocal(tmp_path) == "2026-08-01"
+
+
+def test_collect_purge_devlocal_returns_newest_of_two_dated_subdirectories(tmp_path):
+    make_trash_dir(tmp_path, dirs=["2026-08-01", "2026-08-20"])
+    assert collect_purge_devlocal(tmp_path) == "2026-08-20"
+
+
+def test_collect_purge_devlocal_returns_none_when_no_dated_directory_present(tmp_path):
+    make_trash_dir(tmp_path, dirs=["backup", "2026-8-1"], files=["manifest.tsv"])
+    assert collect_purge_devlocal(tmp_path) is None
+
+
+def test_collect_purge_devlocal_ignores_plain_file_named_like_a_date(tmp_path):
+    make_trash_dir(tmp_path, files=["2026-08-01"])
+    assert collect_purge_devlocal(tmp_path) is None
+
+
+def test_collect_purge_devlocal_picks_newest_directory_despite_a_later_named_file(
+    tmp_path,
+):
+    make_trash_dir(
+        tmp_path,
+        dirs=["2026-08-01", "2026-08-20"],
+        files=["2026-08-31", "manifest.tsv"],
+    )
+    assert collect_purge_devlocal(tmp_path) == "2026-08-20"
+
+
+def test_collect_purge_devlocal_accepts_str_path_argument(tmp_path):
+    make_trash_dir(tmp_path, dirs=["2026-08-01"])
+    assert collect_purge_devlocal(str(tmp_path)) == "2026-08-01"
+
+
+def test_collect_repo_purge_last_run_key_equals_collect_purge_devlocal_result(
+    tmp_path,
+    monkeypatch,
+):
+    make_trash_dir(tmp_path, dirs=["2026-08-20"])
+
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:acme/widget.git\n"
+        return ""
+
+    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "gh_json", lambda path: {"default_branch": "master"})
+
+    result = collect_repo(tmp_path, 60, False)
+
+    assert result["purge_last_run"] == "2026-08-20"
