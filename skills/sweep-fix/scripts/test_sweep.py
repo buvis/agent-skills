@@ -912,3 +912,56 @@ def test_main_wires_pipeline_and_writes_report_with_one_row_per_planted_bug(
     assert len(hit_lines) == 3
     for repo in (repo_a, repo_b, repo_c):
         assert str(repo) in report
+
+
+def test_sweep_is_read_only_and_leaves_non_current_repos_status_byte_identical(
+    tmp_path, monkeypatch
+):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    repo_a = _init_git_repo_with_tracked_files(tmp_path / "org" / "repo-a", ["README.md"])
+    repo_b = _init_git_repo_with_tracked_files(tmp_path / "org" / "repo-b", ["README.md"])
+    repo_c = _init_git_repo_with_tracked_files(tmp_path / "org" / "repo-c", ["README.md"])
+    for repo in (repo_a, repo_b, repo_c):
+        _plant_matches(repo, "READONLYSWEEPMARKER", 1)
+
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text("READONLYSWEEPMARKER control line\n")
+
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(repo_a), str(repo_b), str(repo_c)])
+
+    out_path = tmp_path / "report.md"
+
+    non_current_repos = [repo_b, repo_c]
+
+    def _git_status(repo):
+        return subprocess.run(
+            ["git", "-C", str(repo), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+
+    status_before = {repo: _git_status(repo) for repo in non_current_repos}
+
+    exit_code = sweep.main(
+        [
+            "--kind", "rg",
+            "--pattern", "READONLYSWEEPMARKER",
+            "--reason", "regression test for read-only sweep",
+            "--control-term", "READONLYSWEEPMARKER",
+            "--control-repo", str(control_repo),
+            "--registry", str(registry),
+            "--cwd", str(repo_a),
+            "--out", str(out_path),
+        ]
+    )
+
+    assert exit_code == 0
+
+    for repo in non_current_repos:
+        assert _git_status(repo) == status_before[repo]
