@@ -193,7 +193,7 @@ def _scan_astgrep(pattern, repo):
         capture_output=True,
         text=True,
     )
-    if result.returncode != 0:
+    if result.returncode not in (0, 1):
         raise RuntimeError(f"ast-grep failed: {result.stderr}")
     matches = json.loads(result.stdout) if result.stdout.strip() else []
     hits = []
