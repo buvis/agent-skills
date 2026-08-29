@@ -508,8 +508,16 @@ def render_report(derivation, hits, gaps, suppressed, failed):
 
 
 def main(argv=None):
-    """CLI entry point: wire enumerate_repos, verify_control, scan, and
-    render_report together, then write the rendered report to `--out`.
+    """CLI entry point: wire enumerate_repos, scan and render_report
+    together, then write the rendered report to `--out`.
+
+    `verify_control` runs after `scan`, and only when the scan found no hits
+    at all: a sweep that found something has already proved the pattern
+    works, so only an all-zero result can hide a broken pattern behind a
+    false "clean" report.
+
+    The report is written under `--cwd`; an `--out` resolving outside that
+    repo is refused.
 
     Returns 0 on success.
     """
