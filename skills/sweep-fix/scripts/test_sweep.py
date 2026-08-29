@@ -1,5 +1,6 @@
 """Tests for sweep.py (resolve_rg, resolve_ast_grep)."""
 import os
+from pathlib import Path
 import shutil
 import subprocess
 
@@ -146,3 +147,230 @@ def test_resolve_ast_grep_exits_naming_both_attempts_when_neither_resolves(
     combined = (out + err + str(exc_info.value)).lower()
     assert "ast-grep" in combined
     assert "mise" in combined
+
+
+# -- enumerate_repos --------------------------------------------------------
+
+
+def _make_repo(root):
+    """Create a directory with a `.git` marker so it passes the repo check."""
+    (root / ".git").mkdir(parents=True)
+    return root
+
+
+def _write_registry(path, rows):
+    lines = "\n".join(rows)
+    path.write_text(lines + "\n" if lines else "")
+
+
+def _init_git_repo_with_tracked_files(root, tracked, untracked=()):
+    root.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q"], cwd=str(root), check=True, capture_output=True)
+    for rel in tracked:
+        file_path = root / rel
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text("content\n")
+    subprocess.run(
+        ["git", "-C", str(root), "add", *tracked], check=True, capture_output=True
+    )
+    for rel in untracked:
+        file_path = root / rel
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text("untracked\n")
+    return root
+
+
+def test_enumerate_repos_includes_registered_repos_with_git_dir(tmp_path, monkeypatch):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    registered = _make_repo(tmp_path / "org" / "repo-a")
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(registered)])
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()
+
+    repos, _gaps = sweep.enumerate_repos(registry, cwd)
+
+    assert registered in repos
+
+
+def test_enumerate_repos_excludes_registered_paths_without_git_dir(tmp_path, monkeypatch):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    stale = tmp_path / "org" / "removed-repo"
+    stale.mkdir(parents=True)  # exists on disk but has no .git
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(stale)])
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()
+
+    repos, _gaps = sweep.enumerate_repos(registry, cwd)
+
+    assert stale not in repos
+
+
+def test_enumerate_repos_skips_blank_csv_rows(tmp_path, monkeypatch):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    repo_a = _make_repo(tmp_path / "org" / "repo-a")
+    repo_b = _make_repo(tmp_path / "org" / "repo-b")
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(repo_a), "", str(repo_b)])
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()
+
+    repos, _gaps = sweep.enumerate_repos(registry, cwd)
+
+    assert repo_a in repos
+    assert repo_b in repos
+    assert Path("") not in repos
+
+
+def test_enumerate_repos_appends_cwd_when_absent_from_registry(tmp_path, monkeypatch):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [])
+    cwd = tmp_path / "unregistered-cwd"
+    cwd.mkdir()  # not a git repo, and not listed in the registry
+
+    repos, _gaps = sweep.enumerate_repos(registry, cwd)
+
+    assert cwd in repos
+
+
+def test_enumerate_repos_does_not_duplicate_cwd_already_registered(tmp_path, monkeypatch):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    cwd = _make_repo(tmp_path / "org" / "current-repo")
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(cwd)])
+
+    repos, _gaps = sweep.enumerate_repos(registry, cwd)
+
+    assert repos.count(cwd) == 1
+
+
+def test_enumerate_repos_never_writes_to_registry_path(tmp_path, monkeypatch):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    registered = _make_repo(tmp_path / "org" / "repo-a")
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(registered)])
+    original_bytes = registry.read_bytes()
+    cwd = tmp_path / "unregistered-cwd"
+    cwd.mkdir()
+
+    sweep.enumerate_repos(registry, cwd)
+
+    assert registry.read_bytes() == original_bytes
+
+
+def test_enumerate_repos_reports_ondisk_repo_missing_from_registry_as_gap(
+    tmp_path, monkeypatch
+):
+    portfolio_root = tmp_path / "portfolio"
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", portfolio_root)
+
+    registered = _make_repo(portfolio_root / "org" / "registered-repo")
+    unregistered = _make_repo(portfolio_root / "org" / "unregistered-repo")
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(registered)])
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()
+
+    _repos, gaps = sweep.enumerate_repos(registry, cwd)
+
+    assert gaps == [str(unregistered)]
+
+
+def test_enumerate_repos_excludes_ondisk_dir_without_git_from_gaps(tmp_path, monkeypatch):
+    portfolio_root = tmp_path / "portfolio"
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", portfolio_root)
+
+    not_a_repo = portfolio_root / "org" / "not-a-repo"
+    not_a_repo.mkdir(parents=True)
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [])
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()
+
+    _repos, gaps = sweep.enumerate_repos(registry, cwd)
+
+    assert gaps == []
+
+
+def test_enumerate_repos_excludes_repos_deeper_than_two_levels_from_gaps(
+    tmp_path, monkeypatch
+):
+    portfolio_root = tmp_path / "portfolio"
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", portfolio_root)
+
+    _make_repo(portfolio_root / "org" / "sub" / "deep-repo")
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [])
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()
+
+    _repos, gaps = sweep.enumerate_repos(registry, cwd)
+
+    assert gaps == []
+
+
+def test_enumerate_repos_uses_git_ls_files_for_buvis_bare_cwd(tmp_path, monkeypatch):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    fixture_home = tmp_path / "fixture_home"
+    _init_git_repo_with_tracked_files(fixture_home, ["a.txt", "sub/b.txt"])
+    monkeypatch.setattr(
+        sweep,
+        "BUVIS_BARE",
+        {"git_dir": fixture_home / ".git", "work_tree": fixture_home},
+    )
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [])
+
+    repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
+
+    assert fixture_home / "a.txt" in repos
+    assert fixture_home / "sub" / "b.txt" in repos
+    assert fixture_home not in repos  # replaced by its file set, not a directory walk
+
+
+def test_enumerate_repos_excludes_untracked_files_from_buvis_bare_file_set(
+    tmp_path, monkeypatch
+):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    fixture_home = tmp_path / "fixture_home"
+    _init_git_repo_with_tracked_files(
+        fixture_home, ["tracked.txt"], untracked=["scratch.tmp"]
+    )
+    monkeypatch.setattr(
+        sweep,
+        "BUVIS_BARE",
+        {"git_dir": fixture_home / ".git", "work_tree": fixture_home},
+    )
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [])
+
+    repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
+
+    assert fixture_home / "tracked.txt" in repos
+    assert fixture_home / "scratch.tmp" not in repos
