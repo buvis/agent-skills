@@ -174,6 +174,30 @@ def test_audit_cadence_skips_malformed_json_line_without_raising(tmp_path):
     assert result["claude-checkup:audit-config"] == "2026-08-14"
 
 
+def test_audit_cadence_returns_seeded_dict_when_read_raises_oserror(tmp_path, monkeypatch):
+    f = tmp_path / "skills.jsonl"
+    f.write_text(
+        json.dumps(
+            {"skill": "claude-checkup:audit-config", "ts": "2026-08-14T00:00:00+00:00"},
+        )
+        + "\n",
+    )
+
+    original_read_text = Path.read_text
+    target_path = str(f)
+
+    def failing_read_text(self, *args, **kwargs):
+        if str(self) == target_path:
+            raise OSError("permission denied")
+        return original_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", failing_read_text)
+
+    result = collect_audit_cadence(f)
+
+    assert result == {skill: None for skill in MACHINE_AUDIT_SKILLS}
+
+
 def test_stub_from_path_builds_owner_name_org_and_reason_from_path():
     result = stub_from_path("/repos/acme/widget", "not a github remote: bad-url")
     assert result == {
@@ -817,3 +841,34 @@ def test_main_external_carries_audit_cadence_and_drops_claude_maintenance_last(
     for skill in MACHINE_AUDIT_SKILLS:
         assert skill in external["audit_cadence"]
     assert "claude_maintenance_last" not in external
+
+
+def test_main_completes_when_audit_cadence_metrics_file_is_unreadable(tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    metrics_dir = fake_home / ".local/share/agents/metrics"
+    metrics_dir.mkdir(parents=True)
+    metrics_file = metrics_dir / "skills.jsonl"
+    metrics_file.write_text(
+        json.dumps(
+            {"skill": "claude-checkup:audit-config", "ts": "2026-08-14T00:00:00+00:00"},
+        )
+        + "\n",
+    )
+    monkeypatch.setattr(Path, "home", lambda: fake_home)
+
+    original_read_text = Path.read_text
+    metrics_path = str(metrics_file)
+
+    def failing_read_text(self, *args, **kwargs):
+        if str(self) == metrics_path:
+            raise OSError("permission denied")
+        return original_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", failing_read_text)
+
+    _, out_dir = run_collector(tmp_path, monkeypatch, ["alpha"], [])
+
+    monkeypatch.setattr(Path, "read_text", original_read_text)
+    new_data = json.loads((out_dir / "data.json").read_text())
+    assert "generated_at" in new_data
+    assert len(new_data["repos"]) == 1
