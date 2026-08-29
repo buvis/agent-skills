@@ -1677,3 +1677,57 @@ def test_main_still_aborts_as_unverified_when_all_zero_sweep_and_control_term_pr
     assert "unverified" in message
     assert "ALLZEROCONTROLTERM" in message
     assert str(control_repo) in message
+
+
+# -- render_report: how-to-proceed block states the safety rule -------------
+
+
+def _how_to_proceed_block():
+    """Render a report and return the text of its how-to-proceed block: the
+    tail after every other rendered section, using the same last-known-
+    content technique as
+    test_render_report_ends_with_nonempty_how_to_proceed_block_after_all_sections."""
+    derivation = {
+        "kind": "rg",
+        "pattern": "PROCEEDMARKER",
+        "reason": "flag legacy calls",
+        "control_term": "PROCEEDCTRL",
+    }
+    hits = [
+        {
+            "repo": "/repo/zed",
+            "file": "path/to/file.py",
+            "line": 99,
+            "snippet": "PROCEEDMARKER here",
+            "lang": "python",
+        }
+    ]
+    gaps = ["/repo/missing-gap"]
+    suppressed = {"/repo/zed": 44}
+
+    report = sweep.render_report(derivation, hits, gaps, suppressed, {})
+
+    candidates = [
+        derivation["pattern"],
+        derivation["reason"],
+        hits[0]["file"],
+        str(hits[0]["line"]),
+        gaps[0],
+        str(suppressed["/repo/zed"]),
+    ]
+    tail_start = max(report.rfind(text) + len(text) for text in candidates)
+    return report[tail_start:]
+
+
+def test_render_report_how_to_proceed_states_fixes_apply_only_in_invoking_repo():
+    block = _how_to_proceed_block().lower()
+
+    assert "only in the repo" in block
+    assert "report-only" in block or "report only" in block
+
+
+def test_render_report_how_to_proceed_states_fix_applied_only_after_approval():
+    block = _how_to_proceed_block().lower()
+
+    assert "only after" in block
+    assert "approv" in block
