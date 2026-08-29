@@ -500,8 +500,9 @@ def render_report(derivation, hits, gaps, suppressed, failed):
 
     lines.append("How to proceed:")
     lines.append(
-        "Review each hit above. If it is a real problem, fix it directly. "
-        "If it is intentional, note why and move on. Rerun this sweep after "
+        "Review each hit above. Fixes land only in the repo this sweep was "
+        "invoked from. Every other repo's hits stay report-only rows. Apply "
+        "a fix only after the operator approves it. Rerun this sweep after "
         "making changes to confirm the fix landed."
     )
 
