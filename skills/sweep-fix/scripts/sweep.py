@@ -1,6 +1,7 @@
 """Resolve the rg and ast-grep binaries used by the sweep-fix skill."""
 import csv
 import functools
+import json
 import os
 import shutil
 import subprocess
@@ -139,3 +140,102 @@ def enumerate_repos(registry, cwd):
                 gaps.append(str(repo_dir))
 
     return repos, gaps
+
+
+LANGUAGES_BY_EXT = {
+    ".py": "python",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "tsx",
+    ".go": "go",
+    ".rs": "rust",
+    ".java": "java",
+    ".c": "c",
+    ".cpp": "cpp",
+    ".cs": "csharp",
+    ".rb": "ruby",
+    ".php": "php",
+    ".html": "html",
+    ".css": "css",
+    ".json": "json",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".sh": "bash",
+}
+
+DEFAULT_SCAN_CAP = 20
+
+
+def _scan_rg(pattern, repo):
+    result = subprocess.run(
+        ["rg", "--json", pattern, str(repo)],
+        executable=resolve_rg(),
+        capture_output=True,
+        text=True,
+    )
+    hits = []
+    for line in result.stdout.splitlines():
+        event = json.loads(line)
+        if event.get("type") != "match":
+            continue
+        data = event["data"]
+        file = data["path"]["text"]
+        hits.append(
+            {
+                "repo": str(repo),
+                "file": file,
+                "line": data["line_number"],
+                "snippet": data["lines"]["text"].rstrip("\n"),
+                "lang": LANGUAGES_BY_EXT.get(Path(file).suffix),
+            }
+        )
+    return hits
+
+
+def _scan_astgrep(pattern, repo):
+    result = subprocess.run(
+        [resolve_ast_grep(), "run", "--pattern", pattern, "--json", str(repo)],
+        capture_output=True,
+        text=True,
+    )
+    matches = json.loads(result.stdout) if result.stdout.strip() else []
+    hits = []
+    for match in matches:
+        file = match["file"]
+        hits.append(
+            {
+                "repo": str(repo),
+                "file": file,
+                "line": match["range"]["start"]["line"] + 1,
+                "snippet": match["lines"],
+                "lang": LANGUAGES_BY_EXT.get(Path(file).suffix),
+            }
+        )
+    return hits
+
+
+def scan(pattern, kind, repos, cap=DEFAULT_SCAN_CAP):
+    """Search `pattern` across `repos` using `kind` ("rg" or "astgrep").
+
+    Read-only: never writes to a repo. Returns `(hits, suppressed)`. Each
+    hit is a dict with `repo`, `file`, `line`, `snippet`, and `lang`
+    (looked up in LANGUAGES_BY_EXT by file extension, None when unmapped).
+    Hits are capped at `cap` per repo; `suppressed` maps `str(repo)` to the
+    number of hits dropped beyond the cap, for repos that exceeded it only.
+    """
+    hits = []
+    suppressed = {}
+    for repo in repos:
+        if kind == "rg":
+            repo_hits = _scan_rg(pattern, repo)
+        elif kind == "astgrep":
+            repo_hits = _scan_astgrep(pattern, repo)
+
+        if len(repo_hits) > cap:
+            suppressed[str(repo)] = len(repo_hits) - cap
+            repo_hits = repo_hits[:cap]
+
+        hits.extend(repo_hits)
+
+    return hits, suppressed
