@@ -388,6 +388,15 @@ def _plant_matches(repo, pattern, count, ext=".txt"):
     return repo
 
 
+def _git_status_porcelain(repo):
+    return subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+
 def test_scan_caps_hits_at_default_cap_and_records_suppressed_count_for_overflow(tmp_path):
     repo = _plant_matches(tmp_path / "repo", "SWEEPMARKER", 25)
 
@@ -451,22 +460,12 @@ def test_scan_is_read_only_and_leaves_repo_contents_unchanged(tmp_path):
         ["git", "-C", str(repo), "add", "tracked.txt"], check=True, capture_output=True
     )
     original_bytes = tracked.read_bytes()
-    original_status = subprocess.run(
-        ["git", "-C", str(repo), "status", "--porcelain"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
+    original_status = _git_status_porcelain(repo)
 
     sweep.scan("READONLYMARKER", "rg", [repo])
 
     assert tracked.read_bytes() == original_bytes
-    new_status = subprocess.run(
-        ["git", "-C", str(repo), "status", "--porcelain"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
+    new_status = _git_status_porcelain(repo)
     assert new_status == original_status
 
 
@@ -866,40 +865,52 @@ def test_render_report_performs_no_subprocess_or_file_io(monkeypatch):
 # -- main (CLI end-to-end) --------------------------------------------------
 
 
-def test_main_wires_pipeline_and_writes_report_with_one_row_per_planted_bug(
-    tmp_path, monkeypatch
-):
+def _build_sweep_main_scaffold(tmp_path, monkeypatch, marker, build_repo):
+    """Set up three registered repos (each built by `build_repo` and planted
+    with one `marker` match), a control repo, and a registry. Returns
+    `(argv, repos, out_path)` so callers can run `sweep.main(argv)` at the
+    point in the test that suits them."""
     empty_portfolio_root = tmp_path / "empty_portfolio_root"
     empty_portfolio_root.mkdir()
     monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
 
-    repo_a = _make_repo(tmp_path / "org" / "repo-a")
-    repo_b = _make_repo(tmp_path / "org" / "repo-b")
-    repo_c = _make_repo(tmp_path / "org" / "repo-c")
+    repo_a = build_repo(tmp_path / "org" / "repo-a")
+    repo_b = build_repo(tmp_path / "org" / "repo-b")
+    repo_c = build_repo(tmp_path / "org" / "repo-c")
     for repo in (repo_a, repo_b, repo_c):
-        _plant_matches(repo, "MAINE2EMARKER", 1)
+        _plant_matches(repo, marker, 1)
 
     control_repo = tmp_path / "control"
     control_repo.mkdir()
-    (control_repo / "file.txt").write_text("MAINE2EMARKER control line\n")
+    (control_repo / "file.txt").write_text(f"{marker} control line\n")
 
     registry = tmp_path / "repos.csv"
     _write_registry(registry, [str(repo_a), str(repo_b), str(repo_c)])
 
     out_path = tmp_path / "report.md"
 
-    exit_code = sweep.main(
-        [
-            "--kind", "rg",
-            "--pattern", "MAINE2EMARKER",
-            "--reason", "planted bug for phase 1 e2e test",
-            "--control-term", "MAINE2EMARKER",
-            "--control-repo", str(control_repo),
-            "--registry", str(registry),
-            "--cwd", str(repo_a),
-            "--out", str(out_path),
-        ]
+    argv = [
+        "--kind", "rg",
+        "--pattern", marker,
+        "--reason", f"regression test for {marker}",
+        "--control-term", marker,
+        "--control-repo", str(control_repo),
+        "--registry", str(registry),
+        "--cwd", str(repo_a),
+        "--out", str(out_path),
+    ]
+
+    return argv, (repo_a, repo_b, repo_c), out_path
+
+
+def test_main_wires_pipeline_and_writes_report_with_one_row_per_planted_bug(
+    tmp_path, monkeypatch
+):
+    argv, (repo_a, repo_b, repo_c), out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "MAINE2EMARKER", _make_repo
     )
+
+    exit_code = sweep.main(argv)
 
     assert isinstance(exit_code, int)
     assert exit_code == 0
@@ -917,51 +928,20 @@ def test_main_wires_pipeline_and_writes_report_with_one_row_per_planted_bug(
 def test_sweep_is_read_only_and_leaves_non_current_repos_status_byte_identical(
     tmp_path, monkeypatch
 ):
-    empty_portfolio_root = tmp_path / "empty_portfolio_root"
-    empty_portfolio_root.mkdir()
-    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
-
-    repo_a = _init_git_repo_with_tracked_files(tmp_path / "org" / "repo-a", ["README.md"])
-    repo_b = _init_git_repo_with_tracked_files(tmp_path / "org" / "repo-b", ["README.md"])
-    repo_c = _init_git_repo_with_tracked_files(tmp_path / "org" / "repo-c", ["README.md"])
-    for repo in (repo_a, repo_b, repo_c):
-        _plant_matches(repo, "READONLYSWEEPMARKER", 1)
-
-    control_repo = tmp_path / "control"
-    control_repo.mkdir()
-    (control_repo / "file.txt").write_text("READONLYSWEEPMARKER control line\n")
-
-    registry = tmp_path / "repos.csv"
-    _write_registry(registry, [str(repo_a), str(repo_b), str(repo_c)])
-
-    out_path = tmp_path / "report.md"
+    argv, (repo_a, repo_b, repo_c), out_path = _build_sweep_main_scaffold(
+        tmp_path,
+        monkeypatch,
+        "READONLYSWEEPMARKER",
+        lambda root: _init_git_repo_with_tracked_files(root, ["README.md"]),
+    )
 
     non_current_repos = [repo_b, repo_c]
 
-    def _git_status(repo):
-        return subprocess.run(
-            ["git", "-C", str(repo), "status", "--porcelain"],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
+    status_before = {repo: _git_status_porcelain(repo) for repo in non_current_repos}
 
-    status_before = {repo: _git_status(repo) for repo in non_current_repos}
-
-    exit_code = sweep.main(
-        [
-            "--kind", "rg",
-            "--pattern", "READONLYSWEEPMARKER",
-            "--reason", "regression test for read-only sweep",
-            "--control-term", "READONLYSWEEPMARKER",
-            "--control-repo", str(control_repo),
-            "--registry", str(registry),
-            "--cwd", str(repo_a),
-            "--out", str(out_path),
-        ]
-    )
+    exit_code = sweep.main(argv)
 
     assert exit_code == 0
 
     for repo in non_current_repos:
-        assert _git_status(repo) == status_before[repo]
+        assert _git_status_porcelain(repo) == status_before[repo]
