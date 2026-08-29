@@ -549,7 +549,7 @@ def main(argv=None):
         out = f"dev/local/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
 
     out_path = (cwd_path / out).resolve()
-    if out_path != cwd_path and cwd_path not in out_path.parents:
+    if not out_path.is_relative_to(cwd_path):
         print(
             f"sweep: --out {out!r} resolves to {out_path}, which is outside "
             f"the --cwd repo {cwd_path}",
