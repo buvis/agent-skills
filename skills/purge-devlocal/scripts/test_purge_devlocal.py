@@ -762,3 +762,14 @@ def test_apply_stamps_todays_batch_dir_even_when_nothing_is_trashed(tmp_path):
     today = time.strftime("%Y-%m-%d", time.localtime(NOW))
     assert run(store, "--apply") == 0
     assert (store / gc.TRASH_DIR / today).is_dir()
+
+
+def test_zero_day_retention_does_not_delete_todays_own_fresh_stamp(tmp_path):
+    """--empty-trash-days 0 makes even today's own batch dir eligible for
+    retention pruning (batch_ts is midnight local, so the elapsed-day fraction
+    is already >0 the moment the stamp is created). The stamp this same apply
+    run just created must still be standing afterward."""
+    store = make_store(tmp_path)
+    today = time.strftime("%Y-%m-%d", time.localtime(NOW))
+    assert run(store, "--apply", "--empty-trash-days", "0") == 0
+    assert (store / gc.TRASH_DIR / today).is_dir()
