@@ -265,3 +265,71 @@ def verify_control(pattern, kind, control_repo, control_term):
     )
     print(message, file=sys.stderr)
     raise SystemExit(1)
+
+
+def render_report(derivation, hits, gaps, suppressed):
+    """Render a plain-text sweep report from scan results.
+
+    Pure string formatting: no subprocess calls, no file I/O. `derivation`
+    carries `kind`, `pattern`, `reason`, `control_term` describing the sweep
+    that was run. When `kind` is "astgrep", appends an ast-grep rule-pack
+    YAML block (one document per distinct language seen in `hits`, joined
+    with `---`) that can be saved to a `.yml` file and run unedited with
+    `ast-grep scan --rule`.
+    """
+    lines = [
+        f"Kind: {derivation['kind']}",
+        f"Pattern: {derivation['pattern']}",
+        f"Reason: {derivation['reason']}",
+        "",
+        f"Hits ({len(hits)}):",
+    ]
+    for hit in hits:
+        lines.append(f"- {hit['repo']} {hit['file']}:{hit['line']}: {hit['snippet']}")
+    lines.append("")
+
+    uncovered_exts = sorted({Path(hit["file"]).suffix for hit in hits if hit["lang"] is None})
+    if uncovered_exts:
+        lines.append(f"Uncovered languages (no ast-grep lang mapping): {', '.join(uncovered_exts)}")
+        lines.append("")
+
+    if suppressed:
+        lines.append("Suppressed:")
+        for repo, count in suppressed.items():
+            lines.append(f"- {repo}: {count} more hits suppressed (cap reached)")
+        lines.append("")
+
+    lines.append(f"Gaps ({len(gaps)}):")
+    for gap in gaps:
+        lines.append(f"- {gap}")
+    lines.append("")
+
+    if derivation["kind"] == "astgrep":
+        seen_langs = []
+        for hit in hits:
+            lang = hit["lang"]
+            if lang and lang not in seen_langs:
+                seen_langs.append(lang)
+        if seen_langs:
+            rule_docs = [
+                f"id: sweep-{lang}\n"
+                f"language: {lang}\n"
+                "severity: warning\n"
+                f"message: {derivation['reason']}\n"
+                "rule:\n"
+                f"  pattern: {derivation['pattern']}"
+                for lang in seen_langs
+            ]
+            lines.append("```yaml")
+            lines.append("\n---\n".join(rule_docs))
+            lines.append("```")
+            lines.append("")
+
+    lines.append("How to proceed:")
+    lines.append(
+        "Review each hit above. If it is a real problem, fix it directly. "
+        "If it is intentional, note why and move on. Rerun this sweep after "
+        "making changes to confirm the fix landed."
+    )
+
+    return "\n".join(lines)
