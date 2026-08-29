@@ -1731,3 +1731,59 @@ def test_render_report_how_to_proceed_states_fix_applied_only_after_approval():
 
     assert "only after" in block
     assert "approv" in block
+
+
+# -- main: prints the report path ---
+
+
+def test_main_prints_resolved_report_path_to_stdout_on_success_with_explicit_relative_out(
+    tmp_path, monkeypatch, capsys
+):
+    # The raw --out argument is relative and is resolved against --cwd, not
+    # the process cwd; chdir'ing elsewhere proves the printed path can't be
+    # the caller's raw string re-emitted, nor built from process cwd.
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "EXPLICITOUTPRINTMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    relative_out = "printed-report.md"
+    argv[out_index + 1] = relative_out
+    expected_out_path = repo_a / relative_out
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 0
+    assert expected_out_path.exists()
+
+    captured = capsys.readouterr()
+    assert str(expected_out_path) in captured.out
+
+
+def test_main_prints_resolved_report_path_to_stdout_on_success_with_default_out(
+    tmp_path, monkeypatch, capsys
+):
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "DEFAULTOUTPRINTMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    del argv[out_index : out_index + 2]  # omit --out so main() computes the default
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 0
+
+    expected_dir = repo_a / "dev" / "local" / "audit-results"
+    reports = list(expected_dir.glob("sweep-*.md"))
+    assert len(reports) == 1, f"expected exactly one report in {expected_dir}"
+    written_report = reports[0]
+
+    captured = capsys.readouterr()
+    assert str(written_report) in captured.out
