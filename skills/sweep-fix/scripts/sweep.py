@@ -102,10 +102,12 @@ def enumerate_repos(registry, cwd):
 
     - `repos`: registered paths that have a `.git` dir, plus `cwd` if it is
       not already covered. If `cwd` is the buvis bare dotfiles work tree
-      (`BUVIS_BARE["work_tree"]`), it is replaced by its tracked files
-      (via `git ls-files` against `BUVIS_BARE["git_dir"]`) rather than the
-      work tree directory itself, since a directory walk would not find
-      files living outside the home-relative repo layout.
+      (`BUVIS_BARE["work_tree"]`), it is replaced by a single scan-scope
+      entry (`{"cwd": work_tree, "files": [...]}`) restricted to its tracked
+      files (via `git ls-files` against `BUVIS_BARE["git_dir"]`), so the
+      bare repo counts as one repo rather than one entry per tracked file,
+      since a directory walk would not find files living outside the
+      home-relative repo layout.
     - `gaps`: `.git` repos found on disk at `PORTFOLIO_ROOT/<org>/<repo>`
       that are missing from the registry, as path strings.
 
@@ -127,13 +129,13 @@ def enumerate_repos(registry, cwd):
         git_dir = BUVIS_BARE["git_dir"]
         result = subprocess.run(
             ["git", f"--git-dir={git_dir}", f"--work-tree={work_tree}", "ls-files", "-z"],
+            cwd=work_tree,
             capture_output=True,
             text=True,
             check=True,
         )
-        for rel in result.stdout.split("\0"):
-            if rel:
-                repos.append(work_tree / rel)
+        files = [rel for rel in result.stdout.split("\0") if rel]
+        repos.append({"cwd": work_tree, "files": files})
     elif cwd not in repos:
         repos.append(cwd)
 
@@ -180,8 +182,22 @@ def _run_rg(args, cwd):
     return result
 
 
+def _repo_cwd_and_targets(repo):
+    """Split a `repos` entry into `(cwd, targets)` for a search subprocess.
+
+    A plain `Path` repo is searched recursively (target "."). A bare-repo
+    scan-scope entry (`{"cwd": ..., "files": [...]}`) is searched by naming
+    its tracked files explicitly, so untracked files stay out of scope and
+    the entry never needs a directory walk of its own.
+    """
+    if isinstance(repo, dict):
+        return repo["cwd"], repo["files"]
+    return repo, ["."]
+
+
 def _scan_rg(pattern, repo):
-    result = _run_rg(["--json", pattern, "."], repo)
+    cwd, targets = _repo_cwd_and_targets(repo)
+    result = _run_rg(["--json", pattern, *targets], cwd)
     hits = []
     for line in result.stdout.splitlines():
         event = json.loads(line)
@@ -190,15 +206,16 @@ def _scan_rg(pattern, repo):
         data = event["data"]
         file = data["path"]["text"]
         hits.append(
-            _build_hit(repo, file, data["line_number"], data["lines"]["text"].rstrip("\n"))
+            _build_hit(cwd, file, data["line_number"], data["lines"]["text"].rstrip("\n"))
         )
     return hits
 
 
 def _scan_astgrep(pattern, repo):
+    cwd, targets = _repo_cwd_and_targets(repo)
     result = subprocess.run(
-        [resolve_ast_grep(), "run", "--pattern", pattern, "--json", "."],
-        cwd=repo,
+        [resolve_ast_grep(), "run", "--pattern", pattern, "--json", *targets],
+        cwd=cwd,
         capture_output=True,
         text=True,
     )
@@ -209,7 +226,7 @@ def _scan_astgrep(pattern, repo):
     for match in matches:
         file = match["file"]
         hits.append(
-            _build_hit(repo, file, match["range"]["start"]["line"] + 1, match["lines"])
+            _build_hit(cwd, file, match["range"]["start"]["line"] + 1, match["lines"])
         )
     return hits
 
@@ -234,7 +251,8 @@ def scan(pattern, kind, repos, cap=20):
             raise ValueError(f"unknown kind: {kind!r}")
 
         if len(repo_hits) > cap:
-            suppressed[str(repo)] = len(repo_hits) - cap
+            cwd, _targets = _repo_cwd_and_targets(repo)
+            suppressed[str(cwd)] = len(repo_hits) - cap
             repo_hits = repo_hits[:cap]
 
         hits.extend(repo_hits)
