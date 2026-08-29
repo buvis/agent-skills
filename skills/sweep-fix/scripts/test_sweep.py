@@ -374,3 +374,112 @@ def test_enumerate_repos_excludes_untracked_files_from_buvis_bare_file_set(
 
     assert fixture_home / "tracked.txt" in repos
     assert fixture_home / "scratch.tmp" not in repos
+
+
+# -- scan ---------------------------------------------------------------
+
+
+def _plant_matches(repo, pattern, count, ext=".txt"):
+    """Create `repo` with `count` files, each containing one line matching `pattern`."""
+    repo.mkdir(parents=True, exist_ok=True)
+    for i in range(count):
+        (repo / f"match_{i:03d}{ext}").write_text(f"{pattern} line {i}\n")
+    return repo
+
+
+def test_scan_caps_hits_at_default_cap_and_records_suppressed_count_for_overflow(tmp_path):
+    repo = _plant_matches(tmp_path / "repo", "SWEEPMARKER", 25)
+
+    hits, suppressed = sweep.scan("SWEEPMARKER", "rg", [repo])
+
+    repo_hits = [hit for hit in hits if hit["repo"] == str(repo)]
+    assert len(repo_hits) == 20
+    assert suppressed[str(repo)] == 5
+    for hit in repo_hits:
+        assert hit["file"]
+        assert hit["line"] == 1
+        assert "SWEEPMARKER" in hit["snippet"]
+
+
+def test_scan_omits_suppressed_entry_for_repo_with_hits_under_cap(tmp_path):
+    repo = _plant_matches(tmp_path / "repo", "UNDERMARKER", 3)
+
+    hits, suppressed = sweep.scan("UNDERMARKER", "rg", [repo])
+
+    repo_hits = [hit for hit in hits if hit["repo"] == str(repo)]
+    assert len(repo_hits) == 3
+    assert str(repo) not in suppressed
+    for hit in repo_hits:
+        assert hit["line"] == 1
+
+
+def test_scan_applies_cap_independently_per_repo(tmp_path):
+    repo_a = _plant_matches(tmp_path / "repo_a", "MULTIMARKER", 8)
+    repo_b = _plant_matches(tmp_path / "repo_b", "MULTIMARKER", 3)
+
+    hits, suppressed = sweep.scan("MULTIMARKER", "rg", [repo_a, repo_b], cap=5)
+
+    hits_a = [hit for hit in hits if hit["repo"] == str(repo_a)]
+    hits_b = [hit for hit in hits if hit["repo"] == str(repo_b)]
+    assert len(hits_a) == 5
+    assert len(hits_b) == 3
+    assert suppressed[str(repo_a)] == 3
+    assert str(repo_b) not in suppressed
+
+
+def test_scan_hit_lang_field_derived_from_ast_grep_languages_extension_map(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "sample.py").write_text("LANGMARKER python line\n")
+    (repo / "sample.txt").write_text("LANGMARKER text line\n")
+
+    hits, _suppressed = sweep.scan("LANGMARKER", "rg", [repo])
+
+    by_ext = {Path(hit["file"]).suffix: hit["lang"] for hit in hits}
+    assert by_ext[".py"] == "python"
+    assert by_ext[".txt"] is None
+
+
+def test_scan_is_read_only_and_leaves_repo_contents_unchanged(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    tracked = repo / "tracked.txt"
+    tracked.write_text("READONLYMARKER content\n")
+    subprocess.run(["git", "init", "-q"], cwd=str(repo), check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "add", "tracked.txt"], check=True, capture_output=True
+    )
+    original_bytes = tracked.read_bytes()
+    original_status = subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+
+    sweep.scan("READONLYMARKER", "rg", [repo])
+
+    assert tracked.read_bytes() == original_bytes
+    new_status = subprocess.run(
+        ["git", "-C", str(repo), "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert new_status == original_status
+
+
+def test_scan_supports_astgrep_kind_and_returns_matching_hits(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "sample.py").write_text('print("hi")\n')
+
+    hits, _suppressed = sweep.scan("print($X)", "astgrep", [repo])
+
+    assert len(hits) >= 1
+    hit = hits[0]
+    assert hit["repo"] == str(repo)
+    assert hit["file"].endswith("sample.py")
+    assert hit["line"] == 1
+    assert hit["lang"] == "python"
+    assert "print" in hit["snippet"]
