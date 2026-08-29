@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import time
 
 import pytest
 
@@ -364,7 +365,7 @@ def test_enumerate_repos_bare_output_lets_scan_find_every_tracked_file(
     repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
     assert repos  # the bare repo's tracked files must not come back empty
 
-    hits, _suppressed = sweep.scan("BAREBALLOTMARKER", "rg", repos)
+    hits, _suppressed, _failed = sweep.scan("BAREBALLOTMARKER", "rg", repos)
 
     matched_files = {Path(hit["file"]).name for hit in hits}
     assert matched_files == {"a.txt", "b.txt"}
@@ -383,7 +384,7 @@ def test_scan_excludes_untracked_file_from_buvis_bare_search_scope(
     (fixture_home / "scratch.tmp").write_text("UNTRACKEDGUARDMARKER content\n")
 
     repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
-    hits, _suppressed = sweep.scan("UNTRACKEDGUARDMARKER", "rg", repos)
+    hits, _suppressed, _failed = sweep.scan("UNTRACKEDGUARDMARKER", "rg", repos)
 
     matched_files = {Path(hit["file"]).name for hit in hits}
     assert "tracked.txt" in matched_files
@@ -413,7 +414,7 @@ def test_enumerate_repos_scopes_registered_work_tree_row_to_tracked_files_only(
     assert len(bare_entries) == 1  # never lands twice, and never as a raw Path
     assert fixture_home not in [repo for repo in repos if not isinstance(repo, dict)]
 
-    hits, _suppressed = sweep.scan("REGISTEREDWORKTREEMARKER", "rg", repos)
+    hits, _suppressed, _failed = sweep.scan("REGISTEREDWORKTREEMARKER", "rg", repos)
 
     matched_files = {Path(hit["file"]).name for hit in hits}
     assert "tracked.txt" in matched_files
@@ -453,7 +454,7 @@ def test_enumerate_repos_finds_buvis_bare_tracked_files_regardless_of_process_cw
     repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
     assert repos  # must not silently come back empty when cwd is inside the work tree
 
-    hits, _suppressed = sweep.scan("CWDINDEPENDENTMARKER", "rg", repos)
+    hits, _suppressed, _failed = sweep.scan("CWDINDEPENDENTMARKER", "rg", repos)
 
     matched_files = {Path(hit["file"]).name for hit in hits}
     assert "top.txt" in matched_files  # root-level file, hidden by cwd's prefix under the bug
@@ -468,7 +469,7 @@ def test_scan_caps_buvis_bare_repo_as_a_single_repo_not_per_tracked_file(
         (fixture_home / rel).write_text("BARECAPMARKER line\n")
 
     repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
-    hits, suppressed = sweep.scan("BARECAPMARKER", "rg", repos, cap=3)
+    hits, suppressed, _failed = sweep.scan("BARECAPMARKER", "rg", repos, cap=3)
 
     assert len(hits) == 3
     assert len(suppressed) == 1
@@ -485,7 +486,7 @@ def test_scan_bare_entry_with_no_tracked_files_finds_no_hits_and_does_not_walk_c
     (fixture_home / "scratch.tmp").write_text("EMPTYINDEXMARKER content\n")
 
     repos, _gaps = sweep.enumerate_repos(registry, fixture_home)
-    hits, _suppressed = sweep.scan("EMPTYINDEXMARKER", "rg", repos)
+    hits, _suppressed, _failed = sweep.scan("EMPTYINDEXMARKER", "rg", repos)
 
     assert hits == []
 
@@ -513,7 +514,7 @@ def _git_status_porcelain(repo):
 def test_scan_caps_hits_at_default_cap_and_records_suppressed_count_for_overflow(tmp_path):
     repo = _plant_matches(tmp_path / "repo", "SWEEPMARKER", 25)
 
-    hits, suppressed = sweep.scan("SWEEPMARKER", "rg", [repo])
+    hits, suppressed, _failed = sweep.scan("SWEEPMARKER", "rg", [repo])
 
     repo_hits = [hit for hit in hits if hit["repo"] == str(repo)]
     assert len(repo_hits) == 20
@@ -527,7 +528,7 @@ def test_scan_caps_hits_at_default_cap_and_records_suppressed_count_for_overflow
 def test_scan_omits_suppressed_entry_for_repo_with_hits_under_cap(tmp_path):
     repo = _plant_matches(tmp_path / "repo", "UNDERMARKER", 3)
 
-    hits, suppressed = sweep.scan("UNDERMARKER", "rg", [repo])
+    hits, suppressed, _failed = sweep.scan("UNDERMARKER", "rg", [repo])
 
     repo_hits = [hit for hit in hits if hit["repo"] == str(repo)]
     assert len(repo_hits) == 3
@@ -540,7 +541,7 @@ def test_scan_applies_cap_independently_per_repo(tmp_path):
     repo_a = _plant_matches(tmp_path / "repo_a", "MULTIMARKER", 8)
     repo_b = _plant_matches(tmp_path / "repo_b", "MULTIMARKER", 3)
 
-    hits, suppressed = sweep.scan("MULTIMARKER", "rg", [repo_a, repo_b], cap=5)
+    hits, suppressed, _failed = sweep.scan("MULTIMARKER", "rg", [repo_a, repo_b], cap=5)
 
     hits_a = [hit for hit in hits if hit["repo"] == str(repo_a)]
     hits_b = [hit for hit in hits if hit["repo"] == str(repo_b)]
@@ -556,7 +557,7 @@ def test_scan_hit_lang_field_derived_from_ast_grep_languages_extension_map(tmp_p
     (repo / "sample.py").write_text("LANGMARKER python line\n")
     (repo / "sample.txt").write_text("LANGMARKER text line\n")
 
-    hits, _suppressed = sweep.scan("LANGMARKER", "rg", [repo])
+    hits, _suppressed, _failed = sweep.scan("LANGMARKER", "rg", [repo])
 
     by_ext = {Path(hit["file"]).suffix: hit["lang"] for hit in hits}
     assert by_ext[".py"] == "python"
@@ -587,7 +588,7 @@ def test_scan_supports_astgrep_kind_and_returns_matching_hits(tmp_path):
     repo.mkdir()
     (repo / "sample.py").write_text('print("hi")\n')
 
-    hits, _suppressed = sweep.scan("print($X)", "astgrep", [repo])
+    hits, _suppressed, _failed = sweep.scan("print($X)", "astgrep", [repo])
 
     assert len(hits) >= 1
     hit = hits[0]
@@ -677,7 +678,7 @@ def _extract_rule_pack_blocks(report):
 def test_render_report_gaps_header_states_zero_count_for_empty_gaps():
     derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
 
-    report = sweep.render_report(derivation, [], [], {})
+    report = sweep.render_report(derivation, [], [], {}, {})
 
     assert "Gaps (0):" in report
 
@@ -690,7 +691,7 @@ def test_render_report_gaps_header_states_actual_count_for_nonempty_gaps():
         "/portfolio/org/gap-three",
     ]
 
-    report = sweep.render_report(derivation, [], gaps, {})
+    report = sweep.render_report(derivation, [], gaps, {}, {})
 
     assert "Gaps (3):" in report
     for gap in gaps:
@@ -716,7 +717,7 @@ def test_render_report_includes_repo_file_and_line_for_every_hit():
         },
     ]
 
-    report = sweep.render_report(derivation, hits, [], {})
+    report = sweep.render_report(derivation, hits, [], {}, {})
 
     for hit in hits:
         assert hit["repo"] in report
@@ -743,7 +744,7 @@ def test_render_report_states_uncovered_languages_when_a_hit_has_no_lang():
         },
     ]
 
-    report = sweep.render_report(derivation, hits, [], {})
+    report = sweep.render_report(derivation, hits, [], {}, {})
 
     assert "uncovered" in report.lower()
     assert ".md" in report
@@ -768,7 +769,7 @@ def test_render_report_omits_uncovered_languages_line_when_every_hit_has_a_lang(
         },
     ]
 
-    report = sweep.render_report(derivation, hits, [], {})
+    report = sweep.render_report(derivation, hits, [], {}, {})
 
     assert "uncovered" not in report.lower()
 
@@ -777,7 +778,7 @@ def test_render_report_shows_suppressed_count_for_every_repo_present():
     derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
     suppressed = {"/repo/alpha": 37, "/repo/beta": 141}
 
-    report = sweep.render_report(derivation, [], [], suppressed)
+    report = sweep.render_report(derivation, [], [], suppressed, {})
 
     for repo, count in suppressed.items():
         assert repo in report
@@ -792,7 +793,7 @@ def test_render_report_never_raises_for_all_empty_input():
         "control_term": "z",
     }
 
-    report = sweep.render_report(derivation, [], [], {})
+    report = sweep.render_report(derivation, [], [], {}, {})
 
     assert isinstance(report, str)
     assert report.strip() != ""
@@ -820,7 +821,7 @@ def test_render_report_ends_with_nonempty_how_to_proceed_block_after_all_section
     gaps = ["/repo/missing-gap"]
     suppressed = {"/repo/zed": 44}
 
-    report = sweep.render_report(derivation, hits, gaps, suppressed)
+    report = sweep.render_report(derivation, hits, gaps, suppressed, {})
 
     candidates = [
         (derivation["pattern"], report.rfind(derivation["pattern"])),
@@ -856,8 +857,8 @@ def test_render_report_is_deterministic_for_same_inputs():
     gaps = ["/repo/det-gap"]
     suppressed = {"/repo/det": 9}
 
-    first = sweep.render_report(dict(derivation), list(hits), list(gaps), dict(suppressed))
-    second = sweep.render_report(dict(derivation), list(hits), list(gaps), dict(suppressed))
+    first = sweep.render_report(dict(derivation), list(hits), list(gaps), dict(suppressed), {})
+    second = sweep.render_report(dict(derivation), list(hits), list(gaps), dict(suppressed), {})
 
     assert first == second
 
@@ -879,7 +880,7 @@ def test_render_report_rg_kind_emits_no_ast_grep_rule_block():
         }
     ]
 
-    report = sweep.render_report(derivation, hits, [], {})
+    report = sweep.render_report(derivation, hits, [], {}, {})
 
     assert not _extract_rule_pack_blocks(report)
     assert "severity: warning" not in report
@@ -914,7 +915,7 @@ def _build_astgrep_rule_report(tmp_path):
         },
     ]
 
-    report = sweep.render_report(derivation, hits, [], {})
+    report = sweep.render_report(derivation, hits, [], {}, {})
 
     blocks = _extract_rule_pack_blocks(report)
     assert blocks, "expected an ast-grep rule-pack block in the report"
@@ -979,7 +980,7 @@ def test_render_report_performs_no_subprocess_or_file_io(monkeypatch):
     gaps = ["/repo/io-gap"]
     suppressed = {"/repo/io": 3}
 
-    report = sweep.render_report(derivation, hits, gaps, suppressed)
+    report = sweep.render_report(derivation, hits, gaps, suppressed, {})
 
     assert isinstance(report, str)
     assert report.strip() != ""
@@ -1068,3 +1069,121 @@ def test_sweep_is_read_only_and_leaves_non_current_repos_status_byte_identical(
 
     for repo in non_current_repos:
         assert _git_status_porcelain(repo) == status_before[repo]
+
+
+# -- scan: dash-prefixed patterns --------------------------------------------
+
+
+def test_scan_finds_a_dash_prefixed_pattern_via_rg(tmp_path):
+    # Today the pattern is handed to rg as a bare positional argument, so a
+    # leading "-" is parsed as one of rg's own flags instead of being
+    # searched for. This must fail against the current code.
+    repo = _plant_matches(tmp_path / "repo", "-x", 1)
+
+    hits, _suppressed, _failed = sweep.scan("-x", "rg", [repo])
+
+    repo_hits = [hit for hit in hits if hit["repo"] == str(repo)]
+    assert len(repo_hits) == 1
+    assert "-x" in repo_hits[0]["snippet"]
+
+
+# -- scan: one unscannable repo must not lose the others ---------------------
+
+
+def test_scan_returns_good_repos_hits_when_one_repo_is_unscannable(tmp_path):
+    repo_a = _plant_matches(tmp_path / "repo_a", "RESILIENCEMARKER", 1)
+    bad_repo = tmp_path / "does-not-exist"
+    repo_b = _plant_matches(tmp_path / "repo_b", "RESILIENCEMARKER", 1)
+
+    hits, _suppressed, _failed = sweep.scan(
+        "RESILIENCEMARKER", "rg", [repo_a, bad_repo, repo_b]
+    )
+
+    hit_repos = {hit["repo"] for hit in hits}
+    assert hit_repos == {str(repo_a), str(repo_b)}
+
+
+def test_scan_surfaces_an_unscannable_repo_instead_of_dropping_it_silently(
+    tmp_path,
+):
+    # Shape assumed: scan() widens its return to a 3-tuple
+    # (hits, suppressed, failed), so every existing
+    # "hits, suppressed = sweep.scan(...)" call site in this file gains a
+    # third, discarded element. `failed` maps str(repo) to a non-empty
+    # reason string for repos that could not be scanned at all -- a
+    # channel distinct from `suppressed` (which stays cap-overflow-only),
+    # so a failed repo can never be misread as "scanned but truncated".
+    repo_a = _plant_matches(tmp_path / "repo_a", "FAILSURFACEMARKER", 1)
+    bad_repo = tmp_path / "does-not-exist"
+    repo_b = _plant_matches(tmp_path / "repo_b", "FAILSURFACEMARKER", 1)
+
+    _hits, suppressed, failed = sweep.scan(
+        "FAILSURFACEMARKER", "rg", [repo_a, bad_repo, repo_b]
+    )
+
+    assert str(bad_repo) in failed
+    assert failed[str(bad_repo)]  # carries a non-empty reason
+    assert str(bad_repo) not in suppressed
+
+
+# -- scan: every subprocess call carries a timeout ---------------------------
+
+
+def test_scan_reports_a_hung_search_as_a_failed_repo_without_blocking(
+    tmp_path, monkeypatch
+):
+    # Shape assumed for the failure channel, consistent with the tests
+    # above: scan() returns a 3-tuple (hits, suppressed, failed), and a
+    # repo whose search could not complete (here, timed out) is surfaced
+    # as a key in `failed`, distinct from `suppressed` (cap-overflow-only).
+    # Shape assumed for the time budget itself: scan() gains an optional
+    # `timeout` keyword (seconds), mirroring the existing `cap` keyword, so
+    # this test can use a small budget instead of waiting on whatever
+    # production-sized default the fix picks.
+    hung_rg = tmp_path / "rg"
+    hung_rg.write_text("#!/bin/sh\nsleep 5\n")
+    hung_rg.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ['PATH']}")
+
+    hung_repo = tmp_path / "hung_repo"
+    hung_repo.mkdir()
+
+    started = time.monotonic()
+    hits, suppressed, failed = sweep.scan(
+        "HANGMARKER", "rg", [hung_repo], timeout=0.2
+    )
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 3  # far short of the fake tool's 5s sleep
+    assert hits == []
+    assert str(hung_repo) in failed
+    assert failed[str(hung_repo)]  # carries a non-empty reason
+    assert str(hung_repo) not in suppressed
+
+
+# -- render_report: names a failed repo ---------------------------------
+
+
+def test_render_report_names_a_failed_repo_with_its_reason_and_not_as_suppressed():
+    # Shape assumed: render_report() widens to accept a fifth positional
+    # parameter, `failed`, mirroring the `failed` channel scan() now
+    # returns: a dict mapping str(repo) to a non-empty reason string for
+    # repos that could not be scanned at all. Every existing
+    # render_report(...) call site in this file gains a trailing `{}`
+    # argument for this new parameter -- mechanical only, the same kind of
+    # update already made for scan()'s widened 3-tuple return.
+    derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
+    suppressed = {"/repo/capped": 5}
+    failed = {"/repo/unreachable": "no such file or directory"}
+
+    report = sweep.render_report(derivation, [], [], suppressed, failed)
+
+    assert "/repo/unreachable" in report
+    assert "no such file or directory" in report
+
+    # The two channels must stay apart: a repo that was never searched must
+    # never be described with the cap-suppression wording ("N more hits
+    # suppressed (cap reached)") that the truly-capped repo above gets.
+    failed_repo_lines = [line for line in report.splitlines() if "/repo/unreachable" in line]
+    assert failed_repo_lines
+    assert all("suppressed (cap reached)" not in line for line in failed_repo_lines)
