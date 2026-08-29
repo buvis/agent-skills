@@ -6,15 +6,16 @@ import corpus
 import pytest
 
 PARSER_RELPATH = Path("skills/audit-sessions/scripts/parser.py")
+_STUB_PARSER_BODY = "def parse_session():\n    return 'stub'\n"
 
 
-def write_parser(version_dir: Path, body: str = "def parse_session():\n    return 'stub'\n") -> None:
+def write_parser(version_dir: Path, body: str = _STUB_PARSER_BODY) -> None:
     parser_path = version_dir / PARSER_RELPATH
     parser_path.parent.mkdir(parents=True, exist_ok=True)
     parser_path.write_text(body)
 
 
-def test_resolves_highest_dotted_version(tmp_path):
+def test_resolve_parser_resolves_highest_dotted_version(tmp_path):
     write_parser(tmp_path / "0.2.1")
     write_parser(tmp_path / "0.2.2")
 
@@ -25,7 +26,7 @@ def test_resolves_highest_dotted_version(tmp_path):
     assert module.parse_session() == "stub"
 
 
-def test_compares_version_segments_numerically_not_lexicographically(tmp_path):
+def test_resolve_parser_compares_version_segments_numerically_not_lexicographically(tmp_path):
     # Lexicographic string comparison would rank "0.2.2" above "0.2.10"
     # (since "0.2.10" < "0.2.2" as strings); numeric-dotted comparison must not.
     write_parser(tmp_path / "0.2.2")
@@ -36,19 +37,19 @@ def test_compares_version_segments_numerically_not_lexicographically(tmp_path):
     assert version == "0.2.10"
 
 
-def test_raises_stale_parser_error_when_cache_root_does_not_exist(tmp_path):
+def test_resolve_parser_raises_stale_parser_error_when_cache_root_does_not_exist(tmp_path):
     missing = tmp_path / "does-not-exist"
 
     with pytest.raises(corpus.StaleParserError):
         corpus.resolve_parser(cache_root=missing)
 
 
-def test_raises_stale_parser_error_when_cache_root_has_no_version_dirs(tmp_path):
+def test_resolve_parser_raises_stale_parser_error_when_cache_root_has_no_version_dirs(tmp_path):
     with pytest.raises(corpus.StaleParserError):
         corpus.resolve_parser(cache_root=tmp_path)
 
 
-def test_raises_stale_parser_error_when_winning_version_missing_parser_file(tmp_path):
+def test_resolve_parser_raises_stale_error_when_winner_missing_parser_file(tmp_path):
     write_parser(tmp_path / "0.2.1")
     (tmp_path / "0.2.2").mkdir()  # highest version, but has no parser.py inside
 
