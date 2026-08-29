@@ -13,7 +13,6 @@ export function loadPayload() {
 const FAILING = new Set(['failure', 'timed_out', 'startup_failure'])
 const DAY = 86400000
 const BRUSH_DUE_DAYS = 30
-const MAINT_DUE_DAYS = 30
 
 export const slug = (r) => `${r.owner}/${r.name}`
 
@@ -295,10 +294,49 @@ function hashStr(s) {
   return (h >>> 0).toString(36)
 }
 
+// Machine- and repo-scoped audit skills nagged via the maintenance channel.
+// scope 'machine' rows key off external.audit_cadence; scope 'repo' rows key
+// off each repo's own purge_last_run.
+export const AUDIT_CADENCE = [
+  { skill: 'claude-checkup:audit-filesystem', horizonDays: 30, command: '/claude-checkup:audit-filesystem', scope: 'machine' },
+  { skill: 'purge-devlocal',                  horizonDays: 30, command: '/purge-devlocal',                  scope: 'repo' },
+  { skill: 'claude-checkup:audit-context',     horizonDays: 90, command: '/claude-checkup:audit-context',     scope: 'machine' },
+  { skill: 'claude-checkup:audit-config',      horizonDays: 90, command: '/claude-checkup:audit-config',      scope: 'machine' },
+  { skill: 'claude-checkup:audit-authoring',   horizonDays: 90, command: '/claude-checkup:audit-authoring',   scope: 'machine' },
+  { skill: 'claude-checkup:audit-sessions',    horizonDays: 90, command: '/claude-checkup:audit-sessions',    scope: 'machine' },
+  { skill: 'claude-checkup:audit-mcp-health',  horizonDays: 90, command: '/claude-checkup:audit-mcp-health',  scope: 'machine' },
+]
+
+export function auditTodos(external, repos = []) {
+  const out = []
+  const why = (aged, horizonDays) =>
+    (aged === null ? 'never run' : `last run ${aged}d ago`) + ` -- target: one pass per ${horizonDays}d`
+  for (const { skill, horizonDays, command, scope } of AUDIT_CADENCE) {
+    if (scope === 'repo') {
+      for (const r of repos) {
+        const last = r.purge_last_run
+        const aged = daysAgo(last)
+        if (aged === null || aged >= horizonDays)
+          out.push({ id: `${slug(r)}:audit:${skill}:${last ?? 'never'}`, repo: slug(r), kind: 'maintenance',
+            urgency: 'soon', importance: 'low', effort: 'medium', agent: command, url: null, external: true,
+            action: `Run ${command}`, why: why(aged, horizonDays) })
+      }
+    } else if (external) {
+      const last = external.audit_cadence?.[skill]
+      const aged = daysAgo(last)
+      if (aged === null || aged >= horizonDays)
+        out.push({ id: `claude:audit:${skill}:${last ?? 'never'}`, repo: '~/.claude', kind: 'maintenance',
+          urgency: 'soon', importance: 'low', effort: 'medium', agent: command, url: null, external: true,
+          action: `Run ${command}`, why: why(aged, horizonDays) })
+    }
+  }
+  return out
+}
+
 // PRs outside the gita portfolio that involve the user (collect.py `external`),
 // plus the ~/.claude maintenance-cadence nag (PRD 00081) — it rides this
 // channel because ~/.claude is not a gita repo row.
-export function externalTodos(external) {
+export function externalTodos(external, repos = []) {
   const out = []
   for (const p of external?.review_requested ?? [])
     out.push({ id: `ext:rr:${p.repo}#${p.number}`, repo: p.repo, kind: 'external', urgency: 'now',
@@ -313,18 +351,7 @@ export function externalTodos(external) {
       importance: 'high', effort: 'quick', agent: null, url: null, external: true,
       action: 'External PR lookup failed — check gh auth and rerun collect.py',
       why: external.error })
-  if (external) {
-    const last = external.claude_maintenance_last
-    const aged = daysAgo(last)
-    if (aged === null || aged >= MAINT_DUE_DAYS)
-      out.push({ id: `claude:maintenance:${last ?? 'never'}`, repo: '~/.claude', kind: 'maintenance',
-        urgency: 'soon', importance: 'low', effort: 'medium', url: null, external: true,
-        agent: '/claude-checkup:audit-filesystem',
-        action: 'Run /claude-checkup:audit-filesystem + check-links maintenance pass',
-        why: (aged === null ? 'no audit-results artifact found'
-          : `newest audit-results artifact ${aged}d old`) +
-          ` — target: one pass per ${MAINT_DUE_DAYS}d (newest-mtime proxy, imprecise)` })
-  }
+  out.push(...auditTodos(external, repos))
   return out
 }
 
@@ -336,7 +363,7 @@ export function allTodos(repos, epics, external) {
     .map((t) => ({ urgency: 'soon', kind: 'judgment', why: '', importance: 'high',
       effort: 'medium', agent: null, url: null, ...t, manual: true }))
   const seen = new Set(manual.map((t) => t.id))
-  return [...manual, ...externalTodos(external), ...todosFor(repos).filter((t) => !seen.has(t.id))]
+  return [...manual, ...externalTodos(external, repos), ...todosFor(repos).filter((t) => !seen.has(t.id))]
     .toSorted((a, b) => RANK[a.urgency] - RANK[b.urgency] || a.repo.localeCompare(b.repo))
 }
 
