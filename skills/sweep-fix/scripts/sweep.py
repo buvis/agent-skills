@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 
 @functools.lru_cache()
@@ -75,3 +76,70 @@ def resolve_ast_grep():
         sys.exit(1)
 
     return result.stdout.strip()
+
+
+PORTFOLIO_ROOT = Path.home() / "git" / "src" / "github.com"
+
+BUVIS_BARE = {
+    "git_dir": Path.home() / ".buvis",
+    "work_tree": Path.home(),
+}
+
+
+def enumerate_repos(registry, cwd):
+    """Enumerate the repos sweep should operate on.
+
+    `registry` is a text file with one repo path per line (blank lines
+    skipped). Returns `(repos, gaps)`:
+
+    - `repos`: registered paths that have a `.git` dir, plus `cwd` if it is
+      not already covered. If `cwd` is the buvis bare dotfiles work tree
+      (`BUVIS_BARE["work_tree"]`), it is replaced by its tracked files
+      (via `git ls-files` against `BUVIS_BARE["git_dir"]`) rather than the
+      work tree directory itself, since a directory walk would not find
+      files living outside the home-relative repo layout.
+    - `gaps`: `.git` repos found on disk at `PORTFOLIO_ROOT/<org>/<repo>`
+      that are missing from the registry, as path strings.
+
+    The registry file is only ever read, never written.
+    """
+    registry = Path(registry)
+    cwd = Path(cwd)
+
+    registered = []
+    for line in registry.read_text().splitlines():
+        line = line.strip()
+        if line:
+            registered.append(Path(line))
+
+    repos = [path for path in registered if (path / ".git").is_dir()]
+
+    work_tree = BUVIS_BARE["work_tree"]
+    if cwd == work_tree:
+        git_dir = BUVIS_BARE["git_dir"]
+        result = subprocess.run(
+            ["git", f"--git-dir={git_dir}", f"--work-tree={work_tree}", "ls-files"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        for rel in result.stdout.splitlines():
+            if rel:
+                repos.append(work_tree / rel)
+    elif cwd not in repos:
+        repos.append(cwd)
+
+    gaps = []
+    if PORTFOLIO_ROOT.is_dir():
+        for org_dir in sorted(PORTFOLIO_ROOT.iterdir()):
+            if not org_dir.is_dir():
+                continue
+            for repo_dir in sorted(org_dir.iterdir()):
+                if (
+                    repo_dir.is_dir()
+                    and (repo_dir / ".git").is_dir()
+                    and repo_dir not in registered
+                ):
+                    gaps.append(str(repo_dir))
+
+    return repos, gaps
