@@ -6,8 +6,8 @@ description: Use when planning a port of a skill, tool, or plugin into a target 
 # plan-port
 
 Plans a port of a skill, tool, or plugin from a source into a target. The
-output is a plan document, not a code change: this skill inventories,
-classifies, and sequences: it does not move code and it does not repoint
+output is a plan document, not a code change. This skill inventories,
+classifies, and sequences; it does not move code and it does not repoint
 consumers.
 
 ## Dependencies
@@ -76,7 +76,8 @@ backlog by lowest sequence number.
 ## Output
 
 Fill in `assets/port-plan-template.md` with the matrix, the drop packets,
-the consumer analysis, and the phase list. Derive the source repo, the old
-location, and one acceptance criterion per `port`-classified row from the
-matrix, and fill in the template's `## Retirement` block from the same
-matrix, before emitting the completed document as the plan.
+the consumer analysis, and the phase list. Derive one acceptance criterion
+per `port`-classified row from the matrix; take the source repo and the old
+location from the source and target named when the skill was invoked, not
+from the matrix. Fill in the template's `## Retirement` block from all of
+the above before emitting the completed document as the plan.
