@@ -426,12 +426,19 @@ def _needs_yaml_quoting(value):
     return False
 
 
+_YAML_SCALAR_ESCAPES = {chr(code): f"\\x{code:02x}" for code in range(0x20)}
+_YAML_SCALAR_ESCAPES[chr(0x7F)] = "\\x7f"
+_YAML_SCALAR_ESCAPES.update(
+    {"\\": "\\\\", '"': '\\"', "\n": "\\n", "\r": "\\r", "\t": "\\t"}
+)
+
+
 def _yaml_scalar(value):
     """Render `value` as a YAML scalar: bare when it is safe as a plain
     scalar, double-quoted with escapes otherwise."""
     if not _needs_yaml_quoting(value):
         return value
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+    escaped = "".join(_YAML_SCALAR_ESCAPES.get(ch, ch) for ch in value)
     return f'"{escaped}"'
 
 

@@ -1438,3 +1438,18 @@ def test_render_report_astgrep_rule_block_roundtrips_control_and_special_float_v
     assert isinstance(parsed["message"], str)
     assert parsed["rule"]["pattern"] == value
     assert isinstance(parsed["rule"]["pattern"], str)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["flag\rhandler calls", "flag\thandler calls", "flag\x00handler calls"],
+    ids=["carriage-return", "tab", "nul"],
+)
+def test_render_report_astgrep_rule_block_roundtrips_escaped_control_char_value(value):
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert isinstance(parsed["message"], str)
+    assert parsed["rule"]["pattern"] == value
+    assert isinstance(parsed["rule"]["pattern"], str)
