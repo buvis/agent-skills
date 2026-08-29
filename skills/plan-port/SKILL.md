@@ -45,7 +45,7 @@ Decide what happens to each row in the target: `port` (moves over as is),
 `redesign` (moves over but is deliberately rebuilt for the target), or `drop`
 (does not move). Every row carries a one-line reason. No row without a
 reason - a reasonless row is a defect the skill catches and refuses to emit
-the plan until every row has one.
+the plan until every row has one, and the refusal names the offending row.
 
 ## Drop walkthrough
 
@@ -65,24 +65,32 @@ classified `drop`.
 ## Consumer analysis
 
 Name who calls the source today and what breaks when it dies: other skills,
-scripts, docs, hooks, CI. This step is read-only. The skill reports the
-consumers it finds; it repoints nothing.
+scripts, docs, hooks, CI. The search spans the portfolio, not just the
+source repo - check the source repo and every other repo that may call it.
+This step is read-only. The skill reports the consumers it finds; it
+repoints nothing.
 
 ## Phase list
 
 Say what order the port happens in. Phases only - no PRDs, no numbers
 claimed. `create-prd` writes the actual PRDs one phase at a time, and the
 phase numbering must equal execution order, because autopilot drains the
-backlog by lowest sequence number.
+backlog by lowest sequence number. Before the plan is emitted, every
+phase's stated dependencies must name only earlier phases: a phase that
+depends on a later one is refused, and the refusal names each violating
+phase.
 
 ## Output
 
-Fill in `assets/port-plan-template.md` with the matrix, the drop packets,
-the consumer analysis, and the phase list. Derive one acceptance criterion
-per `port`-classified row from the matrix; take the source repo and the old
-location from the source and target named when the skill was invoked, not
-from the matrix. Fill in the template's `## Retirement` block from all of
-the above before emitting the completed document as the plan.
+Fill in `assets/port-plan-template.md` with the matrix, the consumer
+analysis, and the phase list. Each walked drop's recorded ruling lands in
+the template's drop-ruling section, which holds, per `drop` row, the row,
+the evidence presented, and the user's recorded ruling. Derive one
+acceptance criterion per `port`-classified row from the matrix; take the
+source repo and the old location from the source and target named when the
+skill was invoked, not from the matrix. Fill in the template's
+`## Retirement` block from all of the above before emitting the completed
+document as the plan.
 
 The plan is written to the target repo's `dev/local/discovery/`, sharing
 that repo's PRD sequence - the source repo's, when the target does not
