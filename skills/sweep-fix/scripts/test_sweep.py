@@ -1556,3 +1556,102 @@ def test_main_accepts_out_nested_several_directories_inside_cwd_repo(
     assert exit_code == 0
     assert nested_out.exists()
     assert nested_out.read_text().strip() != ""
+
+
+# -- main: control check runs only when the whole sweep found nothing -------
+
+
+def test_main_completes_and_reports_hits_when_pattern_absent_from_control_repo_but_present_elsewhere(
+    tmp_path, monkeypatch
+):
+    # The control repo is typically the repo the fix just landed in, and the
+    # fix usually removed the pattern from it -- so the pattern is
+    # legitimately absent from the control repo while still present in
+    # every repo that has not been fixed yet. verify_control's own contract
+    # says it only guards the all-zero case; a sweep that already found
+    # hits elsewhere has nothing left to verify, so this combination must
+    # not abort the sweep.
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    repo_a = _make_repo(tmp_path / "org" / "repo-a")
+    _plant_matches(repo_a, "REORDERPATTERN", 1)
+
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text(
+        "REORDERCONTROLTERM only, no pattern text here\n"
+    )
+
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(repo_a)])
+
+    out_path = repo_a / "report.md"
+    argv = [
+        "--kind", "rg",
+        "--pattern", "REORDERPATTERN",
+        "--reason", "regression test for control-check ordering",
+        "--control-term", "REORDERCONTROLTERM",
+        "--control-repo", str(control_repo),
+        "--registry", str(registry),
+        "--cwd", str(repo_a),
+        "--out", str(out_path),
+    ]
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 0
+    assert out_path.exists()
+
+    report = out_path.read_text()
+    assert "Hits (1):" in report
+    hit_lines = re.findall(r"^- .+:\d+: .*REORDERPATTERN.*$", report, re.MULTILINE)
+    assert len(hit_lines) == 1
+    assert str(repo_a) in report
+
+
+def test_main_still_aborts_as_unverified_when_all_zero_sweep_and_control_term_present(
+    tmp_path, monkeypatch, capsys
+):
+    # Pairing case for the test above: a genuinely all-zero sweep (the
+    # pattern has no hits anywhere, including the control repo) with the
+    # control term present in the control repo must still abort. This
+    # proves the reorder narrowed the check to the all-zero case rather
+    # than disabling it outright.
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    repo_a = _make_repo(tmp_path / "org" / "repo-a")
+
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text(
+        "ALLZEROCONTROLTERM only, no pattern text here\n"
+    )
+
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(repo_a)])
+
+    out_path = repo_a / "report.md"
+    argv = [
+        "--kind", "rg",
+        "--pattern", "ALLZEROPATTERN",
+        "--reason", "regression test for all-zero abort still working",
+        "--control-term", "ALLZEROCONTROLTERM",
+        "--control-repo", str(control_repo),
+        "--registry", str(registry),
+        "--cwd", str(repo_a),
+        "--out", str(out_path),
+    ]
+
+    with pytest.raises(SystemExit) as exc_info:
+        sweep.main(argv)
+
+    assert exc_info.value.code == 1
+    assert not out_path.exists()
+    message = capsys.readouterr().err
+    assert "unverified" in message
+    assert "ALLZEROCONTROLTERM" in message
+    assert str(control_repo) in message
