@@ -352,54 +352,74 @@ def test_scan_returns_zero_count_and_no_slices_for_transcript_with_no_markers(tm
     assert kept_slices == []
 
 
-def test_scan_reads_each_transcript_exactly_once_and_never_materializes_its_entries_into_a_list(
+def test_scan_finishes_each_entry_before_pulling_the_next_and_reads_each_transcript_once(
     tmp_path, monkeypatch
 ):
+    """The previous version of this test detected materialization only
+    through `__length_hint__`, which `list(iterable)` triggers but a list
+    comprehension or `tuple(...)` does not - either would still buffer a
+    whole transcript before scan() touches the first entry, and slip past
+    that check. This version binds to the actual intent: scan() must be
+    done acting on entry N (reading its fields to decide match/keep -
+    funnel.py touches an entry exclusively via `.get()`) before it pulls
+    entry N+1 from the generator."""
     path1 = tmp_path / "t1.jsonl"
-    path2 = tmp_path / "t2.jsonl"
     path1.write_text(
-        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}}) + "\n"
+        "\n".join(
+            [
+                json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}}),
+                json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we confirmed that"}]}}),
+            ]
+        )
+        + "\n"
     )
+    path2 = tmp_path / "t2.jsonl"
     path2.write_text(
-        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we confirmed that"}]}}) + "\n"
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we verified this"}]}}) + "\n"
     )
+
+    events: list[tuple] = []
+
+    class _TrackedEntry(dict):
+        """A dict that logs every `.get()` call - the only way funnel.py
+        reads entry fields. A "get" event proves scan() is actively working
+        on this entry, not just holding a reference pulled ahead of time."""
+
+        def __init__(self, data, entry_id):
+            super().__init__(data)
+            self._entry_id = entry_id
+
+        def get(self, *args, **kwargs):
+            events.append(("get", self._entry_id))
+            return super().get(*args, **kwargs)
 
     real_iter_entries = funnel._iter_entries
     call_count = 0
-    length_hint_calls = []
 
-    class _StreamingOnlyIterator:
-        """Wraps the real per-transcript generator. `list(iterable)` calls
-        `__length_hint__` to presize its backing array before pulling any
-        items; a `for` loop or comprehension never does. Recording calls to
-        it detects `list(...)`-style materialization without touching the
-        `list` name/type itself (funnel.py's own `isinstance(x, list)`
-        checks depend on that name resolving to the real builtin)."""
-
-        def __init__(self, generator):
-            self._generator = generator
-
-        def __iter__(self):
-            return self
-
-        def __next__(self):
-            return next(self._generator)
-
-        def __length_hint__(self):
-            length_hint_calls.append(1)
-            return 0
-
-    def counting_iter_entries(p):
+    def tracking_iter_entries(p):
         nonlocal call_count
         call_count += 1
-        return _StreamingOnlyIterator(real_iter_entries(p))
 
-    monkeypatch.setattr(funnel, "_iter_entries", counting_iter_entries)
+        def generator():
+            for line_no, entry in real_iter_entries(p):
+                entry_id = (str(p), line_no)
+                events.append(("yielded", entry_id))
+                yield line_no, _TrackedEntry(entry, entry_id)
 
-    matched_count, kept_slices = funnel.scan([path1, path2])
+        return generator()
+
+    monkeypatch.setattr(funnel, "_iter_entries", tracking_iter_entries)
+
+    funnel.scan([path1, path2])
 
     assert call_count == 2
-    assert length_hint_calls == []
+
+    first_entry_id = (str(path1), 1)
+    second_entry_id = (str(path1), 2)
+    yielded_second_index = events.index(("yielded", second_entry_id))
+    get_events_for_first = [i for i, e in enumerate(events) if e == ("get", first_entry_id)]
+    assert get_events_for_first, "scan() never read the first entry's fields"
+    assert max(get_events_for_first) < yielded_second_index
 
 
 def test_slice_on_markers_returns_the_same_slices_as_scan(tmp_path):

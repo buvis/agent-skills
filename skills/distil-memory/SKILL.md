@@ -22,9 +22,11 @@ promote by hand - this skill never writes to memory itself.
   imports the highest-versioned installed copy directly (not a package
   import); `assert_contract()` hard-fails below `0.2.2`, the release that
   fixed `d10ecb1`'s `promptSource=="sdk"` bug - older parsers over-count
-  user prompts by roughly 41%. Absent or stale cache raises
-  `StaleParserError`; `funnel.py`'s `main()` catches it, prints to stderr,
-  and exits `1` - there is no fallback.
+  user prompts by roughly 41%. `funnel.py`'s `main()` exits non-zero on
+  three failure paths, each printing to stderr: an absent or stale cache
+  raises `StaleParserError`; a triage model-call failure (the `claude` CLI
+  errors, is missing, or times out); and a report-write failure. There is
+  no fallback for any of the three.
 
 ## Invocation
 
@@ -45,8 +47,9 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
   `-NAME` (Claude Code encodes the repo path into the directory name, so
   this matches on the trailing project segment).
 - `--dry-run`: run selection and scanning only, skip the judge-triage stage.
-  `survivors` renders as `n/a` in the yield report. Use this to preview
-  `slices_matched`/`slices_kept` before spending judge calls.
+  `survivors` renders as `n/a` in the yield report (it is also `n/a` after a
+  triage model-call failure). Use this to preview `slices_matched`/`slices_kept`
+  before spending judge calls.
 
 ## Pipeline
 
@@ -55,9 +58,10 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
    transcripts under `~/.claude/projects/` filtered by
    `--days`/`--all`/`--project`.
 2. **Scan** (`funnel.py:scan`): one read pass per transcript. Counts every
-   raw marker hit (`measured`, `verified`, `confirmed`, `reproduced`,
-   `proven`, case-insensitive, word-boundary) across all assistant-role text
-   blocks as `slices_matched`, before filtering. Then applies
+   assistant-role text block carrying a raw marker hit (`measured`,
+   `verified`, `confirmed`, `reproduced`, `proven`, case-insensitive,
+   word-boundary) as one `slices_matched`, before filtering - a block with
+   three markers still counts as one. Then applies
    `assistant_only` (drops non-assistant entries, `isMeta` entries,
    compaction summaries, non-text content blocks, and empty/whitespace
    text) and marker-matches what's left; survivors of both are
@@ -76,11 +80,13 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
 Four stages, in order:
 
 - `transcripts_read` - transcripts selected by step 1.
-- `slices_matched` - raw marker hits found in step 2, before
-  `assistant_only` filtering.
+- `slices_matched` - assistant-role text blocks carrying a raw marker hit
+  found in step 2, before `assistant_only` filtering (one per block, not
+  one per marker).
 - `slices_kept` - marker-matched slices that survived `assistant_only`
   filtering.
-- `survivors` - slices that survived judge triage (`n/a` on `--dry-run`).
+- `survivors` - slices that survived judge triage (`n/a` on `--dry-run` and
+  also `n/a` after a triage model-call failure).
 
 Written to `dev/local/audit-results/distil-memory-<UTC timestamp>.md`.
 Review the survivors by hand and promote durable facts into memory - this

@@ -297,9 +297,21 @@ def test_main_dry_run_makes_no_model_call_and_prints_and_writes_report_matching_
     assert report_files[0].read_text() == expected_report
 
 
-def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_returns_nonzero_when_judge_raises_runtime_error(
-    tmp_path, monkeypatch, capsys
-):
+def _expected_known_counts(version, survivors=None):
+    return {
+        "transcripts_read": 1,
+        "slices_matched": 1,
+        "slices_kept": 1,
+        "survivors": survivors,
+        "claude_checkup_version": version,
+    }
+
+
+@pytest.fixture
+def known_counts_transcript(tmp_path, monkeypatch):
+    """A single-transcript corpus with one known assistant text block
+    ("we measured this"): transcripts_read=1, slices_matched=1,
+    slices_kept=1, regardless of how the judge call fails."""
     monkeypatch.chdir(tmp_path)
     projects_root = tmp_path / "claude_projects"
     monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
@@ -315,112 +327,44 @@ def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_return
         {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
     )
     monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
-
-    def fake_run(cmd, **kwargs):
-        return subprocess.CompletedProcess(args=cmd, returncode=1, stdout="", stderr="claude cli exploded")
-
-    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
-
-    exit_code = funnel.main([])
-
-    assert exit_code != 0
-    expected_counts = {
-        "transcripts_read": 1,
-        "slices_matched": 1,
-        "slices_kept": 1,
-        "survivors": None,
-        "claude_checkup_version": version,
-    }
-    expected_report = funnel.render_yield(expected_counts)
-
-    captured = capsys.readouterr()
-    assert expected_report in captured.out
-    assert "survivors: n/a" in captured.out
-    assert "claude cli exploded" in captured.err
+    return version
 
 
-def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_returns_nonzero_when_claude_cli_binary_is_absent(
-    tmp_path, monkeypatch, capsys
+def _fail_with_runtime_error(cmd, **kwargs):
+    return subprocess.CompletedProcess(args=cmd, returncode=1, stdout="", stderr="claude cli exploded")
+
+
+def _fail_with_missing_binary(cmd, **kwargs):
+    raise FileNotFoundError("[Errno 2] No such file or directory: 'claude'")
+
+
+def _fail_with_timeout(cmd, **kwargs):
+    raise subprocess.TimeoutExpired(cmd=cmd, timeout=120)
+
+
+@pytest.mark.parametrize(
+    "fake_run, expected_stderr_substring",
+    [
+        (_fail_with_runtime_error, "claude cli exploded"),
+        (_fail_with_missing_binary, "No such file or directory"),
+        (_fail_with_timeout, "claude timed out after 120s"),
+    ],
+    ids=["runtime_error", "missing_binary", "timeout"],
+)
+def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_returns_nonzero_when_judge_fails(
+    known_counts_transcript, monkeypatch, capsys, fake_run, expected_stderr_substring
 ):
-    monkeypatch.chdir(tmp_path)
-    projects_root = tmp_path / "claude_projects"
-    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
-    project_dir = projects_root / "aaaa-myproj"
-    now = datetime.now(timezone.utc)
-    write_transcript(
-        project_dir,
-        "t1.jsonl",
-        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
-        + "\n",
-    )
-    module, version = make_transcript_parser_module(
-        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
-    )
-    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
-
-    def fake_run(cmd, **kwargs):
-        raise FileNotFoundError("[Errno 2] No such file or directory: 'claude'")
-
     monkeypatch.setattr(funnel.subprocess, "run", fake_run)
 
     exit_code = funnel.main([])
 
     assert exit_code != 0
-    expected_counts = {
-        "transcripts_read": 1,
-        "slices_matched": 1,
-        "slices_kept": 1,
-        "survivors": None,
-        "claude_checkup_version": version,
-    }
-    expected_report = funnel.render_yield(expected_counts)
+    expected_report = funnel.render_yield(_expected_known_counts(known_counts_transcript))
 
     captured = capsys.readouterr()
     assert expected_report in captured.out
     assert "survivors: n/a" in captured.out
-    assert "No such file or directory" in captured.err
-
-
-def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_returns_nonzero_when_claude_cli_times_out(
-    tmp_path, monkeypatch, capsys
-):
-    monkeypatch.chdir(tmp_path)
-    projects_root = tmp_path / "claude_projects"
-    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
-    project_dir = projects_root / "aaaa-myproj"
-    now = datetime.now(timezone.utc)
-    write_transcript(
-        project_dir,
-        "t1.jsonl",
-        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
-        + "\n",
-    )
-    module, version = make_transcript_parser_module(
-        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
-    )
-    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
-
-    def fake_run(cmd, **kwargs):
-        raise subprocess.TimeoutExpired(cmd=cmd, timeout=120)
-
-    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
-
-    exit_code = funnel.main([])
-
-    assert exit_code != 0
-    expected_counts = {
-        "transcripts_read": 1,
-        "slices_matched": 1,
-        "slices_kept": 1,
-        "survivors": None,
-        "claude_checkup_version": version,
-    }
-    expected_report = funnel.render_yield(expected_counts)
-
-    captured = capsys.readouterr()
-    assert expected_report in captured.out
-    assert "survivors: n/a" in captured.out
-    assert "timed out after 120 seconds" in captured.err
+    assert expected_stderr_substring in captured.err
 
 
 def test_main_reports_persistence_failure_to_stderr_and_returns_nonzero_when_writing_report_raises_oserror(
@@ -656,24 +600,8 @@ def test_main_reports_a_real_version_even_when_select_transcripts_is_stubbed_out
 
 
 def test_main_never_leaks_transcript_slice_text_to_stderr_when_claude_cli_times_out(
-    tmp_path, monkeypatch, capsys
+    known_counts_transcript, monkeypatch, capsys
 ):
-    monkeypatch.chdir(tmp_path)
-    projects_root = tmp_path / "claude_projects"
-    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
-    project_dir = projects_root / "aaaa-myproj"
-    now = datetime.now(timezone.utc)
-    write_transcript(
-        project_dir,
-        "t1.jsonl",
-        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
-        + "\n",
-    )
-    module, version = make_transcript_parser_module(
-        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
-    )
-    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
-
     sentinel = "SENTINEL-TRANSCRIPT-SLICE-9f3c1a-do-not-leak"
 
     def fake_run(cmd, **kwargs):
@@ -684,14 +612,7 @@ def test_main_never_leaks_transcript_slice_text_to_stderr_when_claude_cli_times_
     exit_code = funnel.main([])
 
     assert exit_code != 0
-    expected_counts = {
-        "transcripts_read": 1,
-        "slices_matched": 1,
-        "slices_kept": 1,
-        "survivors": None,
-        "claude_checkup_version": version,
-    }
-    expected_report = funnel.render_yield(expected_counts)
+    expected_report = funnel.render_yield(_expected_known_counts(known_counts_transcript))
 
     captured = capsys.readouterr()
     assert expected_report in captured.out
@@ -700,24 +621,8 @@ def test_main_never_leaks_transcript_slice_text_to_stderr_when_claude_cli_times_
 
 
 def test_main_stderr_still_states_the_timeout_duration_when_claude_cli_times_out(
-    tmp_path, monkeypatch, capsys
+    known_counts_transcript, monkeypatch, capsys
 ):
-    monkeypatch.chdir(tmp_path)
-    projects_root = tmp_path / "claude_projects"
-    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
-    project_dir = projects_root / "aaaa-myproj"
-    now = datetime.now(timezone.utc)
-    write_transcript(
-        project_dir,
-        "t1.jsonl",
-        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
-        + "\n",
-    )
-    module, version = make_transcript_parser_module(
-        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
-    )
-    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
-
     sentinel = "SENTINEL-TRANSCRIPT-SLICE-9f3c1a-do-not-leak"
 
     def fake_run(cmd, **kwargs):

@@ -122,6 +122,24 @@ def _raw_marker_hits(entries: list[tuple[int, dict]]) -> int:
     return count
 
 
+def _matches_and_slices_for_entry(line_no: int, entry: dict, path: Path) -> tuple[int, list[Slice]]:
+    """Per-entry equivalent of `_raw_marker_hits`/`assistant_only` for one
+    (line_no, entry) pair, without wrapping it in a singleton list for
+    either. Preserves `_raw_marker_hits`' broader match count (every
+    assistant text block, including isMeta/compaction ones) alongside
+    `assistant_only`'s narrower one (kept slices)."""
+    matched = 0
+    kept: list[Slice] = []
+    is_excluded_entry = entry.get("isMeta") or _is_compaction_entry(entry)
+    for text in _assistant_text_blocks(entry):
+        m = _MARKER_RE.search(text)
+        if m:
+            matched += 1
+            if not is_excluded_entry:
+                kept.append(Slice(text=text, transcript=path, line_no=line_no, marker=m.group(0)))
+    return matched, kept
+
+
 def scan(transcripts: list[Path]) -> tuple[int, list[Slice]]:
     """The one authoritative pass: reads each transcript's entries exactly
     once and returns (matched_count, kept_slices) together, so "matched"
@@ -133,11 +151,9 @@ def scan(transcripts: list[Path]) -> tuple[int, list[Slice]]:
     kept: list[Slice] = []
     for path in transcripts:
         for line_no, entry in _iter_entries(path):
-            matched += _raw_marker_hits([(line_no, entry)])
-            for _line_no, text in assistant_only([(line_no, entry)]):
-                m = _MARKER_RE.search(text)
-                if m:
-                    kept.append(Slice(text=text, transcript=path, line_no=line_no, marker=m.group(0)))
+            entry_matched, entry_kept = _matches_and_slices_for_entry(line_no, entry, path)
+            matched += entry_matched
+            kept.extend(entry_kept)
     return matched, kept
 
 
@@ -234,7 +250,9 @@ def _run_triage(kept_slices: list[Slice]) -> tuple[int | None, str | None]:
     try:
         survivors, _discard_count = triage(kept_slices)
         return len(survivors), None
-    except (RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
+    except subprocess.TimeoutExpired as exc:
+        return None, f"claude timed out after {exc.timeout}s"
+    except (RuntimeError, OSError) as exc:
         return None, str(exc)
 
 
@@ -272,7 +290,9 @@ def main(argv: list[str] | None = None) -> int:
     """CLI entry point: select transcripts, scan and (unless --dry-run)
     triage them, then print and write the yield report.
 
-    Returns 0 on success.
+    Returns 0 on success. Returns non-zero on a stale or absent parser
+    (`StaleParserError`), a triage model-call failure, or a report-write
+    failure.
     """
     args = _parse_args(argv)
 

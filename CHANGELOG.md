@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   directory as "when did this last run" could never advance. On a run that
   trashes nothing, the stamp is now written after the retention pass, so a low
   `--empty-trash-days` no longer deletes it again immediately.
+- **distil-memory**: keep transcript text out of stderr when the cheap-tier
+  judge times out. The timeout message used to be the raw
+  `subprocess.TimeoutExpired` text, which carries the whole command line and so
+  echoed back the slice being classified; it now names only the timeout
+  duration.
 
 ### Added
 
