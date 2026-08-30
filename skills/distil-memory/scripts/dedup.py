@@ -9,7 +9,7 @@ merely mentions the query's words ranks below a short one that is about them.
 import re
 from pathlib import Path
 
-import proposal
+from proposal import Proposal, _tokens, parse_frontmatter
 
 SHORTLIST_LIMIT = 5
 
@@ -38,15 +38,15 @@ def parse_index(index_text: str) -> dict[str, str]:
 
 
 def shortlist(
-    index_text: str, proposed: proposal.Proposal, limit: int = SHORTLIST_LIMIT
+    index_text: str, proposal: Proposal, limit: int = SHORTLIST_LIMIT
 ) -> list[str]:
-    """The `limit` index names closest to `proposed`, best score first."""
-    frontmatter = proposal.parse_frontmatter(proposed.file_text)
-    query = set(proposal._tokens(f"{frontmatter['name']} {frontmatter['description']}"))
+    """The `limit` index names closest to `proposal`, best score first."""
+    frontmatter = parse_frontmatter(proposal.file_text)
+    query = set(_tokens(f"{frontmatter['name']} {frontmatter['description']}"))
 
     scored = []
     for name, text in parse_index(index_text).items():
-        entry = set(proposal._tokens(f"{name} {text}"))
+        entry = set(_tokens(f"{name} {text}"))
         shared = len(query & entry)
         if shared:
             scored.append((-shared / len(query | entry), name))
