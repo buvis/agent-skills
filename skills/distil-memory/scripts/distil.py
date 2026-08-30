@@ -65,7 +65,7 @@ def load_examples(memory_dir: Path, index_text: str, limit: int = EXAMPLE_COUNT)
     must not abort the stage before its first proposal.
     """
     examples: list[str] = []
-    for name in sorted(dedup.parse_index(index_text)):
+    for name in sorted(dedup.parse_index(index_text))[: 2 * limit]:
         try:
             text = (memory_dir / f"{name}.md").read_text(encoding="utf-8")
             metadata = proposal.parse_frontmatter(text).get("metadata")
@@ -107,7 +107,7 @@ def distil(
     if not answer:
         return Discard(slice_, "the model returned an empty answer")
     if answer.startswith(DISCARD_PREFIX):
-        return Discard(slice_, answer[len(DISCARD_PREFIX) :].strip())
+        return Discard(slice_, answer[len(DISCARD_PREFIX) :].split("\n", 1)[0].strip())
 
     candidate = proposal.Proposal(
         file_text=answer,
