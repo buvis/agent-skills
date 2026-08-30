@@ -372,40 +372,26 @@ def test_render_yield_names_the_published_directory_from_what_main_hands_it(
 def test_main_reports_and_returns_when_a_proposal_name_leaves_no_safe_filename(
     make_corpus, monkeypatch, capsys
 ):
-    """A frontmatter name is model output, and nothing upstream promises it can
+    """A frontmatter name is model output and nothing upstream promises it can
     be filed: validate only asks for a non-empty string, and `!!! ???` is one.
-    sanitise_name refuses it with a ProposalError, which is a ValueError and not
-    an OSError, so it escapes main() before the report is ever printed and the
-    run dies with a traceback saying nothing about the transcripts it read.
+    sanitise_name refuses it with a ProposalError, a ValueError and not an
+    OSError, so it escapes main() before the report is printed and the run dies
+    with a traceback saying nothing about the transcripts it read.
 
     main() owes its caller a report and an exit code however the publication
-    ends, and the proposal it could not use has to be named - as a discard
-    reason or as a publish failure, either resolution, but never silence.
-    test_proposal.py's test_sanitise_name_rejects_a_name_with_nothing_safe_left
-    pins the refusal itself; this pins what the run does with it.
+    ends, and the unusable proposal has to be named - as a discard reason or a
+    publish failure, but never silence. No particular exit code is pinned,
+    because both resolutions are open, yet each owes its own evidence or
+    "either resolution" reads as "any behaviour at all": a run ending in 0
+    claims the healthy one and has to leave the discard that claim rests on, a
+    record in discards.json whose reason names the name it could not file, while
+    a run that published no directory ends non-zero. Neither may count the name
+    as a published proposal, which rules out filing it under a fallback stem and
+    calling the run done.
 
-    No particular exit code is pinned, because both resolutions are open. A run
-    that turns the unusable name into an ordinary reasoned discard is a healthy
-    run and ends in 0; a run that reports a failed publication ends non-zero.
-    Each resolution owes its own evidence, though, or "either resolution" reads
-    as "any behaviour at all". A run ending in 0 is claiming the healthy one, so
-    it has to leave the discard that claim rests on: a record in discards.json
-    whose reason names the name it could not file. A run that prints a
-    diagnostic and drops the proposal is not that run - it is an unreasoned drop
-    wearing a success code, and the report promises discards with reasons.
-    What both owe is a return rather than a traceback. The one outcome neither
-    may reach is counting the name as a published proposal, so proposals.json
-    must not carry it - that is what rules out filing it under a fallback stem
-    and calling the run done.
-
-    Dropping the proposal and still counting it is the same lie told the other
-    way round, and it looks like a healthy run: exit 0, `proposals: 1`,
-    `discards: 0`, and a published directory holding nothing. So the number the
-    run reports has to be the number its own manifest holds. Comparing the
-    manifest against the directory's .md files would not catch it - both are
-    zero. It is the count on stdout that has to answer for the manifest. A run
-    that published no directory at all has a third way to stay honest, and the
-    only thing it may not do is call that outcome a success."""
+    Counting it anyway looks healthy - exit 0, `proposals: 1`, `discards: 0`, an
+    empty published directory - so the count on stdout has to answer for the
+    run's own manifest, which the directory's .md files cannot, being zero too."""
     built = make_corpus(slice_texts=(_SLICE_ONE,))
     monkeypatch.setattr(
         funnel.subprocess, "run", FakeClaudeCli({_SLICE_ONE: _PROPOSAL_UNUSABLE_NAME})

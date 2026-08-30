@@ -395,40 +395,23 @@ class TestDecisionSide:
         self, tmp_path, monkeypatch, spell_target
     ):
         """The bytes this function returns always come from a file inside the
-        plane, and the names it is handed come from `MEMORY.md`, which is
-        ordinary file content. So the escape need not be spelled in the name at
-        all: this one is a plain stem - letters, digits, one dash, no separator,
-        no dots - whose file inside the plane is a symlink onto a file outside
-        it. Following it hands the caller another directory's bytes under the
-        name of a memory here.
+        plane. Names come from `MEMORY.md`, ordinary file content, so the escape
+        need not be spelled in the name: this one is a plain stem whose file in
+        the plane is a symlink onto a file outside it.
 
-        It is skipped the way an absent memory is skipped, in NEITHER list.
-        `unread_names` becomes a dedup error, so routing the escape there
-        manufactures one over a file that was never a memory. The ordinary
-        memory asked for beside it still answers in full, so refusing every
-        name is no way to pass.
+        It is skipped as an absent memory is, in NEITHER list: `unread_names`
+        becomes a dedup error, and this was never a memory. The ordinary memory
+        beside it still answers in full, and the linking stem is one the
+        shortlist test above reads for real, so refusing names is no way to pass.
 
-        Where the link LANDS is what makes it an escape, not how it is spelled,
-        so the two rows spell the same destination absolutely and relative to
-        the plane. A reader that refuses links by their spelling serves one row
-        and hands the outside file's bytes back on the other.
-
-        The linking stem is a name the shortlist test above reads for real, so
-        a reader that skips this one name breaks that test instead of passing
-        quietly here. And every door onto a file's bytes is recorded,
-        `io.open`, `io.open_code` and `os.open` included, so reading the outside
-        file and discarding what came back is caught too: refusal has to happen
-        before the read.
-
-        The outside file is a memory in every respect but the directory it
-        sits in - same length, same suffix, same first bytes, same frontmatter,
-        same shape of tail sentence, and it even carries the FILENAME of a
-        memory the caller asked for - so nothing about it can be told from the
-        memory beside it except where its path lands. A reader that admits a
-        candidate on its first bytes, refuses one on its size, or follows a
-        link because its target is named among the shortlist, hands those bytes
-        straight back.
-        """
+        What makes it an escape is where the link LANDS, not how it is spelled,
+        so the rows spell one destination three ways. Every door onto a file's
+        bytes is recorded, `io.open`, `io.open_code` and `os.open` included, so
+        reading the outside file and discarding it is caught too: refusal comes
+        before the read. The decoy is a memory in all but the directory it sits
+        in - length, suffix, first bytes, frontmatter, tail sentence, even the
+        FILENAME of a memory the caller asked for - so only where its path lands
+        tells it apart."""
         memories = _generated_memories("tallow", 2)
         ordinary_name, linking_name = list(memories)
         memory_dir = _memory_plane(tmp_path, {ordinary_name: memories[ordinary_name]})
