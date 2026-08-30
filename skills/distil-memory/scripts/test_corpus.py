@@ -368,6 +368,20 @@ def test_select_transcripts_propagates_stale_parser_error_from_assert_contract(t
         corpus.select_transcripts()
 
 
+def test_select_transcripts_raises_stale_parser_error_naming_missing_path_when_transcripts_root_does_not_exist(
+    tmp_path, monkeypatch
+):
+    missing = tmp_path / "does-not-exist"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", missing)
+    module, version = make_transcript_parser_module({})
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    with pytest.raises(corpus.StaleParserError) as exc_info:
+        corpus.select_transcripts()
+
+    assert str(missing) in str(exc_info.value)
+
+
 def test_select_transcripts_resolves_and_contract_checks_the_parser_itself_when_called_with_only_its_three_published_arguments(
     tmp_path, monkeypatch
 ):
