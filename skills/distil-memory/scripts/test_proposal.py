@@ -494,5 +494,5 @@ def test_validate_accepts_every_memory_file_in_the_calibration_corpus(evidence):
     for path in files:
         try:
             proposal.validate(_proposal(evidence, path.read_text()))
-        except proposal.ProposalError as exc_info:
-            pytest.fail(f"{path.name} fails validate(): {exc_info}")
+        except proposal.ProposalError as exc:
+            pytest.fail(f"{path.name} fails validate(): {exc}")
