@@ -84,7 +84,7 @@ MISSING_SCOPE = {"designs", "reviews", "plans", "(root)"}
 # The layout contract's full top-level vocabulary; anything else is a foreign
 # workspace and ages out like tmp/.
 # meta/ is the keepers' only home since 2026-08-23 (root went directories-only
-# on 2026-08-27, PRD 00139); root KEEP_NAMES entries stay honored because other
+# on 2026-08-30, PRD 00139); root KEEP_NAMES entries stay honored because other
 # machines migrate their stores later.
 KNOWN_DIRS = {
     "prds",
