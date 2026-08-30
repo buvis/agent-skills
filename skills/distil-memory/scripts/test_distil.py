@@ -507,6 +507,26 @@ def _judge_returning_invalid_file(prompt, tier):
     return _MISSING_DESCRIPTION
 
 
+def _judge_returning_a_bare_discard(prompt, tier):
+    return distil.DISCARD_PREFIX
+
+
+def _judge_returning_a_bare_discard_then_the_slice(prompt, tier):
+    return (
+        f"{distil.DISCARD_PREFIX}\n"
+        f"For reference, the snippet said: we measured {_SENTINEL} at four milliseconds"
+    )
+
+
+def _judge_returning_a_padded_discard_then_the_slice(prompt, tier):
+    """The same answer with whitespace between the token and the newline: the
+    line still states no reason, and the snippet still sits underneath it."""
+    return (
+        f"{distil.DISCARD_PREFIX}  \t \n"
+        f"For reference, the snippet said: we measured {_SENTINEL} at four milliseconds"
+    )
+
+
 @pytest.mark.parametrize(
     "stub_judge",
     [
@@ -515,8 +535,20 @@ def _judge_returning_invalid_file(prompt, tier):
         _judge_raising_os_error,
         _judge_returning_garbage,
         _judge_returning_invalid_file,
+        _judge_returning_a_bare_discard,
+        _judge_returning_a_bare_discard_then_the_slice,
+        _judge_returning_a_padded_discard_then_the_slice,
     ],
-    ids=["runtime-error", "timeout", "os-error", "garbage", "invalid-file"],
+    ids=[
+        "runtime-error",
+        "timeout",
+        "os-error",
+        "garbage",
+        "invalid-file",
+        "bare-discard",
+        "bare-discard-then-the-slice",
+        "padded-discard-then-the-slice",
+    ],
 )
 def test_no_discard_reason_ever_embeds_the_slice_text(stub_judge):
     slice_ = _slice(f"we measured {_SENTINEL} at four milliseconds")
@@ -545,6 +577,97 @@ def test_a_discard_reason_stops_at_the_end_of_the_discard_line():
     assert isinstance(result, distil.Discard)
     assert result.reason == "verifies a test run that already passed"
     assert _SENTINEL not in result.reason
+
+
+# A DISCARD line states no reason whenever nothing but whitespace follows the
+# token on it. The answers are built from those two parts - the padding that
+# ends the line, and whatever prose the model wrote underneath - so the rule
+# covers the shapes this file never wrote down. Three hand-picked literals can
+# be memorised; a padding one space wider than the fixtures cannot.
+_BLANK_DISCARD_PADDINGS = (
+    ("", "nothing-after-the-token"),
+    (" ", "one-space-after-the-token"),
+    ("\t", "one-tab-after-the-token"),
+    ("  \t  ", "mixed-whitespace-after-the-token"),
+)
+_BLANK_DISCARD_TAILS = (
+    ("", "end-of-answer"),
+    ("\nwe clocked the reindex at nine hundred milliseconds", "prose-on-the-next-line"),
+    (
+        "\n\nwe clocked the reindex at nine hundred milliseconds"
+        "\nplus a stray remark about zsh completions",
+        "prose-further-down",
+    ),
+)
+_BLANK_DISCARD_ANSWERS = [
+    pytest.param(f"{distil.DISCARD_PREFIX}{padding}{tail}", id=f"{padding_id}-{tail_id}")
+    for padding, padding_id in _BLANK_DISCARD_PADDINGS
+    for tail, tail_id in _BLANK_DISCARD_TAILS
+]
+
+# Long enough that no reason shares one by accident, short enough that a
+# truncated quotation of the model's later prose still trips it.
+_SHINGLE_LENGTH = 12
+
+
+@pytest.mark.parametrize("answer", _BLANK_DISCARD_ANSWERS)
+def test_a_discard_whose_line_states_no_reason_still_carries_one_saying_so(answer):
+    """Every discard carries a reason: the run's report promises "discards with
+    reasons", and an empty string is not one. A model that ends its DISCARD line
+    without words states no reason, so the discard says that instead of
+    persisting a blank field nobody can act on.
+
+    Whitespace does not make it a different case, and neither does prose
+    underneath. The reason is the rest of the DISCARD LINE, so a line holding
+    nothing but padding states nothing however much follows below, and reaching
+    onto a later line to fill the gap is how the model's own restatement of the
+    snippet ends up on disk.
+
+    So the reason these answers produce is pinned to the one the bare token
+    produces - identical, whatever the padding, whatever came after. That admits
+    no borrowed tail at all, not even a truncated one, which the loop underneath
+    then says twice: no run of twelve characters from any later line survives
+    into a reason that is written to `discards.json` and read by whoever triages
+    the run."""
+    slice_ = _slice("we measured the cache at 4ms")
+
+    def stub_judge(prompt, tier):
+        return answer
+
+    result = distil.distil(slice_, [], judge=stub_judge)
+    bare = distil.distil(slice_, [], judge=_judge_returning_a_bare_discard)
+
+    assert isinstance(result, distil.Discard)
+    assert result.slice_ is slice_
+    assert result.reason.strip() != ""
+    assert any(word in result.reason.lower() for word in ("reason", "explanation", "unexplained"))
+    assert result.reason == bare.reason
+    for later_line in answer.split("\n")[1:]:
+        assert later_line.strip() not in result.reason
+        for start in range(len(later_line) - _SHINGLE_LENGTH + 1):
+            assert later_line[start : start + _SHINGLE_LENGTH] not in result.reason
+
+
+def test_a_discard_reason_the_model_states_reaches_the_discard_unchanged():
+    """Filling in the blank case must not become overwriting every case. One
+    constant reason on every discard reads as an empty one to whoever triages
+    the run: the words the model chose are the only thing that says WHY this
+    slice was turned down, so they survive verbatim and differ from what a
+    reasonless answer leaves behind."""
+    slice_ = _slice("we measured the cache at 4ms")
+    stated = "the snippet names a build that has already finished"
+
+    def stub_judge_with_a_reason(prompt, tier):
+        return f"{distil.DISCARD_PREFIX} {stated}"
+
+    with_reason = distil.distil(slice_, [], judge=stub_judge_with_a_reason)
+    without_reason = distil.distil(slice_, [], judge=_judge_returning_a_bare_discard)
+
+    assert isinstance(with_reason, distil.Discard)
+    assert isinstance(without_reason, distil.Discard)
+    assert with_reason.reason == stated
+    assert without_reason.reason.strip() != ""
+    assert without_reason.reason != with_reason.reason
 
 
 def test_discard_reasons_distinguish_the_failure_modes_they_name():

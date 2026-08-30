@@ -275,6 +275,12 @@ def _refuse_to_distil(cmd, **kwargs):
     raise AssertionError("the stage must stop after the CLI goes missing, not distil the next survivor")
 
 
+def _fail_with_runtime_error(cmd, **kwargs):
+    return subprocess.CompletedProcess(
+        args=cmd, returncode=1, stdout="", stderr="claude cli exploded"
+    )
+
+
 @pytest.fixture
 def make_corpus(tmp_path, monkeypatch):
     """Build a one-project corpus under tmp_path and return its landmarks.
@@ -523,6 +529,101 @@ def test_main_with_distil_publishes_the_proposals_directory_and_reports_integer_
                 evidence=proposal.Evidence(transcript=built.transcript, line_no=1, text=_SLICE_ONE),
             )
         )
+
+
+def test_main_with_distil_publishes_nothing_and_counts_nothing_when_the_triage_call_fails(
+    make_corpus, monkeypatch, capsys
+):
+    """A triage that fell over hands the distil stage no survivors, so the stage
+    never ran. `0` is the report's word for "ran and yielded nothing" and n/a is
+    its word for "did not run", so five zeroes describe a pass that never
+    happened - and a proposals directory holding two empty manifests is that
+    same claim written to disk, where the next reader opens it as a finished
+    run.
+
+    Refusing to publish is not licence to go quiet: the counts the run did
+    reach still print, the triage failure still reaches stderr, and the exit
+    code still reports it."""
+    built = make_corpus()
+    monkeypatch.setattr(funnel.subprocess, "run", _fail_with_runtime_error)
+
+    exit_code = funnel.main(["--distil"])
+
+    assert exit_code != 0
+    captured = capsys.readouterr()
+    assert "transcripts_read: 1" in captured.out
+    assert "slices_kept: 2" in captured.out
+    assert "survivors: n/a" in captured.out
+    for label in _DISTIL_LABELS:
+        assert f"{label}: n/a" in captured.out
+        assert f"{label}: 0" not in captured.out
+    assert "claude cli exploded" in captured.err
+    assert list(built.audit_dir.rglob("*proposals*")) == []
+
+
+def test_main_with_distil_still_distils_and_publishes_when_the_triage_call_answers(
+    make_corpus, monkeypatch, capsys
+):
+    """The companion to the failed triage: withholding the stage from a run
+    that has no survivors must not become withholding it from every run. The
+    same two-slice corpus with a triage that answers distils both survivors,
+    publishes them, and reports integers rather than n/a."""
+    built = make_corpus()
+    fake_cli = FakeClaudeCli({_SLICE_ONE: _PROPOSAL_ONE, _SLICE_TWO: _PROPOSAL_TWO})
+    monkeypatch.setattr(funnel.subprocess, "run", fake_cli)
+
+    exit_code = funnel.main(["--distil"])
+
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "survivors: 2" in out
+    assert "proposals: 2" in out
+    assert "discards: 0" in out
+    for label in _DISTIL_LABELS:
+        assert f"{label}: n/a" not in out
+
+    _out_dir, records, discards = _published(built.audit_dir)
+    assert sorted(record["name"] for record in records) == [
+        "cheap-tier-is-haiku",
+        "report-under-audit-results",
+    ]
+    assert discards == []
+
+
+def test_main_with_distil_reports_zero_rather_than_n_a_when_a_triage_that_answers_keeps_nobody(
+    make_corpus, monkeypatch, capsys
+):
+    """The other half of the same distinction: a triage that answered and kept
+    nobody is not a triage that fell over. It ran, the distil stage ran after it
+    with nothing to work on, and `0` is the report's word for exactly that - so
+    every distil line carries a number and the run publishes the pass it made,
+    empty manifests and all.
+
+    Withholding the stage on an empty survivor list instead of on the triage
+    error reads this run as one that was never requested: five n/a where the
+    counts belong, and nothing on disk for the next reader to open."""
+    built = make_corpus()
+    fake_cli = FakeClaudeCli({}, transient_texts=(_SLICE_ONE, _SLICE_TWO))
+    monkeypatch.setattr(funnel.subprocess, "run", fake_cli)
+
+    exit_code = funnel.main(["--distil"])
+
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "slices_kept: 2" in out
+    assert "survivors: 0" in out
+    assert "proposals: 0" in out
+    assert "discards: 0" in out
+    assert "new_vs_update: 0/0" in out
+    assert "skipped_by_limit: 0" in out
+    assert "dedup_errors: 0" in out
+    for label in _DISTIL_LABELS:
+        assert f"{label}: n/a" not in out
+
+    out_dir, records, discards = _published(built.audit_dir)
+    assert records == []
+    assert discards == []
+    assert sorted(path.name for path in out_dir.iterdir()) == ["discards.json", "proposals.json"]
 
 
 def test_main_asks_the_distiller_with_the_discard_convention_and_the_planes_anchors(
