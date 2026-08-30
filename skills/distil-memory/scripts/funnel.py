@@ -455,7 +455,7 @@ def _report_outcome(
     report_dir: Path,
     timestamp: str,
     errors: tuple[str | None, str | None, str | None],
-    proposals_dir: Path | None = None,
+    proposals_dir: Path | None,
 ) -> int:
     """Print the yield report, then every stage error, then write the report to
     `report_dir` and print where it landed.
@@ -463,10 +463,6 @@ def _report_outcome(
     `errors` is (triage_error, distil_error, publish_error). Returns main's exit
     code: a failed publication ends the run before the report is written, and a
     triage or distil error is non-zero even though the report was written.
-
-    `proposals_dir` is the directory this run published, or None when it
-    published none, so the report never points a reader at a directory this
-    run did not write.
     """
     triage_error, distil_error, publish_error = errors
     report = render_yield(counts, proposals_dir)
