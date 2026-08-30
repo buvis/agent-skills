@@ -2,6 +2,9 @@
 and the MEMORY.md pointer line that indexes it.
 """
 
+import argparse
+import json
+import sys
 from pathlib import Path
 
 import dedup
@@ -21,11 +24,11 @@ def _target_stem(entry: dict) -> tuple[str, bool]:
     """
     name = proposal.updated_name(entry["kind"])
     if name is not None:
-        return name, False
+        return proposal.sanitise_name(name), False
     return proposal.sanitise_name(entry["name"]), True
 
 
-def write_memory(entry: dict, store_path) -> Path:
+def write_memory(entry: dict, store_path: Path) -> Path:
     """Write `entry["file_text"]` to its target file inside `store_path`.
 
     A new entry must not already have a file at its target; an update must.
@@ -47,15 +50,14 @@ def write_memory(entry: dict, store_path) -> Path:
 
 
 def _title(stem: str) -> str:
-    replaced = stem.replace("-", " ")
-    return replaced[0].upper() + replaced[1:]
+    return stem.replace("-", " ").capitalize()
 
 
 def _pointer_line(stem: str, description: str) -> str:
     return f"- [{_title(stem)}]({stem}.md) — {description}"
 
 
-def append_pointer(store_path, entry: dict) -> str | None:
+def append_pointer(store_path: Path, entry: dict) -> str | None:
     """Upsert `entry`'s pointer line in `store_path`'s MEMORY.md.
 
     A new entry's line is always appended. An update's line replaces the
@@ -86,3 +88,29 @@ def append_pointer(store_path, entry: dict) -> str | None:
     lines.append(line)
     index_path.write_text("\n".join(lines) + "\n")
     return line
+
+
+def _parse_args(argv):
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    write_parser = subparsers.add_parser("write")
+    write_parser.add_argument("--store", required=True)
+
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parse_args(argv)
+
+    if args.command == "write":
+        entry = json.loads(sys.stdin.read())
+        store_path = Path(args.store)
+        print(write_memory(entry, store_path))
+        line = append_pointer(store_path, entry)
+        print(line if line is not None else "MEMORY.md: unchanged")
+        return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
