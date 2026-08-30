@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: hold a distilled memory file to what this feature is
+  allowed to emit. On top of the generic contract, it pins `metadata.type` to
+  `project`, rejects a frontmatter-only fragment, rejects every malformed
+  `[[wiki-link]]` naming the offending text, and requires at least one link once
+  the memory index has something to link to. Also reduces a proposed name to a
+  safe filename stem, and cuts the evidence excerpt around the verification
+  marker rather than at the head, so the sentence that justified the slice
+  survives truncation.
 - **distil-memory**: check a proposed memory file against the memory-file
   contract before it can reach the queue. Rejects a missing or empty `name` or
   `description`, a `metadata.type` outside the four allowed values, and a

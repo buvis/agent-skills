@@ -3,6 +3,8 @@
 `validate()` checks only what every existing memory file already satisfies:
 parseable frontmatter, a name, a description, a known `metadata.type`, and a
 recall cue that does not merely restate the body's `**How to apply:**` line.
+
+`validate_distil_output()` adds the rules this feature owns on top of that.
 """
 
 import re
@@ -118,3 +120,56 @@ def validate(proposal: Proposal) -> None:
         return
     if len(cue) >= MIN_CUE_TOKENS and set(cue) <= set(_tokens(apply_paragraph)):
         raise ProposalError(f"description restates {APPLY_MARKER}")
+
+
+_LINK_NAME = re.compile(r"[a-z0-9_]+(?:-[a-z0-9_]+)*")
+
+
+def _has_well_formed_link(body: str) -> bool:
+    """True when `body` carries a [[link]]. Raise on any malformed one."""
+    found = False
+    for opener in re.finditer(r"\[\[", body):
+        rest = body[opener.end() :].split("\n", 1)[0]
+        name, closer, _ = rest.partition("]]")
+        if not closer or not _LINK_NAME.fullmatch(name):
+            raise ProposalError(f"malformed wiki link: [[{name}]]")
+        found = True
+    return found
+
+
+def validate_distil_output(proposal: Proposal, index_has_names: bool) -> None:
+    """Raise ProposalError when `proposal` breaks this feature's own rules: the
+    memory type it owns, a body below the frontmatter, well-formed wiki links,
+    and one such link once the memory index holds names to point at."""
+    validate(proposal)
+
+    memory_type = parse_frontmatter(proposal.file_text)["metadata"]["type"]
+    if memory_type != DISTIL_TYPE:
+        raise ProposalError(f"metadata.type must be {DISTIL_TYPE}")
+
+    body = re.split(r"\n---\n?", proposal.file_text, maxsplit=1)[1]
+    if not body.strip():
+        raise ProposalError("file has no body below the frontmatter")
+
+    if not _has_well_formed_link(body) and index_has_names:
+        raise ProposalError("body links to no other memory")
+
+
+def sanitise_name(name: str) -> str:
+    """`name` reduced to a safe lowercase filename stem."""
+    stem = re.sub(r"[^a-z0-9_]+", "-", name.lower()).strip("-")
+    if not stem:
+        raise ProposalError(f"name leaves nothing safe to use: {name!r}")
+    return stem
+
+
+def excerpt(text: str, marker: str, width: int = EVIDENCE_EXCERPT_CHARS) -> str:
+    """A `width`-character window of `text` around `marker`, each cut end marked
+    with an ellipsis. The leading window when `marker` is absent."""
+    if len(text) <= width:
+        return text
+    found = text.find(marker)
+    start = 0 if found < 0 else found + len(marker) // 2 - width // 2
+    start = max(0, min(start, len(text) - width))
+    window = text[start : start + width]
+    return ("..." if start else "") + window + ("..." if start + width < len(text) else "")
