@@ -7,7 +7,10 @@ recall cue that does not merely restate the body's `**How to apply:**` line.
 `validate_distil_output()` adds the rules this feature owns on top of that.
 """
 
+import json
+import os
 import re
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -171,3 +174,69 @@ def excerpt(text: str, marker: str, max_chars: int = EVIDENCE_EXCERPT_CHARS) -> 
     start = max(0, min(start, len(text) - max_chars))
     window = text[start : start + max_chars]
     return ("..." if start else "") + window + ("..." if start + max_chars < len(text) else "")
+
+
+def write_proposals(proposals: list[Proposal], discards: list, out_dir: Path) -> Path:
+    """Publish `proposals` and `discards` as `out_dir`, and return it.
+
+    `out_dir` is reserved with an exclusive mkdir, so a second run landing on
+    the same name fails with EEXIST rather than overwriting it. The run's files
+    are built in an `<out_dir>.partial-<pid>` sibling and moved onto the
+    reservation by a single `os.replace`, so a reader never sees a half-filled
+    directory. Any failure rolls the whole run back: no sibling, no directory.
+    """
+    out_dir.mkdir(parents=True)
+    staging = out_dir.parent / f"{out_dir.name}.partial-{os.getpid()}"
+    try:
+        staging.mkdir()
+    except OSError:
+        out_dir.rmdir()
+        raise
+
+    try:
+        records = []
+        taken: set[str] = set()
+        for candidate in proposals:
+            name = parse_frontmatter(candidate.file_text)["name"]
+            stem = sanitise_name(name)
+            unique = stem
+            collisions = 1
+            while unique in taken:
+                collisions += 1
+                unique = f"{stem}-{collisions}"
+            taken.add(unique)
+            filename = f"{unique}.md"
+            (staging / filename).write_text(candidate.file_text)
+            records.append(
+                {
+                    "name": name,
+                    "kind": candidate.kind,
+                    "transcript": str(candidate.evidence.transcript),
+                    "line_no": candidate.evidence.line_no,
+                    "evidence_text": candidate.evidence.text,
+                    "existing_text": candidate.existing_text,
+                    "dedup_error": candidate.dedup_error,
+                    "file": filename,
+                }
+            )
+        (staging / "proposals.json").write_text(json.dumps(records, indent=2))
+        (staging / "discards.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "transcript": str(discard.transcript),
+                        "line_no": discard.line_no,
+                        "reason": discard.reason,
+                    }
+                    for discard in discards
+                ],
+                indent=2,
+            )
+        )
+        os.replace(staging, out_dir)
+    except Exception:
+        shutil.rmtree(staging)
+        out_dir.rmdir()
+        raise
+
+    return out_dir

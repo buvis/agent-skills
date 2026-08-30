@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: publish a run's proposals and discards atomically. The
+  output directory is reserved with an exclusive `mkdir`, built in a sibling
+  staging directory, and swapped into place with a single rename, so a reader
+  sees either the complete run or no directory at all - never a report naming
+  more proposals than the directory holds. A second run against an existing
+  directory is refused rather than merged into, and two proposals whose names
+  reduce to the same filename stem get numbered suffixes instead of
+  overwriting each other.
 - **distil-memory**: hold a distilled memory file to what this feature is
   allowed to emit. On top of the generic contract, it pins `metadata.type` to
   `project`, rejects a frontmatter-only fragment, rejects every malformed
