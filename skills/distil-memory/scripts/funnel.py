@@ -247,10 +247,8 @@ def _report_dir() -> Path:
     Computed at call time (not a module constant) so it reflects the
     caller's cwd rather than the cwd at import time."""
     cwd = Path.cwd()
-    for candidate in (cwd, *cwd.parents):
-        if (candidate / ".git").exists():
-            return candidate / "dev" / "local" / "audit-results"
-    return cwd / "dev" / "local" / "audit-results"
+    root = next((p for p in (cwd, *cwd.parents) if (p / ".git").exists()), cwd)
+    return root / "dev" / "local" / "audit-results"
 
 
 def _write_report(report: str, report_dir: Path) -> Path:
