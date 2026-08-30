@@ -280,15 +280,13 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     try:
-        transcripts = corpus.select_transcripts(days=args.days, all=args.all, project=args.project)
+        module, resolved_version = corpus.resolve_parser()
+        transcripts = corpus.select_transcripts(
+            days=args.days, all=args.all, project=args.project, resolved=(module, resolved_version)
+        )
     except corpus.StaleParserError as exc:
         print(exc, file=sys.stderr)
         return 1
-
-    # select_transcripts already resolved and contract-checked the parser;
-    # re-resolving here (cheap: iterdir + exec) is only to surface the
-    # version string in the report, per the PRD's Phase 2 acceptance.
-    _, resolved_version = corpus.resolve_parser()
 
     matched_count, kept_slices = scan(transcripts)
 

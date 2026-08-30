@@ -664,7 +664,10 @@ def test_main_passes_days_all_project_flags_through_to_select_transcripts(tmp_pa
     exit_code = funnel.main(["--days", "7", "--all", "--project", "myproj"])
 
     assert exit_code == 0
-    assert calls == [{"days": 7, "all": True, "project": "myproj"}]
+    assert len(calls) == 1
+    assert calls[0]["days"] == 7
+    assert calls[0]["all"] is True
+    assert calls[0]["project"] == "myproj"
 
 
 def test_main_with_argv_none_falls_back_to_sys_argv_and_default_flags(tmp_path, monkeypatch):
@@ -682,7 +685,10 @@ def test_main_with_argv_none_falls_back_to_sys_argv_and_default_flags(tmp_path, 
     exit_code = funnel.main()
 
     assert exit_code == 0
-    assert calls == [{"days": 30, "all": False, "project": None}]
+    assert len(calls) == 1
+    assert calls[0]["days"] == 30
+    assert calls[0]["all"] is False
+    assert calls[0]["project"] is None
 
 
 def test_main_returns_nonzero_and_prints_message_when_select_transcripts_raises_stale_parser_error(
@@ -1136,3 +1142,23 @@ def test_main_yield_report_states_the_version_from_the_single_resolution_that_se
     captured = capsys.readouterr()
     assert "claude_checkup_version: 0.9.9" in captured.out
     assert "claude_checkup_version: 0.0.1" not in captured.out
+
+
+def test_main_reports_a_real_version_even_when_select_transcripts_is_stubbed_out_entirely(
+    tmp_path, monkeypatch, capsys
+):
+    """Regression test: main() must not depend on select_transcripts() to
+    have set any side-channel version state as a side effect. With
+    select_transcripts replaced entirely, main() must still report the
+    version it resolved itself - never None, and never a value left behind
+    by another test."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(corpus, "select_transcripts", lambda **kwargs: [])
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "1.2.3"))
+
+    exit_code = funnel.main([])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "claude_checkup_version: 1.2.3" in captured.out
+    assert "claude_checkup_version: None" not in captured.out

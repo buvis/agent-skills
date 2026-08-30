@@ -77,14 +77,28 @@ def assert_contract(version: str, parser_module: ModuleType, minimum: str = _MIN
         )
 
 
-def select_transcripts(days: int = 30, all: bool = False, project: str | None = None) -> list[Path]:
+def select_transcripts(
+    days: int = 30,
+    all: bool = False,
+    project: str | None = None,
+    *,
+    resolved: tuple[ModuleType, str] | None = None,
+) -> list[Path]:
     """Return the sorted list of transcript paths under _PROJECTS_ROOT that
     fall within the last `days` days, optionally restricted to project
     directories whose name ends with `project`. `all=True` skips the date
     filter entirely. A transcript is kept whenever its date can't be
     determined (parse_session() returns None, or SessionData.latest is
-    None), since there's no evidence to justify dropping it."""
-    module, version = resolve_parser()
+    None), since there's no evidence to justify dropping it.
+
+    `resolved`, if given, is an already-resolved (module, version) pair
+    (from resolve_parser()) to use instead of resolving one here - lets a
+    caller (funnel.main()) resolve once and reuse the result. The pair is
+    still passed through assert_contract() either way."""
+    if resolved is None:
+        module, version = resolve_parser()
+    else:
+        module, version = resolved
     assert_contract(version, module)
     cutoff = None if all else datetime.now(timezone.utc) - timedelta(days=days)
 
