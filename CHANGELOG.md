@@ -48,6 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stem, so a malformed index entry cannot read a file from outside the memory
   directory. A refused name is treated as absent, exactly like a stale index
   entry, so it cannot manufacture a dedup error either.
+- **distil-memory**: give every discard a reason. A model that ended its
+  `DISCARD:` line without words used to leave a blank field in `discards.json`,
+  which the run then reported as a discard nobody could act on; it now says the
+  model stated no reason.
+- **distil-memory**: skip the distil stage when triage failed, instead of
+  publishing an empty proposals directory and reporting zero proposals. Zero
+  means the stage ran and found nothing, so reporting it for a stage that never
+  had any input misread a failed run as an empty one. Such a run now reports
+  the distil counts as `n/a` and writes no directory.
 
 ### Added
 

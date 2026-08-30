@@ -643,6 +643,8 @@ def test_a_discard_whose_line_states_no_reason_still_carries_one_saying_so(answe
     assert any(word in result.reason.lower() for word in ("reason", "explanation", "unexplained"))
     assert result.reason == bare.reason
     for later_line in answer.split("\n")[1:]:
+        if not later_line.strip():
+            continue
         assert later_line.strip() not in result.reason
         for start in range(len(later_line) - _SHINGLE_LENGTH + 1):
             assert later_line[start : start + _SHINGLE_LENGTH] not in result.reason

@@ -525,7 +525,10 @@ def main(argv: list[str] | None = None) -> int:
     report_dir = _report_dir()
     distil_error = publish_error = None
     published_dir = None
-    if args.distil and not args.dry_run:
+    # A triage that failed handed the stage no input, so the stage never ran and
+    # its counts stay "n/a". An empty survivor list from a triage that ANSWERED
+    # is a stage that ran and found nothing, which still publishes and reports 0.
+    if args.distil and not args.dry_run and triage_error is None:
         out_dir = report_dir / f"distil-memory-{timestamp}-proposals"
         distil_counts, distil_error, publish_error = _distil_and_publish(
             survivors, args.distil_limit, out_dir

@@ -107,7 +107,11 @@ def distil(
     if not answer:
         return Discard(slice_, "the model returned an empty answer")
     if answer.startswith(DISCARD_PREFIX):
-        return Discard(slice_, answer[len(DISCARD_PREFIX) :].split("\n", 1)[0].strip())
+        # The reason is the rest of the DISCARD line. A line that ends without
+        # words states none, and the fallback says exactly that: borrowing from
+        # a later line is how the model's restatement of the slice reaches disk.
+        stated = answer[len(DISCARD_PREFIX) :].split("\n", 1)[0].strip()
+        return Discard(slice_, stated or "the model stated no reason on its discard line")
 
     candidate = proposal.Proposal(
         file_text=answer,
