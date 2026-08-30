@@ -24,6 +24,17 @@ def queue_path(tmp_path):
     return tmp_path / "queue.json"
 
 
+def _decide_until_capped(queue_path):
+    decided = []
+    while True:
+        entry = queue.next_undecided(path=queue_path)
+        if entry is None:
+            break
+        queue.decide(entry["id"], "kept", path=queue_path)
+        decided.append(entry["id"])
+    return decided
+
+
 def test_per_run_cap_constant_is_ten():
     assert queue.PER_RUN_CAP == 10
 
@@ -326,17 +337,7 @@ def test_per_run_cap_yields_ten_of_twenty_five_and_a_second_run_advances_past_th
     proposals = [_proposal(transcript="t.jsonl", line_no=n) for n in range(1, 26)]
     queue.save(proposals, path=queue_path)
 
-    def _decide_until_capped():
-        decided = []
-        while True:
-            entry = queue.next_undecided(path=queue_path)
-            if entry is None:
-                break
-            queue.decide(entry["id"], "kept", path=queue_path)
-            decided.append(entry["id"])
-        return decided
-
-    decided_first_run = _decide_until_capped()
+    decided_first_run = _decide_until_capped(queue_path)
 
     assert len(decided_first_run) == queue.PER_RUN_CAP
     assert queue.cursor(path=queue_path) == 10
@@ -347,7 +348,7 @@ def test_per_run_cap_yields_ten_of_twenty_five_and_a_second_run_advances_past_th
     assert len(remaining_after_first_run) == 15
 
     queue.advance(path=queue_path)
-    decided_second_run = _decide_until_capped()
+    decided_second_run = _decide_until_capped(queue_path)
 
     # "a second run advances past them" (verbatim PRD acceptance text): the
     # cursor must move past the first 10, but a second capped sitting cannot
@@ -362,7 +363,7 @@ def test_per_run_cap_yields_ten_of_twenty_five_and_a_second_run_advances_past_th
     assert len(remaining_after_second_run) == 5
 
     queue.advance(path=queue_path)
-    decided_third_run = _decide_until_capped()
+    decided_third_run = _decide_until_capped(queue_path)
 
     assert len(decided_third_run) == 5
     assert queue.cursor(path=queue_path) == 25
