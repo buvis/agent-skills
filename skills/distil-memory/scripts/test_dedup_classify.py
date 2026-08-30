@@ -2,6 +2,7 @@
 reads and classify()'s new-versus-update typing."""
 
 import builtins
+import io
 import os
 import subprocess
 from pathlib import Path
@@ -76,7 +77,9 @@ def _generated_memories(prefix: str, count: int) -> dict[str, str]:
 
     Names are built here from the caller's `prefix` and a counter rather than
     written out, so each test works in a vocabulary no other test in this file
-    uses, and every expectation is computed from this mapping. Each text names
+    uses - except where one deliberately borrows another's prefix, to make a
+    reader that skips a single name break both tests rather than one - and
+    every expectation is computed from this mapping. Each text names
     its own memory throughout, so a reader that pairs a name with another
     memory's text returns a text naming the wrong memory.
     """
@@ -99,13 +102,62 @@ def _memory_plane(tmp_path: Path, memories: dict[str, str]) -> Path:
     return memory_dir
 
 
+def _decoy_text(prefix: str, number: int) -> str:
+    """The text of one more `prefix` memory than the plane holds, for the file
+    an escape test plants where no memory belongs.
+
+    Built by the helper that builds every real memory, so it matches the ones
+    beside it byte for byte in length, and exactly in suffix, first bytes,
+    frontmatter shape and shape of tail sentence - while its own tail sentence
+    appears nowhere else. The one property left that tells such a decoy from a
+    memory is where its path lands, which is the rule under test: a reader that
+    separates them by size, by their first bytes, or by any other accident of
+    the fixture hands the decoy's text back and fails.
+    """
+    return list(_generated_memories(prefix, number).values())[-1]
+
+
+def _spell_the_escape_absolutely(memory_dir: Path, decoy: Path) -> Path:
+    """The decoy's own absolute path."""
+    return decoy
+
+
+def _spell_the_escape_relatively(memory_dir: Path, decoy: Path) -> Path:
+    """The decoy reached by climbing out of the plane."""
+    return Path("..") / decoy.parent.name / decoy.name
+
+
+def _spell_the_escape_as_a_bare_filename(memory_dir: Path, decoy: Path) -> Path:
+    """The decoy reached in two hops, the first spelled as a bare filename.
+
+    A link inside the plane onto another name inside the plane is exactly how
+    the legitimate link in the row below is spelled, so this row and that one
+    are indistinguishable by spelling: only following both hops to where they
+    land tells them apart. Without it, "contains a separator" separates every
+    escape from every legitimate link, and a reader judging targets by their
+    spelling passes the whole file while leaking through a second hop.
+    """
+    (memory_dir / "hop.md").symlink_to(Path("..") / decoy.parent.name / decoy.name)
+    return Path("hop.md")
+
+
 def _record_reads(monkeypatch) -> list[Path]:
-    """Every door onto a file's bytes - `Path.read_text`, `Path.open` and the
-    builtin `open`, any of which a correct reader may use - patched to record
-    the path it was handed into the list returned."""
+    """Every door onto a file's bytes - `Path.read_text`, `Path.open`, the
+    builtin `open`, `io.open`, `io.open_code` and `os.open`, any of which a
+    correct reader may use - patched to record the path it was handed into the
+    list returned.
+
+    `io.open` is the same function object as the builtin, but `io.open_code` is
+    a built-in of its own and `os.open` opens a file without going near either
+    of them, so each is a door of its own: a reader calling one of them through
+    an unwatched module attribute reads a file while leaving no record, and an
+    unrecorded read is indistinguishable here from no read at all.
+    """
     read_text = Path.read_text
     path_open = Path.open
     builtin_open = builtins.open
+    open_code = io.open_code
+    os_open = os.open
     paths_read = []
 
     def recording_read_text(self, *args, **kwargs):
@@ -120,9 +172,20 @@ def _record_reads(monkeypatch) -> list[Path]:
         paths_read.append(Path(file))
         return builtin_open(file, *args, **kwargs)
 
+    def recording_open_code(path, *args, **kwargs):
+        paths_read.append(Path(path))
+        return open_code(path, *args, **kwargs)
+
+    def recording_os_open(path, *args, **kwargs):
+        paths_read.append(Path(path))
+        return os_open(path, *args, **kwargs)
+
     monkeypatch.setattr(Path, "read_text", recording_read_text)
     monkeypatch.setattr(Path, "open", recording_path_open)
     monkeypatch.setattr(builtins, "open", recording_open)
+    monkeypatch.setattr(io, "open", recording_open)
+    monkeypatch.setattr(io, "open_code", recording_open_code)
+    monkeypatch.setattr(os, "open", recording_os_open)
     return paths_read
 
 
@@ -292,7 +355,7 @@ class TestDecisionSide:
         (memory_dir / "nested").mkdir()
         outside = tmp_path / "outside"
         outside.mkdir()
-        (outside / "secret.md").write_text("A file the memory plane does not hold.\n")
+        (outside / "secret.md").write_text(_decoy_text("trestle", 3))
 
         candidates, unread_names = dedup.read_candidates(
             memory_dir, [traversing_name, "trestle-01"]
@@ -310,13 +373,118 @@ class TestDecisionSide:
         """
         memories = _generated_memories("mullion", 2)
         memory_dir = _memory_plane(tmp_path, memories)
-        (memory_dir / "..\\outside\\secret.md").write_text("A file no memory name reaches.\n")
+        (memory_dir / "..\\outside\\secret.md").write_text(_decoy_text("mullion", 3))
 
         candidates, unread_names = dedup.read_candidates(
             memory_dir, ["..\\outside\\secret", "mullion-01"]
         )
 
         assert candidates == [("mullion-01", memories["mullion-01"])]
+        assert unread_names == []
+
+    @pytest.mark.parametrize(
+        "spell_target",
+        [
+            _spell_the_escape_absolutely,
+            _spell_the_escape_relatively,
+            _spell_the_escape_as_a_bare_filename,
+        ],
+        ids=["absolute-target", "relative-target", "bare-filename-first-hop"],
+    )
+    def test_read_candidates_skips_a_stem_whose_file_links_out_of_the_memory_directory(
+        self, tmp_path, monkeypatch, spell_target
+    ):
+        """The bytes this function returns always come from a file inside the
+        plane, and the names it is handed come from `MEMORY.md`, which is
+        ordinary file content. So the escape need not be spelled in the name at
+        all: this one is a plain stem - letters, digits, one dash, no separator,
+        no dots - whose file inside the plane is a symlink onto a file outside
+        it. Following it hands the caller another directory's bytes under the
+        name of a memory here.
+
+        It is skipped the way an absent memory is skipped, in NEITHER list.
+        `unread_names` becomes a dedup error, so routing the escape there
+        manufactures one over a file that was never a memory. The ordinary
+        memory asked for beside it still answers in full, so refusing every
+        name is no way to pass.
+
+        Where the link LANDS is what makes it an escape, not how it is spelled,
+        so the two rows spell the same destination absolutely and relative to
+        the plane. A reader that refuses links by their spelling serves one row
+        and hands the outside file's bytes back on the other.
+
+        The linking stem is a name the shortlist test above reads for real, so
+        a reader that skips this one name breaks that test instead of passing
+        quietly here. And every door onto a file's bytes is recorded,
+        `io.open`, `io.open_code` and `os.open` included, so reading the outside
+        file and discarding what came back is caught too: refusal has to happen
+        before the read.
+
+        The outside file is a memory in every respect but the directory it
+        sits in - same length, same suffix, same first bytes, same frontmatter,
+        same shape of tail sentence, and it even carries the FILENAME of a
+        memory the caller asked for - so nothing about it can be told from the
+        memory beside it except where its path lands. A reader that admits a
+        candidate on its first bytes, refuses one on its size, or follows a
+        link because its target is named among the shortlist, hands those bytes
+        straight back.
+        """
+        memories = _generated_memories("tallow", 2)
+        ordinary_name, linking_name = list(memories)
+        memory_dir = _memory_plane(tmp_path, {ordinary_name: memories[ordinary_name]})
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        outside_text = _decoy_text("tallow", 3)
+        decoy = outside / f"{ordinary_name}.md"
+        decoy.write_text(outside_text)
+        link = memory_dir / f"{linking_name}.md"
+        try:
+            link.symlink_to(spell_target(memory_dir, decoy))
+        except (OSError, NotImplementedError) as error:
+            pytest.skip(f"this platform cannot create a symlink, so no escape exists: {error}")
+
+        # The fixture only proves anything if the link really does lead out of
+        # the plane and hand back the outside file's bytes.
+        assert link.read_text() == outside_text
+
+        paths_read = _record_reads(monkeypatch)
+
+        candidates, unread_names = dedup.read_candidates(
+            memory_dir, [linking_name, ordinary_name]
+        )
+
+        plane = memory_dir.resolve()
+        assert [path for path in paths_read if not path.resolve().is_relative_to(plane)] == []
+        assert candidates == [(ordinary_name, memories[ordinary_name])]
+        assert unread_names == []
+
+    def test_read_candidates_reads_a_stem_whose_file_links_to_a_memory_in_the_same_directory(
+        self, tmp_path
+    ):
+        """Where the link LANDS is what makes it an escape, so a link landing
+        inside the plane is no escape at all: the file it reaches is a memory
+        here, and its full text still comes back under the name asked for. A
+        reader that passes the rows above by refusing every symlink drops a
+        memory that never left the plane.
+
+        The link's target is deliberately NOT among the names asked for. A
+        reader that follows a link only when its target is one of the names it
+        was handed would pass both this row and the escape above, since there
+        the target sits in the shortlist too - so the target stays unasked, and
+        the only question left is where the link lands.
+        """
+        memories = _generated_memories("bollard", 2)
+        target_name, linking_name = list(memories)
+        memory_dir = _memory_plane(tmp_path, {target_name: memories[target_name]})
+        link = memory_dir / f"{linking_name}.md"
+        try:
+            link.symlink_to(f"{target_name}.md")
+        except (OSError, NotImplementedError) as error:
+            pytest.skip(f"this platform cannot create a symlink, so no link exists: {error}")
+
+        candidates, unread_names = dedup.read_candidates(memory_dir, [linking_name])
+
+        assert candidates == [(linking_name, memories[target_name])]
         assert unread_names == []
 
     def test_read_candidates_reads_no_path_that_resolves_outside_the_memory_directory(
@@ -334,7 +502,7 @@ class TestDecisionSide:
         (memory_dir / "nested").mkdir()
         outside = tmp_path / "outside"
         outside.mkdir()
-        (outside / "secret.md").write_text("A file the memory plane does not hold.\n")
+        (outside / "secret.md").write_text(_decoy_text("corbel", 3))
 
         paths_read = _record_reads(monkeypatch)
 
@@ -379,7 +547,7 @@ class TestDecisionSide:
         memory_dir = _memory_plane(tmp_path, memories)
         outside = tmp_path / "outside"
         outside.mkdir()
-        (outside / "secret.md").write_text("A file the memory plane does not hold.\n")
+        (outside / "secret.md").write_text(_decoy_text("quoin", 3))
 
         candidates, unread_names = dedup.read_candidates(
             memory_dir, [str(outside / "secret"), "quoin-01"]
