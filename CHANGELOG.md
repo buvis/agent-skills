@@ -33,6 +33,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: turn a surviving transcript slice into a complete memory
+  file, or into a named discard. A strong-tier model gets the slice plus a few
+  existing memories as anchors and answers with either a discard line or a
+  whole file; nothing becomes a proposal until it passes the memory-file
+  validators, so a rambling or half-written answer leaves a discard that says
+  what was wrong with it. A model that fails to answer is a discard too, never
+  a crash - except a missing CLI, which stops the run rather than turning every
+  remaining slice into an empty discard. Discard reasons never quote the slice
+  they came from.
 - **distil-memory**: type a proposed memory as new or as an update of an
   existing one. Only the shortlisted memories are read, and a proposal whose
   name a memory already holds is typed an update without asking a model at all.
