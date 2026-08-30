@@ -2,6 +2,8 @@
 frontmatter parsing, and the model-free generic validate() contract."""
 
 import dataclasses
+import re
+from pathlib import Path
 
 import proposal
 import pytest
@@ -474,3 +476,23 @@ def test_validate_accepts_a_body_with_no_apply_line(evidence):
 
     assert "**How to apply:**" not in candidate.file_text
     assert proposal.validate(candidate) is None
+
+
+def test_validate_accepts_every_memory_file_in_the_calibration_corpus(evidence):
+    # The corpus is one project's memory directory, derived rather than written
+    # out: this repository is public and carries no personal paths. The encoding
+    # replaces BOTH "/" and "." in the project root with "-".
+    root = Path.home() / ".claude"
+    corpus = root / "projects" / re.sub(r"[/.]", "-", str(root)) / "memory"
+    if not corpus.is_dir():
+        pytest.skip("calibration corpus directory is not present on this machine")
+
+    # MEMORY.md is the index, not a memory file: it ships no frontmatter at all.
+    files = [path for path in sorted(corpus.glob("*.md")) if path.name != "MEMORY.md"]
+    assert files, "calibration corpus exists but holds no memory files"
+
+    for path in files:
+        try:
+            proposal.validate(_proposal(evidence, path.read_text()))
+        except proposal.ProposalError as exc_info:
+            pytest.fail(f"{path.name} fails validate(): {exc_info}")
