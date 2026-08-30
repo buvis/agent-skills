@@ -557,7 +557,13 @@ def test_render_yield_performs_no_subprocess_calls_or_file_io(monkeypatch):
 
     monkeypatch.setattr(funnel.subprocess, "run", fail_subprocess)
     monkeypatch.setattr("builtins.open", fail_open)
-    counts = {"transcripts_read": 3, "slices_matched": 2, "slices_kept": 1, "survivors": 1}
+    counts = {
+        "transcripts_read": 3,
+        "slices_matched": 2,
+        "slices_kept": 1,
+        "survivors": 1,
+        "claude_checkup_version": "0.2.2",
+    }
 
     result = funnel.render_yield(counts)
 
@@ -565,7 +571,13 @@ def test_render_yield_performs_no_subprocess_calls_or_file_io(monkeypatch):
 
 
 def test_render_yield_prints_every_stage_ending_in_zero_when_a_run_finds_nothing():
-    counts = {"transcripts_read": 0, "slices_matched": 0, "slices_kept": 0, "survivors": 0}
+    counts = {
+        "transcripts_read": 0,
+        "slices_matched": 0,
+        "slices_kept": 0,
+        "survivors": 0,
+        "claude_checkup_version": "0.2.2",
+    }
 
     result = funnel.render_yield(counts)
 
@@ -577,7 +589,13 @@ def test_render_yield_prints_every_stage_ending_in_zero_when_a_run_finds_nothing
 
 
 def test_render_yield_prints_key_value_line_for_each_count_when_values_are_nonzero():
-    counts = {"transcripts_read": 12, "slices_matched": 8, "slices_kept": 5, "survivors": 3}
+    counts = {
+        "transcripts_read": 12,
+        "slices_matched": 8,
+        "slices_kept": 5,
+        "survivors": 3,
+        "claude_checkup_version": "0.2.2",
+    }
 
     result = funnel.render_yield(counts)
 
@@ -587,8 +605,28 @@ def test_render_yield_prints_key_value_line_for_each_count_when_values_are_nonze
     assert "survivors: 3" in result
 
 
+def test_render_yield_states_the_resolved_claude_checkup_version():
+    counts = {
+        "transcripts_read": 12,
+        "slices_matched": 8,
+        "slices_kept": 5,
+        "survivors": 3,
+        "claude_checkup_version": "0.2.2",
+    }
+
+    result = funnel.render_yield(counts)
+
+    assert "claude_checkup_version: 0.2.2" in result
+
+
 def test_render_yield_renders_none_survivors_as_n_a_for_a_dry_run():
-    counts = {"transcripts_read": 5, "slices_matched": 3, "slices_kept": 2, "survivors": None}
+    counts = {
+        "transcripts_read": 5,
+        "slices_matched": 3,
+        "slices_kept": 2,
+        "survivors": None,
+        "claude_checkup_version": "0.2.2",
+    }
 
     result = funnel.render_yield(counts)
 
@@ -596,7 +634,13 @@ def test_render_yield_renders_none_survivors_as_n_a_for_a_dry_run():
 
 
 def test_render_yield_ends_with_how_to_proceed_line_naming_the_audit_results_directory():
-    counts = {"transcripts_read": 5, "slices_matched": 3, "slices_kept": 2, "survivors": 1}
+    counts = {
+        "transcripts_read": 5,
+        "slices_matched": 3,
+        "slices_kept": 2,
+        "survivors": 1,
+        "claude_checkup_version": "0.2.2",
+    }
 
     result = funnel.render_yield(counts)
 
@@ -614,6 +658,7 @@ def test_main_passes_days_all_project_flags_through_to_select_transcripts(tmp_pa
         return []
 
     monkeypatch.setattr(corpus, "select_transcripts", fake_select_transcripts)
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "0.2.2"))
 
     exit_code = funnel.main(["--days", "7", "--all", "--project", "myproj"])
 
@@ -631,6 +676,7 @@ def test_main_with_argv_none_falls_back_to_sys_argv_and_default_flags(tmp_path, 
         return []
 
     monkeypatch.setattr(corpus, "select_transcripts", fake_select_transcripts)
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "0.2.2"))
 
     exit_code = funnel.main()
 
@@ -704,6 +750,7 @@ def test_main_normal_run_prints_and_writes_report_matching_render_yield_and_refl
         "slices_matched": 2,
         "slices_kept": 2,
         "survivors": 1,
+        "claude_checkup_version": version,
     }
     expected_report = funnel.render_yield(expected_counts)
 
@@ -749,6 +796,7 @@ def test_main_dry_run_makes_no_model_call_and_prints_and_writes_report_matching_
         "slices_matched": 1,
         "slices_kept": 1,
         "survivors": None,
+        "claude_checkup_version": version,
     }
     expected_report = funnel.render_yield(expected_counts)
 

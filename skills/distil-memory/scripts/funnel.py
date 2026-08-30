@@ -204,11 +204,12 @@ def triage(
     return survivors, discard_count
 
 
-def render_yield(counts: dict[str, int | None]) -> str:
+def render_yield(counts: dict[str, int | str | None]) -> str:
     """Pure string formatting of the pipeline's yield report: no subprocess
     calls, no file I/O. `counts` carries transcripts_read, slices_matched,
-    slices_kept and survivors (survivors is None for a --dry-run, rendered
-    as "n/a")."""
+    slices_kept, survivors (survivors is None for a --dry-run, rendered as
+    "n/a") and claude_checkup_version (the resolved parser version, per the
+    PRD's Phase 2 acceptance criteria)."""
     survivors = counts["survivors"]
     survivors_text = "n/a" if survivors is None else str(survivors)
     lines = [
@@ -216,6 +217,7 @@ def render_yield(counts: dict[str, int | None]) -> str:
         f"slices_matched: {counts['slices_matched']}",
         f"slices_kept: {counts['slices_kept']}",
         f"survivors: {survivors_text}",
+        f"claude_checkup_version: {counts['claude_checkup_version']}",
         "",
         "How to proceed: this report was also written to "
         "dev/local/audit-results/. Review the survivors and promote "
@@ -247,6 +249,11 @@ def main(argv: list[str] | None = None) -> int:
         print(exc, file=sys.stderr)
         return 1
 
+    # select_transcripts already resolved and contract-checked the parser;
+    # re-resolving here (cheap: iterdir + exec) is only to surface the
+    # version string in the report, per the PRD's Phase 2 acceptance.
+    _, resolved_version = corpus.resolve_parser()
+
     matched_count, kept_slices = scan(transcripts)
 
     if args.dry_run:
@@ -260,6 +267,7 @@ def main(argv: list[str] | None = None) -> int:
         "slices_matched": matched_count,
         "slices_kept": len(kept_slices),
         "survivors": survivors_count,
+        "claude_checkup_version": resolved_version,
     }
     report = render_yield(counts)
     print(report, end="")
