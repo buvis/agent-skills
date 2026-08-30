@@ -65,6 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: an approved proposal can now be written into its project's
+  memory store. The memory file lands beside the transcript that produced it and
+  a matching one-line pointer is upserted into that store's `MEMORY.md`. A store
+  that does not exist stops the write instead of being created, a new proposal
+  never overwrites an existing memory that happens to share a filename, and an
+  update that did not change the description leaves `MEMORY.md` untouched.
 - **distil-memory**: proposal decisions now persist across sessions. Each run's
   proposals are queued to disk, so an interrupted approval sitting resumes at
   the next undecided proposal with no duplicates and no skips. A sitting is
