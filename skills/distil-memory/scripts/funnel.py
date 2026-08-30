@@ -262,7 +262,7 @@ def main(argv: list[str] | None = None) -> int:
         "survivors": survivors_count,
     }
     report = render_yield(counts)
-    print(report)
+    print(report, end="")
 
     out_dir = Path("dev/local/audit-results")
     out_dir.mkdir(parents=True, exist_ok=True)
