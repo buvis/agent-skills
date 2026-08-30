@@ -22,6 +22,10 @@ Candidate = tuple[str, str]
 
 _ENTRY = re.compile(r"^- \[([^\]]+)\]\(([\w.-]+)\.md\)\s*—\s*(.*)$")
 
+# A memory name is a plain filename stem: the index regex's own characters,
+# minus the all-dot names that reach a directory instead of a memory.
+_MEMORY_NAME = re.compile(r"(?!\.+\Z)[\w.-]+")
+
 _PROMPT = """A distiller proposes this new memory:
 
 {proposal}
@@ -36,11 +40,18 @@ with the single word new.
 
 
 def read_index(memory_dir: Path) -> str:
-    """The index text of `memory_dir`, or "" when it holds no index."""
-    index = memory_dir / "MEMORY.md"
-    if not index.exists():
+    """The index text of `memory_dir`, or "" when it holds no index. An index
+    that is there but cannot be read raises: absent means "no memory plane yet"
+    and every proposal types NEW, whereas unreadable means we do not know, and
+    answering "" there would type a duplicate as NEW and write a second copy of
+    a memory the plane already holds.
+
+    The read itself decides, not a check before it, so an index that goes or
+    arrives in between is answered as it actually was."""
+    try:
+        return (memory_dir / "MEMORY.md").read_text()
+    except FileNotFoundError:
         return ""
-    return index.read_text()
 
 
 def parse_index(index_text: str) -> dict[str, str]:
@@ -57,7 +68,13 @@ def parse_index(index_text: str) -> dict[str, str]:
 def shortlist(
     index_text: str, proposal: Proposal, limit: int = SHORTLIST_LIMIT
 ) -> list[str]:
-    """The `limit` index names closest to `proposal`, best score first."""
+    """The `limit` index names closest to `proposal`, best score first.
+
+    The score is exactly Jaccard, `len(q & e) / len(q | e)`. Raw intersection
+    favours long index entries for no reason, and the overlap coefficient
+    saturates at 1.0 for any short entry the query contains, so both rank an
+    entry the proposal merely mentions above the one it is about - and which
+    entry ranks first decides NEW versus update."""
     frontmatter = parse_frontmatter(proposal.file_text)
     query = set(_tokens(f"{frontmatter['name']} {frontmatter['description']}"))
 
@@ -76,10 +93,16 @@ def read_candidates(
 ) -> tuple[list[Candidate], list[str]]:
     """The full text of each named memory, and the names of the memories that
     exist but could not be read. A name the plane no longer holds is a stale
-    index entry, so it is skipped rather than reported."""
+    index entry, so it is skipped rather than reported.
+
+    A name that is no plain stem names no memory here either, so it is skipped
+    the same way: reporting it unread would let a malformed index manufacture a
+    dedup error over a memory nobody named."""
     candidates = []
     unread_names = []
     for name in names:
+        if not _MEMORY_NAME.fullmatch(name):
+            continue
         try:
             candidates.append((name, (memory_dir / f"{name}.md").read_text()))
         except FileNotFoundError:

@@ -40,6 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   name like `!!! ???` used to raise out of the whole run before the yield
   report was printed; it is now an ordinary reasoned discard, so the run still
   reports what it read.
+- **distil-memory**: read the memory index once instead of checking for it and
+  then reading it. In the window between the two calls an index that was merely
+  absent could be reported as unreadable, which is the one distinction that
+  decides whether a fact is typed as new or as an update.
+- **distil-memory**: skip a candidate memory name that is not a plain filename
+  stem, so a malformed index entry cannot read a file from outside the memory
+  directory. A refused name is treated as absent, exactly like a stale index
+  entry, so it cannot manufacture a dedup error either.
 
 ### Added
 
