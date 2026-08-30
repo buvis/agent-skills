@@ -481,7 +481,12 @@ def test_main_with_distil_publishes_the_proposals_directory_and_reports_integer_
 ):
     """The wiring pin: a real --distil run (no --dry-run) over a one-slice
     corpus. A main() that parses the flag and ignores it renders every distil
-    count as n/a and writes no proposals directory, so both are asserted."""
+    count as n/a and writes no proposals directory, so both are asserted.
+
+    The two numbers are also asserted against each other, not only against a
+    literal each: what the run reports has to be what its own manifests hold, or
+    a run that quietly drops a proposal on the way to disk still reports having
+    published it."""
     built = make_corpus(slice_texts=(_SLICE_ONE,))
     fake_cli = FakeClaudeCli({_SLICE_ONE: _PROPOSAL_ONE})
     monkeypatch.setattr(funnel.subprocess, "run", fake_cli)
@@ -499,6 +504,8 @@ def test_main_with_distil_publishes_the_proposals_directory_and_reports_integer_
         assert f"{label}: n/a" not in out
 
     out_dir, records, discards = _published(built.audit_dir)
+    assert f"proposals: {len(records)}" in out
+    assert f"discards: {len(discards)}" in out
     assert sorted(p.name for p in out_dir.glob("*.md")) == ["cheap-tier-is-haiku.md"]
     assert (out_dir / "cheap-tier-is-haiku.md").read_text() == _PROPOSAL_ONE.strip()
     assert discards == []

@@ -1,26 +1,46 @@
 """Tests for funnel.render_yield(): the yield report it formats out of a
 run's counts, without touching a file or a model."""
 
+import os
 import re
+from pathlib import Path
 
 import funnel
 import pytest
 
 
 def test_render_yield_performs_no_subprocess_calls_or_file_io(monkeypatch):
+    """The report is string formatting over the counts it was handed, and
+    nothing else. Listing a directory is barred alongside reading and running,
+    because a renderer that goes looking for the newest `-proposals` directory
+    names whatever some other run left behind rather than what this run
+    published. The counts carry the distil keys: a guard that never enters the
+    distil branch guards the one branch that has no reason to touch a disk."""
+
     def fail_subprocess(*args, **kwargs):
         raise AssertionError("render_yield must not invoke subprocess")
 
     def fail_open(*args, **kwargs):
         raise AssertionError("render_yield must not perform file I/O")
 
+    def fail_listing(*args, **kwargs):
+        raise AssertionError("render_yield must not list a directory")
+
     monkeypatch.setattr(funnel.subprocess, "run", fail_subprocess)
     monkeypatch.setattr("builtins.open", fail_open)
+    listing_calls = ((Path, "glob"), (Path, "rglob"), (Path, "iterdir"), (os, "scandir"), (os, "listdir"))
+    for owner, attribute in listing_calls:
+        monkeypatch.setattr(owner, attribute, fail_listing)
     counts = {
         "transcripts_read": 3,
         "slices_matched": 2,
         "slices_kept": 1,
         "survivors": 1,
+        "proposals": 1,
+        "discards": 0,
+        "new_vs_update": (1, 0),
+        "skipped_by_limit": 0,
+        "dedup_errors": 0,
         "claude_checkup_version": "0.2.2",
     }
 
@@ -220,23 +240,24 @@ def test_render_yield_joins_a_populated_new_vs_update_pair_with_a_slash(pair, ex
     assert expected in result
 
 
-def test_render_yield_how_to_proceed_paragraph_also_points_at_the_proposals_directory():
-    """The paragraph gains a sentence naming where the distil stage put its
-    proposals. Binds meaning, not wording: no exact path is pinned, but the
-    mention has to be a directory the reader can open, and it has to be the
-    PROPOSALS one. A bare word ("... promote durable facts into memory.
-    proposals.") is not a destination; neither is a decoy slash elsewhere in
-    the sentence ("... promote durable facts and/or proposals into memory."),
-    which satisfies a plain second-token count while telling the reader
-    nothing. The path-shaped token itself must name proposals."""
+def test_render_yield_names_no_proposals_path_when_the_distil_stage_did_not_run():
+    """A five-key caller ran no distil stage, so there is no published
+    proposals directory for the paragraph to point at. It used to name a fixed
+    `dev/local/audit-results/proposals/` here whatever the run did - a
+    directory nothing ever creates, so a reader who follows the report finds
+    nothing. The report destination is still named, because that file was
+    written, but no path-shaped token may claim a proposals directory.
+
+    Where the stage DID run, the directory it published is the one that has to
+    be named. That is pinned end to end in test_funnel_distil_publication.py,
+    against the directory on disk rather than against a counts key here."""
     result = funnel.render_yield(_five_key_counts())
 
     how_to_proceed = [line for line in result.splitlines() if line.startswith("How to proceed:")]
 
     assert len(how_to_proceed) == 1
     line = how_to_proceed[0]
-    assert "proposals" in line.lower()
     path_tokens = {token.strip(".,;:()'\"") for token in line.split() if "/" in token}
     assert any("dev/local/audit-results" in token for token in path_tokens)
-    assert any("proposal" in token.lower() for token in path_tokens)
-    assert len(path_tokens) >= 2
+    assert [token for token in path_tokens if "proposal" in token.lower()] == []
+    assert "audit-results/proposals" not in result
