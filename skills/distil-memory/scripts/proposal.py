@@ -138,9 +138,7 @@ def _has_well_formed_link(body: str) -> bool:
 
 
 def validate_distil_output(proposal: Proposal, index_has_names: bool) -> None:
-    """Raise ProposalError when `proposal` breaks this feature's own rules: the
-    memory type it owns, a body below the frontmatter, well-formed wiki links,
-    and one such link once the memory index holds names to point at."""
+    """Raise ProposalError when `proposal` breaks this feature's own rules."""
     validate(proposal)
 
     memory_type = parse_frontmatter(proposal.file_text)["metadata"]["type"]
