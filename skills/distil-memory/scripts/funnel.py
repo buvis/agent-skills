@@ -204,7 +204,7 @@ def triage(
     return survivors, discard_count
 
 
-def render_yield(counts: dict) -> str:
+def render_yield(counts: dict[str, int | None]) -> str:
     """Pure string formatting of the pipeline's yield report: no subprocess
     calls, no file I/O. `counts` carries transcripts_read, slices_matched,
     slices_kept and survivors (survivors is None for a --dry-run, rendered
@@ -217,8 +217,9 @@ def render_yield(counts: dict) -> str:
         f"slices_kept: {counts['slices_kept']}",
         f"survivors: {survivors_text}",
         "",
-        "How to proceed: review the survivors above and promote durable "
-        "facts from dev/local/audit-results/ into memory.",
+        "How to proceed: this report was also written to "
+        "dev/local/audit-results/. Review the survivors and promote "
+        "durable facts into memory.",
     ]
     return "\n".join(lines) + "\n"
 
