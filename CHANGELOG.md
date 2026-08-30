@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: narrow a proposed memory to the few existing memories it
+  might duplicate, by reading the memory index alone. Bullet links in
+  `MEMORY.md` become name-to-cue entries, and each is scored against the
+  proposal's name and description by the Jaccard ratio of their content words,
+  so a long entry that merely mentions the query's words ranks below a short one
+  that is about them. An absent index reads as an empty one, while an index that
+  exists but cannot be read raises rather than silently answering "no
+  duplicates".
 - **distil-memory**: publish a run's proposals and discards atomically. The
   output directory is reserved with an exclusive `mkdir`, built in a sibling
   staging directory, and swapped into place with a single rename, so a reader
