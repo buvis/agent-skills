@@ -302,8 +302,7 @@ class _PublishedDiscard:
     """A discard in the shape `proposal.write_proposals` reads it in.
 
     `distil.Discard` carries the slice it came from, the publisher wants the
-    transcript and line number themselves. Both of those modules are finished,
-    so the adaptation belongs on this side of the seam.
+    transcript and line number themselves.
     """
 
     transcript: Path
