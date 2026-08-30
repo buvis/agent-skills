@@ -33,14 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **distil-memory**: ask the funnel for proposals with `--distil`, and cap how
-  many slices it will distil with `--distil-limit` (25 by default, `0` for no
-  cap). A negative limit is a usage error that names the flag and stops before
-  a single transcript is read. The yield report gained five lines - proposals,
-  discards, new vs update, skipped by limit, dedup errors - each reading `n/a`
-  until the stage produces it, so a report never implies a count it does not
-  have. `--distil` alongside `--dry-run` says on stderr that it is being
-  ignored, since a dry run makes no model calls.
+- **distil-memory**: give the funnel the surface the distil stage reports on.
+  The yield report gained five lines - proposals, discards, new vs update,
+  skipped by limit, dedup errors - each reading `n/a` until a stage produces
+  it, so a report never implies a count it does not have. `--distil` and
+  `--distil-limit` (25 by default, `0` for no cap) are accepted; a negative
+  limit is a usage error that names the flag and stops before a single
+  transcript is read, and `--distil` alongside `--dry-run` says on stderr that
+  it is being ignored, since a dry run makes no model calls.
 - **distil-memory**: turn a surviving transcript slice into a complete memory
   file, or into a named discard. A strong-tier model gets the slice plus a few
   existing memories as anchors and answers with either a discard line or a
