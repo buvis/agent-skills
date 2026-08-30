@@ -358,9 +358,9 @@ def _type_proposal(
 
 
 def _run_distil(
-    survivors: list[Slice], limit: int
+    survivors: list[Slice],
 ) -> tuple[list[proposal.Proposal], list[_PublishedDiscard], str | None]:
-    """Distil the first `limit` survivors (0 means no cap) into proposals, each
+    """Distil `survivors` (already capped by the caller) into proposals, each
     typed against the memory plane beside its own transcript.
 
     Returns (proposals, discards, stage_error). A missing `claude` binary fails
@@ -375,7 +375,7 @@ def _run_distil(
     proposals: list[proposal.Proposal] = []
     discards: list[_PublishedDiscard] = []
     planes: dict[Path, tuple[str, list[str], bool, str | None]] = {}
-    for slice_ in survivors[: limit or None]:
+    for slice_ in survivors:
         memory_dir = slice_.transcript.parent / "memory"
         if memory_dir not in planes:
             planes[memory_dir] = _read_plane(memory_dir, dedup, distil)
@@ -397,19 +397,24 @@ def _run_distil(
 def _distil_and_publish(
     survivors: list[Slice], limit: int, out_dir: Path
 ) -> tuple[dict[str, object], str | None, str | None]:
-    """Run the distil stage and publish what it produced to `out_dir`.
+    """Run the distil stage over the first `limit` survivors (0 means no cap)
+    and publish what it produced to `out_dir`.
+
+    The cap is applied once here so the survivors distilled and the ones
+    counted as skipped can never be measured against two different rules.
 
     Returns (counts, stage_error, publish_error). Publication is attempted
     before the report is written, so a report on disk can never name a
     proposals directory that is not there.
     """
-    proposals, discards, stage_error = _run_distil(survivors, limit)
+    capped = survivors[: limit or None]
+    proposals, discards, stage_error = _run_distil(capped)
     new_count = sum(1 for record in proposals if proposal.updated_name(record.kind) is None)
     counts: dict[str, object] = {
         "proposals": len(proposals),
         "discards": len(discards),
         "new_vs_update": (new_count, len(proposals) - new_count),
-        "skipped_by_limit": len(survivors) - len(survivors[: limit or None]),
+        "skipped_by_limit": len(survivors) - len(capped),
         "dedup_errors": sum(1 for record in proposals if record.dedup_error is not None),
     }
     try:
