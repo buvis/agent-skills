@@ -241,16 +241,25 @@ def _run_triage(kept_slices: list[Slice]) -> tuple[int | None, str | None]:
         return None, str(exc)
 
 
-_REPORT_DIR = Path("dev/local/audit-results")
+def _report_dir() -> Path:
+    """dev/local/audit-results under the nearest ancestor of the cwd that
+    contains a .git entry, falling back to the cwd itself when none do.
+    Computed at call time (not a module constant) so it reflects the
+    caller's cwd rather than the cwd at import time."""
+    cwd = Path.cwd()
+    for candidate in (cwd, *cwd.parents):
+        if (candidate / ".git").exists():
+            return candidate / "dev" / "local" / "audit-results"
+    return cwd / "dev" / "local" / "audit-results"
 
 
-def _write_report(report: str) -> Path:
-    """Write `report` under _REPORT_DIR with a UTC-stamped filename and
+def _write_report(report: str, report_dir: Path) -> Path:
+    """Write `report` under report_dir with a UTC-stamped filename and
     return the path written. Raises OSError if the directory cannot be
     created or the file cannot be written."""
-    _REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    report_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    out_path = _REPORT_DIR / f"distil-memory-{timestamp}.md"
+    out_path = report_dir / f"distil-memory-{timestamp}.md"
     out_path.write_text(report)
     return out_path
 
@@ -303,10 +312,11 @@ def main(argv: list[str] | None = None) -> int:
     if triage_error is not None:
         print(triage_error, file=sys.stderr)
 
+    report_dir = _report_dir()
     try:
-        print(_write_report(report))
+        print(_write_report(report, report_dir))
     except OSError as exc:
-        print(f"failed to write report to {_REPORT_DIR}: {exc}", file=sys.stderr)
+        print(f"failed to write report to {report_dir}: {exc}", file=sys.stderr)
         return 1
 
     return 1 if triage_error is not None else 0
