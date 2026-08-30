@@ -217,43 +217,63 @@ def triage(
     return survivors, discard_count
 
 
-def render_yield(counts: dict[str, int | str | None]) -> str:
+def render_yield(counts: dict[str, object]) -> str:
     """Pure string formatting of the pipeline's yield report: no subprocess
-    calls, no file I/O. `counts` carries transcripts_read, slices_matched,
-    slices_kept, survivors (survivors is None for a --dry-run, rendered as
-    "n/a") and claude_checkup_version (the resolved parser version, per the
-    PRD's Phase 2 acceptance criteria)."""
-    survivors = counts["survivors"]
-    survivors_text = "n/a" if survivors is None else str(survivors)
+    calls, no file I/O, and no mutation of `counts`. `counts` carries
+    transcripts_read, slices_matched, slices_kept, survivors (survivors is
+    None for a --dry-run, rendered as "n/a") and claude_checkup_version (the
+    resolved parser version, per the PRD's Phase 2 acceptance criteria).
+
+    The distil stage's five counts (proposals, discards, new_vs_update,
+    skipped_by_limit, dedup_errors) are optional and read with `.get`, so a
+    caller from before that stage still renders. Missing or None means the
+    stage did not run and shows as "n/a"; a stage that ran and yielded
+    nothing reports 0. `new_vs_update` is a (new, update) pair of ints,
+    joined with a slash here - presentation belongs to the renderer.
+    """
+    def text(key: str) -> str:
+        value = counts.get(key)
+        return "n/a" if value is None else str(value)
+
+    pair = counts.get("new_vs_update")
     lines = [
         f"transcripts_read: {counts['transcripts_read']}",
         f"slices_matched: {counts['slices_matched']}",
         f"slices_kept: {counts['slices_kept']}",
-        f"survivors: {survivors_text}",
+        f"survivors: {text('survivors')}",
+        f"proposals: {text('proposals')}",
+        f"discards: {text('discards')}",
+        f"new_vs_update: {'n/a' if pair is None else f'{pair[0]}/{pair[1]}'}",
+        f"skipped_by_limit: {text('skipped_by_limit')}",
+        f"dedup_errors: {text('dedup_errors')}",
         f"claude_checkup_version: {counts['claude_checkup_version']}",
         "",
         "How to proceed: this report was also written to "
         "dev/local/audit-results/. Review the survivors and promote "
-        "durable facts into memory.",
+        "durable facts into memory. When the distil stage ran, its "
+        "proposals are under dev/local/audit-results/proposals/.",
     ]
     return "\n".join(lines) + "\n"
 
 
-def _run_triage(kept_slices: list[Slice]) -> tuple[int | None, str | None]:
+def _run_triage(kept_slices: list[Slice]) -> tuple[list[Slice], int | None, str | None]:
     """Cheap-tier triage with the model-call failure path folded in.
 
-    Returns (survivors_count, error_message). On any failure reaching the
-    `claude` CLI the count is None - rendered "n/a", the same as a dry run,
-    because no survivor count exists - and the message is the failure text.
-    The report still gets printed either way: a run must never go silent.
+    Returns (survivors, survivors_count, error_message), where the count is
+    always len(survivors) from the one triage pass, so the number reported
+    can never disagree with the slices handed back. On any failure reaching
+    the `claude` CLI there are no survivors and the count is None - rendered
+    "n/a", the same as a dry run, because no survivor count exists - and the
+    message is the failure text. The report still gets printed either way: a
+    run must never go silent.
     """
     try:
         survivors, _discard_count = triage(kept_slices)
-        return len(survivors), None
+        return survivors, len(survivors), None
     except subprocess.TimeoutExpired as exc:
-        return None, f"claude timed out after {exc.timeout}s"
+        return [], None, f"claude timed out after {exc.timeout}s"
     except (RuntimeError, OSError) as exc:
-        return None, str(exc)
+        return [], None, str(exc)
 
 
 def _report_dir() -> Path:
@@ -266,15 +286,25 @@ def _report_dir() -> Path:
     return root / "dev" / "local" / "audit-results"
 
 
-def _write_report(report: str, report_dir: Path) -> Path:
-    """Write `report` under report_dir with a UTC-stamped filename and
-    return the path written. Raises OSError if the directory cannot be
-    created or the file cannot be written."""
+def _write_report(report: str, report_dir: Path, timestamp: str) -> Path:
+    """Write `report` under report_dir named with the caller's `timestamp`
+    and return the path written. The stamp comes from the caller so every
+    artefact of one run carries the same one. Raises OSError if the
+    directory cannot be created or the file cannot be written."""
     report_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out_path = report_dir / f"distil-memory-{timestamp}.md"
     out_path.write_text(report)
     return out_path
+
+
+def _non_negative_int(value: str) -> int:
+    """argparse type for --distil-limit: 0 means no cap, any positive value
+    is a real cap, and a negative one is a usage error (it would slice
+    survivors from the end instead of capping them)."""
+    number = int(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError(f"must not be negative, got {number}")
+    return number
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -283,6 +313,8 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--project", default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--distil", action="store_true")
+    parser.add_argument("--distil-limit", type=_non_negative_int, default=25)
     return parser.parse_args(argv)
 
 
@@ -295,6 +327,8 @@ def main(argv: list[str] | None = None) -> int:
     failure.
     """
     args = _parse_args(argv)
+    if args.dry_run and args.distil:
+        print("--distil is ignored with --dry-run: a dry run makes no model calls", file=sys.stderr)
 
     try:
         module, resolved_version = corpus.resolve_parser()
@@ -310,7 +344,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.dry_run:
         survivors_count, triage_error = None, None
     else:
-        survivors_count, triage_error = _run_triage(kept_slices)
+        _survivors, survivors_count, triage_error = _run_triage(kept_slices)
 
     counts = {
         "transcripts_read": len(transcripts),
@@ -325,9 +359,12 @@ def main(argv: list[str] | None = None) -> int:
     if triage_error is not None:
         print(triage_error, file=sys.stderr)
 
+    # One wall-clock read per run, so every artefact this run writes shares
+    # a stamp even when the run crosses a second boundary.
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_dir = _report_dir()
     try:
-        print(_write_report(report, report_dir))
+        print(_write_report(report, report_dir, timestamp))
     except OSError as exc:
         print(f"failed to write report to {report_dir}: {exc}", file=sys.stderr)
         return 1
