@@ -4,8 +4,12 @@ private helpers, plus judge()'s subprocess seam and triage()'s cheap-tier pass."
 import dataclasses
 import json
 import subprocess
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import ModuleType
 
+import corpus
 import funnel
 import pytest
 
@@ -517,3 +521,241 @@ def test_triage_never_invokes_default_judges_subprocess_when_a_stub_judge_is_pro
 
     assert survivors == [slice_]
     assert discard_count == 0
+
+
+class FakeSessionData:
+    """Stand-in for the real claude-checkup parser's SessionData: an object
+    with `.earliest`/`.latest` datetime-or-None attributes."""
+
+    def __init__(self, latest=None, earliest=None):
+        self.latest = latest
+        self.earliest = earliest
+
+
+def make_transcript_parser_module(results_by_filename, *, version="0.3.0"):
+    """A parser module stub whose parse_session(path) looks up its result by
+    the transcript's filename, and which satisfies assert_contract()."""
+    module = ModuleType("stub_transcript_parser")
+    module.parse_session = lambda path: results_by_filename[Path(path).name]
+    module.SessionData = FakeSessionData
+    return module, version
+
+
+def write_transcript(project_dir: Path, filename: str, content: str = "") -> Path:
+    project_dir.mkdir(parents=True, exist_ok=True)
+    transcript_path = project_dir / filename
+    transcript_path.write_text(content)
+    return transcript_path
+
+
+def test_render_yield_performs_no_subprocess_calls_or_file_io(monkeypatch):
+    def fail_subprocess(*args, **kwargs):
+        raise AssertionError("render_yield must not invoke subprocess")
+
+    def fail_open(*args, **kwargs):
+        raise AssertionError("render_yield must not perform file I/O")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fail_subprocess)
+    monkeypatch.setattr("builtins.open", fail_open)
+    counts = {"transcripts_read": 3, "slices_matched": 2, "slices_kept": 1, "survivors": 1}
+
+    result = funnel.render_yield(counts)
+
+    assert isinstance(result, str)
+
+
+def test_render_yield_prints_every_stage_ending_in_zero_when_a_run_finds_nothing():
+    counts = {"transcripts_read": 0, "slices_matched": 0, "slices_kept": 0, "survivors": 0}
+
+    result = funnel.render_yield(counts)
+
+    lines = [line for line in result.splitlines() if line.strip()]
+    count_lines = lines[:4]
+    assert len(count_lines) == 4
+    for line in count_lines:
+        assert line.rstrip().endswith("0")
+
+
+def test_render_yield_prints_key_value_line_for_each_count_when_values_are_nonzero():
+    counts = {"transcripts_read": 12, "slices_matched": 8, "slices_kept": 5, "survivors": 3}
+
+    result = funnel.render_yield(counts)
+
+    assert "transcripts_read: 12" in result
+    assert "slices_matched: 8" in result
+    assert "slices_kept: 5" in result
+    assert "survivors: 3" in result
+
+
+def test_render_yield_renders_none_survivors_as_n_a_for_a_dry_run():
+    counts = {"transcripts_read": 5, "slices_matched": 3, "slices_kept": 2, "survivors": None}
+
+    result = funnel.render_yield(counts)
+
+    assert "survivors: n/a" in result
+
+
+def test_render_yield_ends_with_how_to_proceed_line_naming_the_audit_results_directory():
+    counts = {"transcripts_read": 5, "slices_matched": 3, "slices_kept": 2, "survivors": 1}
+
+    result = funnel.render_yield(counts)
+
+    last_line = result.rstrip("\n").splitlines()[-1]
+    assert last_line.startswith("How to proceed:")
+    assert "dev/local/audit-results/" in last_line
+
+
+def test_main_passes_days_all_project_flags_through_to_select_transcripts(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    calls = []
+
+    def fake_select_transcripts(**kwargs):
+        calls.append(kwargs)
+        return []
+
+    monkeypatch.setattr(corpus, "select_transcripts", fake_select_transcripts)
+
+    exit_code = funnel.main(["--days", "7", "--all", "--project", "myproj"])
+
+    assert exit_code == 0
+    assert calls == [{"days": 7, "all": True, "project": "myproj"}]
+
+
+def test_main_with_argv_none_falls_back_to_sys_argv_and_default_flags(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["funnel.py", "--dry-run"])
+    calls = []
+
+    def fake_select_transcripts(**kwargs):
+        calls.append(kwargs)
+        return []
+
+    monkeypatch.setattr(corpus, "select_transcripts", fake_select_transcripts)
+
+    exit_code = funnel.main()
+
+    assert exit_code == 0
+    assert calls == [{"days": 30, "all": False, "project": None}]
+
+
+def test_main_returns_nonzero_and_prints_message_when_select_transcripts_raises_stale_parser_error(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", tmp_path / "projects")
+
+    def raise_stale(*args, **kwargs):
+        raise corpus.StaleParserError("no claude-checkup versions found")
+
+    monkeypatch.setattr(corpus, "resolve_parser", raise_stale)
+
+    exit_code = funnel.main([])
+
+    assert exit_code != 0
+    captured = capsys.readouterr()
+    assert "no claude-checkup versions found" in (captured.out + captured.err)
+
+
+def test_main_normal_run_prints_and_writes_report_matching_render_yield_and_reflects_triage_discards(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+
+    now = datetime.now(timezone.utc)
+    write_transcript(
+        project_dir,
+        "t1.jsonl",
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
+        + "\n"
+        + json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "and confirmed that"}]}})
+        + "\n",
+    )
+    write_transcript(
+        project_dir,
+        "t2.jsonl",
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "nothing notable here"}]}})
+        + "\n",
+    )
+
+    module, version = make_transcript_parser_module(
+        {
+            "t1.jsonl": FakeSessionData(latest=now - timedelta(days=1)),
+            "t2.jsonl": FakeSessionData(latest=now - timedelta(days=1)),
+        }
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    def fake_run(cmd, **kwargs):
+        prompt = cmd[-1]
+        if prompt.endswith("and confirmed that"):
+            return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="transient", stderr="")
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="durable", stderr="")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+
+    exit_code = funnel.main([])
+
+    assert exit_code == 0
+    expected_counts = {
+        "transcripts_read": 2,
+        "slices_matched": 2,
+        "slices_kept": 2,
+        "survivors": 1,
+    }
+    expected_report = funnel.render_yield(expected_counts)
+
+    captured = capsys.readouterr()
+    assert expected_report in captured.out
+
+    report_files = sorted((tmp_path / "dev" / "local" / "audit-results").glob("distil-memory-*.md"))
+    assert len(report_files) == 1
+    assert report_files[0].read_text() == expected_report
+
+
+def test_main_dry_run_makes_no_model_call_and_prints_and_writes_report_matching_render_yield(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+
+    now = datetime.now(timezone.utc)
+    write_transcript(
+        project_dir,
+        "t1.jsonl",
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
+        + "\n",
+    )
+
+    module, version = make_transcript_parser_module(
+        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("dry run must not invoke subprocess (no model calls of any tier)")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fail_if_called)
+
+    exit_code = funnel.main(["--dry-run"])
+
+    assert exit_code == 0
+    expected_counts = {
+        "transcripts_read": 1,
+        "slices_matched": 1,
+        "slices_kept": 1,
+        "survivors": None,
+    }
+    expected_report = funnel.render_yield(expected_counts)
+
+    captured = capsys.readouterr()
+    assert expected_report in captured.out
+    assert "survivors: n/a" in captured.out
+
+    report_files = sorted((tmp_path / "dev" / "local" / "audit-results").glob("distil-memory-*.md"))
+    assert len(report_files) == 1
+    assert report_files[0].read_text() == expected_report
