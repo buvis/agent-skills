@@ -165,7 +165,7 @@ def test_raw_marker_hits_counts_one_hit_per_assistant_text_block():
     assert result == 2
 
 
-def test_raw_marker_hits_counts_multiple_markers_within_a_single_text_block_separately():
+def test_raw_marker_hits_counts_multiple_markers_within_a_single_text_block_as_one_hit():
     entries = [
         (
             1,
@@ -178,7 +178,7 @@ def test_raw_marker_hits_counts_multiple_markers_within_a_single_text_block_sepa
 
     result = funnel._raw_marker_hits(entries)
 
-    assert result == 3
+    assert result == 1
 
 
 @pytest.mark.parametrize(
@@ -255,9 +255,31 @@ def test_scan_produces_a_single_slice_for_one_surviving_text_block_with_multiple
 
     matched_count, kept_slices = funnel.scan([path])
 
-    assert matched_count == 2
+    assert matched_count == 1
     assert kept_slices == [
         funnel.Slice(text="We confirmed and then measured it", transcript=path, line_no=1, marker="confirmed"),
+    ]
+
+
+def test_scan_counts_markers_in_two_separate_text_blocks_of_one_entry_as_two_matched_and_two_kept_slices(tmp_path):
+    path = tmp_path / "transcript.jsonl"
+    entry = {
+        "type": "assistant",
+        "message": {
+            "content": [
+                {"type": "text", "text": "we measured this"},
+                {"type": "text", "text": "and confirmed that"},
+            ]
+        },
+    }
+    path.write_text(json.dumps(entry) + "\n")
+
+    matched_count, kept_slices = funnel.scan([path])
+
+    assert matched_count == 2
+    assert kept_slices == [
+        funnel.Slice(text="we measured this", transcript=path, line_no=1, marker="measured"),
+        funnel.Slice(text="and confirmed that", transcript=path, line_no=1, marker="confirmed"),
     ]
 
 
@@ -333,6 +355,56 @@ def test_scan_returns_zero_count_and_no_slices_for_transcript_with_no_markers(tm
 
     assert matched_count == 0
     assert kept_slices == []
+
+
+def test_scan_reads_each_transcript_exactly_once_and_never_materializes_its_entries_into_a_list(
+    tmp_path, monkeypatch
+):
+    path1 = tmp_path / "t1.jsonl"
+    path2 = tmp_path / "t2.jsonl"
+    path1.write_text(
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}}) + "\n"
+    )
+    path2.write_text(
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we confirmed that"}]}}) + "\n"
+    )
+
+    real_iter_entries = funnel._iter_entries
+    call_count = 0
+    length_hint_calls = []
+
+    class _StreamingOnlyIterator:
+        """Wraps the real per-transcript generator. `list(iterable)` calls
+        `__length_hint__` to presize its backing array before pulling any
+        items; a `for` loop or comprehension never does. Recording calls to
+        it detects `list(...)`-style materialization without touching the
+        `list` name/type itself (funnel.py's own `isinstance(x, list)`
+        checks depend on that name resolving to the real builtin)."""
+
+        def __init__(self, generator):
+            self._generator = generator
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            return next(self._generator)
+
+        def __length_hint__(self):
+            length_hint_calls.append(1)
+            return 0
+
+    def counting_iter_entries(p):
+        nonlocal call_count
+        call_count += 1
+        return _StreamingOnlyIterator(real_iter_entries(p))
+
+    monkeypatch.setattr(funnel, "_iter_entries", counting_iter_entries)
+
+    matched_count, kept_slices = funnel.scan([path1, path2])
+
+    assert call_count == 2
+    assert length_hint_calls == []
 
 
 def test_slice_on_markers_returns_the_same_slices_as_scan(tmp_path):
