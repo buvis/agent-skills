@@ -99,6 +99,33 @@ def _memory_plane(tmp_path: Path, memories: dict[str, str]) -> Path:
     return memory_dir
 
 
+def _record_reads(monkeypatch) -> list[Path]:
+    """Every door onto a file's bytes - `Path.read_text`, `Path.open` and the
+    builtin `open`, any of which a correct reader may use - patched to record
+    the path it was handed into the list returned."""
+    read_text = Path.read_text
+    path_open = Path.open
+    builtin_open = builtins.open
+    paths_read = []
+
+    def recording_read_text(self, *args, **kwargs):
+        paths_read.append(self)
+        return read_text(self, *args, **kwargs)
+
+    def recording_path_open(self, *args, **kwargs):
+        paths_read.append(self)
+        return path_open(self, *args, **kwargs)
+
+    def recording_open(file, *args, **kwargs):
+        paths_read.append(Path(file))
+        return builtin_open(file, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", recording_read_text)
+    monkeypatch.setattr(Path, "open", recording_path_open)
+    monkeypatch.setattr(builtins, "open", recording_open)
+    return paths_read
+
+
 class TestDecisionSide:
     """read_candidates() reads exactly the shortlisted files, and classify()
     types the proposal `new` or `update <name>` without touching a file."""
@@ -192,29 +219,11 @@ class TestDecisionSide:
         memory_dir = _memory_plane(tmp_path, memories)
         (memory_dir / "MEMORY.md").write_text(_RANKING_INDEX)
 
-        read_text = Path.read_text
-        path_open = Path.open
-        builtin_open = builtins.open
-        paths_read = []
-
-        def recording_read_text(self, *args, **kwargs):
-            paths_read.append(self)
-            return read_text(self, *args, **kwargs)
-
-        def recording_path_open(self, *args, **kwargs):
-            paths_read.append(self)
-            return path_open(self, *args, **kwargs)
-
-        def recording_open(file, *args, **kwargs):
-            paths_read.append(Path(file))
-            return builtin_open(file, *args, **kwargs)
+        paths_read = _record_reads(monkeypatch)
 
         def fail_if_called(*args, **kwargs):
             raise AssertionError("read_candidates must not list the memory plane")
 
-        monkeypatch.setattr(Path, "read_text", recording_read_text)
-        monkeypatch.setattr(Path, "open", recording_path_open)
-        monkeypatch.setattr(builtins, "open", recording_open)
         monkeypatch.setattr(Path, "glob", fail_if_called)
         monkeypatch.setattr(Path, "iterdir", fail_if_called)
         monkeypatch.setattr(os, "listdir", fail_if_called)
@@ -327,26 +336,7 @@ class TestDecisionSide:
         outside.mkdir()
         (outside / "secret.md").write_text("A file the memory plane does not hold.\n")
 
-        read_text = Path.read_text
-        path_open = Path.open
-        builtin_open = builtins.open
-        paths_read = []
-
-        def recording_read_text(self, *args, **kwargs):
-            paths_read.append(self)
-            return read_text(self, *args, **kwargs)
-
-        def recording_path_open(self, *args, **kwargs):
-            paths_read.append(self)
-            return path_open(self, *args, **kwargs)
-
-        def recording_open(file, *args, **kwargs):
-            paths_read.append(Path(file))
-            return builtin_open(file, *args, **kwargs)
-
-        monkeypatch.setattr(Path, "read_text", recording_read_text)
-        monkeypatch.setattr(Path, "open", recording_path_open)
-        monkeypatch.setattr(builtins, "open", recording_open)
+        paths_read = _record_reads(monkeypatch)
 
         candidates, unread_names = dedup.read_candidates(
             memory_dir,

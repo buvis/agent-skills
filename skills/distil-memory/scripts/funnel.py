@@ -484,6 +484,31 @@ def _report_outcome(
     return 1 if triage_error is not None or distil_error is not None else 0
 
 
+def _distil_if_enabled(
+    args: argparse.Namespace,
+    survivors: list[Slice],
+    triage_error: str | None,
+    out_dir: Path,
+) -> tuple[dict[str, object], str | None, str | None, Path | None]:
+    """The distil stage's counts, its two errors, and the directory it
+    published - or four empty answers when the stage does not run.
+
+    Returns (counts, distil_error, publish_error, published_dir). A stage that
+    did not run contributes no counts, so the report renders its numbers "n/a";
+    a failed publication names no directory, so a report can never point at one
+    that is not there.
+    """
+    # A triage that failed handed the stage no input, so the stage never ran and
+    # its counts stay "n/a". An empty survivor list from a triage that ANSWERED
+    # is a stage that ran and found nothing, which still publishes and reports 0.
+    if args.distil and not args.dry_run and triage_error is None:
+        counts, distil_error, publish_error = _distil_and_publish(
+            survivors, args.distil_limit, out_dir
+        )
+        return counts, distil_error, publish_error, out_dir if publish_error is None else None
+    return {}, None, None, None
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point: select transcripts, scan and (unless --dry-run)
     triage them, distil the survivors behind --distil, then print and write
@@ -523,18 +548,10 @@ def main(argv: list[str] | None = None) -> int:
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_dir = _report_dir()
-    distil_error = publish_error = None
-    published_dir = None
-    # A triage that failed handed the stage no input, so the stage never ran and
-    # its counts stay "n/a". An empty survivor list from a triage that ANSWERED
-    # is a stage that ran and found nothing, which still publishes and reports 0.
-    if args.distil and not args.dry_run and triage_error is None:
-        out_dir = report_dir / f"distil-memory-{timestamp}-proposals"
-        distil_counts, distil_error, publish_error = _distil_and_publish(
-            survivors, args.distil_limit, out_dir
-        )
-        counts.update(distil_counts)
-        published_dir = out_dir if publish_error is None else None
+    distil_counts, distil_error, publish_error, published_dir = _distil_if_enabled(
+        args, survivors, triage_error, report_dir / f"distil-memory-{timestamp}-proposals"
+    )
+    counts.update(distil_counts)
 
     return _report_outcome(
         counts, report_dir, timestamp, (triage_error, distil_error, publish_error), published_dir
