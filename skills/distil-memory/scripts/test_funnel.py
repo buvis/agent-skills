@@ -710,21 +710,11 @@ def test_main_normal_run_prints_and_writes_report_matching_render_yield_and_refl
     monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
     project_dir = projects_root / "aaaa-myproj"
 
+    def write_jsonl(filename, texts):
+        write_transcript(project_dir, filename, "".join(json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": t}]}}) + "\n" for t in texts))
     now = datetime.now(timezone.utc)
-    write_transcript(
-        project_dir,
-        "t1.jsonl",
-        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
-        + "\n"
-        + json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "and confirmed that"}]}})
-        + "\n",
-    )
-    write_transcript(
-        project_dir,
-        "t2.jsonl",
-        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "nothing notable here"}]}})
-        + "\n",
-    )
+    write_jsonl("t1.jsonl", ["we measured this", "and confirmed that"])
+    write_jsonl("t2.jsonl", ["nothing notable here"])
 
     module, version = make_transcript_parser_module(
         {
