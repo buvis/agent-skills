@@ -315,39 +315,59 @@ def test_advance_with_new_cursor_also_resets_session_progress(queue_path):
     assert queue.next_undecided(path=queue_path) is not None
 
 
-def test_per_run_cap_yields_ten_of_twenty_five_and_a_second_run_covers_the_rest(queue_path):
+def test_per_run_cap_yields_ten_of_twenty_five_and_a_second_run_advances_past_them(queue_path):
+    # The cap is PER SITTING, not a one-time gate: advance() "unlocks the next
+    # PER_RUN_CAP calls" (the module's own advance() contract), so a queue of
+    # 25 is drainable over SEVERAL capped sittings (10 + 10 + 5), matching the
+    # PRD's stated "several capped runs" scenario for large batches. A second
+    # run of unlimited length (deciding all 15 remaining without a second
+    # advance()) would require the cap to disappear after one lift, which
+    # contradicts "unlocking the NEXT PER_RUN_CAP calls."
     proposals = [_proposal(transcript="t.jsonl", line_no=n) for n in range(1, 26)]
     queue.save(proposals, path=queue_path)
 
-    decided_first_run = []
-    while True:
-        entry = queue.next_undecided(path=queue_path)
-        if entry is None:
-            break
-        queue.decide(entry["id"], "kept", path=queue_path)
-        decided_first_run.append(entry["id"])
+    def _decide_until_capped():
+        decided = []
+        while True:
+            entry = queue.next_undecided(path=queue_path)
+            if entry is None:
+                break
+            queue.decide(entry["id"], "kept", path=queue_path)
+            decided.append(entry["id"])
+        return decided
+
+    decided_first_run = _decide_until_capped()
 
     assert len(decided_first_run) == queue.PER_RUN_CAP
     assert queue.cursor(path=queue_path) == 10
 
-    remaining_undecided = [
+    remaining_after_first_run = [
         e for e in queue.load(path=queue_path)["entries"] if e["decision"] == "undecided"
     ]
-    assert len(remaining_undecided) == 15
+    assert len(remaining_after_first_run) == 15
 
     queue.advance(path=queue_path)
+    decided_second_run = _decide_until_capped()
 
-    decided_second_run = []
-    while True:
-        entry = queue.next_undecided(path=queue_path)
-        if entry is None:
-            break
-        queue.decide(entry["id"], "kept", path=queue_path)
-        decided_second_run.append(entry["id"])
-
-    assert len(decided_second_run) == 15
+    # "a second run advances past them" (verbatim PRD acceptance text): the
+    # cursor must move past the first 10, but a second capped sitting cannot
+    # drain more than PER_RUN_CAP more even though 15 remain.
+    assert len(decided_second_run) == queue.PER_RUN_CAP
+    assert queue.cursor(path=queue_path) == 20
     assert set(decided_first_run).isdisjoint(decided_second_run)
+
+    remaining_after_second_run = [
+        e for e in queue.load(path=queue_path)["entries"] if e["decision"] == "undecided"
+    ]
+    assert len(remaining_after_second_run) == 5
+
+    queue.advance(path=queue_path)
+    decided_third_run = _decide_until_capped()
+
+    assert len(decided_third_run) == 5
     assert queue.cursor(path=queue_path) == 25
+    all_decided = set(decided_first_run) | set(decided_second_run) | set(decided_third_run)
+    assert len(all_decided) == 25
 
 
 def test_rejected_is_false_for_an_unknown_key(queue_path):
