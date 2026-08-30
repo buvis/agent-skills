@@ -10,7 +10,7 @@ from pathlib import Path
 
 import funnel
 
-from test_funnel_distil import (
+from funnel_test_helpers import (
     FakeClaudeCli,
     _PROPOSAL_ONE,
     _PROPOSAL_TWO,

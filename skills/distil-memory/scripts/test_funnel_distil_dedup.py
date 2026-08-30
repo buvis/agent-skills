@@ -7,7 +7,7 @@ import dedup
 import distil
 import funnel
 
-from test_funnel_distil import (
+from funnel_test_helpers import (
     FakeClaudeCli,
     _MEMORY_CHEAP_TIER_MAP,
     _MEMORY_REPORT_DIRECTORY,

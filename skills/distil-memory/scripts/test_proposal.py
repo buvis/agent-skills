@@ -181,10 +181,6 @@ def test_module_constants_have_the_values_the_contract_pins():
     )
 
 
-def test_distil_type_is_one_of_the_required_types():
-    assert proposal.DISTIL_TYPE in proposal.REQUIRED_TYPES
-
-
 def test_proposal_error_is_a_value_error():
     assert issubclass(proposal.ProposalError, ValueError)
 

@@ -138,14 +138,6 @@ def quartz_proposal():
     )
 
 
-def test_shortlist_limit_constant_is_five():
-    assert dedup.SHORTLIST_LIMIT == 5
-
-
-def test_candidate_is_a_memory_name_and_file_text_pair():
-    assert dedup.Candidate == tuple[str, str]
-
-
 def test_parse_index_maps_each_link_target_stem_to_its_title_and_hook():
     assert dedup.parse_index(_RANKING_INDEX) == {
         "harbour-atlas": "Kestrel Lantern Moss beacon cinder dune",

@@ -14,30 +14,7 @@ import corpus
 import funnel
 import pytest
 
-
-class FakeSessionData:
-    """Stand-in for the real claude-checkup parser's SessionData: an object
-    with `.earliest`/`.latest` datetime-or-None attributes."""
-
-    def __init__(self, latest=None, earliest=None):
-        self.latest = latest
-        self.earliest = earliest
-
-
-def make_transcript_parser_module(results_by_filename, *, version="0.3.0"):
-    """A parser module stub whose parse_session(path) looks up its result by
-    the transcript's filename, and which satisfies assert_contract()."""
-    module = ModuleType("stub_transcript_parser")
-    module.parse_session = lambda path: results_by_filename[Path(path).name]
-    module.SessionData = FakeSessionData
-    return module, version
-
-
-def write_transcript(project_dir: Path, filename: str, content: str = "") -> Path:
-    project_dir.mkdir(parents=True, exist_ok=True)
-    transcript_path = project_dir / filename
-    transcript_path.write_text(content)
-    return transcript_path
+from funnel_test_helpers import FakeSessionData, make_transcript_parser_module, write_transcript
 
 
 def test_main_passes_days_all_project_flags_through_to_select_transcripts(tmp_path, monkeypatch):
