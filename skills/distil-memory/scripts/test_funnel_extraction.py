@@ -352,6 +352,43 @@ def test_scan_returns_zero_count_and_no_slices_for_transcript_with_no_markers(tm
     assert kept_slices == []
 
 
+class _TrackedEntry(dict):
+    """A dict that logs every `.get()` call - the only way funnel.py reads
+    entry fields - onto a shared events list. A "get" event proves scan()
+    is actively working on this entry, not just holding a reference pulled
+    ahead of time."""
+
+    def __init__(self, data, entry_id, events):
+        super().__init__(data)
+        self._entry_id = entry_id
+        self._events = events
+
+    def get(self, *args, **kwargs):
+        self._events.append(("get", self._entry_id))
+        return super().get(*args, **kwargs)
+
+
+def _make_tracking_iter_entries(events):
+    """Wrap funnel._iter_entries so scan()'s pull order becomes observable
+    through `events`: each call appends a ("called", path) event, and each
+    yielded entry appends a ("yielded", entry_id) event and is wrapped in
+    _TrackedEntry so later field reads append their own "get" events."""
+    real_iter_entries = funnel._iter_entries
+
+    def tracking_iter_entries(p):
+        events.append(("called", str(p)))
+
+        def generator():
+            for line_no, entry in real_iter_entries(p):
+                entry_id = (str(p), line_no)
+                events.append(("yielded", entry_id))
+                yield line_no, _TrackedEntry(entry, entry_id, events)
+
+        return generator()
+
+    return tracking_iter_entries
+
+
 def test_scan_finishes_each_entry_before_pulling_the_next_and_reads_each_transcript_once(
     tmp_path, monkeypatch
 ):
@@ -379,39 +416,11 @@ def test_scan_finishes_each_entry_before_pulling_the_next_and_reads_each_transcr
     )
 
     events: list[tuple] = []
-
-    class _TrackedEntry(dict):
-        """A dict that logs every `.get()` call - the only way funnel.py
-        reads entry fields. A "get" event proves scan() is actively working
-        on this entry, not just holding a reference pulled ahead of time."""
-
-        def __init__(self, data, entry_id):
-            super().__init__(data)
-            self._entry_id = entry_id
-
-        def get(self, *args, **kwargs):
-            events.append(("get", self._entry_id))
-            return super().get(*args, **kwargs)
-
-    real_iter_entries = funnel._iter_entries
-    call_count = 0
-
-    def tracking_iter_entries(p):
-        nonlocal call_count
-        call_count += 1
-
-        def generator():
-            for line_no, entry in real_iter_entries(p):
-                entry_id = (str(p), line_no)
-                events.append(("yielded", entry_id))
-                yield line_no, _TrackedEntry(entry, entry_id)
-
-        return generator()
-
-    monkeypatch.setattr(funnel, "_iter_entries", tracking_iter_entries)
+    monkeypatch.setattr(funnel, "_iter_entries", _make_tracking_iter_entries(events))
 
     funnel.scan([path1, path2])
 
+    call_count = sum(1 for e in events if e[0] == "called")
     assert call_count == 2
 
     first_entry_id = (str(path1), 1)
