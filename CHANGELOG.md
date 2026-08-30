@@ -72,10 +72,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never overwrites an existing memory that happens to share a filename, and an
   update that did not change the description leaves `MEMORY.md` untouched.
 - **distil-memory**: proposal decisions now persist across sessions. Each run's
-  proposals are queued to disk, so an interrupted approval sitting resumes at
-  the next undecided proposal with no duplicates and no skips. A sitting is
-  capped at 10 decisions; a dropped proposal is filtered out of later runs
-  over the same window unless the distil rubric changes, which reopens it.
+  proposals are queued to disk by `scripts/docket.py`, so an interrupted
+  approval sitting resumes at the next undecided proposal with no duplicates
+  and no skips. A sitting is capped at 10 decisions; a dropped proposal is
+  filtered out of later runs over the same window unless the distil rubric
+  changes, which reopens it. The queue file itself stays
+  `dev/local/audit-results/distil-memory-queue.json`.
+- **distil-memory**: a keep / edit / drop approval walkthrough. The skill now
+  documents how to decide queued proposals one at a time and write the kept
+  ones into the memory store beside the transcript that produced them. Nothing
+  reaches a memory directory without an explicit per-entry decision, and the
+  stage is invoked, never triggered - there is no always-on hook.
 - **distil-memory**: `--distil` now turns surviving slices into memory-file
   proposals on disk. Each run publishes a
   `dev/local/audit-results/distil-memory-<stamp>-proposals/` directory holding

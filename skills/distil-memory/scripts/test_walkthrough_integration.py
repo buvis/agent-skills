@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import queue
+import docket
 import write
 
 
@@ -35,7 +35,7 @@ _EDITED_FILE_TEXT = (
 
 
 def _next_entry(queue_path: Path) -> dict:
-    entry = queue.next_undecided(path=queue_path)
+    entry = docket.next_undecided(path=queue_path)
     assert entry is not None
     return entry
 
@@ -46,10 +46,10 @@ def _keep_and_publish(
     store_path: Path,
     file_text: str | None = None,
 ) -> tuple[dict, Path, str | None]:
-    queue.decide(entry["id"], "kept", file_text=file_text, path=queue_path)
+    docket.decide(entry["id"], "kept", file_text=file_text, path=queue_path)
     kept = next(
         e
-        for e in reversed(queue.load(path=queue_path)["entries"])
+        for e in reversed(docket.load(path=queue_path)["entries"])
         if e["id"] == entry["id"]
     )
     memory = write.write_memory(kept, store_path=store_path)
@@ -63,20 +63,20 @@ def test_scripted_walkthrough_writes_keeps_filters_drops_and_resumes_without_gap
     queue_path = tmp_path / "queue.json"
     store_path = tmp_path / "memory"
     store_path.mkdir()
-    assert queue.save(_PROPOSALS, path=queue_path) == 5
+    assert docket.save(_PROPOSALS, path=queue_path) == 5
     first = _next_entry(queue_path)
     _, first_memory, first_pointer = _keep_and_publish(
         first, queue_path, store_path
     )
     second = _next_entry(queue_path)
-    queue.decide(second["id"], "dropped", path=queue_path)
-    reloaded = queue.load(path=queue_path)
+    docket.decide(second["id"], "dropped", path=queue_path)
+    reloaded = docket.load(path=queue_path)
     assert [entry["decision"] for entry in reloaded["entries"]] == [
         "kept", "dropped", "undecided",
         "undecided", "undecided",
     ]
     assert len({entry["id"] for entry in reloaded["entries"]}) == 5
-    queue.advance(path=queue_path)
+    docket.advance(path=queue_path)
     third = _next_entry(queue_path)
     assert third["id"] == reloaded["entries"][2]["id"]
     assert third["id"] not in {first["id"], second["id"]}
@@ -85,19 +85,19 @@ def test_scripted_walkthrough_writes_keeps_filters_drops_and_resumes_without_gap
     )
     assert third_kept["file_text"] == _EDITED_FILE_TEXT
     fourth = _next_entry(queue_path)
-    queue.decide(fourth["id"], "dropped", path=queue_path)
+    docket.decide(fourth["id"], "dropped", path=queue_path)
     fifth = _next_entry(queue_path)
     _keep_and_publish(fifth, queue_path, store_path)
-    completed = queue.load(path=queue_path)
+    completed = docket.load(path=queue_path)
     assert [entry["decision"] for entry in completed["entries"]] == [
         "kept", "dropped", "kept", "dropped", "kept",
     ]
-    assert queue.cursor(path=queue_path) == 5
+    assert docket.cursor(path=queue_path) == 5
     assert first_memory.read_text() == _PROPOSALS[0]["file_text"]
     assert first_pointer is not None
     assert first_pointer in (store_path / "MEMORY.md").read_text()
     assert (store_path / "walkthrough-memory-3.md").read_text() == _EDITED_FILE_TEXT
-    assert queue.save(_PROPOSALS, path=queue_path) == 0
-    assert queue.rejected(second["id"], queue.RUBRIC_VERSION, path=queue_path)
-    second_pass = queue.load(path=queue_path)
+    assert docket.save(_PROPOSALS, path=queue_path) == 0
+    assert docket.rejected(second["id"], docket.RUBRIC_VERSION, path=queue_path)
+    second_pass = docket.load(path=queue_path)
     assert sum(entry["id"] == second["id"] for entry in second_pass["entries"]) == 1

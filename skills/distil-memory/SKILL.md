@@ -141,7 +141,7 @@ explicit per-entry decision.
 Before the first sitting, add the published proposals to the durable queue:
 
 ```bash
-python3 ~/.agents/skills/distil-memory/scripts/queue.py save --proposals-dir <proposals-dir>
+python3 ~/.agents/skills/distil-memory/scripts/docket.py save --proposals-dir <proposals-dir>
 ```
 
 Then run this walkthrough in chat. Ask about one entry at a time, with no bulk
@@ -151,17 +151,17 @@ approval or rejection:
    lifetime cursor:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/queue.py start
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py start
    ```
 
 2. Get the next undecided entry and keep the printed JSON as `entry.json`:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/queue.py next > entry.json
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py next > entry.json
    ```
 
    Empty output with exit 1 means either the queue is drained or this sitting
-   has reached `queue.PER_RUN_CAP` (10). Stop and report. `next` enforces the
+   has reached `docket.PER_RUN_CAP` (10). Stop and report. `next` enforces the
    cap itself, so do not count decisions in chat.
 
 3. Show `transcript`, `line_no`, and `evidence_text`, then show the proposed
@@ -171,18 +171,18 @@ approval or rejection:
 4. For drop, record the decision and return to step 2:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/queue.py decide "<id>" dropped
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" dropped
    ```
 
 5. For keep with no edit, record the decision, derive the store path as
    `Path(entry["transcript"]).parent / "memory"`, then write the saved entry:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/queue.py decide "<id>" kept
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" kept
    python3 ~/.agents/skills/distil-memory/scripts/write.py write --store "<store-path>" < entry.json
    ```
 
-   The driver computes `<store-path>` from the entry. Neither `queue.py` nor
+   The driver computes `<store-path>` from the entry. Neither `docket.py` nor
    `write.py` computes it. `write.py` prints the memory file path, followed by
    the `MEMORY.md` pointer line or the literal `MEMORY.md: unchanged`.
 
@@ -197,7 +197,7 @@ approval or rejection:
    `entry.json`, save the same text as `<edited-file-path>`, then run:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/queue.py decide "<id>" kept --file "<edited-file-path>"
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" kept --file "<edited-file-path>"
    python3 ~/.agents/skills/distil-memory/scripts/write.py write --store "<store-path>" < entry.json
    ```
 
@@ -211,7 +211,7 @@ approval or rejection:
    dropped entries, the lifetime cursor printed by:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/queue.py cursor
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py cursor
    ```
 
    Also include every path written. Compare the cursor with the total entry
