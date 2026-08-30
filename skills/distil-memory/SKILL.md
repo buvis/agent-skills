@@ -13,7 +13,8 @@ summaries, non-assistant turns), then asks a cheap-tier judge to separate
 durable facts from transient confirmations (a passing test, a repeated "yes
 it works"). What survives becomes a yield report naming what to review and
 promote by hand, and behind `--distil` a set of typed, evidenced proposals a
-human promotes - this skill never writes to memory itself.
+human reviews. A separate approval stage can write a proposal, but only after
+an explicit per-entry decision.
 
 ## Dependencies
 
@@ -126,9 +127,101 @@ memory file) plus `proposals.json` and `discards.json`. That directory is
 published atomically - a reader sees a complete directory or none at all,
 never a partial one.
 
-Review the survivors and proposals by hand and promote what is durable into
-memory - this skill stops at typed, evidenced proposals and never writes to
-memory itself.
+Review the survivors and proposals by hand. The five-stage pipeline stops at
+typed, evidenced proposals. Use the approval stage below to decide whether to
+write each one.
+
+## Approval walkthrough (stage 6)
+
+This stage is invoked after a distil run has published a proposals directory.
+There is no always-on hook; this stage is invoked, never triggered. No
+automatic write anywhere: nothing reaches a memory directory without an
+explicit per-entry decision.
+
+Before the first sitting, add the published proposals to the durable queue:
+
+```bash
+python3 ~/.agents/skills/distil-memory/scripts/queue.py save --proposals-dir <proposals-dir>
+```
+
+Then run this walkthrough in chat. Ask about one entry at a time, with no bulk
+approval or rejection:
+
+1. Start the sitting once. This resets the sitting's decision count, not the
+   lifetime cursor:
+
+   ```bash
+   python3 ~/.agents/skills/distil-memory/scripts/queue.py start
+   ```
+
+2. Get the next undecided entry and keep the printed JSON as `entry.json`:
+
+   ```bash
+   python3 ~/.agents/skills/distil-memory/scripts/queue.py next > entry.json
+   ```
+
+   Empty output with exit 1 means either the queue is drained or this sitting
+   has reached `queue.PER_RUN_CAP` (10). Stop and report. `next` enforces the
+   cap itself, so do not count decisions in chat.
+
+3. Show `transcript`, `line_no`, and `evidence_text`, then show the proposed
+   `file_text`. For an update, show `existing_text` beside `file_text`. Ask for
+   one decision: keep, edit, or drop.
+
+4. For drop, record the decision and return to step 2:
+
+   ```bash
+   python3 ~/.agents/skills/distil-memory/scripts/queue.py decide "<id>" dropped
+   ```
+
+5. For keep with no edit, record the decision, derive the store path as
+   `Path(entry["transcript"]).parent / "memory"`, then write the saved entry:
+
+   ```bash
+   python3 ~/.agents/skills/distil-memory/scripts/queue.py decide "<id>" kept
+   python3 ~/.agents/skills/distil-memory/scripts/write.py write --store "<store-path>" < entry.json
+   ```
+
+   The driver computes `<store-path>` from the entry. Neither `queue.py` nor
+   `write.py` computes it. `write.py` prints the memory file path, followed by
+   the `MEMORY.md` pointer line or the literal `MEMORY.md: unchanged`.
+
+6. For edit, use `funnel.judge(prompt, "strong")`, the skill's one model-call
+   route, to re-emit the whole memory file with the requested change. Validate
+   that whole file with `proposal.validate_distil_output` before replacing the
+   queued `file_text`. If validation fails, report the failure, write nothing,
+   and leave the proposal undecided. A re-emitted file failing the frontmatter
+   contract is not written, and the proposal stays undecided.
+
+   After validation succeeds, replace `file_text` in the driver's saved
+   `entry.json`, save the same text as `<edited-file-path>`, then run:
+
+   ```bash
+   python3 ~/.agents/skills/distil-memory/scripts/queue.py decide "<id>" kept --file "<edited-file-path>"
+   python3 ~/.agents/skills/distil-memory/scripts/write.py write --store "<store-path>" < entry.json
+   ```
+
+   Derive `<store-path>` with the same expression from step 5. The `--file`
+   value replaces the queue entry's `file_text`; the refreshed `entry.json`
+   gives that same replacement to `write.py`. Return to step 2 after any
+   completed decision.
+
+7. When `next` exits 1, write a sitting report under
+   `dev/local/audit-results/`. Include counts of kept without edit, edited, and
+   dropped entries, the lifetime cursor printed by:
+
+   ```bash
+   python3 ~/.agents/skills/distil-memory/scripts/queue.py cursor
+   ```
+
+   Also include every path written. Compare the cursor with the total entry
+   count in `dev/local/audit-results/distil-memory-queue.json` to distinguish a
+   drained queue from a sitting that stopped at the cap. End with this verbatim
+   block:
+
+   ```text
+   How to proceed: this report was also written to dev/local/audit-results/. Review the survivors and promote durable facts into memory.
+   ```
 
 ## Out of scope
 
