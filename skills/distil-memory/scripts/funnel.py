@@ -15,11 +15,16 @@ Exclusions applied by assistant_only:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterable, Iterator
+import argparse
 import json
 import re
 import subprocess
+import sys
+
+import corpus
 
 
 def _is_compaction_entry(entry: dict) -> bool:
@@ -197,3 +202,76 @@ def triage(
         else:
             survivors.append(slice_)
     return survivors, discard_count
+
+
+def render_yield(counts: dict) -> str:
+    """Pure string formatting of the pipeline's yield report: no subprocess
+    calls, no file I/O. `counts` carries transcripts_read, slices_matched,
+    slices_kept and survivors (survivors is None for a --dry-run, rendered
+    as "n/a")."""
+    survivors = counts["survivors"]
+    survivors_text = "n/a" if survivors is None else str(survivors)
+    lines = [
+        f"transcripts_read: {counts['transcripts_read']}",
+        f"slices_matched: {counts['slices_matched']}",
+        f"slices_kept: {counts['slices_kept']}",
+        f"survivors: {survivors_text}",
+        "",
+        "How to proceed: review the survivors above and promote durable "
+        "facts from dev/local/audit-results/ into memory.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _parse_args(argv: list[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--days", type=int, default=30)
+    parser.add_argument("--all", action="store_true")
+    parser.add_argument("--project", default=None)
+    parser.add_argument("--dry-run", action="store_true")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI entry point: select transcripts, scan and (unless --dry-run)
+    triage them, then print and write the yield report.
+
+    Returns 0 on success.
+    """
+    args = _parse_args(argv)
+
+    try:
+        transcripts = corpus.select_transcripts(days=args.days, all=args.all, project=args.project)
+    except corpus.StaleParserError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+    matched_count, kept_slices = scan(transcripts)
+
+    if args.dry_run:
+        survivors_count = None
+    else:
+        survivors, _discard_count = triage(kept_slices)
+        survivors_count = len(survivors)
+
+    counts = {
+        "transcripts_read": len(transcripts),
+        "slices_matched": matched_count,
+        "slices_kept": len(kept_slices),
+        "survivors": survivors_count,
+    }
+    report = render_yield(counts)
+    print(report)
+
+    out_dir = Path("dev/local/audit-results")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    out_path = out_dir / f"distil-memory-{timestamp}.md"
+    out_path.write_text(report)
+    print(out_path)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
