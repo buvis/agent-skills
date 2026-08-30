@@ -8,7 +8,8 @@ Exclusions applied by assistant_only:
 4. A content block without a "text" key (tool_use, thinking,
    redacted_thinking) - excluded per-block, not per-entry: a kept entry
    can still drop some of its blocks.
-5. A "text" block that is empty or whitespace-only - nothing to slice.
+5. A "text" block that is empty or whitespace-only -
+   `_assistant_text_blocks` already excludes it, nothing to slice.
 """
 
 from __future__ import annotations
@@ -74,7 +75,8 @@ def assistant_only(entries: Iterable[tuple[int, dict]]) -> list[tuple[int, str]]
     4. A content block without a "text" key (tool_use, thinking,
        redacted_thinking) - excluded per-block, not per-entry: a kept entry
        can still drop some of its blocks.
-    5. A "text" block that is empty or whitespace-only - nothing to slice.
+    5. A "text" block that is empty or whitespace-only -
+       `_assistant_text_blocks` already excludes it, nothing to slice.
 
     Returns one (line_no, text) pair per surviving text block.
     """
