@@ -7,11 +7,11 @@ import json
 import sys
 from pathlib import Path
 
-PER_RUN_CAP = 10
-RUBRIC_VERSION = "1"
+PER_RUN_CAP = 10  # walkthrough decisions per sitting; unbased guess, tune after first real run (PRD Risks)
+RUBRIC_VERSION = "1"  # bump by hand when distil.py's _DISTIL_PROMPT changes meaningfully; re-opens drops made under the old value
 
 
-class QueueError(Exception):
+class QueueError(ValueError):
     """Raised for invalid queue operations (unknown entry, bad decision)."""
 
 
@@ -107,15 +107,15 @@ def next_undecided(path=None):
     return None
 
 
-def decide(entry_id, decision, file_text=None, path=None):
+def decide(entry_id, state, file_text=None, path=None):
     """Record a "kept"/"dropped" decision for an undecided entry.
 
     Increments both the lifetime cursor and the per-sitting session_decided
     counter; the latter is what next_undecided() checks against PER_RUN_CAP
     and what advance() resets to re-arm the next sitting.
     """
-    if decision not in ("kept", "dropped"):
-        raise QueueError(f"invalid decision: {decision!r}")
+    if state not in ("kept", "dropped"):
+        raise QueueError(f"invalid decision: {state!r}")
     p = _resolve_path(path)
     data = load(path=p)
     entry = next(
@@ -124,7 +124,7 @@ def decide(entry_id, decision, file_text=None, path=None):
     )
     if entry is None:
         raise QueueError(f"no undecided entry with id {entry_id!r}")
-    entry["decision"] = decision
+    entry["decision"] = state
     if file_text is not None:
         entry["file_text"] = file_text
     data["cursor"] = data.get("cursor", 0) + 1
