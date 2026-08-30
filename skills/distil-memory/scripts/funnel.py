@@ -19,7 +19,7 @@ Exclusions applied by assistant_only:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterable, Iterator
@@ -30,6 +30,7 @@ import subprocess
 import sys
 
 import corpus
+import proposal
 
 
 def _is_compaction_entry(entry: dict) -> bool:
@@ -296,6 +297,129 @@ def _write_report(report: str, report_dir: Path, timestamp: str) -> Path:
     return out_path
 
 
+@dataclass(frozen=True)
+class _PublishedDiscard:
+    """A discard in the shape `proposal.write_proposals` reads it in.
+
+    `distil.Discard` carries the slice it came from, the publisher wants the
+    transcript and line number themselves. Both of those modules are finished,
+    so the adaptation belongs on this side of the seam.
+    """
+
+    transcript: Path
+    line_no: int
+    reason: str
+
+
+def _read_plane(memory_dir: Path, dedup, distil) -> tuple[str, list[str], bool, str | None]:
+    """One memory plane read once: its index text, the anchors it offers, and
+    whether the index names anything at all.
+
+    The read happens before the directory's first proposal exists, so an index
+    that will not open cannot be reported on the proposal it broke. Its message
+    is returned instead, for every proposal the directory goes on to produce.
+    """
+    try:
+        index_text = dedup.read_index(memory_dir)
+    except OSError as exc:
+        return "", [], False, f"the memory index could not be read: {exc}"
+    examples = distil.load_examples(memory_dir, index_text)
+    return index_text, examples, bool(dedup.parse_index(index_text)), None
+
+
+def _type_proposal(
+    candidate: proposal.Proposal,
+    memory_dir: Path,
+    index_text: str,
+    pending_error: str | None,
+    dedup,
+) -> proposal.Proposal:
+    """`candidate` typed against the memories its own plane already holds.
+
+    Every dedup failure keeps the proposal and leaves it new: a distilled
+    memory must not be lost to the step that was only meant to label it. A
+    missing CLI is not one of those failures - it ends the whole stage.
+    """
+    if pending_error is not None:
+        return replace(candidate, dedup_error=pending_error)
+
+    names = dedup.shortlist(index_text, candidate)
+    candidates, unread_names = dedup.read_candidates(memory_dir, names)
+    if unread_names:
+        return replace(candidate, dedup_error=f"could not read {', '.join(unread_names)}")
+
+    try:
+        kind = dedup.classify(candidate, candidates)
+    except FileNotFoundError:
+        raise
+    except (RuntimeError, subprocess.TimeoutExpired, OSError) as exc:
+        return replace(candidate, dedup_error=f"the typing call failed: {exc}")
+    existing_text = dict(candidates).get(proposal.updated_name(kind))
+    return replace(candidate, kind=kind, existing_text=existing_text)
+
+
+def _run_distil(
+    survivors: list[Slice], limit: int
+) -> tuple[list[proposal.Proposal], list[_PublishedDiscard], str | None]:
+    """Distil the first `limit` survivors (0 means no cap) into proposals, each
+    typed against the memory plane beside its own transcript.
+
+    Returns (proposals, discards, stage_error). A missing `claude` binary fails
+    the same way for every call still to come, so it ends the stage with what
+    was already produced rather than burning the cap repeating itself.
+    """
+    # `dedup` and `distil` import `funnel` at module level, so importing either
+    # at the top of this file would close that cycle.
+    import dedup
+    import distil
+
+    proposals: list[proposal.Proposal] = []
+    discards: list[_PublishedDiscard] = []
+    planes: dict[Path, tuple[str, list[str], bool, str | None]] = {}
+    for slice_ in survivors[: limit or None]:
+        memory_dir = slice_.transcript.parent / "memory"
+        if memory_dir not in planes:
+            planes[memory_dir] = _read_plane(memory_dir, dedup, distil)
+        index_text, examples, has_names, pending_error = planes[memory_dir]
+        try:
+            result = distil.distil(slice_, examples, has_names)
+            if isinstance(result, distil.Discard):
+                turned_down = result.slice_
+                discards.append(
+                    _PublishedDiscard(turned_down.transcript, turned_down.line_no, result.reason)
+                )
+                continue
+            proposals.append(_type_proposal(result, memory_dir, index_text, pending_error, dedup))
+        except FileNotFoundError as exc:
+            return proposals, discards, f"the distil stage stopped, no claude CLI: {exc}"
+    return proposals, discards, None
+
+
+def _distil_and_publish(
+    survivors: list[Slice], limit: int, out_dir: Path
+) -> tuple[dict[str, object], str | None, str | None]:
+    """Run the distil stage and publish what it produced to `out_dir`.
+
+    Returns (counts, stage_error, publish_error). Publication is attempted
+    before the report is written, so a report on disk can never name a
+    proposals directory that is not there.
+    """
+    proposals, discards, stage_error = _run_distil(survivors, limit)
+    new_count = sum(1 for record in proposals if proposal.updated_name(record.kind) is None)
+    counts: dict[str, object] = {
+        "proposals": len(proposals),
+        "discards": len(discards),
+        "new_vs_update": (new_count, len(proposals) - new_count),
+        "skipped_by_limit": len(survivors) - len(survivors[: limit or None]),
+        "dedup_errors": sum(1 for record in proposals if record.dedup_error is not None),
+    }
+    try:
+        proposal.write_proposals(proposals, discards, out_dir)
+    except OSError as exc:
+        return counts, stage_error, f"failed to publish the proposals to {out_dir}: {exc}"
+    return counts, stage_error, None
+
+
 def _non_negative_int(value: str) -> int:
     """argparse type for --distil-limit. A negative cap would slice
     survivors from the end instead of capping them, so refuse it here."""
@@ -318,11 +442,12 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point: select transcripts, scan and (unless --dry-run)
-    triage them, then print and write the yield report.
+    triage them, distil the survivors behind --distil, then print and write
+    the yield report.
 
     Returns 0 on success. Returns non-zero on a stale or absent parser
-    (`StaleParserError`), a triage model-call failure, or a report-write
-    failure.
+    (`StaleParserError`), a triage model-call failure, a distil stage the
+    missing CLI ended, a failed publication, or a report-write failure.
     """
     args = _parse_args(argv)
     if args.dry_run and args.distil:
@@ -340,32 +465,44 @@ def main(argv: list[str] | None = None) -> int:
     matched_count, kept_slices = scan(transcripts)
 
     if args.dry_run:
-        survivors_count, triage_error = None, None
+        survivors, survivors_count, triage_error = [], None, None
     else:
-        _survivors, survivors_count, triage_error = _run_triage(kept_slices)
+        survivors, survivors_count, triage_error = _run_triage(kept_slices)
 
-    counts = {
+    counts: dict[str, object] = {
         "transcripts_read": len(transcripts),
         "slices_matched": matched_count,
         "slices_kept": len(kept_slices),
         "survivors": survivors_count,
         "claude_checkup_version": resolved_version,
     }
-    report = render_yield(counts)
-    print(report, end="")
-
-    if triage_error is not None:
-        print(triage_error, file=sys.stderr)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_dir = _report_dir()
+    distil_error = publish_error = None
+    if args.distil and not args.dry_run:
+        distil_counts, distil_error, publish_error = _distil_and_publish(
+            survivors, args.distil_limit, report_dir / f"distil-memory-{timestamp}-proposals"
+        )
+        counts.update(distil_counts)
+
+    report = render_yield(counts)
+    print(report, end="")
+
+    for message in (triage_error, distil_error, publish_error):
+        if message is not None:
+            print(message, file=sys.stderr)
+
+    if publish_error is not None:
+        return 1
+
     try:
         print(_write_report(report, report_dir, timestamp))
     except OSError as exc:
         print(f"failed to write report to {report_dir}: {exc}", file=sys.stderr)
         return 1
 
-    return 1 if triage_error is not None else 0
+    return 1 if triage_error is not None or distil_error is not None else 0
 
 
 if __name__ == "__main__":

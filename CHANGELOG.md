@@ -33,14 +33,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **distil-memory**: give the funnel the surface the distil stage reports on.
-  The yield report gained five lines - proposals, discards, new vs update,
-  skipped by limit, dedup errors - each reading `n/a` until a stage produces
-  it, so a report never implies a count it does not have. `--distil` and
-  `--distil-limit` (25 by default, `0` for no cap) are accepted; a negative
-  limit is a usage error that names the flag and stops before a single
-  transcript is read, and `--distil` alongside `--dry-run` says on stderr that
-  it is being ignored, since a dry run makes no model calls.
+- **distil-memory**: `--distil` now turns surviving slices into memory-file
+  proposals on disk. Each run publishes a
+  `dev/local/audit-results/distil-memory-<stamp>-proposals/` directory holding
+  one file per proposal plus a proposals and a discards manifest, sharing its
+  stamp with the report beside it. Every slice is distilled and deduplicated
+  against its own project's memory plane, and only the memories that plane's
+  index names are ever opened. The yield report gained five lines - proposals,
+  discards, new vs update, skipped by limit, dedup errors - each reading `n/a`
+  until a stage produces it, so a report never implies a count it does not
+  have. `--distil-limit` (25 by default, `0` for no cap) caps how many
+  survivors are distilled and the report states the remainder; a negative limit
+  is a usage error that names the flag and stops before a single transcript is
+  read, and `--distil` alongside `--dry-run` says on stderr that it is being
+  ignored, since a dry run makes no model calls. Proposals are published before
+  the report is written, so a saved report never names a directory that is not
+  there; a memory that cannot be typed is kept as new and carries the reason it
+  could not be, and a missing `claude` binary ends the stage rather than
+  producing a run of empty results.
 - **distil-memory**: turn a surviving transcript slice into a complete memory
   file, or into a named discard. A strong-tier model gets the slice plus a few
   existing memories as anchors and answers with either a discard line or a
