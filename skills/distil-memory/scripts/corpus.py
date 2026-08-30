@@ -102,8 +102,13 @@ def select_transcripts(
     assert_contract(version, module)
     cutoff = None if all else datetime.now(timezone.utc) - timedelta(days=days)
 
+    try:
+        project_dirs = list(_PROJECTS_ROOT.iterdir())
+    except OSError:
+        raise StaleParserError(f"transcripts root not found: {_PROJECTS_ROOT}")
+
     results = []
-    for project_dir in _PROJECTS_ROOT.iterdir():
+    for project_dir in project_dirs:
         if not project_dir.is_dir():
             continue
         if project is not None and not project_dir.name.endswith(f"-{project}"):

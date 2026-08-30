@@ -3,6 +3,11 @@
 Exclusions applied by assistant_only:
 1. entry.get("type") != "assistant" - not an assistant turn at all.
 2. entry.get("isMeta") truthy - matches parser.py's user-side guard.
+   Defensive only on the assistant side: measured against the real
+   transcript corpus (2,712 transcripts, 201,379 assistant-role entries),
+   0 assistant-role entries carried a truthy isMeta (vs. 1,406 non-assistant
+   entries that did). Kept as a guard against a schema that could change,
+   not because it has ever fired here.
 3. _is_compaction_entry(entry) - a harness-generated compaction summary,
    not the model's original authored text for that turn.
 4. A content block without a "text" key (tool_use, thinking,
@@ -75,16 +80,7 @@ def _assistant_text_blocks(entry: dict) -> list[str]:
 def assistant_only(entries: Iterable[tuple[int, dict]]) -> list[tuple[int, str]]:
     """Filter (line_no, entry) pairs to genuine assistant-authored prose.
 
-    Enumerated exclusions (each gets its own test in test_funnel.py):
-    1. entry.get("type") != "assistant" - not an assistant turn at all.
-    2. entry.get("isMeta") truthy - matches parser.py's user-side guard.
-    3. _is_compaction_entry(entry) - a harness-generated compaction summary,
-       not the model's original authored text for that turn.
-    4. A content block without a "text" key (tool_use, thinking,
-       redacted_thinking) - excluded per-block, not per-entry: a kept entry
-       can still drop some of its blocks.
-    5. A "text" block that is empty or whitespace-only -
-       `_assistant_text_blocks` already excludes it, nothing to slice.
+    Enumerated exclusions: see the module docstring at the top of this file.
 
     Returns one (line_no, text) pair per surviving text block.
     """

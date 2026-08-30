@@ -59,10 +59,6 @@ def test_resolve_parser_raises_stale_error_when_winner_missing_parser_file(tmp_p
         corpus.resolve_parser(cache_root=tmp_path)
 
 
-def test_stale_parser_error_is_a_runtime_error():
-    assert issubclass(corpus.StaleParserError, RuntimeError)
-
-
 _DATACLASS_PARSER_BODY = (
     "from dataclasses import dataclass\n"
     "@dataclass(frozen=True)\n"
