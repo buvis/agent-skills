@@ -6,8 +6,6 @@ sends back passes the proposal validators before it becomes a Proposal, so a
 rambling or half-written answer leaves a named discard instead of a bad file.
 """
 
-from __future__ import annotations
-
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
