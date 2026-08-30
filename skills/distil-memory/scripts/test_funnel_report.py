@@ -653,3 +653,81 @@ def test_main_reports_a_real_version_even_when_select_transcripts_is_stubbed_out
     captured = capsys.readouterr()
     assert "claude_checkup_version: 1.2.3" in captured.out
     assert "claude_checkup_version: None" not in captured.out
+
+
+def test_main_never_leaks_transcript_slice_text_to_stderr_when_claude_cli_times_out(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+    now = datetime.now(timezone.utc)
+    write_transcript(
+        project_dir,
+        "t1.jsonl",
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
+        + "\n",
+    )
+    module, version = make_transcript_parser_module(
+        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    sentinel = "SENTINEL-TRANSCRIPT-SLICE-9f3c1a-do-not-leak"
+
+    def fake_run(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd=[*cmd[:-1], sentinel], timeout=120)
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+
+    exit_code = funnel.main([])
+
+    assert exit_code != 0
+    expected_counts = {
+        "transcripts_read": 1,
+        "slices_matched": 1,
+        "slices_kept": 1,
+        "survivors": None,
+        "claude_checkup_version": version,
+    }
+    expected_report = funnel.render_yield(expected_counts)
+
+    captured = capsys.readouterr()
+    assert expected_report in captured.out
+    assert "survivors: n/a" in captured.out
+    assert sentinel not in captured.err
+
+
+def test_main_stderr_still_states_the_timeout_duration_when_claude_cli_times_out(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+    now = datetime.now(timezone.utc)
+    write_transcript(
+        project_dir,
+        "t1.jsonl",
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
+        + "\n",
+    )
+    module, version = make_transcript_parser_module(
+        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    sentinel = "SENTINEL-TRANSCRIPT-SLICE-9f3c1a-do-not-leak"
+
+    def fake_run(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd=[*cmd[:-1], sentinel], timeout=120)
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+
+    exit_code = funnel.main([])
+
+    assert exit_code != 0
+    captured = capsys.readouterr()
+    assert sentinel not in captured.err
+    assert "120" in captured.err
