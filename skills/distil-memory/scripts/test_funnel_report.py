@@ -158,11 +158,21 @@ def _five_key_counts():
 
 def test_render_yield_still_renders_a_legacy_five_key_counts_dict_without_a_key_error():
     """Pins the counts.get contract directly, so rewriting a distil line to
-    counts["..."] fails here instead of in eleven unrelated tests."""
-    result = funnel.render_yield(_five_key_counts())
+    counts["..."] fails here instead of in eleven unrelated tests.
+
+    Also pins the caller's dict as read-only. `counts.setdefault(label, None)`
+    renders the same text but hands a five-key caller back a ten-key dict,
+    which is not what "pure string formatting" means: anything that reuses,
+    compares or re-serialises the dict after the call sees the five keys the
+    renderer invented."""
+    counts = _five_key_counts()
+    before = dict(counts)
+
+    result = funnel.render_yield(counts)
 
     assert "survivors: 1" in result
     assert "claude_checkup_version: 0.2.2" in result
+    assert counts == before
 
 
 def test_render_yield_orders_the_distil_lines_after_survivors_and_before_the_version():
@@ -246,10 +256,12 @@ def test_render_yield_joins_a_populated_new_vs_update_pair_with_a_slash(pair, ex
 def test_render_yield_how_to_proceed_paragraph_also_points_at_the_proposals_directory():
     """The paragraph gains a sentence naming where the distil stage put its
     proposals. Binds meaning, not wording: no exact path is pinned, but the
-    mention has to be a directory the reader can open, so the line carries a
-    second path-shaped token beside the audit-results one. A bare word
-    ("... promote durable facts into memory. proposals.") is not a
-    destination and fails here."""
+    mention has to be a directory the reader can open, and it has to be the
+    PROPOSALS one. A bare word ("... promote durable facts into memory.
+    proposals.") is not a destination; neither is a decoy slash elsewhere in
+    the sentence ("... promote durable facts and/or proposals into memory."),
+    which satisfies a plain second-token count while telling the reader
+    nothing. The path-shaped token itself must name proposals."""
     result = funnel.render_yield(_five_key_counts())
 
     how_to_proceed = [line for line in result.splitlines() if line.startswith("How to proceed:")]
@@ -259,6 +271,7 @@ def test_render_yield_how_to_proceed_paragraph_also_points_at_the_proposals_dire
     assert "proposals" in line.lower()
     path_tokens = {token.strip(".,;:()'\"") for token in line.split() if "/" in token}
     assert any("dev/local/audit-results" in token for token in path_tokens)
+    assert any("proposal" in token.lower() for token in path_tokens)
     assert len(path_tokens) >= 2
 
 
@@ -504,11 +517,19 @@ def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_return
 
 
 def test_run_triage_returns_the_surviving_slices_with_a_matching_count_and_no_error(monkeypatch):
+    """Two of three slices survive, so the reported count can only be right
+    by counting them: a capped `min(len(survivors), 1)` or a hardcoded 1 both
+    fail here, and the count-equals-length relation is asserted directly so no
+    run can report a survivor total that disagrees with the list it hands
+    back."""
     transient_slice = funnel.Slice(
         text="the test suite passed again", transcript=Path("t.jsonl"), line_no=1, marker="confirmed"
     )
     durable_slice = funnel.Slice(
         text="the config lives at /etc/foo", transcript=Path("t.jsonl"), line_no=2, marker="verified"
+    )
+    other_durable_slice = funnel.Slice(
+        text="the cheap tier is haiku", transcript=Path("t.jsonl"), line_no=3, marker="measured"
     )
 
     judge_calls = []
@@ -520,15 +541,18 @@ def test_run_triage_returns_the_surviving_slices_with_a_matching_count_and_no_er
 
     monkeypatch.setattr(funnel.subprocess, "run", fake_run)
 
-    survivors, survivors_count, error = funnel._run_triage([transient_slice, durable_slice])
+    survivors, survivors_count, error = funnel._run_triage(
+        [transient_slice, durable_slice, other_durable_slice]
+    )
 
-    assert survivors == [durable_slice]
-    assert survivors_count == 1
+    assert survivors == [durable_slice, other_durable_slice]
+    assert survivors_count == 2
+    assert survivors_count == len(survivors)
     assert error is None
     # Each slice is judged once. Deriving the count from a second triage pass
     # would double the cheap-tier bill and let a judge that changed its mind
     # report a count that does not match the survivors returned.
-    assert len(judge_calls) == 2
+    assert len(judge_calls) == 3
 
 
 def test_run_triage_returns_no_slices_and_a_zero_count_for_an_empty_kept_list(monkeypatch):
@@ -710,16 +734,22 @@ def test_parse_args_accepts_a_distil_limit_far_above_the_default():
     assert args.distil_limit == 500
 
 
+@pytest.mark.parametrize("limit", ["-1", "-5", "-100"], ids=["minus_one", "minus_five", "minus_hundred"])
 def test_main_rejects_a_negative_distil_limit_with_a_usage_error_before_reading_any_transcript(
-    monkeypatch, capsys
+    monkeypatch, capsys, limit
 ):
+    """Every negative limit is refused, not just the literal -1. Enumerating
+    the rejected values (`if number == -1`) lets `--distil-limit -5` through,
+    and `survivors[:-5]` silently drops five survivors while reporting a
+    nonsense skipped_by_limit."""
+
     def fail_if_called(*args, **kwargs):
         raise AssertionError("a negative --distil-limit must be refused at parse time")
 
     monkeypatch.setattr(corpus, "resolve_parser", fail_if_called)
 
     with pytest.raises(SystemExit) as exc_info:
-        funnel.main(["--distil-limit", "-1"])
+        funnel.main(["--distil-limit", limit])
 
     assert exc_info.value.code == 2
     captured = capsys.readouterr()
@@ -735,6 +765,9 @@ def test_main_rejects_a_negative_distil_limit_with_a_usage_error_before_reading_
 def test_main_notes_to_stderr_that_distil_is_ignored_only_when_it_is_combined_with_dry_run(
     tmp_path, monkeypatch, capsys
 ):
+    """All three legs, because "only when" is the claim: no note without
+    --distil, no note for --distil on its own (that run is not ignoring
+    anything), and a note only for the combination."""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(corpus, "select_transcripts", lambda **kwargs: [])
     monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "0.2.2"))
@@ -742,8 +775,47 @@ def test_main_notes_to_stderr_that_distil_is_ignored_only_when_it_is_combined_wi
     assert funnel.main(["--dry-run"]) == 0
     assert "--distil" not in capsys.readouterr().err
 
+    assert funnel.main(["--distil"]) == 0
+    assert "--distil" not in capsys.readouterr().err
+
     assert funnel.main(["--dry-run", "--distil"]) == 0
     assert "--distil" in capsys.readouterr().err
+
+
+def test_main_with_distil_still_selects_transcripts_over_the_requested_days_and_still_judges_them(
+    known_counts_transcript, monkeypatch, capsys
+):
+    """Passing --distil must not rewrite the other flags. A main() that
+    quietly sets dry_run=True and days=distil_limit turns a real 90-day run
+    into a 25-day dry run that never calls the judge and reports
+    `survivors: n/a` - and every existing flag test still passes, because none
+    of them passes --distil."""
+    calls = []
+    real_select_transcripts = corpus.select_transcripts
+
+    def recording_select_transcripts(**kwargs):
+        calls.append(kwargs)
+        return real_select_transcripts(**kwargs)
+
+    monkeypatch.setattr(corpus, "select_transcripts", recording_select_transcripts)
+
+    judge_calls = []
+
+    def fake_run(cmd, **kwargs):
+        judge_calls.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="durable", stderr="")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+
+    exit_code = funnel.main(["--distil", "--days", "90"])
+
+    assert exit_code == 0
+    assert len(calls) == 1
+    assert calls[0]["days"] == 90
+    assert len(judge_calls) == 1
+    captured = capsys.readouterr()
+    assert "survivors: 1" in captured.out
+    assert "survivors: n/a" not in captured.out
 
 
 def test_write_report_names_the_file_with_the_timestamp_its_caller_supplied(tmp_path):
