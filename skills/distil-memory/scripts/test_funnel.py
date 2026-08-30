@@ -3,6 +3,7 @@ private helpers, plus judge()'s subprocess seam and triage()'s cheap-tier pass."
 
 import dataclasses
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
@@ -970,3 +971,69 @@ def test_main_reports_persistence_failure_to_stderr_and_returns_nonzero_when_wri
     captured = capsys.readouterr()
     assert expected_report in captured.out
     assert "dev/local/audit-results" in captured.err
+
+
+def test_main_writes_report_under_the_repository_root_and_prints_its_absolute_path_when_run_from_a_deeply_nested_cwd(
+    tmp_path, monkeypatch, capsys
+):
+    repo_root = tmp_path / "myrepo"
+    (repo_root / ".git").mkdir(parents=True)
+    nested_cwd = repo_root / "a" / "b" / "c"
+    nested_cwd.mkdir(parents=True)
+    monkeypatch.chdir(nested_cwd)
+
+    monkeypatch.setattr(corpus, "select_transcripts", lambda **kwargs: [])
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "0.2.2"))
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("must not invoke the claude CLI")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fail_if_called)
+
+    exit_code = funnel.main([])
+
+    assert exit_code == 0
+
+    nested_audit_dir = nested_cwd / "dev" / "local" / "audit-results"
+    assert not nested_audit_dir.exists()
+
+    report_dir = repo_root / "dev" / "local" / "audit-results"
+    report_files = sorted(report_dir.glob("distil-memory-*.md"))
+    assert len(report_files) == 1
+
+    # The printed path must be the *absolute* path to the file that was
+    # actually written. A relative print (e.g. bare "dev/local/audit-results/...")
+    # would not equal this string, which already carries the tmp_path prefix.
+    captured = capsys.readouterr()
+    assert str(report_files[0]) in captured.out
+
+
+def test_main_falls_back_to_cwd_dev_local_audit_results_when_no_ancestor_directory_contains_a_git_entry(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+
+    monkeypatch.setattr(corpus, "select_transcripts", lambda **kwargs: [])
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "0.2.2"))
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("must not invoke the claude CLI")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fail_if_called)
+
+    exit_code = funnel.main([])
+
+    assert exit_code == 0
+    report_files = sorted((tmp_path / "dev" / "local" / "audit-results").glob("distil-memory-*.md"))
+    assert len(report_files) == 1
+
+
+def test_main_help_declares_exactly_the_days_all_project_and_dry_run_flags(capsys):
+    with pytest.raises(SystemExit):
+        funnel.main(["--help"])
+
+    captured = capsys.readouterr()
+    help_text = captured.out + captured.err
+    long_flags = set(re.findall(r"--[a-z][a-z-]*", help_text))
+
+    assert long_flags == {"--days", "--all", "--project", "--dry-run", "--help"}
