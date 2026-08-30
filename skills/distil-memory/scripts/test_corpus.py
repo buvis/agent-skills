@@ -366,3 +366,27 @@ def test_select_transcripts_propagates_stale_parser_error_from_assert_contract(t
 
     with pytest.raises(corpus.StaleParserError):
         corpus.select_transcripts()
+
+
+def test_select_transcripts_resolves_and_contract_checks_the_parser_itself_when_called_with_only_its_three_published_arguments(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", tmp_path)
+    project_dir = tmp_path / "aaaa-myproj"
+    transcript = write_transcript(project_dir, "session.jsonl")
+    now = datetime.now(timezone.utc)
+    module, version = make_transcript_parser_module(
+        {"session.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
+    )
+    calls = []
+
+    def counting_resolve(*args, **kwargs):
+        calls.append((args, kwargs))
+        return module, version
+
+    monkeypatch.setattr(corpus, "resolve_parser", counting_resolve)
+
+    result = corpus.select_transcripts(days=30, all=False, project=None)
+
+    assert result == [transcript]
+    assert len(calls) == 1
