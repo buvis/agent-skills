@@ -121,7 +121,8 @@ def _raw_marker_hits(entries: list[tuple[int, dict]]) -> int:
     count = 0
     for _line_no, entry in entries:
         for text in _assistant_text_blocks(entry):
-            count += len(_MARKER_RE.findall(text))
+            if _MARKER_RE.search(text):
+                count += 1
     return count
 
 
@@ -135,12 +136,12 @@ def scan(transcripts: list[Path]) -> tuple[int, list[Slice]]:
     matched = 0
     kept: list[Slice] = []
     for path in transcripts:
-        entries = list(_iter_entries(path))
-        matched += _raw_marker_hits(entries)
-        for line_no, text in assistant_only(entries):
-            m = _MARKER_RE.search(text)
-            if m:
-                kept.append(Slice(text=text, transcript=path, line_no=line_no, marker=m.group(0)))
+        for line_no, entry in _iter_entries(path):
+            matched += _raw_marker_hits([(line_no, entry)])
+            for _line_no, text in assistant_only([(line_no, entry)]):
+                m = _MARKER_RE.search(text)
+                if m:
+                    kept.append(Slice(text=text, transcript=path, line_no=line_no, marker=m.group(0)))
     return matched, kept
 
 
