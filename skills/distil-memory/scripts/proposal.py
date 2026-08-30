@@ -122,7 +122,7 @@ def validate(proposal: Proposal) -> None:
         raise ProposalError(f"description restates {APPLY_MARKER}")
 
 
-_LINK_NAME = re.compile(r"[a-z0-9_]+(?:-[a-z0-9_]+)*")
+_LINK_NAME = re.compile(r"[\w-]+")
 
 
 def _has_well_formed_link(body: str) -> bool:
@@ -161,13 +161,13 @@ def sanitise_name(name: str) -> str:
     return stem
 
 
-def excerpt(text: str, marker: str, width: int = EVIDENCE_EXCERPT_CHARS) -> str:
-    """A `width`-character window of `text` around `marker`, each cut end marked
-    with an ellipsis. The leading window when `marker` is absent."""
-    if len(text) <= width:
+def excerpt(text: str, marker: str, max_chars: int = EVIDENCE_EXCERPT_CHARS) -> str:
+    """A `max_chars`-character window of `text` around `marker`, each cut end
+    marked with an ellipsis. The leading window when `marker` is absent."""
+    if len(text) <= max_chars:
         return text
     found = text.find(marker)
-    start = 0 if found < 0 else found + len(marker) // 2 - width // 2
-    start = max(0, min(start, len(text) - width))
-    window = text[start : start + width]
-    return ("..." if start else "") + window + ("..." if start + width < len(text) else "")
+    start = 0 if found < 0 else found + len(marker) // 2 - max_chars // 2
+    start = max(0, min(start, len(text) - max_chars))
+    window = text[start : start + max_chars]
+    return ("..." if start else "") + window + ("..." if start + max_chars < len(text) else "")
