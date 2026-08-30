@@ -12,7 +12,8 @@ that isn't the model's own authored prose (tool calls, thinking, compaction
 summaries, non-assistant turns), then asks a cheap-tier judge to separate
 durable facts from transient confirmations (a passing test, a repeated "yes
 it works"). What survives becomes a yield report naming what to review and
-promote by hand - this skill never writes to memory itself.
+promote by hand, and behind `--distil` a set of typed, evidenced proposals a
+human promotes - this skill never writes to memory itself.
 
 ## Dependencies
 
@@ -27,11 +28,14 @@ promote by hand - this skill never writes to memory itself.
   raises `StaleParserError`; a triage model-call failure (the `claude` CLI
   errors, is missing, or times out); and a report-write failure. There is
   no fallback for any of the three.
+- `encode-incident`, pointed at rather than invoked. It owns `feedback`
+  memories; this skill emits `project` memories only, and neither skill reads
+  or rewrites the other's type. Nothing here depends on it being installed.
 
 ## Invocation
 
 ```bash
-python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--project NAME] [--dry-run]
+python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--project NAME] [--dry-run] [--distil] [--distil-limit N]
 ```
 
 ## Flags
@@ -50,6 +54,12 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
   `survivors` renders as `n/a` in the yield report (it is also `n/a` after a
   triage model-call failure). Use this to preview `slices_matched`/`slices_kept`
   before spending judge calls.
+- `--distil`: run the distil stage on the survivors (step 4). Ignored with
+  `--dry-run`, since a dry run makes no model calls - the CLI prints a note to
+  stderr saying so and continues.
+- `--distil-limit N` (default `25`): cap how many survivors are distilled.
+  `0` means no cap. A negative value is a usage error - argparse rejects it
+  before the run starts.
 
 ## Pipeline
 
@@ -71,13 +81,23 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
    something already known or already working) or `durable` (a new fact
    worth remembering). Fail-open: any judge response other than an exact
    `transient` match keeps the slice. What's left is `survivors`.
-4. **Report** (`funnel.py:render_yield`): prints the yield report and
+4. **Distil** (`funnel.py:_distil_and_publish`, runs only behind `--distil`):
+   calls `distil.distil` at the `strong` tier to turn each surviving slice
+   into either a complete memory file (a proposal, carrying the transcript
+   path, line number and slice text it came from) or a discard naming why it
+   was refused. Each proposal is then typed with `dedup.classify`, also
+   `strong` tier: `new`, or `update <existing-name>` when the proposal
+   restates a memory that already exists. Deduplication is two steps on
+   purpose - `dedup.shortlist` narrows the field using MEMORY.md's recall
+   cues, and only the shortlisted memory files are then read. Reading every
+   memory file on every proposal is the cost this two-step avoids.
+5. **Report** (`funnel.py:render_yield`): prints the yield report and
    writes it to `dev/local/audit-results/distil-memory-<UTC timestamp>.md`
    (`%Y%m%dT%H%M%SZ`).
 
 ## Yield report
 
-Four stages, in order:
+Nine counts, in order - four from stages 1-3, then five from the distil stage:
 
 - `transcripts_read` - transcripts selected by step 1.
 - `slices_matched` - assistant-role text blocks carrying a raw marker hit
@@ -87,7 +107,35 @@ Four stages, in order:
   filtering.
 - `survivors` - slices that survived judge triage (`n/a` on `--dry-run` and
   also `n/a` after a triage model-call failure).
+- `proposals` - complete memory files emitted by step 4.
+- `discards` - slices the distiller refused, each with a reason.
+- `new_vs_update` - the split of typed proposals, rendered `<new>/<update>`.
+- `skipped_by_limit` - survivors the `--distil-limit` cap skipped.
+- `dedup_errors` - proposals whose typing could not be verified (the memory
+  plane or a shortlisted candidate could not be read). The proposal is kept,
+  but its `new`/`update` verdict is not trustworthy.
 
-Written to `dev/local/audit-results/distil-memory-<UTC timestamp>.md`.
-Review the survivors by hand and promote durable facts into memory - this
-skill stops at the report and never writes to memory itself.
+All five distil lines render `n/a` when the distil stage did not run; a stage
+that ran and yielded nothing reports `0`.
+
+Written to `dev/local/audit-results/distil-memory-<UTC timestamp>.md`. The
+distil stage writes
+`dev/local/audit-results/distil-memory-<UTC timestamp>-proposals/` beside it,
+sharing the run's one timestamp: one `<name>.md` per proposal (the complete
+memory file) plus `proposals.json` and `discards.json`. That directory is
+published atomically - a reader sees a complete directory or none at all,
+never a partial one.
+
+Review the survivors and proposals by hand and promote what is durable into
+memory - this skill stops at typed, evidenced proposals and never writes to
+memory itself.
+
+## Out of scope
+
+- **Corrections as a second signal.** The measured yield is thin - 11 raw
+  matches across 8 files - and no detector, criterion or funnel stage is
+  specified for them.
+- **Cross-project routing.** A fact established about repo B during a session
+  in repo A is proposed into repo A's memory. Having the model guess the
+  target repo is the same class of mistake as the encoder bug that was
+  retired.
