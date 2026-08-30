@@ -28,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: funnel Claude Code transcripts down to memory candidates
+  without letting a model read the corpus wholesale. Selects transcripts by
+  `--days`, `--all` or `--project`, slices assistant-authored text on
+  verification markers with a regex (no model), triages the survivors on a
+  cheap tier, and prints a per-stage yield report - transcripts read, slices
+  matched, slices kept, survivors - that always states its counts, including
+  zero. `--dry-run` prices a sweep with no model call at all. Refuses to run
+  against a claude-checkup parser older than `0.2.2`, naming the version it
+  resolved, because older releases over-count user prompts by roughly 41%.
 - **capture-experiment**: write up a spike or experiment session as a single
   zettelkasten note - hypothesis, setup, summarized observations, dead ends,
   and verdict - before the details are lost to compaction or a new session.

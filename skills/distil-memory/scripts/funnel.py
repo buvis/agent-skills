@@ -226,6 +226,35 @@ def render_yield(counts: dict[str, int | str | None]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _run_triage(kept_slices: list[Slice]) -> tuple[int | None, str | None]:
+    """Cheap-tier triage with the model-call failure path folded in.
+
+    Returns (survivors_count, error_message). On any failure reaching the
+    `claude` CLI the count is None - rendered "n/a", the same as a dry run,
+    because no survivor count exists - and the message is the failure text.
+    The report still gets printed either way: a run must never go silent.
+    """
+    try:
+        survivors, _discard_count = triage(kept_slices)
+        return len(survivors), None
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
+        return None, str(exc)
+
+
+_REPORT_DIR = Path("dev/local/audit-results")
+
+
+def _write_report(report: str) -> Path:
+    """Write `report` under _REPORT_DIR with a UTC-stamped filename and
+    return the path written. Raises OSError if the directory cannot be
+    created or the file cannot be written."""
+    _REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    out_path = _REPORT_DIR / f"distil-memory-{timestamp}.md"
+    out_path.write_text(report)
+    return out_path
+
+
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=30)
@@ -257,10 +286,9 @@ def main(argv: list[str] | None = None) -> int:
     matched_count, kept_slices = scan(transcripts)
 
     if args.dry_run:
-        survivors_count = None
+        survivors_count, triage_error = None, None
     else:
-        survivors, _discard_count = triage(kept_slices)
-        survivors_count = len(survivors)
+        survivors_count, triage_error = _run_triage(kept_slices)
 
     counts = {
         "transcripts_read": len(transcripts),
@@ -272,14 +300,16 @@ def main(argv: list[str] | None = None) -> int:
     report = render_yield(counts)
     print(report, end="")
 
-    out_dir = Path("dev/local/audit-results")
-    out_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    out_path = out_dir / f"distil-memory-{timestamp}.md"
-    out_path.write_text(report)
-    print(out_path)
+    if triage_error is not None:
+        print(triage_error, file=sys.stderr)
 
-    return 0
+    try:
+        print(_write_report(report))
+    except OSError as exc:
+        print(f"failed to write report to {_REPORT_DIR}: {exc}", file=sys.stderr)
+        return 1
+
+    return 1 if triage_error is not None else 0
 
 
 if __name__ == "__main__":
