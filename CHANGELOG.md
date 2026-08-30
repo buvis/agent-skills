@@ -65,6 +65,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: proposal decisions now persist across sessions. Each run's
+  proposals are queued to disk, so an interrupted approval sitting resumes at
+  the next undecided proposal with no duplicates and no skips. A sitting is
+  capped at 10 decisions; a dropped proposal is filtered out of later runs
+  over the same window unless the distil rubric changes, which reopens it.
 - **distil-memory**: `--distil` now turns surviving slices into memory-file
   proposals on disk. Each run publishes a
   `dev/local/audit-results/distil-memory-<stamp>-proposals/` directory holding
