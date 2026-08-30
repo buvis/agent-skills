@@ -13,6 +13,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 import yaml
 
@@ -219,7 +220,21 @@ def _write_proposal_files(proposals: list[Proposal], staging: Path) -> list[dict
     return records
 
 
-def write_proposals(proposals: list[Proposal], discards: list, out_dir: Path) -> Path:
+class PublishedDiscard(Protocol):
+    """The three fields `write_proposals` reads off every discard it writes.
+
+    Structural, so a caller satisfies it by carrying the fields and nothing
+    here has to import the caller that builds them.
+    """
+
+    transcript: Path
+    line_no: int
+    reason: str
+
+
+def write_proposals(
+    proposals: list[Proposal], discards: list[PublishedDiscard], out_dir: Path
+) -> Path:
     """Publish `proposals` and `discards` as `out_dir`, and return it.
 
     `out_dir` is reserved with an exclusive mkdir, so a second run landing on
