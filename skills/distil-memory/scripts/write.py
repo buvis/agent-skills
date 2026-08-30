@@ -32,7 +32,6 @@ def write_memory(entry: dict, store_path) -> Path:
     Raises WriteError otherwise, or when the write itself fails (for example
     because `store_path` does not exist).
     """
-    store_path = Path(store_path)
     stem, is_new = _target_stem(entry)
     target = store_path / f"{stem}.md"
     exists = target.exists()
@@ -49,7 +48,7 @@ def write_memory(entry: dict, store_path) -> Path:
 
 def _title(stem: str) -> str:
     replaced = stem.replace("-", " ")
-    return replaced[0].upper() + replaced[1:] if replaced else replaced
+    return replaced[0].upper() + replaced[1:]
 
 
 def _pointer_line(stem: str, description: str) -> str:
@@ -65,7 +64,6 @@ def append_pointer(store_path, entry: dict) -> str | None:
     `entry["existing_text"]`, in which case nothing is written and None is
     returned.
     """
-    store_path = Path(store_path)
     stem, is_new = _target_stem(entry)
     description = proposal.parse_frontmatter(entry["file_text"])["description"]
 
