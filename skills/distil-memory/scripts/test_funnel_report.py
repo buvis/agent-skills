@@ -141,6 +141,127 @@ def test_render_yield_ends_with_how_to_proceed_line_naming_the_audit_results_dir
     assert "dev/local/audit-results/" in last_line
 
 
+_DISTIL_LABELS = ["proposals", "discards", "new_vs_update", "skipped_by_limit", "dedup_errors"]
+
+
+def _five_key_counts():
+    """The pre-distil counts dict every existing render_yield caller passes:
+    not one of the five distil keys is present."""
+    return {
+        "transcripts_read": 5,
+        "slices_matched": 3,
+        "slices_kept": 2,
+        "survivors": 1,
+        "claude_checkup_version": "0.2.2",
+    }
+
+
+def test_render_yield_still_renders_a_legacy_five_key_counts_dict_without_a_key_error():
+    """Pins the counts.get contract directly, so rewriting a distil line to
+    counts["..."] fails here instead of in eleven unrelated tests."""
+    result = funnel.render_yield(_five_key_counts())
+
+    assert "survivors: 1" in result
+    assert "claude_checkup_version: 0.2.2" in result
+
+
+def test_render_yield_orders_the_distil_lines_after_survivors_and_before_the_version():
+    result = funnel.render_yield(_five_key_counts())
+
+    labels = [
+        match.group(1)
+        for match in (re.match(r"([a-z_]+): ", line) for line in result.splitlines())
+        if match
+    ]
+
+    assert labels == [
+        "transcripts_read",
+        "slices_matched",
+        "slices_kept",
+        "survivors",
+        *_DISTIL_LABELS,
+        "claude_checkup_version",
+    ]
+
+
+@pytest.mark.parametrize("set_to_none", [False, True], ids=["key_missing", "key_none"])
+@pytest.mark.parametrize("label", _DISTIL_LABELS)
+def test_render_yield_renders_a_distil_line_as_n_a_when_the_stage_did_not_produce_it(label, set_to_none):
+    counts = _five_key_counts()
+    if set_to_none:
+        counts[label] = None
+
+    result = funnel.render_yield(counts)
+
+    assert f"{label}: n/a" in result
+
+
+@pytest.mark.parametrize(
+    "distil_counts, expected_lines",
+    [
+        (
+            {"proposals": 4, "discards": 2, "new_vs_update": (5, 3), "skipped_by_limit": 7, "dedup_errors": 1},
+            ["proposals: 4", "discards: 2", "new_vs_update: 5/3", "skipped_by_limit: 7", "dedup_errors: 1"],
+        ),
+        (
+            {"proposals": 0, "discards": 0, "new_vs_update": (0, 0), "skipped_by_limit": 0, "dedup_errors": 0},
+            ["proposals: 0", "discards: 0", "new_vs_update: 0/0", "skipped_by_limit: 0", "dedup_errors: 0"],
+        ),
+    ],
+    ids=["nonzero", "all_zero"],
+)
+def test_render_yield_renders_the_integer_distil_counts_the_stage_produced(distil_counts, expected_lines):
+    """A stage that ran and yielded nothing reports 0, never n/a: n/a means
+    the stage did not run. `skipped_by_limit: 0` is the normal uncapped run,
+    so treating a zero as "missing" mislabels the most common case."""
+    counts = _five_key_counts()
+    counts.update(distil_counts)
+
+    result = funnel.render_yield(counts)
+
+    for expected in expected_lines:
+        assert expected in result
+
+
+@pytest.mark.parametrize(
+    "pair, expected",
+    [((3, 1), "new_vs_update: 3/1"), ((7, 4), "new_vs_update: 7/4"), ((0, 2), "new_vs_update: 0/2")],
+    ids=["three_one", "seven_four", "zero_two"],
+)
+def test_render_yield_joins_a_populated_new_vs_update_pair_with_a_slash(pair, expected):
+    """`new_vs_update` carries the (new, update) counts as a pair of ints, not
+    a pre-formatted "3/1" string: render_yield owns the presentation, so a
+    later "simplification" that moves the slash into the caller fails here.
+    Both elements must be read: `(7, 4)` cannot be reconstructed from the
+    first element and the pair's length, and `(0, 2)` cannot be reconstructed
+    by treating a zero as absent."""
+    counts = _five_key_counts()
+    counts["new_vs_update"] = pair
+
+    result = funnel.render_yield(counts)
+
+    assert expected in result
+
+
+def test_render_yield_how_to_proceed_paragraph_also_points_at_the_proposals_directory():
+    """The paragraph gains a sentence naming where the distil stage put its
+    proposals. Binds meaning, not wording: no exact path is pinned, but the
+    mention has to be a directory the reader can open, so the line carries a
+    second path-shaped token beside the audit-results one. A bare word
+    ("... promote durable facts into memory. proposals.") is not a
+    destination and fails here."""
+    result = funnel.render_yield(_five_key_counts())
+
+    how_to_proceed = [line for line in result.splitlines() if line.startswith("How to proceed:")]
+
+    assert len(how_to_proceed) == 1
+    line = how_to_proceed[0]
+    assert "proposals" in line.lower()
+    path_tokens = {token.strip(".,;:()'\"") for token in line.split() if "/" in token}
+    assert any("dev/local/audit-results" in token for token in path_tokens)
+    assert len(path_tokens) >= 2
+
+
 def test_main_passes_days_all_project_flags_through_to_select_transcripts(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     calls = []
@@ -382,6 +503,69 @@ def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_return
     assert expected_stderr_substring in captured.err
 
 
+def test_run_triage_returns_the_surviving_slices_with_a_matching_count_and_no_error(monkeypatch):
+    transient_slice = funnel.Slice(
+        text="the test suite passed again", transcript=Path("t.jsonl"), line_no=1, marker="confirmed"
+    )
+    durable_slice = funnel.Slice(
+        text="the config lives at /etc/foo", transcript=Path("t.jsonl"), line_no=2, marker="verified"
+    )
+
+    judge_calls = []
+
+    def fake_run(cmd, **kwargs):
+        judge_calls.append(cmd)
+        verdict = "transient" if cmd[-1].endswith(transient_slice.text) else "durable"
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout=verdict, stderr="")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+
+    survivors, survivors_count, error = funnel._run_triage([transient_slice, durable_slice])
+
+    assert survivors == [durable_slice]
+    assert survivors_count == 1
+    assert error is None
+    # Each slice is judged once. Deriving the count from a second triage pass
+    # would double the cheap-tier bill and let a judge that changed its mind
+    # report a count that does not match the survivors returned.
+    assert len(judge_calls) == 2
+
+
+def test_run_triage_returns_no_slices_and_a_zero_count_for_an_empty_kept_list(monkeypatch):
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("an empty kept list must reach no judge")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fail_if_called)
+
+    survivors, survivors_count, error = funnel._run_triage([])
+
+    assert survivors == []
+    assert survivors_count == 0
+    assert error is None
+
+
+@pytest.mark.parametrize(
+    "fake_run, expected_error_substring",
+    [
+        (_fail_with_runtime_error, "claude cli exploded"),
+        (_fail_with_missing_binary, "No such file or directory"),
+        (_fail_with_timeout, "claude timed out after 120s"),
+    ],
+    ids=["runtime_error", "missing_binary", "timeout"],
+)
+def test_run_triage_returns_no_slices_and_a_none_count_when_the_judge_call_fails(
+    monkeypatch, fake_run, expected_error_substring
+):
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+    slice_ = funnel.Slice(text="we measured this", transcript=Path("t.jsonl"), line_no=1, marker="measured")
+
+    survivors, survivors_count, error = funnel._run_triage([slice_])
+
+    assert survivors == []
+    assert survivors_count is None
+    assert expected_error_substring in error
+
+
 def test_main_reports_persistence_failure_to_stderr_and_returns_nonzero_when_writing_report_raises_oserror(
     tmp_path, monkeypatch, capsys
 ):
@@ -484,7 +668,7 @@ def test_main_falls_back_to_cwd_dev_local_audit_results_when_no_ancestor_directo
     assert len(report_files) == 1
 
 
-def test_main_help_declares_exactly_the_days_all_project_and_dry_run_flags(capsys):
+def test_main_help_declares_exactly_the_days_all_project_dry_run_and_distil_flags(capsys):
     with pytest.raises(SystemExit):
         funnel.main(["--help"])
 
@@ -492,7 +676,156 @@ def test_main_help_declares_exactly_the_days_all_project_and_dry_run_flags(capsy
     help_text = captured.out + captured.err
     long_flags = set(re.findall(r"--[a-z][a-z-]*", help_text))
 
-    assert long_flags == {"--days", "--all", "--project", "--dry-run", "--help"}
+    assert long_flags == {
+        "--days",
+        "--all",
+        "--project",
+        "--dry-run",
+        "--distil",
+        "--distil-limit",
+        "--help",
+    }
+
+
+def test_parse_args_defaults_distil_off_and_the_distil_limit_to_25():
+    args = funnel._parse_args([])
+
+    assert args.distil is False
+    assert args.distil_limit == 25
+
+
+def test_parse_args_accepts_distil_with_a_zero_limit_meaning_no_cap():
+    args = funnel._parse_args(["--distil", "--distil-limit", "0"])
+
+    assert args.distil is True
+    assert args.distil_limit == 0
+
+
+def test_parse_args_accepts_a_distil_limit_far_above_the_default():
+    """Only a negative limit is refused. Rejecting anything above the default
+    25 would make every larger cap unusable, and the refusal must not come
+    from enumerating the allowed values."""
+    args = funnel._parse_args(["--distil-limit", "500"])
+
+    assert args.distil_limit == 500
+
+
+def test_main_rejects_a_negative_distil_limit_with_a_usage_error_before_reading_any_transcript(
+    monkeypatch, capsys
+):
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("a negative --distil-limit must be refused at parse time")
+
+    monkeypatch.setattr(corpus, "resolve_parser", fail_if_called)
+
+    with pytest.raises(SystemExit) as exc_info:
+        funnel.main(["--distil-limit", "-1"])
+
+    assert exc_info.value.code == 2
+    captured = capsys.readouterr()
+    error_text = (captured.out + captured.err).lower()
+    assert "--distil-limit" in error_text
+    # A module that never declared the flag also exits 2, naming it in an
+    # "unrecognized arguments" message. The refusal has to be about the
+    # value, otherwise this test cannot tell the two apart.
+    assert "unrecognized" not in error_text
+    assert any(stem in error_text for stem in ("negativ", "invalid", "must", "cannot", "at least"))
+
+
+def test_main_notes_to_stderr_that_distil_is_ignored_only_when_it_is_combined_with_dry_run(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(corpus, "select_transcripts", lambda **kwargs: [])
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "0.2.2"))
+
+    assert funnel.main(["--dry-run"]) == 0
+    assert "--distil" not in capsys.readouterr().err
+
+    assert funnel.main(["--dry-run", "--distil"]) == 0
+    assert "--distil" in capsys.readouterr().err
+
+
+def test_write_report_names_the_file_with_the_timestamp_its_caller_supplied(tmp_path):
+    report_dir = tmp_path / "audit-results"
+
+    out_path = funnel._write_report("yield report body\n", report_dir, "20200102T030405Z")
+
+    assert out_path == report_dir / "distil-memory-20200102T030405Z.md"
+    assert out_path.read_text() == "yield report body\n"
+
+
+def test_main_computes_one_utc_timestamp_for_the_run_and_hands_it_to_write_report(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(corpus, "select_transcripts", lambda **kwargs: [])
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "0.2.2"))
+    stamps = []
+
+    def recording_write_report(report, report_dir, timestamp):
+        stamps.append(timestamp)
+        report_dir.mkdir(parents=True, exist_ok=True)
+        out_path = report_dir / f"distil-memory-{timestamp}.md"
+        out_path.write_text(report)
+        return out_path
+
+    monkeypatch.setattr(funnel, "_write_report", recording_write_report)
+
+    exit_code = funnel.main([])
+
+    assert exit_code == 0
+    assert len(stamps) == 1
+    assert re.fullmatch(r"\d{8}T\d{6}Z", stamps[0])
+    stamped_at = datetime.strptime(stamps[0], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+    assert abs((datetime.now(timezone.utc) - stamped_at).total_seconds()) < 300
+
+
+def _counting_clock(reads: list[str], instant: datetime):
+    """A stand-in for funnel.datetime frozen at `instant`, appending to
+    `reads` on every wall-clock read so a second read is visible wherever it
+    happens - not only when its value reaches _write_report."""
+
+    class CountingClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            reads.append("now")
+            return instant if tz is None else instant.astimezone(tz)
+
+        @classmethod
+        def utcnow(cls):
+            reads.append("utcnow")
+            return instant.replace(tzinfo=None)
+
+    return CountingClock
+
+
+def test_main_reads_the_wall_clock_once_so_every_artefact_of_one_run_shares_a_stamp(tmp_path, monkeypatch):
+    """One run, one instant. A second `now()` anywhere in main() lets a run
+    that crosses a second boundary stamp its report and its proposals
+    directory differently, which destroys the correlation the stamp exists
+    to establish."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(corpus, "select_transcripts", lambda **kwargs: [])
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "0.2.2"))
+    reads: list[str] = []
+    monkeypatch.setattr(
+        funnel, "datetime", _counting_clock(reads, datetime(2020, 1, 2, 3, 4, 5, tzinfo=timezone.utc))
+    )
+    stamps = []
+
+    def recording_write_report(report, report_dir, timestamp):
+        stamps.append(timestamp)
+        report_dir.mkdir(parents=True, exist_ok=True)
+        out_path = report_dir / f"distil-memory-{timestamp}.md"
+        out_path.write_text(report)
+        return out_path
+
+    monkeypatch.setattr(funnel, "_write_report", recording_write_report)
+
+    exit_code = funnel.main([])
+
+    assert exit_code == 0
+    assert stamps == ["20200102T030405Z"]
+    assert len(reads) == 1
 
 
 def test_main_calls_resolve_parser_exactly_once(tmp_path, monkeypatch):
