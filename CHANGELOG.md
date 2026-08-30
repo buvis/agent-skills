@@ -30,6 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `subprocess.TimeoutExpired` text, which carries the whole command line and so
   echoed back the slice being classified; it now names only the timeout
   duration.
+- **distil-memory**: point the yield report at the proposals directory the run
+  actually published. It used to name a fixed
+  `dev/local/audit-results/proposals/`, which no run ever creates, so anyone
+  following the report found nothing. A run that fails to publish now names no
+  proposals directory at all.
+- **distil-memory**: reject a proposal whose name leaves nothing safe to use as
+  a filename, instead of ending the run. Because the name is model output, a
+  name like `!!! ???` used to raise out of the whole run before the yield
+  report was printed; it is now an ordinary reasoned discard, so the run still
+  reports what it read.
 
 ### Added
 

@@ -218,7 +218,7 @@ def triage(
     return survivors, discard_count
 
 
-def render_yield(counts: dict[str, object]) -> str:
+def render_yield(counts: dict[str, object], proposals_dir: Path | None = None) -> str:
     """Pure string formatting of the pipeline's yield report: no subprocess
     calls, no file I/O, and no mutation of `counts`. `counts` carries
     transcripts_read, slices_matched, slices_kept, survivors (survivors is
@@ -230,6 +230,12 @@ def render_yield(counts: dict[str, object]) -> str:
     and shows as "n/a"; a stage that ran and yielded nothing reports 0.
     `new_vs_update` is a (new, update) pair of ints, joined with a slash
     here - presentation belongs to the renderer.
+
+    `proposals_dir` is the directory this run published, handed in rather
+    than looked up: the audit directory holds every run's proposals, so
+    hunting it for a name would point the reader at somebody else's. None
+    means this run published none, and then the closing paragraph names no
+    proposals directory at all.
     """
     def text(key: str) -> str:
         value = counts.get(key)
@@ -250,8 +256,8 @@ def render_yield(counts: dict[str, object]) -> str:
         "",
         "How to proceed: this report was also written to "
         "dev/local/audit-results/. Review the survivors and promote "
-        "durable facts into memory. When the distil stage ran, its "
-        "proposals are under dev/local/audit-results/proposals/.",
+        "durable facts into memory."
+        + (f" This run's proposals are in {proposals_dir}." if proposals_dir is not None else ""),
     ]
     return "\n".join(lines) + "\n"
 
@@ -449,6 +455,7 @@ def _report_outcome(
     report_dir: Path,
     timestamp: str,
     errors: tuple[str | None, str | None, str | None],
+    proposals_dir: Path | None = None,
 ) -> int:
     """Print the yield report, then every stage error, then write the report to
     `report_dir` and print where it landed.
@@ -456,9 +463,13 @@ def _report_outcome(
     `errors` is (triage_error, distil_error, publish_error). Returns main's exit
     code: a failed publication ends the run before the report is written, and a
     triage or distil error is non-zero even though the report was written.
+
+    `proposals_dir` is the directory this run published, or None when it
+    published none, so the report never points a reader at a directory this
+    run did not write.
     """
     triage_error, distil_error, publish_error = errors
-    report = render_yield(counts)
+    report = render_yield(counts, proposals_dir)
     print(report, end="")
 
     for message in errors:
@@ -517,14 +528,17 @@ def main(argv: list[str] | None = None) -> int:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_dir = _report_dir()
     distil_error = publish_error = None
+    published_dir = None
     if args.distil and not args.dry_run:
+        out_dir = report_dir / f"distil-memory-{timestamp}-proposals"
         distil_counts, distil_error, publish_error = _distil_and_publish(
-            survivors, args.distil_limit, report_dir / f"distil-memory-{timestamp}-proposals"
+            survivors, args.distil_limit, out_dir
         )
         counts.update(distil_counts)
+        published_dir = out_dir if publish_error is None else None
 
     return _report_outcome(
-        counts, report_dir, timestamp, (triage_error, distil_error, publish_error)
+        counts, report_dir, timestamp, (triage_error, distil_error, publish_error), published_dir
     )
 
 

@@ -141,10 +141,18 @@ def _has_well_formed_link(body: str) -> bool:
 
 
 def validate_distil_output(proposal: Proposal, index_has_names: bool) -> None:
-    """Raise ProposalError when `proposal` breaks this feature's own rules."""
+    """Raise ProposalError when `proposal` breaks this feature's own rules.
+
+    The name is checked for a safe filename stem here, where a refusal is
+    still an ordinary reasoned discard. Left to the publisher it would abort
+    a run that had already produced usable proposals.
+    """
     validate(proposal)
 
-    memory_type = parse_frontmatter(proposal.file_text)["metadata"]["type"]
+    frontmatter = parse_frontmatter(proposal.file_text)
+    sanitise_name(frontmatter["name"])
+
+    memory_type = frontmatter["metadata"]["type"]
     if memory_type != DISTIL_TYPE:
         raise ProposalError(f"metadata.type must be {DISTIL_TYPE}")
 
