@@ -527,6 +527,26 @@ def test_no_discard_reason_ever_embeds_the_slice_text(stub_judge):
     assert _SENTINEL not in result.reason
 
 
+def test_a_discard_reason_stops_at_the_end_of_the_discard_line():
+    """The reason is the rest of the LINE, not the rest of the answer. A model
+    that states its verdict and then restates the snippet it turned down writes
+    that snippet into a reason that is saved to disk and read later by whoever
+    triages the run, which is exactly what the no-slice-text rule forbids."""
+    slice_ = _slice(f"we measured {_SENTINEL} at four milliseconds")
+
+    def stub_judge(prompt, tier):
+        return (
+            f"{distil.DISCARD_PREFIX} verifies a test run that already passed\n"
+            f"For reference, the snippet said: we measured {_SENTINEL} at four milliseconds"
+        )
+
+    result = distil.distil(slice_, [], judge=stub_judge)
+
+    assert isinstance(result, distil.Discard)
+    assert result.reason == "verifies a test run that already passed"
+    assert _SENTINEL not in result.reason
+
+
 def test_discard_reasons_distinguish_the_failure_modes_they_name():
     """A reason is written to disk and read later by whoever triages the run.
     One constant string - "discarded", "no proposal" - satisfies every
@@ -618,6 +638,35 @@ def test_load_examples_returns_no_more_anchors_than_limit(memory_dir):
     result = distil.load_examples(memory_dir, _index_text(*names), limit=2)
 
     assert result == [texts["alpha"], texts["bravo"]]
+
+
+def test_load_examples_reads_no_more_than_twice_the_limit_of_indexed_names(memory_dir, monkeypatch):
+    """Reading a bounded number of files is why this stage takes an already-read
+    index instead of the directory. A sparse index therefore yields FEWER
+    anchors than asked for - the project memory here sits past the read bound,
+    so it never becomes an anchor - and the rubric alone carries the prompt. An
+    implementation that keeps opening files until it has collected `limit`
+    survivors reads the whole index whenever the good files sit late in it."""
+    decoys = ["aaa-01", "aaa-02", "aaa-03", "aaa-04", "aaa-05"]
+    for name in decoys:
+        (memory_dir / f"{name}.md").write_text(
+            _memory_file(name, type_="reference"), encoding="utf-8"
+        )
+    (memory_dir / "zzz-project.md").write_text(_memory_file("zzz-project"), encoding="utf-8")
+
+    read_names = []
+    unpatched_read_text = Path.read_text
+
+    def spy_read_text(self, *args, **kwargs):
+        read_names.append(self.name)
+        return unpatched_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", spy_read_text)
+
+    result = distil.load_examples(memory_dir, _index_text(*decoys, "zzz-project"), limit=1)
+
+    assert result == []
+    assert len(read_names) == 2
 
 
 def test_load_examples_reads_only_the_files_the_index_names(memory_dir, monkeypatch):
