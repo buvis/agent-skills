@@ -16,9 +16,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Iterator
+from typing import Callable, Iterable, Iterator
 import json
 import re
+import subprocess
 
 
 def _is_compaction_entry(entry: dict) -> bool:
@@ -146,3 +147,53 @@ def slice_on_markers(transcripts: list[Path]) -> list[Slice]:
     directly to avoid re-reading every transcript a second time.
     """
     return scan(transcripts)[1]
+
+
+_MODEL_FOR_TIER = {"cheap": "haiku", "strong": "sonnet"}
+
+
+def judge(prompt: str, tier: str) -> str:
+    """Invoke the `claude` CLI non-interactively with the model resolved
+    from `tier` and return its raw stdout. Raises RuntimeError(stderr) on
+    a non-zero exit."""
+    proc = subprocess.run(
+        ["claude", "--print", "--model", _MODEL_FOR_TIER[tier], prompt],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(proc.stderr)
+    return proc.stdout
+
+
+_TRANSIENT = "transient"
+_DURABLE = "durable"
+
+_TRIAGE_PROMPT = (
+    "Classify this snippet as exactly one word, '{transient}' or '{durable}'. "
+    "'{transient}' means it verifies something already known or already "
+    "working (a test pass, a build succeeding, a repeated confirmation). "
+    "'{durable}' means it establishes a new fact worth remembering. "
+    "Answer with exactly one of those two words, nothing else.\n\n{text}"
+)
+
+
+def triage(
+    slices: list[Slice], judge: Callable[[str, str], str] = judge
+) -> tuple[list[Slice], int]:
+    """Cheap-tier pass: ask `judge` to classify each slice as transient or
+    durable, discarding transient ones. Fail-open - any response other than
+    an exact (case/whitespace-insensitive) match on "transient" keeps the
+    slice. Returns (survivors, discard_count)."""
+    survivors: list[Slice] = []
+    discard_count = 0
+    for slice_ in slices:
+        prompt = _TRIAGE_PROMPT.format(transient=_TRANSIENT, durable=_DURABLE, text=slice_.text)
+        response = judge(prompt, "cheap")
+        if response.strip().lower() == _TRANSIENT:
+            discard_count += 1
+        else:
+            survivors.append(slice_)
+    return survivors, discard_count
