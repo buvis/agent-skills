@@ -176,6 +176,41 @@ def excerpt(text: str, marker: str, max_chars: int = EVIDENCE_EXCERPT_CHARS) -> 
     return ("..." if start else "") + window + ("..." if start + max_chars < len(text) else "")
 
 
+def _write_proposal_files(proposals: list[Proposal], staging: Path) -> list[dict]:
+    """Write one markdown file per proposal into `staging` and return the
+    records naming them, in the order the proposals arrived.
+
+    A stem an earlier proposal in the run already took is handed a `-2`, `-3`
+    suffix, so two proposals sharing a name never land on one file.
+    """
+    records = []
+    taken: set[str] = set()
+    for candidate in proposals:
+        name = parse_frontmatter(candidate.file_text)["name"]
+        stem = sanitise_name(name)
+        unique = stem
+        collisions = 1
+        while unique in taken:
+            collisions += 1
+            unique = f"{stem}-{collisions}"
+        taken.add(unique)
+        filename = f"{unique}.md"
+        (staging / filename).write_text(candidate.file_text)
+        records.append(
+            {
+                "name": name,
+                "kind": candidate.kind,
+                "transcript": str(candidate.evidence.transcript),
+                "line_no": candidate.evidence.line_no,
+                "evidence_text": candidate.evidence.text,
+                "existing_text": candidate.existing_text,
+                "dedup_error": candidate.dedup_error,
+                "file": filename,
+            }
+        )
+    return records
+
+
 def write_proposals(proposals: list[Proposal], discards: list, out_dir: Path) -> Path:
     """Publish `proposals` and `discards` as `out_dir`, and return it.
 
@@ -194,31 +229,7 @@ def write_proposals(proposals: list[Proposal], discards: list, out_dir: Path) ->
         raise
 
     try:
-        records = []
-        taken: set[str] = set()
-        for candidate in proposals:
-            name = parse_frontmatter(candidate.file_text)["name"]
-            stem = sanitise_name(name)
-            unique = stem
-            collisions = 1
-            while unique in taken:
-                collisions += 1
-                unique = f"{stem}-{collisions}"
-            taken.add(unique)
-            filename = f"{unique}.md"
-            (staging / filename).write_text(candidate.file_text)
-            records.append(
-                {
-                    "name": name,
-                    "kind": candidate.kind,
-                    "transcript": str(candidate.evidence.transcript),
-                    "line_no": candidate.evidence.line_no,
-                    "evidence_text": candidate.evidence.text,
-                    "existing_text": candidate.existing_text,
-                    "dedup_error": candidate.dedup_error,
-                    "file": filename,
-                }
-            )
+        records = _write_proposal_files(proposals, staging)
         (staging / "proposals.json").write_text(json.dumps(records, indent=2))
         (staging / "discards.json").write_text(
             json.dumps(

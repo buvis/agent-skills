@@ -444,6 +444,39 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _report_outcome(
+    counts: dict[str, object],
+    report_dir: Path,
+    timestamp: str,
+    errors: tuple[str | None, str | None, str | None],
+) -> int:
+    """Print the yield report, then every stage error, then write the report to
+    `report_dir` and print where it landed.
+
+    `errors` is (triage_error, distil_error, publish_error). Returns main's exit
+    code: a failed publication ends the run before the report is written, and a
+    triage or distil error is non-zero even though the report was written.
+    """
+    triage_error, distil_error, publish_error = errors
+    report = render_yield(counts)
+    print(report, end="")
+
+    for message in errors:
+        if message is not None:
+            print(message, file=sys.stderr)
+
+    if publish_error is not None:
+        return 1
+
+    try:
+        print(_write_report(report, report_dir, timestamp))
+    except OSError as exc:
+        print(f"failed to write report to {report_dir}: {exc}", file=sys.stderr)
+        return 1
+
+    return 1 if triage_error is not None or distil_error is not None else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point: select transcripts, scan and (unless --dry-run)
     triage them, distil the survivors behind --distil, then print and write
@@ -490,23 +523,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         counts.update(distil_counts)
 
-    report = render_yield(counts)
-    print(report, end="")
-
-    for message in (triage_error, distil_error, publish_error):
-        if message is not None:
-            print(message, file=sys.stderr)
-
-    if publish_error is not None:
-        return 1
-
-    try:
-        print(_write_report(report, report_dir, timestamp))
-    except OSError as exc:
-        print(f"failed to write report to {report_dir}: {exc}", file=sys.stderr)
-        return 1
-
-    return 1 if triage_error is not None or distil_error is not None else 0
+    return _report_outcome(
+        counts, report_dir, timestamp, (triage_error, distil_error, publish_error)
+    )
 
 
 if __name__ == "__main__":
