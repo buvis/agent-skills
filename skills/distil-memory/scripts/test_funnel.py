@@ -797,3 +797,176 @@ def test_main_dry_run_makes_no_model_call_and_prints_and_writes_report_matching_
     report_files = sorted((tmp_path / "dev" / "local" / "audit-results").glob("distil-memory-*.md"))
     assert len(report_files) == 1
     assert report_files[0].read_text() == expected_report
+
+
+def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_returns_nonzero_when_judge_raises_runtime_error(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+    now = datetime.now(timezone.utc)
+    write_transcript(
+        project_dir,
+        "t1.jsonl",
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
+        + "\n",
+    )
+    module, version = make_transcript_parser_module(
+        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(args=cmd, returncode=1, stdout="", stderr="claude cli exploded")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+
+    exit_code = funnel.main([])
+
+    assert exit_code != 0
+    expected_counts = {
+        "transcripts_read": 1,
+        "slices_matched": 1,
+        "slices_kept": 1,
+        "survivors": None,
+        "claude_checkup_version": version,
+    }
+    expected_report = funnel.render_yield(expected_counts)
+
+    captured = capsys.readouterr()
+    assert expected_report in captured.out
+    assert "survivors: n/a" in captured.out
+    assert "claude cli exploded" in captured.err
+
+
+def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_returns_nonzero_when_claude_cli_binary_is_absent(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+    now = datetime.now(timezone.utc)
+    write_transcript(
+        project_dir,
+        "t1.jsonl",
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
+        + "\n",
+    )
+    module, version = make_transcript_parser_module(
+        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    def fake_run(cmd, **kwargs):
+        raise FileNotFoundError("[Errno 2] No such file or directory: 'claude'")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+
+    exit_code = funnel.main([])
+
+    assert exit_code != 0
+    expected_counts = {
+        "transcripts_read": 1,
+        "slices_matched": 1,
+        "slices_kept": 1,
+        "survivors": None,
+        "claude_checkup_version": version,
+    }
+    expected_report = funnel.render_yield(expected_counts)
+
+    captured = capsys.readouterr()
+    assert expected_report in captured.out
+    assert "survivors: n/a" in captured.out
+    assert "No such file or directory" in captured.err
+
+
+def test_main_prints_known_counts_and_survivors_n_a_and_writes_stderr_and_returns_nonzero_when_claude_cli_times_out(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+    now = datetime.now(timezone.utc)
+    write_transcript(
+        project_dir,
+        "t1.jsonl",
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
+        + "\n",
+    )
+    module, version = make_transcript_parser_module(
+        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    def fake_run(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd=cmd, timeout=120)
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+
+    exit_code = funnel.main([])
+
+    assert exit_code != 0
+    expected_counts = {
+        "transcripts_read": 1,
+        "slices_matched": 1,
+        "slices_kept": 1,
+        "survivors": None,
+        "claude_checkup_version": version,
+    }
+    expected_report = funnel.render_yield(expected_counts)
+
+    captured = capsys.readouterr()
+    assert expected_report in captured.out
+    assert "survivors: n/a" in captured.out
+    assert "timed out after 120 seconds" in captured.err
+
+
+def test_main_reports_persistence_failure_to_stderr_and_returns_nonzero_when_writing_report_raises_oserror(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+    now = datetime.now(timezone.utc)
+    write_transcript(
+        project_dir,
+        "t1.jsonl",
+        json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}})
+        + "\n",
+    )
+    module, version = make_transcript_parser_module(
+        {"t1.jsonl": FakeSessionData(latest=now - timedelta(days=1))}
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="durable", stderr="")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+
+    def raise_oserror(*args, **kwargs):
+        raise OSError("no space left on device")
+
+    monkeypatch.setattr(Path, "mkdir", raise_oserror)
+    monkeypatch.setattr(Path, "write_text", raise_oserror)
+
+    exit_code = funnel.main([])
+
+    assert exit_code != 0
+    expected_counts = {
+        "transcripts_read": 1,
+        "slices_matched": 1,
+        "slices_kept": 1,
+        "survivors": 1,
+        "claude_checkup_version": version,
+    }
+    expected_report = funnel.render_yield(expected_counts)
+
+    captured = capsys.readouterr()
+    assert expected_report in captured.out
+    assert "dev/local/audit-results" in captured.err
