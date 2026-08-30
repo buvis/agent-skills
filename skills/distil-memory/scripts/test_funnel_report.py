@@ -330,6 +330,21 @@ def known_counts_transcript(tmp_path, monkeypatch):
     return version
 
 
+@pytest.fixture
+def timed_out_judge(monkeypatch):
+    """Monkeypatches funnel.subprocess.run so the claude CLI invocation
+    times out, embedding a sentinel value in the command so a leak of
+    transcript slice text into stderr would be caught. Returns the
+    sentinel string."""
+    sentinel = "SENTINEL-TRANSCRIPT-SLICE-9f3c1a-do-not-leak"
+
+    def fake_run(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd=[*cmd[:-1], sentinel], timeout=120)
+
+    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+    return sentinel
+
+
 def _fail_with_runtime_error(cmd, **kwargs):
     return subprocess.CompletedProcess(args=cmd, returncode=1, stdout="", stderr="claude cli exploded")
 
@@ -600,14 +615,9 @@ def test_main_reports_a_real_version_even_when_select_transcripts_is_stubbed_out
 
 
 def test_main_never_leaks_transcript_slice_text_to_stderr_when_claude_cli_times_out(
-    known_counts_transcript, monkeypatch, capsys
+    known_counts_transcript, timed_out_judge, capsys
 ):
-    sentinel = "SENTINEL-TRANSCRIPT-SLICE-9f3c1a-do-not-leak"
-
-    def fake_run(cmd, **kwargs):
-        raise subprocess.TimeoutExpired(cmd=[*cmd[:-1], sentinel], timeout=120)
-
-    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+    sentinel = timed_out_judge
 
     exit_code = funnel.main([])
 
@@ -621,14 +631,9 @@ def test_main_never_leaks_transcript_slice_text_to_stderr_when_claude_cli_times_
 
 
 def test_main_stderr_still_states_the_timeout_duration_when_claude_cli_times_out(
-    known_counts_transcript, monkeypatch, capsys
+    known_counts_transcript, timed_out_judge, capsys
 ):
-    sentinel = "SENTINEL-TRANSCRIPT-SLICE-9f3c1a-do-not-leak"
-
-    def fake_run(cmd, **kwargs):
-        raise subprocess.TimeoutExpired(cmd=[*cmd[:-1], sentinel], timeout=120)
-
-    monkeypatch.setattr(funnel.subprocess, "run", fake_run)
+    sentinel = timed_out_judge
 
     exit_code = funnel.main([])
 
