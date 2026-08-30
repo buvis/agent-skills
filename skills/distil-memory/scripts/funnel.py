@@ -224,12 +224,11 @@ def render_yield(counts: dict[str, object]) -> str:
     None for a --dry-run, rendered as "n/a") and claude_checkup_version (the
     resolved parser version, per the PRD's Phase 2 acceptance criteria).
 
-    The distil stage's five counts (proposals, discards, new_vs_update,
-    skipped_by_limit, dedup_errors) are optional and read with `.get`, so a
-    caller from before that stage still renders. Missing or None means the
-    stage did not run and shows as "n/a"; a stage that ran and yielded
-    nothing reports 0. `new_vs_update` is a (new, update) pair of ints,
-    joined with a slash here - presentation belongs to the renderer.
+    The distil stage's five counts are optional, so a caller from before
+    that stage still renders. Missing or None means the stage did not run
+    and shows as "n/a"; a stage that ran and yielded nothing reports 0.
+    `new_vs_update` is a (new, update) pair of ints, joined with a slash
+    here - presentation belongs to the renderer.
     """
     def text(key: str) -> str:
         value = counts.get(key)
@@ -298,9 +297,8 @@ def _write_report(report: str, report_dir: Path, timestamp: str) -> Path:
 
 
 def _non_negative_int(value: str) -> int:
-    """argparse type for --distil-limit: 0 means no cap, any positive value
-    is a real cap, and a negative one is a usage error (it would slice
-    survivors from the end instead of capping them)."""
+    """argparse type for --distil-limit. A negative cap would slice
+    survivors from the end instead of capping them, so refuse it here."""
     number = int(value)
     if number < 0:
         raise argparse.ArgumentTypeError(f"must not be negative, got {number}")
@@ -359,8 +357,6 @@ def main(argv: list[str] | None = None) -> int:
     if triage_error is not None:
         print(triage_error, file=sys.stderr)
 
-    # One wall-clock read per run, so every artefact this run writes shares
-    # a stamp even when the run crosses a second boundary.
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_dir = _report_dir()
     try:
