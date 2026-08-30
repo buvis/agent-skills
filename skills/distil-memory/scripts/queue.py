@@ -35,10 +35,12 @@ def _save_queue(data: dict, path: Path) -> None:
 
 
 def slice_key(transcript, line_no):
+    """Build an entry id from a transcript path and line number."""
     return f"{transcript}:{line_no}"
 
 
 def load(path=None):
+    """Load the queue file, or a fresh empty queue if it does not exist yet."""
     p = _resolve_path(path)
     if not p.exists():
         return {"cursor": 0, "entries": []}
@@ -53,10 +55,24 @@ def _dropped_at(entries, key, rubric_version):
 
 
 def rejected(key, rubric_version, path=None):
+    """Return True if key was dropped under this exact rubric_version.
+
+    A drop recorded under a different rubric_version does not count: bumping
+    the rubric re-opens previously dropped entries.
+    """
     return _dropped_at(load(path=path)["entries"], key, rubric_version)
 
 
 def save(proposals, path=None):
+    """Append new proposals to the queue as undecided entries, skipping ones
+    already present.
+
+    A proposal is skipped when its key already has an "undecided" or "kept"
+    entry (unconditional, regardless of rubric_version), or when it was
+    "dropped" under the *current* RUBRIC_VERSION specifically - a drop
+    recorded under an older rubric_version does not block re-adding it.
+    Returns the count of proposals actually added.
+    """
     p = _resolve_path(path)
     data = load(path=p)
     entries = data["entries"]
@@ -79,6 +95,9 @@ def save(proposals, path=None):
 
 
 def next_undecided(path=None):
+    """Return the next undecided entry, or None if the session's per-run cap
+    (PER_RUN_CAP, refilled by advance()) has been reached, or none remain.
+    """
     data = load(path=path)
     if data.get("session_decided", 0) >= PER_RUN_CAP:
         return None
@@ -89,6 +108,12 @@ def next_undecided(path=None):
 
 
 def decide(entry_id, decision, file_text=None, path=None):
+    """Record a "kept"/"dropped" decision for an undecided entry.
+
+    Increments both the lifetime cursor and the per-sitting session_decided
+    counter; the latter is what next_undecided() checks against PER_RUN_CAP
+    and what advance() resets to re-arm the next sitting.
+    """
     if decision not in ("kept", "dropped"):
         raise QueueError(f"invalid decision: {decision!r}")
     p = _resolve_path(path)
@@ -108,10 +133,18 @@ def decide(entry_id, decision, file_text=None, path=None):
 
 
 def cursor(path=None):
+    """Return the lifetime count of decisions made across all sittings."""
     return load(path=path).get("cursor", 0)
 
 
 def advance(new_cursor=None, path=None):
+    """Reset the per-sitting session_decided counter to 0, unconditionally,
+    re-arming exactly PER_RUN_CAP more decisions for the next sitting.
+
+    There is no "already lifted" special case: this reset is identical every
+    time advance() is called, however many times it has run before.
+    Optionally also overwrites the lifetime cursor with new_cursor.
+    """
     p = _resolve_path(path)
     data = load(path=p)
     data["session_decided"] = 0
@@ -164,23 +197,22 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "save":
         return _save_from_proposals_dir(Path(args.proposals_dir))
-    if args.command == "start":
+    elif args.command == "start":
         advance()
         return 0
-    if args.command == "next":
+    elif args.command == "next":
         entry = next_undecided()
         if entry is None:
             return 1
         print(json.dumps(entry))
         return 0
-    if args.command == "decide":
+    elif args.command == "decide":
         file_text = Path(args.file).read_text() if args.file else None
         decide(args.id, args.state, file_text=file_text)
         return 0
-    if args.command == "cursor":
+    elif args.command == "cursor":
         print(cursor())
         return 0
-    return 1
 
 
 if __name__ == "__main__":
