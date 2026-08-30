@@ -1,6 +1,8 @@
 """Tests for dedup.py's index side: read_index()'s absent-versus-unreadable
 answer, parse_index()'s bullet-link shape, and shortlist()'s Jaccard ranking."""
 
+import errno
+import io
 from pathlib import Path
 
 import dedup
@@ -456,3 +458,109 @@ def test_read_index_raises_oserror_when_the_index_exists_but_cannot_be_read(tmp_
             dedup.read_index(memory_dir)
     finally:
         index.chmod(0o600)
+
+
+def _index_whose_read_fails(tmp_path, monkeypatch, error: OSError) -> Path:
+    """A memory directory holding a real MEMORY.md whose every read raises
+    `error`. The file is genuinely there, so a reader that checks before it
+    reads sees an index and only the read itself can say otherwise - the window
+    between the check and the read, made reproducible."""
+    memory_dir = tmp_path / "memory"
+    memory_dir.mkdir()
+    (memory_dir / "MEMORY.md").write_text(_RANKING_INDEX)
+
+    def failing_read(self, *args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(Path, "read_text", failing_read)
+    monkeypatch.setattr(Path, "open", failing_read)
+    return memory_dir
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        FileNotFoundError(errno.ENOENT, "No such file or directory"),
+        FileNotFoundError("gone"),
+    ],
+    ids=["carrying-errno-2", "carrying-no-errno"],
+)
+def test_read_index_treats_an_index_gone_by_the_time_it_is_read_as_absent(
+    tmp_path, monkeypatch, error
+):
+    """An index deleted between the check and the read is absent, not
+    unreadable. The two answers pinned above stay as they are - a missing index
+    yields "" and an unreadable one raises - and this is the case they leave
+    open: a `FileNotFoundError` raised by the read itself still means the file
+    is not there, so it yields "" instead of failing the run over a file that
+    merely is not there.
+
+    What says "not there" is the KIND of error, never its number. The second
+    row carries no errno at all, so a reader that sorts errors by errno has
+    nothing to sort it by and fails the run over a file that merely is gone.
+    """
+    memory_dir = _index_whose_read_fails(tmp_path, monkeypatch, error)
+
+    assert dedup.read_index(memory_dir) == ""
+
+
+def test_read_index_answers_with_what_the_read_returns_not_with_an_earlier_check(
+    tmp_path, monkeypatch
+):
+    """The same window, entered from the other side: an index that lands
+    between a check and the read is present. Nothing is on disk here and the
+    read hands back an index anyway, so a reader that decides from a check made
+    before the read reports the plane as empty - and an empty plane types every
+    duplicate as new, which is the confusion this function exists to prevent.
+    """
+    memory_dir = tmp_path / "memory"
+    memory_dir.mkdir()
+    real_read_text = Path.read_text
+    real_open = Path.open
+
+    def read_text_of_an_index_that_arrived_late(self, *args, **kwargs):
+        if self.name == "MEMORY.md":
+            return _RANKING_INDEX
+        return real_read_text(self, *args, **kwargs)
+
+    def open_an_index_that_arrived_late(self, *args, **kwargs):
+        if self.name == "MEMORY.md":
+            return io.StringIO(_RANKING_INDEX)
+        return real_open(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", read_text_of_an_index_that_arrived_late)
+    monkeypatch.setattr(Path, "open", open_an_index_that_arrived_late)
+
+    assert dedup.read_index(memory_dir) == _RANKING_INDEX
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        PermissionError(errno.EACCES, "Permission denied"),
+        OSError(errno.EIO, "Input/output error"),
+        InterruptedError(errno.EINTR, "Interrupted system call"),
+    ],
+    ids=["permission-denied-13", "disk-io-error-5", "interrupted-4"],
+)
+def test_read_index_propagates_a_read_failure_that_is_not_the_index_being_gone(
+    tmp_path, monkeypatch, error
+):
+    """The absent-versus-unreadable distinction has to hold in both directions.
+    A read that fails for any reason other than the file being gone leaves the
+    index unknown, and answering "" there would type a duplicate as new and
+    write a second copy of a memory the plane already holds.
+
+    A missing file carries errno 2 and a locked one carries 13, so a reader
+    that swallows the small numbers and raises the large ones separates those
+    two by accident. The disk error (5) and the interrupted read (4) sit
+    between them: both leave the index unknown, and both are numerically small.
+    The error that comes back out is the one that went in, so a reader that
+    reports a disk failure as some other trouble fails too.
+    """
+    memory_dir = _index_whose_read_fails(tmp_path, monkeypatch, error)
+
+    with pytest.raises(OSError) as raised:
+        dedup.read_index(memory_dir)
+
+    assert raised.value is error

@@ -258,6 +258,146 @@ class TestDecisionSide:
         ]
         assert unread_names == ["gantry-03"]
 
+    @pytest.mark.parametrize(
+        "traversing_name",
+        ["../outside/secret", "nested/../../outside/secret"],
+        ids=["separator-leads", "separator-in-the-middle"],
+    )
+    def test_read_candidates_skips_a_name_carrying_a_path_separator(
+        self, tmp_path, traversing_name
+    ):
+        """A memory name is a plain filename stem, so a name carrying a
+        separator names no memory in this plane and is as absent as a stale
+        index entry. The readable file it points at outside the plane proves
+        the reader never went there: it would come back as a candidate, text
+        and all. The ordinary name asked for beside it still answers, so
+        refusing every name is no way to pass.
+
+        The second row opens with a directory the plane really holds and hides
+        its separators in the middle, so it reads as an ordinary name to anyone
+        who inspects only where it starts - and walks out of the plane all the
+        same, onto the same file as the first row.
+        """
+        memories = _generated_memories("trestle", 2)
+        memory_dir = _memory_plane(tmp_path, memories)
+        (memory_dir / "nested").mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "secret.md").write_text("A file the memory plane does not hold.\n")
+
+        candidates, unread_names = dedup.read_candidates(
+            memory_dir, [traversing_name, "trestle-01"]
+        )
+
+        assert candidates == [("trestle-01", memories["trestle-01"])]
+        assert unread_names == []
+
+    def test_read_candidates_skips_a_name_carrying_a_windows_style_separator(self, tmp_path):
+        """A separator is a separator wherever a memory plane is read, so a
+        name built with backslashes is no plain stem either. A file sits here
+        at exactly the name a check written for `/` alone lets through - inside
+        the plane, real and readable - so such a reader returns its text as a
+        candidate rather than skipping the name.
+        """
+        memories = _generated_memories("mullion", 2)
+        memory_dir = _memory_plane(tmp_path, memories)
+        (memory_dir / "..\\outside\\secret.md").write_text("A file no memory name reaches.\n")
+
+        candidates, unread_names = dedup.read_candidates(
+            memory_dir, ["..\\outside\\secret", "mullion-01"]
+        )
+
+        assert candidates == [("mullion-01", memories["mullion-01"])]
+        assert unread_names == []
+
+    def test_read_candidates_reads_no_path_that_resolves_outside_the_memory_directory(
+        self, tmp_path, monkeypatch
+    ):
+        """The rows above each name one shape of escape; this is the rule they
+        are instances of, so an escape shaped like nothing anyone wrote a row
+        for still fails here. Every door onto a file's bytes is recorded, and
+        every path that reaches one has to resolve inside the plane - which a
+        reader passes by refusing the name, never by reading the file and
+        discarding what came back.
+        """
+        memories = _generated_memories("corbel", 2)
+        memory_dir = _memory_plane(tmp_path, memories)
+        (memory_dir / "nested").mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "secret.md").write_text("A file the memory plane does not hold.\n")
+
+        read_text = Path.read_text
+        path_open = Path.open
+        builtin_open = builtins.open
+        paths_read = []
+
+        def recording_read_text(self, *args, **kwargs):
+            paths_read.append(self)
+            return read_text(self, *args, **kwargs)
+
+        def recording_path_open(self, *args, **kwargs):
+            paths_read.append(self)
+            return path_open(self, *args, **kwargs)
+
+        def recording_open(file, *args, **kwargs):
+            paths_read.append(Path(file))
+            return builtin_open(file, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "read_text", recording_read_text)
+        monkeypatch.setattr(Path, "open", recording_path_open)
+        monkeypatch.setattr(builtins, "open", recording_open)
+
+        candidates, unread_names = dedup.read_candidates(
+            memory_dir,
+            [
+                "../outside/secret",
+                "nested/../../outside/secret",
+                str(outside / "secret"),
+                "corbel-01",
+            ],
+        )
+
+        plane = memory_dir.resolve()
+        assert [path for path in paths_read if not path.resolve().is_relative_to(plane)] == []
+        assert candidates == [("corbel-01", memories["corbel-01"])]
+        assert unread_names == []
+
+    def test_read_candidates_skips_a_dot_dot_name_rather_than_reporting_it_unread(self, tmp_path):
+        """A name that is no stem is absent, not unread. The difference is what
+        the caller does with each: `unread_names` becomes a dedup error, so a
+        malformed index entry landing there mistypes the proposal over a memory
+        nobody named. `..` carries no separator and, suffixed, lands on a
+        directory here, which fails to read rather than reading as missing - so
+        a reader that only watches for separators reports it unread.
+        """
+        memories = _generated_memories("lintel", 2)
+        memory_dir = _memory_plane(tmp_path, memories)
+        (memory_dir / "...md").mkdir()
+
+        candidates, unread_names = dedup.read_candidates(memory_dir, ["..", "lintel-02"])
+
+        assert candidates == [("lintel-02", memories["lintel-02"])]
+        assert unread_names == []
+
+    def test_read_candidates_skips_an_absolute_name(self, tmp_path):
+        """Joining an absolute name onto the plane's path discards the plane
+        and leaves the absolute path, so an absolute name reaches outside with
+        no `..` in it at all. It is no stem either, so it names no memory here.
+        """
+        memories = _generated_memories("quoin", 2)
+        memory_dir = _memory_plane(tmp_path, memories)
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "secret.md").write_text("A file the memory plane does not hold.\n")
+
+        candidates, unread_names = dedup.read_candidates(
+            memory_dir, [str(outside / "secret"), "quoin-01"]
+        )
+
+        assert candidates == [("quoin-01", memories["quoin-01"])]
+        assert unread_names == []
+
     @pytest.mark.parametrize("position", [0, 1, 2], ids=["first", "middle", "last"])
     def test_classify_types_a_name_collision_as_an_update_without_asking_the_judge(self, position):
         """A proposal whose frontmatter name is a memory name already in use is
