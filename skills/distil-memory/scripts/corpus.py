@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import ModuleType
@@ -48,6 +49,10 @@ def resolve_parser(cache_root: Path = _CACHE_ROOT) -> tuple[ModuleType, str]:
     module = importlib.util.module_from_spec(spec)
     loader = spec.loader
     assert loader is not None
+    # dataclasses in the loaded module resolve annotations via
+    # sys.modules[cls.__module__]; without this the module must be
+    # registered before exec, or a @dataclass class body raises AttributeError.
+    sys.modules[spec.name] = module
     loader.exec_module(module)
     return module, winner.name
 

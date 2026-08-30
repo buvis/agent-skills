@@ -63,6 +63,27 @@ def test_stale_parser_error_is_a_runtime_error():
     assert issubclass(corpus.StaleParserError, RuntimeError)
 
 
+_DATACLASS_PARSER_BODY = (
+    "from dataclasses import dataclass\n"
+    "@dataclass(frozen=True)\n"
+    "class SessionData:\n"
+    "    latest: str\n"
+    "def parse_session():\n"
+    "    return SessionData(latest='x')\n"
+)
+
+
+def test_resolve_parser_imports_a_module_using_dataclass(tmp_path):
+    # dataclass() resolves annotations via sys.modules[cls.__module__]; a
+    # dynamic import that skips registering the module in sys.modules raises
+    # AttributeError here even though a plain-function fixture succeeds.
+    write_parser(tmp_path / "0.2.2", body=_DATACLASS_PARSER_BODY)
+
+    module, _ = corpus.resolve_parser(cache_root=tmp_path)
+
+    assert module.parse_session().latest == "x"
+
+
 def test_version_key_sorts_non_numeric_segments_below_real_versions():
     assert corpus._version_key("0.2.2") > corpus._version_key("0.2.dev")
     assert corpus._version_key("0.2.dev") == (0, 2, -1)
