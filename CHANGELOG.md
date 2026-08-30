@@ -33,6 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: type a proposed memory as new or as an update of an
+  existing one. Only the shortlisted memories are read, and a proposal whose
+  name a memory already holds is typed an update without asking a model at all.
+  Otherwise one strong-tier question covers the whole shortlist, and an answer
+  naming no memory reads as new. A judge that fails raises instead of answering
+  new, so a duplicate is never filed as a new memory because the model never
+  replied.
 - **distil-memory**: narrow a proposed memory to the few existing memories it
   might duplicate, by reading the memory index alone. Bullet links in
   `MEMORY.md` become name-to-cue entries, and each is scored against the
