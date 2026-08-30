@@ -496,3 +496,392 @@ def test_validate_accepts_every_memory_file_in_the_calibration_corpus(evidence):
             proposal.validate(_proposal(evidence, path.read_text()))
         except proposal.ProposalError as exc:
             pytest.fail(f"{path.name} fails validate(): {exc}")
+
+
+def _body_with(*links):
+    """A memory body carrying exactly `links` and nothing else bracket-shaped."""
+    text = "\nThe pool warms on the first request, so the first import is slow.\n"
+    if links:
+        text += "\nSee " + " and ".join(links) + " for the neighbouring rules.\n"
+    text += f"\n**Why:** long imports die halfway.\n\n**How to apply:** {_VALID_APPLY}\n"
+    return text
+
+
+def _distil_file(body, *, memory_type="project"):
+    """A whole memory file whose text after the closing marker is exactly `body`."""
+    return (
+        "---\n"
+        f'name: "{_VALID_NAME}"\n'
+        f'description: "{_VALID_DESCRIPTION}"\n'
+        "metadata:\n"
+        "  node_type: memory\n"
+        f"  type: {memory_type}\n"
+        "---\n" + body
+    )
+
+
+# (label, the malformed link, a fragment of it the rejection must name).
+_MALFORMED_LINKS = [
+    # No capture under `\[\[([^\]]*)\]\]` yet a later `]]` exists, so a
+    # capture check paired with an unclosed-`[[` check lets this one through.
+    ("a closing bracket inside the name", "[[bad]target]]", "bad]target"),
+    ("never closed at all", "[[un closed", "un closed"),
+    ("a space in the name", "[[has space]]", "has space"),
+    ("an empty name", "[[]]", "[[]]"),
+]
+
+
+@pytest.mark.parametrize("memory_type", ["feedback", "user", "reference"])
+def test_validate_distil_output_rejects_a_memory_type_this_feature_does_not_own(
+    evidence, memory_type
+):
+    # `feedback` belongs to the human-run encode-incident skill; `user` and
+    # `reference` belong to nobody here. The link and body rules are satisfied,
+    # so only the ownership rule can produce this rejection.
+    candidate = _proposal(
+        evidence, _distil_file(_body_with("[[cache-eviction-rule]]"), memory_type=memory_type)
+    )
+
+    with pytest.raises(proposal.ProposalError) as exc_info:
+        proposal.validate_distil_output(candidate, True)
+
+    assert "type" in str(exc_info.value)
+
+
+def test_validate_distil_output_accepts_the_project_type_this_feature_owns(evidence):
+    candidate = _proposal(evidence, _distil_file(_body_with("[[cache-eviction-rule]]")))
+
+    assert proposal.validate_distil_output(candidate, True) is None
+
+
+@pytest.mark.parametrize(
+    ("label", "body"),
+    [("nothing after the closing marker", ""), ("whitespace only", "\n   \n\t\n")],
+)
+def test_validate_distil_output_rejects_a_frontmatter_only_file_with_no_body(
+    evidence, label, body
+):
+    # The index is empty, so the link rule is waived and only the body rule can
+    # reject this: a fragment must fail on its own account.
+    candidate = _proposal(evidence, _distil_file(body))
+
+    with pytest.raises(proposal.ProposalError):
+        proposal.validate_distil_output(candidate, False)
+
+
+@pytest.mark.parametrize(("label", "link", "fragment"), _MALFORMED_LINKS)
+def test_validate_distil_output_rejects_a_malformed_wiki_link_and_names_the_offending_text(
+    evidence, label, link, fragment
+):
+    # Waiving the link requirement leaves the well-formedness rule as the only
+    # rule that can fire, so a pass here is a pass on that rule alone.
+    candidate = _proposal(evidence, _distil_file(_body_with(link)))
+
+    with pytest.raises(proposal.ProposalError) as exc_info:
+        proposal.validate_distil_output(candidate, False)
+
+    assert fragment in str(exc_info.value)
+
+
+def test_validate_distil_output_rejects_a_malformed_link_standing_beside_a_well_formed_one(
+    evidence
+):
+    # Finding one good link is not enough: EVERY opening delimiter is checked.
+    candidate = _proposal(
+        evidence, _distil_file(_body_with("[[cache-eviction-rule]]", "[[bad]target]]"))
+    )
+
+    with pytest.raises(proposal.ProposalError) as exc_info:
+        proposal.validate_distil_output(candidate, True)
+
+    assert "bad]target" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    "link", ["[[cache-eviction-rule]]", "[[signing_key_rotation]]", "[[rule-2]]", "[[n]]"]
+)
+def test_validate_distil_output_accepts_every_well_formed_link_shape(evidence, link):
+    candidate = _proposal(evidence, _distil_file(_body_with(link)))
+
+    assert proposal.validate_distil_output(candidate, True) is None
+
+
+def test_validate_distil_output_requires_a_link_once_the_index_holds_names(evidence):
+    candidate = _proposal(evidence, _distil_file(_body_with()))
+    assert "[[" not in candidate.file_text
+
+    with pytest.raises(proposal.ProposalError) as exc_info:
+        proposal.validate_distil_output(candidate, True)
+
+    assert "link" in str(exc_info.value)
+
+
+def test_validate_distil_output_waives_the_link_requirement_for_an_empty_index(evidence):
+    # A first memory in a fresh project has no relatives to point at, and
+    # demanding one would only produce an invented link.
+    candidate = _proposal(evidence, _distil_file(_body_with()))
+
+    assert proposal.validate_distil_output(candidate, False) is None
+
+
+def test_validate_distil_output_accepts_a_forward_link_no_existing_memory_answers(evidence):
+    # rules/memory.md allows a link to a memory nobody has written yet, so
+    # resolution is explicitly not a condition of acceptance.
+    candidate = _proposal(evidence, _distil_file(_body_with("[[a-memory-nobody-wrote-yet]]")))
+
+    assert proposal.validate_distil_output(candidate, True) is None
+
+
+# Names the breakers below damage at run time, so no fixed table of malformed
+# literals can decide the cases built from them.
+_BREAKABLE_NAMES = ["queue-backlog", "signing_key_rotation"]
+
+# (label, a function damaging a well-formed name, whether the closing brackets
+# survive).
+_LINK_BREAKERS = [
+    ("a space injected into the name", lambda name: f"{name[:3]} {name[3:]}", True),
+    ("a stray closing bracket inside the name", lambda name: f"{name[:3]}]{name[3:]}", True),
+    ("a dot the name shape does not allow", lambda name: f"{name}.", True),
+    ("closing brackets that never arrive", lambda name: name, False),
+]
+
+
+@pytest.mark.parametrize("name", _BREAKABLE_NAMES)
+@pytest.mark.parametrize(("label", "break_name", "closed"), _LINK_BREAKERS)
+def test_validate_distil_output_rejects_a_link_damaged_at_run_time_and_names_the_damage(
+    evidence, label, break_name, closed, name
+):
+    # The index is empty, so the link requirement is waived and only the
+    # well-formedness rule can fire.
+    damaged = break_name(name)
+    link = f"[[{damaged}]]" if closed else f"[[{damaged}"
+    candidate = _proposal(evidence, _distil_file(_body_with(link)))
+
+    with pytest.raises(proposal.ProposalError) as exc_info:
+        proposal.validate_distil_output(candidate, False)
+
+    assert damaged in str(exc_info.value)
+
+
+@pytest.mark.parametrize("name", _BREAKABLE_NAMES)
+def test_validate_distil_output_accepts_those_same_names_left_undamaged(evidence, name):
+    # The mirror of the case above: rejection must follow from the damage, not
+    # from the names themselves.
+    body = _body_with(f"[[{name}]]", f"[[{name.replace('-', '_')}-2]]")
+    candidate = _proposal(evidence, _distil_file(body))
+
+    assert proposal.validate_distil_output(candidate, True) is None
+
+
+def test_validate_distil_output_takes_the_type_from_metadata_not_from_elsewhere_in_the_file(
+    evidence,
+):
+    # `type: project` appears twice as a decoy - inside the quoted description
+    # and again as a body line - while the metadata declares `reference`. Only a
+    # parsed frontmatter mapping can see past the decoys to the declared type.
+    file_text = (
+        "---\n"
+        f'name: "{_VALID_NAME}"\n'
+        'description: "Rejected even though type: project reads as a decoy here"\n'
+        "metadata:\n"
+        "  node_type: memory\n"
+        "  type: reference\n"
+        "---\n"
+        "\n"
+        "The queue drains before the deploy gate opens.\n"
+        "\n"
+        "  type: project\n"
+        "\n"
+        "See [[cache-eviction-rule]] for the neighbouring rule.\n"
+        f"\n**How to apply:** {_VALID_APPLY}\n"
+    )
+
+    with pytest.raises(proposal.ProposalError) as exc_info:
+        proposal.validate_distil_output(_proposal(evidence, file_text), True)
+
+    assert "type" in str(exc_info.value)
+
+
+def test_validate_distil_output_reads_a_body_that_opens_with_a_horizontal_rule(evidence):
+    # Everything after the closing marker is the body, horizontal rule included.
+    # A body extractor that counts `---` occurrences instead of finding the
+    # closing marker sees only the blank line before the rule and calls this
+    # complete file a fragment.
+    body = (
+        "\n"
+        "---\n"
+        "\n"
+        "The pool warms on the first request, so the first import is slow.\n"
+        "\n"
+        "See [[cache-eviction-rule]] for the neighbouring rule.\n"
+        f"\n**How to apply:** {_VALID_APPLY}\n"
+    )
+    candidate = _proposal(evidence, _distil_file(body))
+
+    assert proposal.validate_distil_output(candidate, True) is None
+
+
+@pytest.mark.parametrize(
+    ("label", "name", "expected"),
+    [
+        ("a path-like name", "Projects/Cache Eviction", "projects-cache-eviction"),
+        ("trailing punctuation", "Rotate the token!!", "rotate-the-token"),
+        ("a run of replaced characters", "cache // eviction", "cache-eviction"),
+        ("a run of hyphens already present", "cache---eviction", "cache-eviction"),
+        ("underscores and digits, which survive", "Signing_Key_2", "signing_key_2"),
+        ("surrounding whitespace", "  spaced out  ", "spaced-out"),
+    ],
+)
+def test_sanitise_name_reduces_a_name_to_a_safe_lowercase_stem(label, name, expected):
+    assert proposal.sanitise_name(name) == expected
+
+
+@pytest.mark.parametrize(
+    ("label", "name"),
+    [
+        ("empty", ""),
+        ("whitespace only", "   "),
+        ("punctuation only", "!!! ???"),
+        ("slashes only", "///"),
+        ("hyphens only", "---"),
+    ],
+)
+def test_sanitise_name_rejects_a_name_with_nothing_safe_left(label, name):
+    with pytest.raises(proposal.ProposalError):
+        proposal.sanitise_name(name)
+
+
+# Words that survive sanitising untouched apart from case, and the unsafe runs
+# spliced between and around them. Names are assembled from the two at run time,
+# so no finite table of accepted literals can answer these.
+_STEM_WORDS = ["Cache", "Eviction", "Rule2", "Signing_Key"]
+_UNSAFE_FILLERS = ["/", " ", "!", ": ", " // ", "---", "%", "..", "  ", " & "]
+
+
+@pytest.mark.parametrize("filler", _UNSAFE_FILLERS)
+def test_sanitise_name_collapses_every_unsafe_run_into_one_hyphen(filler):
+    name = filler + filler.join(_STEM_WORDS) + filler
+
+    stem = proposal.sanitise_name(name)
+
+    assert stem == "-".join(word.lower() for word in _STEM_WORDS)
+    assert re.fullmatch(r"[a-z0-9_]+(-[a-z0-9_]+)*", stem)
+    # A stem is already safe, so sanitising it again must change nothing.
+    assert proposal.sanitise_name(stem) == stem
+
+
+_MARKER = "measured"
+
+# Every marker the window must anchor on. Anchoring is asserted against each of
+# them, so a window that looks for one hardcoded word cannot answer these.
+_MARKERS = ["measured", "benchmarked", "91 percent"]
+
+# The contract says "an ellipsis" without pinning the glyph, so both spellings
+# count wherever a cut end is asserted.
+_ELLIPSES = ("...", "…")
+
+
+def _filler(total):
+    """`total` characters of prose with no repeating substring, so "this window
+    reached offset N" is a real assertion rather than a filler coincidence."""
+    return " ".join(f"w{index:04d}" for index in range(total // 6 + 2))[:total]
+
+
+def _text_with_marker_at(offset, total, marker=_MARKER):
+    base = _filler(total)
+    return base[:offset] + marker + base[offset + len(marker) :]
+
+
+def _without_ellipses(text):
+    for mark in _ELLIPSES:
+        if text.startswith(mark):
+            text = text[len(mark) :]
+            break
+    for mark in _ELLIPSES:
+        if text.endswith(mark):
+            text = text[: -len(mark)]
+            break
+    return text
+
+
+@pytest.mark.parametrize(
+    ("label", "length"),
+    [
+        ("under the limit", proposal.EVIDENCE_EXCERPT_CHARS - 1),
+        ("exactly at the limit", proposal.EVIDENCE_EXCERPT_CHARS),
+    ],
+)
+def test_excerpt_returns_text_within_the_limit_unchanged_and_unmarked(label, length):
+    text = _text_with_marker_at(length - len(_MARKER) - 1, length)
+
+    assert proposal.excerpt(text, _MARKER) == text
+
+
+@pytest.mark.parametrize("marker", _MARKERS)
+def test_excerpt_keeps_a_marker_that_sits_past_the_leading_window(marker):
+    # Head truncation would cut this marker away entirely: it starts well past
+    # EVIDENCE_EXCERPT_CHARS, and the sentence around it is what justifies the slice.
+    width = proposal.EVIDENCE_EXCERPT_CHARS
+    offset = width * 2 + 300
+    text = _text_with_marker_at(offset, width * 5, marker)
+
+    window = proposal.excerpt(text, marker)
+
+    assert marker in window
+    assert text[offset - 100 : offset] in window
+    assert text[offset + len(marker) : offset + len(marker) + 100] in window
+    assert window.startswith(_ELLIPSES)
+    assert window.endswith(_ELLIPSES)
+    assert _without_ellipses(window) in text
+
+
+@pytest.mark.parametrize("marker", _MARKERS)
+def test_excerpt_gives_a_marker_near_the_start_a_full_width_window_anchored_there(marker):
+    width = proposal.EVIDENCE_EXCERPT_CHARS
+    text = _text_with_marker_at(10, width * 5, marker)
+
+    window = proposal.excerpt(text, marker)
+
+    assert window.startswith(text[:60])
+    assert not window.startswith(_ELLIPSES)
+    assert window.endswith(_ELLIPSES)
+    # A window merely centred on offset 10 would stop around offset 310. A
+    # clamped, full-width one runs to the far end of the budget.
+    assert text[width - 60 : width - 10] in window
+
+
+@pytest.mark.parametrize("marker", _MARKERS)
+def test_excerpt_gives_a_marker_near_the_end_a_full_width_window_anchored_there(marker):
+    width = proposal.EVIDENCE_EXCERPT_CHARS
+    total = width * 5
+    text = _text_with_marker_at(total - len(marker) - 5, total, marker)
+
+    window = proposal.excerpt(text, marker)
+
+    assert window.endswith(text[-60:])
+    assert not window.endswith(_ELLIPSES)
+    assert window.startswith(_ELLIPSES)
+    assert text[total - width + 10 : total - width + 60] in window
+
+
+def test_excerpt_falls_back_to_the_leading_window_when_the_marker_is_absent():
+    width = proposal.EVIDENCE_EXCERPT_CHARS
+    text = _filler(width * 5)
+    assert "reproduced" not in text
+
+    window = proposal.excerpt(text, "reproduced")
+
+    assert window.startswith(text[:60])
+    assert not window.startswith(_ELLIPSES)
+    assert window.endswith(_ELLIPSES)
+    assert text[width - 60 : width - 10] in window
+
+
+def test_excerpt_sizes_the_window_from_the_caller_supplied_width():
+    text = _text_with_marker_at(1500, proposal.EVIDENCE_EXCERPT_CHARS * 5)
+
+    window = proposal.excerpt(text, _MARKER, 80)
+
+    assert _MARKER in window
+    assert len(window) < proposal.EVIDENCE_EXCERPT_CHARS
+    assert _without_ellipses(window) in text
