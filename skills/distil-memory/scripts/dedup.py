@@ -97,14 +97,25 @@ def read_candidates(
 
     A name that is no plain stem names no memory here either, so it is skipped
     the same way: reporting it unread would let a malformed index manufacture a
-    dedup error over a memory nobody named."""
+    dedup error over a memory nobody named.
+
+    The same holds for a plain stem whose file inside the plane is a link
+    landing outside it: the names come from the index, which is ordinary file
+    content, so the returned bytes are kept inside `memory_dir` by resolving
+    each path before opening it rather than by trusting the name. Where the
+    path lands decides, so a link that stays inside the plane is read in
+    full."""
+    plane = memory_dir.resolve()
     candidates = []
     unread_names = []
     for name in names:
         if not _MEMORY_NAME.fullmatch(name):
             continue
+        path = memory_dir / f"{name}.md"
+        if not path.resolve().is_relative_to(plane):
+            continue
         try:
-            candidates.append((name, (memory_dir / f"{name}.md").read_text()))
+            candidates.append((name, path.read_text()))
         except FileNotFoundError:
             continue
         except OSError:

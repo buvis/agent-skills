@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stem, so a malformed index entry cannot read a file from outside the memory
   directory. A refused name is treated as absent, exactly like a stale index
   entry, so it cannot manufacture a dedup error either.
+- **distil-memory**: skip a candidate whose file is a link out of the memory
+  directory. The name rule above only reads the name, so an ordinary stem whose
+  file in the plane pointed elsewhere still handed back another directory's
+  bytes under a memory's name. Each path is now resolved before it is opened,
+  and a link that stays inside the plane is still read in full.
 - **distil-memory**: give every discard a reason. A model that ended its
   `DISCARD:` line without words used to leave a blank field in `discards.json`,
   which the run then reported as a discard nobody could act on; it now says the

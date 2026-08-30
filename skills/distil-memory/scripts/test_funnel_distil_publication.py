@@ -387,6 +387,12 @@ def test_main_reports_and_returns_when_a_proposal_name_leaves_no_safe_filename(
     No particular exit code is pinned, because both resolutions are open. A run
     that turns the unusable name into an ordinary reasoned discard is a healthy
     run and ends in 0; a run that reports a failed publication ends non-zero.
+    Each resolution owes its own evidence, though, or "either resolution" reads
+    as "any behaviour at all". A run ending in 0 is claiming the healthy one, so
+    it has to leave the discard that claim rests on: a record in discards.json
+    whose reason names the name it could not file. A run that prints a
+    diagnostic and drops the proposal is not that run - it is an unreasoned drop
+    wearing a success code, and the report promises discards with reasons.
     What both owe is a return rather than a traceback. The one outcome neither
     may reach is counting the name as a published proposal, so proposals.json
     must not carry it - that is what rules out filing it under a fallback stem
@@ -419,6 +425,13 @@ def test_main_reports_and_returns_when_a_proposal_name_leaves_no_safe_filename(
         assert f"proposals: {len(json.loads(manifests[0].read_text()))}" in captured.out
     else:
         assert exit_code != 0
+    if exit_code == 0:
+        discards = json.loads((manifests[0].parent / "discards.json").read_text())
+        reasoned = [record for record in discards if _UNUSABLE_NAME in record["reason"]]
+        assert reasoned, (
+            f"the run ended 0, so it owes a reasoned discard naming {_UNUSABLE_NAME},"
+            f" but discards.json holds {discards}"
+        )
 
 
 def test_main_publishes_and_returns_zero_when_every_proposal_name_sanitises_cleanly(

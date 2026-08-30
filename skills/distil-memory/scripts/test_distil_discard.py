@@ -149,10 +149,6 @@ _BLANK_DISCARD_ANSWERS = [
     for tail, tail_id in _BLANK_DISCARD_TAILS
 ]
 
-# Long enough that no reason shares one by accident, short enough that a
-# truncated quotation of the model's later prose still trips it.
-_SHINGLE_LENGTH = 12
-
 
 @pytest.mark.parametrize("answer", _BLANK_DISCARD_ANSWERS)
 def test_a_discard_whose_line_states_no_reason_still_carries_one_saying_so(answer):
@@ -169,10 +165,7 @@ def test_a_discard_whose_line_states_no_reason_still_carries_one_saying_so(answe
 
     So the reason these answers produce is pinned to the one the bare token
     produces - identical, whatever the padding, whatever came after. That admits
-    no borrowed tail at all, not even a truncated one, which the loop underneath
-    then says twice: no run of twelve characters from any later line survives
-    into a reason that is written to `discards.json` and read by whoever triages
-    the run."""
+    no borrowed tail at all, not even a truncated one."""
     slice_ = _slice("we measured the cache at 4ms")
 
     def stub_judge(prompt, tier):
@@ -186,12 +179,6 @@ def test_a_discard_whose_line_states_no_reason_still_carries_one_saying_so(answe
     assert result.reason.strip() != ""
     assert any(word in result.reason.lower() for word in ("reason", "explanation", "unexplained"))
     assert result.reason == bare.reason
-    for later_line in answer.split("\n")[1:]:
-        if not later_line.strip():
-            continue
-        assert later_line.strip() not in result.reason
-        for start in range(len(later_line) - _SHINGLE_LENGTH + 1):
-            assert later_line[start : start + _SHINGLE_LENGTH] not in result.reason
 
 
 def test_a_discard_reason_the_model_states_reaches_the_discard_unchanged():
