@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: check a proposed memory file against the memory-file
+  contract before it can reach the queue. Rejects a missing or empty `name` or
+  `description`, a `metadata.type` outside the four allowed values, and a
+  description that merely restates its own `**How to apply:**` line, naming the
+  field or rule that rejected it. Calibrated against the memory files that
+  already exist rather than against an invented format.
 - **distil-memory**: funnel Claude Code transcripts down to memory candidates
   without letting a model read the corpus wholesale. Selects transcripts by
   `--days`, `--all` or `--project`, slices assistant-authored text on
