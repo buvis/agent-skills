@@ -641,3 +641,95 @@ def test_main_decide_reports_the_queue_errors_message_to_stderr_and_returns_one_
     assert expected_message in captured.err
     assert "Traceback" not in captured.err
     assert captured.out == ""
+
+
+def test_main_save_carries_a_records_dedup_error_into_the_stored_entry(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "widget-fact.md").write_text("---\nname: widget-fact\n---\n\nBody text.\n")
+    record = {
+        "name": "widget-fact",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 7,
+        "evidence_text": "evidence for widget",
+        "existing_text": None,
+        "dedup_error": "could not compare against existing memories: index unavailable",
+        "file": "widget-fact.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    assert exit_code == 0
+    entries = docket.load()["entries"]
+    assert len(entries) == 1
+    assert entries[0]["dedup_error"] == "could not compare against existing memories: index unavailable"
+
+
+def test_main_save_ingests_a_record_whose_dedup_error_key_is_absent_and_stores_none(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "new-fact.md").write_text("---\nname: new-fact\n---\n\nBody text.\n")
+    record = {
+        "name": "new-fact",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 1,
+        "evidence_text": "some evidence",
+        "file": "new-fact.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    assert exit_code == 0
+    entries = docket.load()["entries"]
+    assert len(entries) == 1
+    assert entries[0]["dedup_error"] is None
+
+
+def test_main_save_keeps_each_entrys_dedup_error_matched_to_the_right_entry_in_a_mixed_batch(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "a.md").write_text("a text")
+    (proposals_dir / "b.md").write_text("b text")
+    record_with_error = {
+        "name": "fact-a",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 1,
+        "evidence_text": "ev-a",
+        "existing_text": None,
+        "dedup_error": "ambiguous match against fact-a-old",
+        "file": "a.md",
+    }
+    record_without_error = {
+        "name": "fact-b",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 2,
+        "evidence_text": "ev-b",
+        "existing_text": None,
+        "file": "b.md",
+    }
+    (proposals_dir / "proposals.json").write_text(
+        json.dumps([record_with_error, record_without_error])
+    )
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    assert exit_code == 0
+    entries = docket.load()["entries"]
+    assert len(entries) == 2
+    entry_a = next(e for e in entries if e["name"] == "fact-a")
+    entry_b = next(e for e in entries if e["name"] == "fact-b")
+    assert entry_a["dedup_error"] == "ambiguous match against fact-a-old"
+    assert entry_b["dedup_error"] is None
