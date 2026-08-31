@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **distil-memory**: report queue and write errors from the `docket` and `write`
+  command lines instead of raising a Python traceback. A refused decision or a
+  missing memory store now prints its message to stderr and exits 1.
 - **brief-portfolio**: keep collecting when the skill-metrics log exists but
   cannot be read. An unreadable `skills.jsonl` used to abort the whole run and
   discard every repo already collected; the audit-cadence rows now fall back to

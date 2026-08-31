@@ -208,7 +208,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     elif args.command == "decide":
         file_text = Path(args.file).read_text() if args.file else None
-        decide(args.id, args.state, file_text=file_text)
+        try:
+            decide(args.id, args.state, file_text=file_text)
+        except QueueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
         return 0
     elif args.command == "cursor":
         print(cursor())

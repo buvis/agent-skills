@@ -106,7 +106,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "write":
         entry = json.loads(sys.stdin.read())
         store_path = Path(args.store)
-        print(write_memory(entry, store_path))
+        try:
+            written = write_memory(entry, store_path)
+        except WriteError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        print(written)
         line = append_pointer(store_path, entry)
         print(line if line is not None else "MEMORY.md: unchanged")
         return 0
