@@ -4,6 +4,7 @@ memory store and upserting the store's MEMORY.md pointer line."""
 import io
 import json
 import sys
+from pathlib import Path
 
 import dedup
 import docket
@@ -458,3 +459,82 @@ def test_main_write_reports_the_write_errors_message_to_stderr_and_returns_one_w
     assert "Traceback" not in captured.err
     assert captured.out == ""
     assert (store_path / "widget-fact.md").read_text() == "original content"
+
+
+# Crash safety: every write this module performs must be atomic, so a process
+# dying during the final move step leaves the target holding its complete
+# previous content, never a partial write, and no stray temp file behind.
+
+
+def _raise_replace(*args, **kwargs):
+    raise OSError("boom")
+
+
+def test_append_pointer_leaves_memory_md_fully_intact_when_the_move_fails_appending_a_new_line(
+    store_path, monkeypatch
+):
+    store_path.mkdir()
+    index_path = store_path / "MEMORY.md"
+    original_text = (
+        "- [Something](something.md) — unrelated\n"
+        "- [Another](another.md) — also unrelated\n"
+        "- [Third thing](third-thing.md) — a third pointer\n"
+    )
+    index_path.write_text(original_text)
+    entry = _entry(
+        name="widget-fact",
+        kind="new",
+        file_text=_file_text(name="widget-fact", description="keeps facts about widgets straight"),
+    )
+    monkeypatch.setattr(Path, "replace", _raise_replace)
+
+    with pytest.raises(Exception):
+        write.append_pointer(store_path, entry)
+
+    assert index_path.read_text() == original_text
+    assert [p.name for p in store_path.iterdir()] == ["MEMORY.md"]
+
+
+def test_append_pointer_leaves_memory_md_fully_intact_when_the_move_fails_replacing_a_line_in_place(
+    store_path, monkeypatch
+):
+    store_path.mkdir()
+    index_path = store_path / "MEMORY.md"
+    original_text = (
+        "- [Something](something.md) — unrelated\n"
+        "- [Widget fact](widget-fact.md) — old description\n"
+        "- [Another](another.md) — also unrelated\n"
+    )
+    index_path.write_text(original_text)
+    old_text = _file_text(name="widget-fact", description="old description")
+    new_text = _file_text(name="widget-fact", description="new, more accurate description")
+    entry = _entry(
+        name="widget-fact", kind="update widget-fact", file_text=new_text, existing_text=old_text
+    )
+    monkeypatch.setattr(Path, "replace", _raise_replace)
+
+    with pytest.raises(Exception):
+        write.append_pointer(store_path, entry)
+
+    assert index_path.read_text() == original_text
+    assert [p.name for p in store_path.iterdir()] == ["MEMORY.md"]
+
+
+def test_write_memory_update_leaves_the_existing_file_fully_intact_when_the_move_fails(
+    store_path, monkeypatch
+):
+    store_path.mkdir()
+    target_path = store_path / "widget-fact.md"
+    original_text = _file_text(name="widget-fact", description="old description")
+    target_path.write_text(original_text)
+    new_text = _file_text(name="widget-fact", description="new description")
+    entry = _entry(
+        name="widget-fact", kind="update widget-fact", file_text=new_text, existing_text=original_text
+    )
+    monkeypatch.setattr(Path, "replace", _raise_replace)
+
+    with pytest.raises(Exception):
+        write.write_memory(entry, store_path)
+
+    assert target_path.read_text() == original_text
+    assert [p.name for p in store_path.iterdir()] == ["widget-fact.md"]
