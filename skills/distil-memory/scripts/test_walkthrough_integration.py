@@ -70,7 +70,7 @@ def _attempt_edit_then_publish(
     store_path: Path,
     queue_path: Path,
 ) -> tuple[dict, Path, str | None]:
-    """Walkthrough's documented step-5 ordering: validate the re-emitted
+    """Walkthrough's documented step-6 ordering: validate the re-emitted
     file_text first, and only decide/write when validation passes."""
     entry = next(
         e for e in docket.load(path=queue_path)["entries"] if e["id"] == entry_id
