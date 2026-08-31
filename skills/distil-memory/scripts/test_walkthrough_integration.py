@@ -3,7 +3,10 @@
 from pathlib import Path
 
 import docket
+import proposal
 import write
+
+import pytest
 
 
 _PROPOSALS = [
@@ -17,6 +20,8 @@ _PROPOSALS = [
             "---\n"
             f"name: walkthrough-memory-{number}\n"
             f"description: walkthrough proposal {number}\n"
+            "metadata:\n"
+            "  type: project\n"
             "---\n\n"
             f"Original body {number}.\n"
         ),
@@ -29,6 +34,8 @@ _EDITED_FILE_TEXT = (
     "---\n"
     "name: walkthrough-memory-3\n"
     "description: edited walkthrough proposal three\n"
+    "metadata:\n"
+    "  type: project\n"
     "---\n\n"
     "Stub re-emitted body.\n"
 )
@@ -101,3 +108,37 @@ def test_scripted_walkthrough_writes_keeps_filters_drops_and_resumes_without_gap
     assert docket.rejected(second["id"], docket.RUBRIC_VERSION, path=queue_path)
     second_pass = docket.load(path=queue_path)
     assert sum(entry["id"] == second["id"] for entry in second_pass["entries"]) == 1
+
+
+def test_edit_path_rejects_a_re_emitted_file_failing_the_frontmatter_contract_and_leaves_the_entry_undecided(
+    tmp_path: Path,
+) -> None:
+    queue_path = tmp_path / "queue.json"
+    store_path = tmp_path / "memory"
+    store_path.mkdir()
+    docket.save(_PROPOSALS, path=queue_path)
+    entry = _next_entry(queue_path)
+
+    invalid_file_text = (
+        "---\n"
+        "name: walkthrough-memory-1\n"
+        "description: edited but missing the metadata block\n"
+        "---\n\n"
+        "Stub re-emitted body.\n"
+    )
+    bad_proposal = proposal.Proposal(
+        file_text=invalid_file_text,
+        evidence=proposal.Evidence(
+            transcript=Path(entry["transcript"]),
+            line_no=entry["line_no"],
+            text=entry["evidence_text"],
+        ),
+    )
+
+    with pytest.raises(proposal.ProposalError):
+        proposal.validate(bad_proposal)
+
+    assert list(store_path.iterdir()) == []
+    reloaded = docket.load(path=queue_path)
+    kept = next(e for e in reloaded["entries"] if e["id"] == entry["id"])
+    assert kept["decision"] == "undecided"

@@ -15,7 +15,15 @@ import pytest
 
 
 def _file_text(name="widget-fact", description="a fact worth keeping", body="Body text."):
-    return f"---\nname: {name}\ndescription: {description}\n---\n\n{body}\n"
+    return (
+        "---\n"
+        f"name: {name}\n"
+        f"description: {description}\n"
+        "metadata:\n"
+        "  type: project\n"
+        "---\n\n"
+        f"{body}\n"
+    )
 
 
 def _entry(name="widget-fact", kind="new", file_text=None, existing_text=None):
@@ -299,9 +307,11 @@ def test_new_proposal_written_file_passes_the_frontmatter_contract_and_exactly_o
     written = write.write_memory(entry, store_path)
     line = write.append_pointer(store_path, entry)
 
-    frontmatter = proposal.parse_frontmatter(written.read_text())
-    assert frontmatter["name"] == "widget-fact"
-    assert frontmatter["description"] == "keeps facts about widgets straight"
+    written_proposal = proposal.Proposal(
+        file_text=written.read_text(),
+        evidence=proposal.Evidence(transcript=Path("t.jsonl"), line_no=1, text="evidence"),
+    )
+    proposal.validate(written_proposal)
 
     index_text = (store_path / "MEMORY.md").read_text()
     assert index_text.count("widget-fact.md") == 1
