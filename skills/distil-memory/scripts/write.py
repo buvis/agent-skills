@@ -28,6 +28,16 @@ def _target_stem(entry: dict) -> tuple[str, bool]:
     return proposal.sanitise_name(entry["name"]), True
 
 
+def _atomic_write(path: Path, text: str) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text)
+    try:
+        tmp.replace(path)
+    except OSError:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
 def write_memory(entry: dict, store_path: Path) -> Path:
     """Write `entry["file_text"]` to its target file inside `store_path`.
 
@@ -43,7 +53,7 @@ def write_memory(entry: dict, store_path: Path) -> Path:
     if not is_new and not exists:
         raise WriteError(f"{target} does not exist")
     try:
-        target.write_text(entry["file_text"])
+        _atomic_write(target, entry["file_text"])
     except OSError as exc:
         raise WriteError(str(exc)) from exc
     return target
@@ -82,11 +92,11 @@ def append_pointer(store_path: Path, entry: dict) -> str | None:
         for i, existing_line in enumerate(lines):
             if stem in dedup.parse_index(existing_line):
                 lines[i] = line
-                index_path.write_text("\n".join(lines) + "\n")
+                _atomic_write(index_path, "\n".join(lines) + "\n")
                 return line
 
     lines.append(line)
-    index_path.write_text("\n".join(lines) + "\n")
+    _atomic_write(index_path, "\n".join(lines) + "\n")
     return line
 
 

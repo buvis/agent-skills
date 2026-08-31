@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **distil-memory**: write the memory file and the `MEMORY.md` index atomically.
+  The index is rewritten whole on every pointer upsert, so a process killed
+  mid-write used to truncate it and lose every pointer line recorded before it,
+  not just the one being added.
 - **distil-memory**: report queue and write errors from the `docket` and `write`
   command lines instead of raising a Python traceback. A refused decision or a
   missing memory store now prints its message to stderr and exits 1.
