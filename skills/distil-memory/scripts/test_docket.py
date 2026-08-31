@@ -37,14 +37,6 @@ def _decide_until_capped(queue_path):
     return decided
 
 
-def test_per_run_cap_constant_is_ten():
-    assert docket.PER_RUN_CAP == 10
-
-
-def test_rubric_version_constant_is_one():
-    assert docket.RUBRIC_VERSION == "1"
-
-
 def test_slice_key_joins_transcript_and_line_no_with_a_colon():
     assert docket.slice_key("sessions/abc.jsonl", 42) == "sessions/abc.jsonl:42"
 

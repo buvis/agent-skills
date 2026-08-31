@@ -12,7 +12,7 @@ import proposal
 
 
 class WriteError(ValueError):
-    """Raised when a memory file or its index pointer cannot be written."""
+    """Raised when a memory file cannot be written."""
 
 
 def _target_stem(entry: dict) -> tuple[str, bool]:

@@ -56,7 +56,7 @@ def _keep_and_publish(
     docket.decide(entry["id"], "kept", file_text=file_text, path=queue_path)
     kept = next(
         e
-        for e in reversed(docket.load(path=queue_path)["entries"])
+        for e in docket.load(path=queue_path)["entries"]
         if e["id"] == entry["id"]
     )
     memory = write.write_memory(kept, store_path=store_path)
@@ -106,7 +106,6 @@ def test_scripted_walkthrough_writes_keeps_filters_drops_and_resumes_without_gap
         "undecided", "undecided",
     ]
     assert len({entry["id"] for entry in reloaded["entries"]}) == 5
-    docket.advance(path=queue_path)
     third = _next_entry(queue_path)
     assert third["id"] == reloaded["entries"][2]["id"]
     assert third["id"] not in {first["id"], second["id"]}

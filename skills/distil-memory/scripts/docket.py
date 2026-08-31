@@ -101,10 +101,10 @@ def next_undecided(path=None):
     data = load(path=path)
     if data.get("session_decided", 0) >= PER_RUN_CAP:
         return None
-    for entry in data["entries"]:
-        if entry["decision"] == "undecided":
-            return entry
-    return None
+    return next(
+        (entry for entry in data["entries"] if entry["decision"] == "undecided"),
+        None,
+    )
 
 
 def decide(entry_id, state, file_text=None, path=None):
