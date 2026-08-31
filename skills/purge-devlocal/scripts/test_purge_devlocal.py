@@ -773,3 +773,22 @@ def test_zero_day_retention_does_not_delete_todays_own_fresh_stamp(tmp_path):
     today = time.strftime("%Y-%m-%d", time.localtime(NOW))
     assert run(store, "--apply", "--empty-trash-days", "0") == 0
     assert (store / gc.TRASH_DIR / today).is_dir()
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="agoge 2026-08-31: the `local` name escape hatch accepts any directory so "
+    "named, not only a dev/local store, and then sweeps its source files",
+)
+def test_refuses_a_directory_named_local_that_is_not_under_dev(tmp_path):
+    """/usr/local is a directory named `local`; it is not a dev/local store.
+
+    Narrower than test_accepts_a_store_named_local_without_prds above, which
+    pins the escape hatch a real but still-empty dev/local store needs."""
+    stray = tmp_path / "usr" / "local"
+    touch(stray / "source.py", days_old=90)
+
+    with pytest.raises(SystemExit):
+        run(stray, "--apply")
+
+    assert (stray / "source.py").exists()

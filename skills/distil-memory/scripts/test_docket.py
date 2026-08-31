@@ -725,3 +725,15 @@ def test_main_save_keeps_each_entrys_dedup_error_matched_to_the_right_entry_in_a
     entry_b = next(e for e in entries if e["name"] == "fact-b")
     assert entry_a["dedup_error"] == "ambiguous match against fact-a-old"
     assert entry_b["dedup_error"] is None
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="agoge 2026-08-31: load() does not validate, so a corrupt queue raises a bare "
+    "JSONDecodeError the walkthrough cannot tell apart from a drained queue",
+)
+def test_a_corrupt_queue_is_named_as_corrupt_rather_than_read_as_drained(queue_path):
+    queue_path.write_text('{"cursor": 0, "entries": [')
+
+    with pytest.raises(docket.QueueError):
+        docket.next_undecided(path=queue_path)

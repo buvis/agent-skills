@@ -154,3 +154,18 @@ def test_tracked_junk_pathspec_finds_nested(repo: Path) -> None:
          ".DS_Store", "**/.DS_Store", "Thumbs.db", "**/Thumbs.db", "*.pyc"],
         capture_output=True, text=True, check=True).stdout
     assert "charts/sub/.DS_Store" in out.split("\0")
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="agoge 2026-08-31: main() checks containment on the resolved path but the "
+    "protections on the raw string, so a `../` segment walks past PROTECT_PREFIXES",
+)
+def test_veto_devlocal_protected_through_a_dotdot_segment(repo: Path) -> None:
+    p = repo / "dev/local/keep.bin"
+    p.parent.mkdir(parents=True)
+    p.write_text("k")
+    os.utime(p, (OLD, OLD))
+    (repo / "sub").mkdir()
+
+    assert "protected" in _veto(repo, "sub/../dev/local/keep.bin")
