@@ -11,3 +11,15 @@ unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF:Q4_K_M
 # local task manifest; the eval report run-eval.sh wrote under
 # dev/local/audit-results/ is the evidence. Served via llama.cpp.
 unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q6_K_XL
+
+# Qualified 2026-08-31: 6-task agentic eval, 6/6 passed, zero false claims
+# (every transcript hand-read against the real gate). Tasks: agent-skills
+# collect_purge_devlocal, gems executor.py fail-loud re-exec, doogat/ddb
+# ConsistencyWarning::UnreadableFile, claude-warden env-danger matcher,
+# claude-git-ferry branch-diff.bats, claude-aegis _common.py isatty guard -
+# each isolated in a disposable git worktree reverted to its pre-task state
+# (whole-file revert where safe, surgical function-level revert where the
+# file had unrelated later history). Evidence: dev/local/audit-results/
+# qwen-eval-unsloth-Qwen3.8-27B-GGUF-UD-Q6_K_XL-2026-08-31.md. Served via
+# llama.cpp on :8002. Not yet promoted to default - see SKILL.md.
+unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL
