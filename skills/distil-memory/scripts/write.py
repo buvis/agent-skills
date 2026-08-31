@@ -30,8 +30,8 @@ def _target_stem(entry: dict) -> tuple[str, bool]:
 
 def _atomic_write(path: Path, text: str) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text)
     try:
+        tmp.write_text(text)
         tmp.replace(path)
     except OSError:
         tmp.unlink(missing_ok=True)

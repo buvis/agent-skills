@@ -538,3 +538,27 @@ def test_write_memory_update_leaves_the_existing_file_fully_intact_when_the_move
 
     assert target_path.read_text() == original_text
     assert [p.name for p in store_path.iterdir()] == ["widget-fact.md"]
+
+
+def _raise_write_text(*args, **kwargs):
+    raise OSError("boom")
+
+
+def test_append_pointer_leaves_no_leftover_tmp_file_when_the_write_step_itself_fails(
+    store_path, monkeypatch
+):
+    store_path.mkdir()
+    index_path = store_path / "MEMORY.md"
+    original_text = "- [Something](something.md) — unrelated\n"
+    index_path.write_text(original_text)
+    entry = _entry(
+        name="widget-fact",
+        kind="new",
+        file_text=_file_text(name="widget-fact", description="keeps facts about widgets straight"),
+    )
+    monkeypatch.setattr(Path, "write_text", _raise_write_text)
+
+    with pytest.raises(Exception):
+        write.append_pointer(store_path, entry)
+
+    assert [p.name for p in store_path.iterdir()] == ["MEMORY.md"]
