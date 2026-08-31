@@ -15,10 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **distil-memory**: write the memory file and the `MEMORY.md` index atomically.
-  The index is rewritten whole on every pointer upsert, so a process killed
-  mid-write used to truncate it and lose every pointer line recorded before it,
-  not just the one being added.
+- **distil-memory**: write the memory file and the `MEMORY.md` index atomically,
+  leaving no partial temp file behind when a write fails. The index is rewritten
+  whole on every pointer upsert, so a process killed mid-write used to truncate
+  it and lose every pointer line recorded before it, not just the one being
+  added.
+- **distil-memory**: carry a proposal's `dedup_error` through into the queue, so
+  the approval walkthrough can warn that the proposal's new-versus-update
+  verdict is not trustworthy. The field used to be dropped at ingestion, hiding
+  the warning from the only person it was meant for.
 - **distil-memory**: report queue and write errors from the `docket` and `write`
   command lines instead of raising a Python traceback. A refused decision or a
   missing memory store now prints its message to stderr and exits 1.

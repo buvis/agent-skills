@@ -184,6 +184,7 @@ def _save_from_proposals_dir(proposals_dir: Path) -> int:
             "evidence_text": record["evidence_text"],
             "file_text": (proposals_dir / record["file"]).read_text(),
             "existing_text": record.get("existing_text"),
+            "dedup_error": record.get("dedup_error"),
         }
         for record in records
     ]

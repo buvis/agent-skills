@@ -165,8 +165,10 @@ approval or rejection:
    cap itself, so do not count decisions in chat.
 
 3. Show `transcript`, `line_no`, and `evidence_text`, then show the proposed
-   `file_text`. For an update, show `existing_text` beside `file_text`. Ask for
-   one decision: keep, edit, or drop.
+   `file_text`. For an update, show `existing_text` beside `file_text`. When
+   the entry's `dedup_error` is not null, show it too and say plainly that
+   this proposal's new-versus-update verdict is not trustworthy. Ask for one
+   decision: keep, edit, or drop.
 
 4. For drop, record the decision and return to step 2:
 
