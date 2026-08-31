@@ -64,6 +64,29 @@ def _keep_and_publish(
     return kept, memory, pointer
 
 
+def _attempt_edit_then_publish(
+    entry_id: str,
+    new_file_text: str,
+    store_path: Path,
+    queue_path: Path,
+) -> tuple[dict, Path, str | None]:
+    """Walkthrough's documented step-5 ordering: validate the re-emitted
+    file_text first, and only decide/write when validation passes."""
+    entry = next(
+        e for e in docket.load(path=queue_path)["entries"] if e["id"] == entry_id
+    )
+    candidate = proposal.Proposal(
+        file_text=new_file_text,
+        evidence=proposal.Evidence(
+            transcript=Path(entry["transcript"]),
+            line_no=entry["line_no"],
+            text=entry["evidence_text"],
+        ),
+    )
+    proposal.validate(candidate)
+    return _keep_and_publish(entry, queue_path, store_path, file_text=new_file_text)
+
+
 def test_scripted_walkthrough_writes_keeps_filters_drops_and_resumes_without_gaps(
     tmp_path: Path,
 ) -> None:
@@ -110,7 +133,7 @@ def test_scripted_walkthrough_writes_keeps_filters_drops_and_resumes_without_gap
     assert sum(entry["id"] == second["id"] for entry in second_pass["entries"]) == 1
 
 
-def test_edit_path_rejects_a_re_emitted_file_failing_the_frontmatter_contract_and_leaves_the_entry_undecided(
+def test_edit_path_writes_and_decides_only_when_the_re_emitted_file_text_passes_validation(
     tmp_path: Path,
 ) -> None:
     queue_path = tmp_path / "queue.json"
@@ -126,19 +149,34 @@ def test_edit_path_rejects_a_re_emitted_file_failing_the_frontmatter_contract_an
         "---\n\n"
         "Stub re-emitted body.\n"
     )
-    bad_proposal = proposal.Proposal(
-        file_text=invalid_file_text,
-        evidence=proposal.Evidence(
-            transcript=Path(entry["transcript"]),
-            line_no=entry["line_no"],
-            text=entry["evidence_text"],
-        ),
-    )
 
     with pytest.raises(proposal.ProposalError):
-        proposal.validate(bad_proposal)
+        _attempt_edit_then_publish(entry["id"], invalid_file_text, store_path, queue_path)
 
     assert list(store_path.iterdir()) == []
     reloaded = docket.load(path=queue_path)
-    kept = next(e for e in reloaded["entries"] if e["id"] == entry["id"])
-    assert kept["decision"] == "undecided"
+    still_undecided = next(e for e in reloaded["entries"] if e["id"] == entry["id"])
+    assert still_undecided["decision"] == "undecided"
+
+    # Negative control: the same helper, given text that passes validation,
+    # really does decide and write, so the invalid branch above proving
+    # "nothing happened" actually means something.
+    valid_file_text = (
+        "---\n"
+        "name: walkthrough-memory-1\n"
+        "description: edited and now passes the frontmatter contract\n"
+        "metadata:\n"
+        "  type: project\n"
+        "---\n\n"
+        "Stub re-emitted body.\n"
+    )
+
+    kept, memory, pointer = _attempt_edit_then_publish(
+        entry["id"], valid_file_text, store_path, queue_path
+    )
+
+    assert memory.read_text() == valid_file_text
+    assert pointer is not None
+    assert pointer in (store_path / "MEMORY.md").read_text()
+    assert kept["decision"] == "kept"
+    assert kept["file_text"] == valid_file_text
