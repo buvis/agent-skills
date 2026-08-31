@@ -1,6 +1,8 @@
 """Tests for docket.py: the proposal queue's persistence, undecided cursor,
 rejection record, and per-run decision cap."""
 
+import json
+
 import docket
 
 import pytest
@@ -403,3 +405,239 @@ def test_rejected_is_false_when_the_rubric_version_does_not_match(queue_path):
     docket.decide(key, "dropped", path=queue_path)
 
     assert docket.rejected(key, "some-other-version", path=queue_path) is False
+
+
+# main() CLI wiring. These subcommands resolve the queue file from the
+# working directory (no path= is passed through), so every test below
+# chdirs into tmp_path first and reads the queue back the same way (no
+# explicit path=), never touching a real queue file.
+
+
+def test_main_save_reads_proposals_json_and_sibling_files_and_prints_added_n_of_m(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "widget-fact.md").write_text("---\nname: widget-fact\n---\n\nBody text.\n")
+    record = {
+        "name": "widget-fact",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 7,
+        "evidence_text": "evidence for widget",
+        "existing_text": "prior text",
+        "file": "widget-fact.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "added 1 of 1" in captured.out
+
+    entries = docket.load()["entries"]
+    assert len(entries) == 1
+    entry = entries[0]
+    assert entry["name"] == "widget-fact"
+    assert entry["kind"] == "new"
+    assert entry["transcript"] == "t.jsonl"
+    assert entry["line_no"] == 7
+    assert entry["evidence_text"] == "evidence for widget"
+    assert entry["existing_text"] == "prior text"
+    assert entry["file_text"] == "---\nname: widget-fact\n---\n\nBody text.\n"
+
+
+def test_main_save_ingests_a_record_whose_existing_text_key_is_absent(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "new-fact.md").write_text("---\nname: new-fact\n---\n\nBody text.\n")
+    record = {
+        "name": "new-fact",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 1,
+        "evidence_text": "some evidence",
+        "file": "new-fact.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "added 1 of 1" in captured.out
+    entries = docket.load()["entries"]
+    assert len(entries) == 1
+    assert entries[0]["name"] == "new-fact"
+
+
+def test_main_save_prints_added_n_of_m_counting_m_as_every_record_read_not_just_new_ones(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "a.md").write_text("a text")
+    (proposals_dir / "b.md").write_text("b text")
+    record_a = {
+        "name": "fact-a",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 1,
+        "evidence_text": "ev-a",
+        "existing_text": None,
+        "file": "a.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([record_a]))
+    first_exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+    assert first_exit_code == 0
+    capsys.readouterr()
+
+    record_b = {
+        "name": "fact-b",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 2,
+        "evidence_text": "ev-b",
+        "existing_text": None,
+        "file": "b.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([record_a, record_b]))
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "added 1 of 2" in captured.out
+
+
+def test_main_start_returns_zero(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    exit_code = docket.main(["start"])
+
+    assert exit_code == 0
+
+
+def test_main_next_prints_the_next_undecided_entry_as_one_line_of_json_and_returns_zero(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+
+    exit_code = docket.main(["next"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    lines = captured.out.strip("\n").splitlines()
+    assert len(lines) == 1
+    payload = json.loads(lines[0])
+    assert payload["id"] == docket.slice_key("t.jsonl", 1)
+
+
+def test_main_next_prints_nothing_and_returns_one_when_nothing_is_available(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+
+    exit_code = docket.main(["next"])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
+def test_main_decide_kept_records_the_decision_and_returns_zero(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    entry_id = docket.slice_key("t.jsonl", 1)
+
+    exit_code = docket.main(["decide", entry_id, "kept"])
+
+    assert exit_code == 0
+    assert docket.load()["entries"][0]["decision"] == "kept"
+
+
+def test_main_decide_dropped_records_the_decision_and_returns_zero(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    entry_id = docket.slice_key("t.jsonl", 1)
+
+    exit_code = docket.main(["decide", entry_id, "dropped"])
+
+    assert exit_code == 0
+    assert docket.load()["entries"][0]["decision"] == "dropped"
+
+
+def test_main_decide_with_file_flag_replaces_the_entrys_stored_file_text(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(transcript="t.jsonl", line_no=1, file_text="original")])
+    entry_id = docket.slice_key("t.jsonl", 1)
+    replacement = tmp_path / "replacement.md"
+    replacement.write_text("edited content")
+
+    exit_code = docket.main(["decide", entry_id, "kept", "--file", str(replacement)])
+
+    assert exit_code == 0
+    assert docket.load()["entries"][0]["file_text"] == "edited content"
+
+
+def test_main_cursor_prints_the_lifetime_decision_count_and_returns_zero(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    docket.decide(docket.slice_key("t.jsonl", 1), "kept")
+
+    exit_code = docket.main(["cursor"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert captured.out.strip() == "1"
+
+
+def test_main_decide_reports_the_queue_errors_message_to_stderr_and_returns_one_for_an_unknown_id(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    try:
+        docket.decide("does-not-exist:99", "kept")
+    except docket.QueueError as exc:
+        expected_message = str(exc)
+    else:
+        pytest.fail("expected docket.decide to raise QueueError for an unknown id")
+
+    exit_code = docket.main(["decide", "does-not-exist:99", "kept"])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert expected_message in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+
+
+def test_main_decide_reports_the_queue_errors_message_to_stderr_and_returns_one_for_an_already_decided_entry(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    entry_id = docket.slice_key("t.jsonl", 1)
+    docket.decide(entry_id, "kept")
+    try:
+        docket.decide(entry_id, "kept")
+    except docket.QueueError as exc:
+        expected_message = str(exc)
+    else:
+        pytest.fail("expected docket.decide to raise QueueError for an already-decided entry")
+
+    exit_code = docket.main(["decide", entry_id, "kept"])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert expected_message in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
