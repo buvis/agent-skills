@@ -188,10 +188,45 @@ approval or rejection:
    `write.py` computes it. `write.py` prints the memory file path, followed by
    the `MEMORY.md` pointer line or the literal `MEMORY.md: unchanged`.
 
+   Recording `kept` is not the same as having published. The decision and the
+   write are two separate steps, and only the write puts the memory file on
+   disk. `decide` and `write` both exit 1 and print the reason to stderr
+   instead of raising, so a failure here is legible. If `write.py write` exits
+   non-zero after the `kept` decision, fix the cause named on stderr first (a
+   missing store directory, for example, is reported, never created; that is
+   deliberate), then re-run the same `write.py write` command with the same
+   `entry.json` the driver still holds from step 2. The entry stays `kept` in
+   the queue meanwhile: `decide` is terminal and `next` skips decided entries,
+   so re-deciding it is not possible, and re-running the write is the only way
+   forward. The same recovery applies to step 6's edit path, after its
+   `decide ... kept --file ...` call.
+
+   A keep whose write fails with "already exists" means another kept proposal
+   already claimed that output filename; resolve it by renaming the proposal
+   through the edit path (step 6), which re-emits the file under a distinct
+   `name`.
+
 6. For edit, use `funnel.judge(prompt, "strong")`, the skill's one model-call
    route, to re-emit the whole memory file with the requested change. Validate
-   that whole file with `proposal.validate_distil_output` before replacing the
-   queued `file_text`. If validation fails, report the failure, write nothing,
+   that whole file with `proposal.validate_distil_output(proposal, index_has_names)`
+   before replacing the queued `file_text`:
+
+   - Build `proposal` from the queue entry and the re-emitted text: an
+     `Evidence(transcript=entry["transcript"], line_no=entry["line_no"],
+     text=entry["evidence_text"])`, then a `Proposal` with `file_text` set to
+     the freshly re-emitted text, `evidence` set to that `Evidence`, and
+     `kind`, `existing_text`, and `dedup_error` carried over unchanged from the
+     queue entry.
+   - Derive `index_has_names` for the same `<store-path>` used in step 5:
+
+     ```python
+     index_has_names = bool(dedup.parse_index(dedup.read_index("<store-path>")))
+     ```
+
+     Guessing `True` against a store with an empty index wrongly rejects a
+     linkless edit; guessing `False` skips the link rule entirely.
+
+   If validation fails, report the failure, write nothing,
    and leave the proposal undecided. A re-emitted file failing the frontmatter
    contract is not written, and the proposal stays undecided.
 
@@ -216,10 +251,11 @@ approval or rejection:
    python3 ~/.agents/skills/distil-memory/scripts/docket.py cursor
    ```
 
-   Also include every path written. Compare the cursor with the total entry
-   count in `dev/local/audit-results/distil-memory-queue.json` to distinguish a
-   drained queue from a sitting that stopped at the cap. End with this verbatim
-   block:
+   Also include every path written, and list any entry decided `kept` whose
+   `write.py write` did not succeed, so the sitting cannot end silently having
+   lost one. Compare the cursor with the total entry count in
+   `dev/local/audit-results/distil-memory-queue.json` to distinguish a drained
+   queue from a sitting that stopped at the cap. End with this verbatim block:
 
    ```text
    How to proceed: this report was also written to dev/local/audit-results/. Review the survivors and promote durable facts into memory.
