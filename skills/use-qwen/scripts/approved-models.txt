@@ -22,4 +22,13 @@ unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q6_K_XL
 # file had unrelated later history). Evidence: dev/local/audit-results/
 # qwen-eval-unsloth-Qwen3.8-27B-GGUF-UD-Q6_K_XL-2026-08-31.md. Served via
 # llama.cpp on :8002. Not yet promoted to default - see SKILL.md.
+#
+# Correction (still 2026-08-31): the ddb task's first pass was contaminated -
+# a killed-and-restarted eval run left the file already fixed before the
+# re-dispatch, so that transcript only proved the model could tidy a
+# half-done git index, not implement the fix from scratch. Caught during
+# post-hoc review, re-verified clean from a genuinely reverted pre-task
+# state: cargo test -p ddb-core --lib, 1546 passed, 0 failed, exit 0. The
+# other 5 tasks were independently confirmed to fail cleanly before their
+# original dispatch, so only this one needed re-running.
 unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL
