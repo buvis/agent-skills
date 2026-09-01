@@ -602,7 +602,7 @@ esac
 # work/references/qwen-integration.md both document as the default; if you
 # genuinely retire it, update those docs in the same commit.
 SHIPPED_REGISTRY="$(dirname "$QWEN_RUN_SH")/approved-models.txt"
-SHIPPED_DEFAULT_ID="unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q6_K_XL"
+SHIPPED_DEFAULT_ID="unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL"
 if [ -f "$SHIPPED_REGISTRY" ] && grep -qFx -- "$SHIPPED_DEFAULT_ID" "$SHIPPED_REGISTRY"; then
     PASS "the shipped approved-models.txt lists the documented default model id"
 else

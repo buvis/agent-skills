@@ -6,7 +6,7 @@ compatibility: "Portable; needs the pi agent, a llama.cpp-compatible endpoint, a
 
 # Qwen (Local) Skill Guide
 
-Qwen runs locally through the `pi` coding agent against a llama.cpp-served model. Inference is free - no API cost, no token billing. The helper script defaults to `unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q6_K_XL` and exposes `-m/--model` for overrides.
+Qwen runs locally through the `pi` coding agent against a llama.cpp-served model. Inference is free - no API cost, no token billing. The helper script defaults to `unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL` and exposes `-m/--model` for overrides.
 
 > **Do not use Ollama for this.** Ollama's `qwen3coder` tool-call XML parser mangles large edit payloads, so agentic edits abort with no result. Serve the model with llama.cpp (`--jinja`, grammar-based tool-call parsing). LlamaBarn is a convenient llama.cpp manager.
 
@@ -52,7 +52,7 @@ Before the helper will work:
          "api": "openai-completions",
          "apiKey": "llamacpp",
          "compat": { "supportsDeveloperRole": false, "supportsReasoningEffort": false },
-         "models": [{ "id": "unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q6_K_XL", "contextWindow": 131072, "cost": {"input":0,"output":0,"cacheRead":0,"cacheWrite":0} }]
+         "models": [{ "id": "unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL", "contextWindow": 131072, "cost": {"input":0,"output":0,"cacheRead":0,"cacheWrite":0} }]
        }
      }
    }
@@ -63,10 +63,10 @@ Before the helper will work:
 
 Local models vary widely in agentic reliability - the wrong one fails silently and lies about it.
 
-- **Default: `unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q6_K_XL`.** Qualified 2026-07-14 (6/6 agentic eval, zero false claims - see `references/eval-runbook.md`; evidence: the eval report `run-eval.sh` writes under `dev/local/audit-results/`). Eval tasks were single-file, test-gated fix/feature work across Rust (a schema differ, a transactional indexer guard, a SQL collapse fix, a GraphQL client method) and TypeScript (a new module, a parser refactor). Observed strengths: stayed inside the one permitted production file all 6 times, never touched tests, and every quantitative claim in its reports matched the real gate. A thinking model (emits `reasoning_content`); served via LlamaBarn on :8080. Multi-file work remains unproven - the eval deliberately contained none.
+- **Default: `unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL`.** Qualified 2026-08-31 (6/6 agentic eval, zero false claims - see `references/eval-runbook.md`). Eval tasks spanned 4 languages across 4 repos (Python x2, Rust, TypeScript, Bash/bats, Python) - a new-enum-variant Rust fix, a Python function reimplementation plus call-site wiring, a TypeScript matcher with a regex edge case, writing bats tests from scratch, and a one-line Python control-flow fix. Observed strengths over the prior default (Qwen3.6-27B-MTP): every quantitative claim in its reports matched the real gate exactly, it traced cross-file consumers before editing a shared module, added unprompted defensive handling (a regex boundary case the original human implementation didn't have), and self-caught and fixed its own bug (a stray `*/` inside a block comment) rather than shipping it. Also compared head-to-head against Claude Sonnet on the identical 6 tasks the same day: Sonnet also went 6/6, so this quant is not a downgrade from the cloud tier on this sample.
 - **Do not** swap in a general-purpose model (e.g. `gemma4-26b`) without re-running an eval. In testing, gemma4 wrote wrong code *and* falsely claimed all tests passed.
 - Every autonomous autopilot dispatch (the `/work` implementor lane, the plan-tasks preflight) passes `--approved-only`, so it can never run on an unqualified engine, while manual use stays unrestricted. See `references/eval-runbook.md` for the qualification procedure, and "Onboarding a New Model" below for the automated register -> eval -> promote workflow (`scripts/run-eval.sh`, `scripts/promote-default.sh`).
-- This is a local model - capable for well-scoped work, not a frontier replacement. Two known failure modes: it **under-covers multi-file tasks** (finishes one file, silently drops the rest) and **over-claims completeness** in its final report. Reserve it for single-file, well-specified tasks, **always keep code review on**, and verify against a real test gate - never against its self-report.
+- This is a local model - capable for well-scoped work, not a confirmed frontier replacement yet. The eval was deliberately single-file per task (same constraint as every prior qualification here) - **multi-file work remains unproven** for this quant, not confirmed fixed. **Always keep code review on**, and verify against a real test gate - never against its self-report.
 
 ## Onboarding a New Model
 
