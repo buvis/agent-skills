@@ -572,3 +572,20 @@ def test_append_pointer_leaves_no_leftover_tmp_file_when_the_write_step_itself_f
         write.append_pointer(store_path, entry)
 
     assert [p.name for p in store_path.iterdir()] == ["MEMORY.md"]
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="agoge 2026-08-31: append_pointer runs outside main's WriteError guard, so an "
+    "index that cannot be read leaves the memory file on disk and raises a traceback",
+)
+def test_an_index_that_cannot_be_read_leaves_no_memory_file_behind(store_path, monkeypatch):
+    store_path.mkdir()
+    (store_path / "MEMORY.md").mkdir()
+    entry = _entry(name="widget-fact")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    assert not (store_path / "widget-fact.md").exists()

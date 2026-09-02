@@ -451,3 +451,25 @@ def test_main_accepts_cap_of_one_as_smallest_legal_value(tmp_path, monkeypatch):
     report = out_path.read_text()
     for repo in (repo_a, repo_b, repo_c):
         assert str(repo) in report
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="agoge 2026-08-31: main() runs the whole cross-repo scan before it resolves "
+    "--out, so a refused path costs a full sweep before the message appears",
+)
+def test_an_out_path_outside_the_cwd_repo_is_refused_before_any_repo_is_scanned(
+    tmp_path, monkeypatch
+):
+    argv, _repos, _out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "OUTFENCEMARKER", _make_repo
+    )
+    argv[argv.index("--out") + 1] = str(tmp_path / "outside" / "report.md")
+
+    scans = []
+    monkeypatch.setattr(sweep, "scan", lambda *a, **k: scans.append(a) or ([], [], []))
+
+    with pytest.raises(SystemExit):
+        sweep.main(argv)
+
+    assert scans == []

@@ -246,3 +246,76 @@ def test_cli_loads_machine_policy_from_agents_root(
     assert "3 change(s)" in capsys.readouterr().out
     assert (agents_root / "skills" / "machine-ignored").is_symlink()
     assert not os.path.lexists(claude_root / "skills" / "machine-ignored")
+
+
+# Found by an agoge run on 2026-08-31. Each of these fails against the code as
+# it stands, so the strict xfail is the executable record of the defect: fix
+# the defect and the marker goes stale, turning the suite red to say "delete me".
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="agoge 2026-08-31: --check reconciles against the state manifest only, never "
+    "against the filesystem, so a link braid created but no longer records is invisible. "
+    "The re-sync below is what hides it: it rewrites the state without the orphan, so "
+    "the MISMATCH STATE signal for a missing manifest is spent before --check runs.",
+)
+def test_check_reports_a_managed_link_the_state_file_no_longer_records(tmp_path: Path) -> None:
+    source = tmp_path / "personal"
+    skill = make_skill(source, "temporary")
+    make_skill(source, "kept")
+    config = settings(tmp_path, source)
+    run(config)
+
+    (config.agents_root / ".braid-state.json").unlink()
+    shutil.rmtree(skill)
+    run(config)
+
+    result = run(config.with_mode(Mode.CHECK))
+
+    dangling = config.agents_root / "skills" / "temporary"
+    assert os.path.lexists(dangling) and not dangling.exists()
+    assert result.drift > 0
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="agoge 2026-08-31: the cleanup refusal is raised before the mode check, so "
+    "read-only --check aborts mid-report instead of reporting the changed path",
+)
+def test_check_reports_a_hand_changed_managed_path_instead_of_aborting(tmp_path: Path) -> None:
+    source = tmp_path / "personal"
+    skill = make_skill(source, "temporary")
+    make_skill(source, "kept")
+    config = settings(tmp_path, source)
+    run(config)
+
+    shutil.rmtree(skill)
+    stale = config.agents_root / "skills" / "temporary"
+    stale.unlink()
+    stale.mkdir()
+
+    result = run(config.with_mode(Mode.CHECK))
+
+    assert result.drift > 0
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="agoge 2026-08-31: _write_state has no try/finally, so a failed state write "
+    "escapes as a bare OSError and orphans one temp snapshot per run",
+)
+def test_a_failed_state_write_reports_a_braid_error_and_leaves_no_temp_file(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "personal"
+    make_skill(source, "portable")
+    config = settings(tmp_path, source)
+    state_path = config.agents_root / ".braid-state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.mkdir()
+
+    with pytest.raises(BraidError):
+        run(config)
+
+    assert list(state_path.parent.glob(".*.tmp")) == []
