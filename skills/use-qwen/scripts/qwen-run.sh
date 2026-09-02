@@ -508,6 +508,19 @@ case $MODE in
         # Non-interactive dispatch: guard child stdin so an unattended batch
         # can never hang on a child reading the inherited stdin (PRD 00040
         # hang class). Interactive/resume modes keep stdin — they need the TTY.
-        run_cmd pi "${ARGS[@]}" -p "$PROMPT" < /dev/null
+        # pi's own arg parser rejects any positional message starting with
+        # "-" as an unknown option (no -- escape exists), which a prompt
+        # sourced from a ledger checklist line ("- [ ] ...") hits every time.
+        # Route those through stdin instead: pi passes piped stdin content
+        # into the initial message byte-verbatim (no wrapping), so this is
+        # not a lossy fallback.
+        case "$PROMPT" in
+            -*)
+                printf '%s' "$PROMPT" | run_cmd pi "${ARGS[@]}" -p
+                ;;
+            *)
+                run_cmd pi "${ARGS[@]}" -p "$PROMPT" < /dev/null
+                ;;
+        esac
         ;;
 esac

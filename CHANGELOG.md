@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **use-qwen**: dispatch a prompt that starts with `-` (a ledger checklist line
+  like `- [ ] ...`) without `pi` misreading it as an unrecognized CLI flag and
+  refusing to run. Such prompts now go to `pi` over stdin, byte-verbatim.
 - **distil-memory**: write the memory file and the `MEMORY.md` index atomically,
   leaving no partial temp file behind when a write fails. The index is rewritten
   whole on every pointer upsert, so a process killed mid-write used to truncate

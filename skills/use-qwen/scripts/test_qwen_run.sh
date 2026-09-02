@@ -197,6 +197,29 @@ else
     FAIL "-s is accepted as a no-op (dispatch succeeds, no -s token in pi argv)" "rc=$RC; argv: $(tr '\n' ' ' < "$WORK/t4b.argv" 2>/dev/null || echo MISSING); output: $OUT"
 fi
 
+# ══ T4c: hyphen-prefixed prompt content routes through stdin, not argv ════════
+# pi's own CLI rejects a positional message starting with "-" as an unknown
+# option (no -- escape exists); a prompt sourced from a ledger checklist line
+# ("- [ ] ...") hits this on every dispatch (2026-09-02, multi-file eval).
+DASH_PROMPT_FILE_T="$WORK/dash-prompt.txt"
+printf -- '- [ ] say hi\n' > "$DASH_PROMPT_FILE_T"
+run_qwen t4c -f "$DASH_PROMPT_FILE_T"
+if [ "$RC" -eq 0 ]; then
+    PASS "hyphen-prefixed prompt: dispatch exits 0"
+else
+    FAIL "hyphen-prefixed prompt: dispatch exits 0" "rc=$RC; output: $OUT"
+fi
+if [ -f "$WORK/t4c.argv" ] && ! grep -qF -- "- [ ] say hi" "$WORK/t4c.argv"; then
+    PASS "hyphen-prefixed prompt: content is NOT on pi's argv"
+else
+    FAIL "hyphen-prefixed prompt: content is NOT on pi's argv" "argv file: $(cat "$WORK/t4c.argv" 2>/dev/null || echo MISSING)"
+fi
+if [ -f "$WORK/t4c.stdin" ] && [ "$(cat "$WORK/t4c.stdin")" = "- [ ] say hi" ]; then
+    PASS "hyphen-prefixed prompt: content reaches pi via stdin, byte-verbatim"
+else
+    FAIL "hyphen-prefixed prompt: content reaches pi via stdin, byte-verbatim" "stdin capture: '$(cat "$WORK/t4c.stdin" 2>/dev/null || echo MISSING)'"
+fi
+
 # ══ T5: server down entirely -> endpoint_unreachable ══════════════════════════
 kill "$SERVER_PID" 2>/dev/null
 wait "$SERVER_PID" 2>/dev/null
