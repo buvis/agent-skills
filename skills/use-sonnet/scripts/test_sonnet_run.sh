@@ -109,6 +109,31 @@ else
          "rc=$RC; stdout: $(cat "$STDOUT_F")"
 fi
 
+# ══ T1b: hyphen-prefixed prompt content routes through stdin, not argv ═══════
+# claude's own CLI rejects a positional prompt starting with "-" as an unknown
+# option ("error: unknown option '- [ ] ...'"); a prompt sourced from a ledger
+# checklist line hits this on every dispatch (2026-09-02, multi-file eval).
+DASH_PROMPT_FILE_T="$WORK/dash-prompt.txt"
+printf -- '- [ ] say hi\n' > "$DASH_PROMPT_FILE_T"
+run_sonnet t1b -f "$DASH_PROMPT_FILE_T"
+if [ "$RC" -eq 0 ]; then
+    PASS "hyphen-prefixed prompt: dispatch exits 0"
+else
+    FAIL "hyphen-prefixed prompt: dispatch exits 0" "rc=$RC; stderr: $(cat "$STDERR_F")"
+fi
+if [ -f "$CLAUDE_ARGV_FILE" ] && ! grep -qF -- "- [ ] say hi" "$CLAUDE_ARGV_FILE"; then
+    PASS "hyphen-prefixed prompt: content is NOT on claude's argv"
+else
+    FAIL "hyphen-prefixed prompt: content is NOT on claude's argv" \
+         "argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+fi
+if [ -f "$CLAUDE_STDIN_FILE" ] && [ "$(cat "$CLAUDE_STDIN_FILE")" = "- [ ] say hi" ]; then
+    PASS "hyphen-prefixed prompt: content reaches claude via stdin, byte-verbatim"
+else
+    FAIL "hyphen-prefixed prompt: content reaches claude via stdin, byte-verbatim" \
+         "stdin capture: '$(cat "$CLAUDE_STDIN_FILE" 2>/dev/null || echo MISSING)'"
+fi
+
 # ══ T2: -m opus overrides the model ═══════════════════════════════════════════
 run_sonnet t2 -m opus -f "$PROMPT_FILE_T"
 

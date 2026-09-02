@@ -177,6 +177,19 @@ case $MODE in
         # background run can never hang on a child reading the inherited
         # stdin (PRD 00040 hang class). Interactive/resume/continue modes
         # keep stdin - they need the TTY.
-        run_cmd claude --print --model "$MODEL" $PERM "${ADD_DIRS[@]}" "$PROMPT" < /dev/null
+        #
+        # claude's own arg parser rejects a positional prompt starting with
+        # "-" as an unknown option (no -- escape exists), which a prompt
+        # sourced from a ledger checklist line ("- [ ] ...") hits every time.
+        # Route those through stdin instead: claude --print reads the initial
+        # prompt from stdin byte-verbatim when no positional prompt is given.
+        case "$PROMPT" in
+            -*)
+                printf '%s' "$PROMPT" | run_cmd claude --print --model "$MODEL" $PERM "${ADD_DIRS[@]}"
+                ;;
+            *)
+                run_cmd claude --print --model "$MODEL" $PERM "${ADD_DIRS[@]}" "$PROMPT" < /dev/null
+                ;;
+        esac
         ;;
 esac
