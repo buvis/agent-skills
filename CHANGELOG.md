@@ -15,9 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **use-sonnet**: dispatch a prompt that starts with `-` (a ledger checklist
-  line like `- [ ] ...`) without `claude --print` rejecting it as an unknown
-  option. Such prompts now go to `claude` over stdin, byte-verbatim.
 - **use-qwen**: dispatch a prompt that starts with `-` (a ledger checklist line
   like `- [ ] ...`) without `pi` misreading it as an unrecognized CLI flag and
   refusing to run. Such prompts now go to `pi` over stdin, byte-verbatim.
