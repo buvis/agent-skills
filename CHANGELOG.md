@@ -74,8 +74,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   means the stage ran and found nothing, so reporting it for a stage that never
   had any input misread a failed run as an empty one. Such a run now reports
   the distil counts as `n/a` and writes no directory.
+- **distil-memory**: sanitise an update proposal's target stem the same way a
+  new proposal's is sanitised, so an updated name carrying unsafe characters
+  can no longer land under an unusable filename; and ship `write.py`'s
+  documented `write --store` command line, which the approval walkthrough
+  invokes to write an approved proposal from stdin.
 
 ### Added
+
+- **sweep-fix**: a portfolio-wide bug-pattern sweep. After a fix lands in the
+  current repo, the skill derives a search pattern from the fix's diff, sweeps
+  every gita-registered repo for the same pattern, and reports the hits with a
+  per-hit walkthrough; fixes are applied only in the current repo, and only
+  after explicit approval.
 
 - **distil-memory**: an approved proposal can now be written into its project's
   memory store. The memory file lands beside the transcript that produced it and
