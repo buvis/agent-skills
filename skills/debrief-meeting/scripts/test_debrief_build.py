@@ -17,7 +17,7 @@ def _make_template(tmp_path: Path) -> Path:
 
 
 def _load_payload(out_path: Path) -> dict:
-    return json.loads(out_path.read_text(encoding="utf-8").replace("<\\/", "</"))
+    return json.loads(out_path.read_text(encoding="utf-8"))
 
 
 def _run_main(
@@ -166,6 +166,23 @@ def test_warns_about_correction_matching_nothing(
 
     warnings = _load_payload(out_path)["transcript"]["warnings"]
     assert any("zzz_no_match_zzz" in w for w in warnings)
+
+
+def test_no_transcript_text_can_reach_the_html_tokenizer(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text(
+        json.dumps({"turns": [{"text": "benign <!--<script> tail"}]}),
+        encoding="utf-8",
+    )
+    out_path = tmp_path / "out.html"
+
+    _run_main(tmp_path, monkeypatch, workdir, out_path)
+
+    assert "<" not in out_path.read_text(encoding="utf-8")
 
 
 def test_backslash_correction_produces_page_without_regex_error(

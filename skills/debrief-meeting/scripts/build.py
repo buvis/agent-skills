@@ -133,11 +133,11 @@ def main() -> None:
     template = TEMPLATE.read_text(encoding="utf-8")
     if PLACEHOLDER not in template:
         sys.exit(f"template {TEMPLATE} has no {PLACEHOLDER} marker")
-    # <\/ keeps a literal </script> inside the transcript from ending the tag
+    # < keeps any transcript turn from moving the tokenizer into script-data-double-escaped state
     payload = json.dumps(
         {"transcript": transcript, "extract": extract, "extract_ran": extract_ran},
         ensure_ascii=False,
-    ).replace("</", "<\\/")
+    ).replace("<", "\\u003c")
 
     out = Path(args.out).expanduser() if args.out else workdir / "debrief.html"
     out.parent.mkdir(parents=True, exist_ok=True)
