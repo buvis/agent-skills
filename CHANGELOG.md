@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brief-portfolio**: `build.py --dir <somewhere>` now writes the page beside
+  the inputs it read (`<dir>/portfolio-brief.html`) instead of always
+  overwriting the live dashboard under `$HOME`, regardless of `--dir`.
 - **brush**: `trash_untracked.py` now vetoes, moves, and records one
   normalised path everywhere, so a `sub/../dev/local/keep.bin` spelling gets
   the same `protected path` refusal (and the same tracked-file protection) as

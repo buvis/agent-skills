@@ -1,10 +1,7 @@
 """Regression tests for build.py's payload injection and output placement.
 
 Both cases were found by an agoge run on 2026-08-31. The tokenizer-injection
-case is fixed (PRD 00011); the --out/--dir default case still fails against
-the code as it stands, so its strict xfail is the executable record of the
-defect: fix it and the marker goes stale, turning the suite red to say
-"delete me".
+case is fixed (PRD 00011); the --out/--dir default case is fixed (PRD 00013).
 
 Run: python3 -m pytest test_build.py -q
 """
@@ -13,8 +10,6 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
-
-import pytest
 
 # Loaded by path under a unique name rather than via sys.path: the repo carries
 # a second, unrelated scripts/build.py under skills/debrief-meeting, and a plain
@@ -53,11 +48,6 @@ def test_no_collected_text_can_reach_the_html_tokenizer(tmp_path, monkeypatch):
     assert "<" not in _payload_of(out.read_text())
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="agoge 2026-08-31: --out defaults off the home directory rather than off "
-    "--dir, so building from a scratch directory overwrites the real dashboard",
-)
 def test_dir_without_out_writes_the_page_beside_its_own_inputs(tmp_path, monkeypatch):
     workdir = _workdir(tmp_path, {"repos": []})
     home = tmp_path / "home"
@@ -68,3 +58,16 @@ def test_dir_without_out_writes_the_page_beside_its_own_inputs(tmp_path, monkeyp
 
     assert (workdir / "portfolio-brief.html").is_file()
     assert not (home / ".local/share/agents/portfolio-brief/portfolio-brief.html").exists()
+
+
+def test_no_flags_writes_the_home_default(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    workdir = home / ".local/share/agents/portfolio-brief"
+    workdir.mkdir(parents=True)
+    (workdir / "data.json").write_text(json.dumps({"repos": []}))
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: home))
+    monkeypatch.setattr(sys, "argv", ["build.py"])
+
+    build.main()
+
+    assert (home / ".local/share/agents/portfolio-brief/portfolio-brief.html").is_file()

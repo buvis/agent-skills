@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Inject data.json (+ optional epics.json) into the SPA template.
 
-Usage: build.py [--dir DIR] [--out FILE]  (defaults under ~/.local/share/agents/portfolio-brief/)
+Usage: build.py [--dir DIR] [--out FILE]
+--dir defaults to ~/.local/share/agents/portfolio-brief; --out defaults to <dir>/portfolio-brief.html
 """
 import argparse
 import json
@@ -16,10 +17,11 @@ def main():
     ap = argparse.ArgumentParser()
     default_dir = Path.home() / ".local/share/agents/portfolio-brief"
     ap.add_argument("--dir", default=str(default_dir))
-    ap.add_argument("--out", default=str(default_dir / "portfolio-brief.html"))
+    ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
     workdir = Path(args.dir)
+    out = Path(args.out) if args.out else workdir / "portfolio-brief.html"
     data_file = workdir / "data.json"
     if not data_file.is_file():
         sys.exit(f"missing {data_file} — run collect.py first")
@@ -46,7 +48,6 @@ def main():
     # < keeps any commit subject from moving the tokenizer into script-data-double-escaped state
     payload = json.dumps({"data": data, "epics": epics, "prev": prev,
                           "history": history}).replace("<", "\\u003c")
-    out = Path(args.out)
     out.write_text(template.replace(PLACEHOLDER, payload))
     print(f"wrote {out} ({out.stat().st_size // 1024} kB)")
 

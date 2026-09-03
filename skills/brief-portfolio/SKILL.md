@@ -120,6 +120,10 @@ open ~/.local/share/agents/portfolio-brief/portfolio-brief.html   # attended onl
 Svelte 5 single-file app) and writes `~/.local/share/agents/portfolio-brief/portfolio-brief.html`.
 It works without epics.json but say so if you skipped step 2.
 
+`--dir DIR` sets where `data.json`, `epics.json`, `data-prev.json` and
+`history.jsonl` are read from (default `~/.local/share/agents/portfolio-brief`).
+`--out FILE` sets where the page is written (default `<dir>/portfolio-brief.html`).
+
 ## Tests
 
 ```bash
