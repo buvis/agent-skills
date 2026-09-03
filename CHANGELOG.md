@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **use-qwen**: record Qwen3.8's measured multi-file trust scope (single-file-only) in the Model Selection guidance, backed by a 6-task comparison against Sonnet.
 - **brief-portfolio**: nag each config audit on its own cadence instead of
   showing one coarse "config maintenance" row. Every machine audit gets its own
   overdue row against its own horizon, and `purge-devlocal` is tracked per repo.

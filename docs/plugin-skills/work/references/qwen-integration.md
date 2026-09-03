@@ -131,7 +131,7 @@ The task's acceptance criteria prose is intentionally omitted. Tests ARE the spe
 
 Qwen finishes one file and silently drops the rest of a multi-file task.
 
-**Fix**: `state.tasks[i].qwen_eligible` already restricts qwen to `≤3`-file backend tasks at planning time (see PRD 00032, widened by PRD 00019). If a wider task slips through, the step-5.5 per-task test gate catches it — the one-shot qwen attempt budget then escalates the next attempt to Claude Sonnet.
+**Measured** 2026-09-03 on Qwen3.8 over 6 multi-file tasks: 1 dropped-a-file failures; measured `--approved-only` trust scope: single-file-only (local report under `dev/local/audit-results/`). Routing still relies on `state.tasks[i].qwen_eligible` (`<= 3`-file backend tasks, PRD 00032/00019) and the step-5.5 per-task test gate, which escalates a failed qwen attempt to Claude Sonnet; aligning that threshold with the measured scope is a pending autopilot follow-up.
 
 ### Over-claims completeness
 
