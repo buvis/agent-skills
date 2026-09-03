@@ -104,6 +104,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **create-prd**: a model-tier gate that decides each PRD's `default_model`
+  floor instead of leaving it to habit. Seven escalators (invented algorithm,
+  concurrency, equivalence obligation, invented contract, destructive blast
+  radius, generative prose, cross-cutting shape change) force `opus`; a PRD
+  whose every edit is transcription gets `sonnet`; omitting the field keeps
+  `haiku` reachable. The verdict and a one-line `model_tier_rationale` are
+  written into the frontmatter, so a later reader can tell a decision from a
+  default.
+
 - **sweep-fix**: a portfolio-wide bug-pattern sweep. After a fix lands in the
   current repo, the skill derives a search pattern from the fix's diff, sweeps
   every gita-registered repo for the same pattern, and reports the hits with a

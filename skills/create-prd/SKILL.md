@@ -85,7 +85,7 @@ While drafting, mark every contract detail you invented rather than sourced from
 
 ### Optional frontmatter fields
 
-PRD frontmatter is a YAML block at the top of the file delimited by `---` lines. Seven optional fields are recognized by the autopilot pipeline (six parsed by `/autopilot:run-autopilot` Phase 0; `default_model` is owned and re-read by `/autopilot:plan-tasks`):
+PRD frontmatter is a YAML block at the top of the file delimited by `---` lines. Seven fields are recognized by the autopilot pipeline (six parsed by `/autopilot:run-autopilot` Phase 0; `default_model` is owned and re-read by `/autopilot:plan-tasks`). All six Phase-0 fields are optional; `default_model` is decided for every PRD by step 5.6:
 
 - `catchup: run | skip | force` — controls Phase 1 (Catchup) behavior. `run` (default) honors the batch cache; `skip` bypasses catchup entirely; `force` ignores the batch cache and re-runs full catchup. Use `skip` for PRDs that need no fresh project context (e.g. small docs-only changes). Use `force` after a major structural change you want catchup to pick up.
 - `rework_cap: <int>` — caps how many review-rework cycles Phase 5 will run before pausing. Default `2` (lowered from 3 on 2026-08-01: 13 of 14 completed PRDs ran to cap 3 without converging, so the third cycle was buying ~0.5 real findings for ~25% of review cost). `rework_cap: 5` allows five review cycles before pause. Raise this for genuinely hard PRDs that need more cycles; the default suits most work.
@@ -93,7 +93,8 @@ PRD frontmatter is a YAML block at the top of the file delimited by `---` lines.
 - `design_gate: user` — when set, Phase 1.5 PAUSEs for your review of the design doc (summary + unresolved non-blockers) before planning. Absent by default (design runs autonomously, no pause). Set it on PRDs where you want to vet the design before tasks are planned.
 - `doubt_reviewer: codex | fable` — selects the doubt-review (Phase 8) reviewer set for this PRD. `codex` (default) uses the standard codex doubt reviewer; `fable` opts into the Eve (Claude Fable 5) doubt-review leg. Absent by default. (Only adds/parses the flag today; the Phase 8 consumer lands in a follow-on PRD.)
 - `consensus_engine: legacy | shadow | workflow` — selects the engine behind Alice's consensus leg in the review phase. `legacy` (default) runs today's single review subagent. `workflow` runs the `review-fanout` workflow instead: review dimensions in parallel with schema-forced findings, dedup, and adversarial verification of every CRITICAL/HIGH before it can block. `shadow` runs both — legacy Alice gates the cycle and the workflow runs beside her, non-gating, so you can compare before opting in. Absent by default.
-- `default_model: <tier>` — floor for the per-task model tier. Owned by `/autopilot:plan-tasks` step 4.7 (the single source of truth): `final_tier = max(classifier_tier, default_model)`, re-read from this frontmatter at Phase 6 runtime, never persisted to state. Absent by default (classifier tier passes through).
+- `default_model: haiku | sonnet | opus` — **floor** for the per-task model tier, never a cap. Owned by `/autopilot:plan-tasks` step 4.7 (the single source of truth): `final_tier = max(classifier_tier, default_model)`, re-read from this frontmatter at Phase 6 runtime, never persisted to state. Decided per PRD by step 5.6 below; omitted only for the pass-through case that step defines.
+- `model_tier_rationale: <one line>` — free text recording why step 5.6 chose that floor, so a later reader can tell a considered decision from a habit. Ignored by both parsers: Phase 0 drops unknown keys, and `/autopilot:plan-tasks` reads only `default_model`.
 
 Example combining several:
 
@@ -105,10 +106,12 @@ design: run
 design_gate: user
 doubt_reviewer: fable
 consensus_engine: shadow
+default_model: sonnet
+model_tier_rationale: transcription only - exact expressions given, additive tests
 ---
 ```
 
-All seven fields are optional. Invalid values fall back to defaults (a one-line warning is logged).
+The six Phase-0 fields are optional; invalid values fall back to defaults (a one-line warning is logged).
 
 ### 4. Split if needed
 
@@ -124,7 +127,51 @@ Walk the chosen template top-to-bottom and confirm every `##`/`###` heading the 
 
 ### 5.5. Guess-density gate
 
-Count unresolved contract markers in the draft: `(guess)`, `TBD`, `TODO`, plus Open Questions that bear on any Feature's Inputs/Outputs/Behavior. **3 or more:** do not save yet - offer via AskUserQuestion: **Spike the fuzzy part** (run the spike skill with the draft as its rough spec; on convergence rewrite the guessed fields from observed behavior, then re-run this gate), **Resolve now** (answer them in conversation), or **Save anyway** (explicit override - the markers stay in the PRD and plan-tasks will freeze them as written). **2 or fewer:** proceed to step 6.
+Count unresolved contract markers in the draft: `(guess)`, `TBD`, `TODO`, plus Open Questions that bear on any Feature's Inputs/Outputs/Behavior. **3 or more:** do not save yet - offer via AskUserQuestion: **Spike the fuzzy part** (run the spike skill with the draft as its rough spec; on convergence rewrite the guessed fields from observed behavior, then re-run this gate), **Resolve now** (answer them in conversation), or **Save anyway** (explicit override - the markers stay in the PRD and plan-tasks will freeze them as written). **2 or fewer:** proceed to step 5.6.
+
+### 5.6. Model-tier gate
+
+Decide the `default_model` floor for this PRD and write it into the frontmatter. Run this on every PRD, never by habit: a blanket `opus` costs several times what a cheaper tier spends doing the same work correctly, and a blanket `sonnet` hands judgment work to a model that will transcribe its way past it.
+
+Run the gate AFTER step 5.5, not before. Resolving guesses is what turns a vague Behavior field into an exact expression, and that is precisely what the rubric measures.
+
+**`default_model` is a floor, not a cap** (`/autopilot:plan-tasks` step 4.7: `final_tier = max(classifier_tier, default_model)`). `sonnet` does not stop the per-task classifier raising an individual task to `opus` on a contract edit or algorithmic risk; it only stops the PRD dropping to `haiku`. That safety net is why a well-specified PRD should not be pinned to `opus` out of caution.
+
+**Set `opus` if ANY row holds.** One hit is enough - stop at the first.
+
+| Escalator | It looks like |
+|-----------|---------------|
+| Invented algorithm or predicate | The PRD names a behavior but not the expression implementing it: an ownership test, a classification rule, a heuristic |
+| Concurrency or timing | Thread pools, deadlines, cancellation, async ordering - anything where interleaving decides correctness |
+| Equivalence obligation | New code must produce byte-identical or behavior-identical output to what it replaces |
+| Invented contract | A return shape, class name, message format, or wording with no source value, especially when another PRD consumes it |
+| Destructive blast radius | Flips a default that deletes or moves data, widens a guard on a destructive path, or writes outside the repo |
+| Generative prose at volume | More than a couple of authored descriptions or entries where the writing quality IS the deliverable |
+| Cross-cutting shape change | One signature or return shape changed across two or more independent modules or apps |
+
+**Otherwise `sonnet`**, and only when all three hold:
+
+- Every non-test edit carries its exact final text, expression, or attribute value in the task line. The implementer transcribes; it never designs.
+- Each acceptance criterion is a runnable command that fails loudly. No criterion can pass vacuously.
+- A wrong implementation breaks a named test rather than degrading silently.
+
+**Omit `default_model` entirely** when the PRD is mechanical enough that `haiku` is acceptable - the classifier's `mechanical` row then reaches it. Writing `sonnet` is the explicit statement that this PRD is too consequential for `haiku`. Write `model_tier_rationale` in this case too, so the omission reads as a decision rather than a lapse.
+
+Two failure modes to watch when the verdict is `sonnet`, both worth naming in the rationale rather than escalating the whole PRD:
+
+- **Premise-skip discipline.** Tasks carrying the step-3 premise rule ("re-check at execution; a failed premise means skip and report") depend on the implementer stopping rather than forcing. That instruction has to be in the task text, not implied.
+- **Edits to existing tests.** A task that repoints or rewrites tests already in the tree is the one place a wrong turn weakens coverage silently instead of going red. Pin the expected count with an `rg -c` premise.
+
+Record the verdict:
+
+```yaml
+default_model: sonnet
+model_tier_rationale: transcription only - exact expressions given, additive tests
+```
+
+Put NO comment on the `default_model:` line. The Phase-0 parser (`run-autopilot/cli/frontmatter.py`) is not PyYAML: it splits on the first colon and takes the rest verbatim, so `sonnet  # mechanical` becomes an invalid value and the floor is dropped without an error.
+
+This is authoring guidance, not structure - the `assets/` templates carry no frontmatter block and are unaffected.
 
 ### 6. Save to backlog
 
