@@ -1,8 +1,10 @@
 """Regression tests for build.py's payload injection and output placement.
 
-Both cases were found by an agoge run on 2026-08-31 and both fail against the
-code as it stands, so the strict xfail is the executable record of the defect:
-fix it and the marker goes stale, turning the suite red to say "delete me".
+Both cases were found by an agoge run on 2026-08-31. The tokenizer-injection
+case is fixed (PRD 00011); the --out/--dir default case still fails against
+the code as it stands, so its strict xfail is the executable record of the
+defect: fix it and the marker goes stale, turning the suite red to say
+"delete me".
 
 Run: python3 -m pytest test_build.py -q
 """
@@ -38,12 +40,6 @@ def _workdir(tmp_path: Path, data: dict) -> Path:
     return workdir
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="agoge 2026-08-31: the payload escapes '</' only, so '<!--<script>' in any "
-    "collected title moves the tokenizer into script-data-double-escaped state and the "
-    "template's own closing tag stops closing the block, swallowing <div id=app>",
-)
 def test_no_collected_text_can_reach_the_html_tokenizer(tmp_path, monkeypatch):
     workdir = _workdir(
         tmp_path,

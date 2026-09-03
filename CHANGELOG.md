@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brief-portfolio**: escape every `<` in the collected JSON payload instead
+  of only `</`, so a repo title or issue title containing `<!--<script>` can no
+  longer move the HTML tokenizer into script-data-double-escaped state and
+  blank the built page.
 - **use-qwen**: dispatch a prompt that starts with `-` (a ledger checklist line
   like `- [ ] ...`) without `pi` misreading it as an unrecognized CLI flag and
   refusing to run. Such prompts now go to `pi` over stdin, byte-verbatim.

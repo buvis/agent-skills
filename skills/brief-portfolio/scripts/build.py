@@ -43,9 +43,9 @@ def main():
     template = TEMPLATE.read_text()
     if PLACEHOLDER not in template:
         sys.exit(f"template {TEMPLATE} has no {PLACEHOLDER} marker")
-    # <\/ keeps a literal </script> inside any commit subject from ending the tag
+    # < keeps any commit subject from moving the tokenizer into script-data-double-escaped state
     payload = json.dumps({"data": data, "epics": epics, "prev": prev,
-                          "history": history}).replace("</", "<\\/")
+                          "history": history}).replace("<", "\\u003c")
     out = Path(args.out)
     out.write_text(template.replace(PLACEHOLDER, payload))
     print(f"wrote {out} ({out.stat().st_size // 1024} kB)")
