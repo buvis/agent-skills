@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import time
@@ -156,11 +157,6 @@ def test_tracked_junk_pathspec_finds_nested(repo: Path) -> None:
     assert "charts/sub/.DS_Store" in out.split("\0")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="agoge 2026-08-31: main() checks containment on the resolved path but the "
-    "protections on the raw string, so a `../` segment walks past PROTECT_PREFIXES",
-)
 def test_veto_devlocal_protected_through_a_dotdot_segment(repo: Path) -> None:
     p = repo / "dev/local/keep.bin"
     p.parent.mkdir(parents=True)
@@ -169,3 +165,43 @@ def test_veto_devlocal_protected_through_a_dotdot_segment(repo: Path) -> None:
     (repo / "sub").mkdir()
 
     assert "protected" in _veto(repo, "sub/../dev/local/keep.bin")
+
+
+def test_main_refuses_a_protected_path_spelled_through_dotdot(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = repo / "dev/local/keep.bin"
+    p.parent.mkdir(parents=True)
+    p.write_text("k")
+    os.utime(p, (OLD, OLD))
+    (repo / "sub").mkdir()
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["trash_untracked.py", "--repo", str(repo),
+         "sub/../dev/local/keep.bin"])
+    tu.main()
+    out = json.loads(capsys.readouterr().out)
+
+    assert out["moved"] == []
+    assert out["refused"] == [{
+        "path": "dev/local/keep.bin",
+        "reason": "protected path (dev/local, docs, .git)",
+    }]
+    assert p.exists()
+
+
+def test_manifest_row_names_the_file_that_was_moved(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (repo / "old_junk.log").write_text("j")
+    os.utime(repo / "old_junk.log", (OLD, OLD))
+    (repo / "sub").mkdir()
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["trash_untracked.py", "--repo", str(repo), "sub/../old_junk.log"])
+    tu.main()
+
+    row = (repo / "dev/local/.trash/manifest.tsv").read_text().strip().split("\t")
+    assert row[2] == "old_junk.log"
+    assert (repo / row[3]).is_file()

@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brush**: `trash_untracked.py` now vetoes, moves, and records one
+  normalised path everywhere, so a `sub/../dev/local/keep.bin` spelling gets
+  the same `protected path` refusal (and the same tracked-file protection) as
+  the plain spelling, instead of bypassing containment and landing on a
+  protected file.
 - **brief-portfolio**: escape every `<` in the collected JSON payload instead
   of only `</`, so a repo title or issue title containing `<!--<script>` can no
   longer move the HTML tokenizer into script-data-double-escaped state and

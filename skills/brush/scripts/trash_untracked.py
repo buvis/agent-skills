@@ -15,6 +15,7 @@ import argparse
 import datetime
 import fnmatch
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -50,6 +51,7 @@ def newest_mtime(p: Path) -> float:
 
 def veto_reason(rel: str, p: Path, tracked: set[str],
                 min_age_days: int) -> str | None:
+    rel = os.path.normpath(rel)
     if not p.exists():
         return "missing"
     if rel in tracked or any(t.startswith(rel + "/") for t in tracked):
@@ -97,11 +99,12 @@ def main() -> int:
     date = datetime.date.today().isoformat()
     moved, refused = [], []
     for raw in args.paths:
-        rel = raw.strip("/")
-        p = (root / rel).resolve()
+        raw = raw.strip("/")
+        p = (root / raw).resolve()
         if not p.is_relative_to(root):
-            refused.append({"path": rel, "reason": "outside repo"})
+            refused.append({"path": raw, "reason": "outside repo"})
             continue
+        rel = os.path.relpath(p, root)
         reason = veto_reason(rel, p, tracked, args.min_age_days)
         if reason:
             refused.append({"path": rel, "reason": reason})
