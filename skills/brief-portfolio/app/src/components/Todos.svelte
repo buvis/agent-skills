@@ -76,7 +76,7 @@
 <div class="bar">
   <span class="count"><b>{openCount}</b> open follow-ups · checked state survives regeneration</span>
   <button class="chip" class:active={hideDone} onclick={() => (hideDone = !hideDone)}>hide done</button>
-  <button class="chip" onclick={() => copy(todos, 'all')}>
+  <button class="chip" disabled={openCount === 0} onclick={() => copy(todos, 'all')}>
     {copied === 'all' ? '✓ copied' : failed === 'all' ? '✗ copy failed' : 'copy open as markdown'}
   </button>
 </div>
@@ -86,7 +86,7 @@
     <section class="sec">
       <h2 class="u-{u}">
         {u} · {all.filter((t) => !done.has(t.id)).length} open
-        <button class="chip mini" onclick={() => copy(all, u)}>{copied === u ? '✓' : failed === u ? '✗' : nothing === u ? 'nothing' : 'copy'}</button>
+        <button class="chip mini" disabled={openCount === 0} onclick={() => copy(all, u)}>{copied === u ? '✓' : failed === u ? '✗' : nothing === u ? 'nothing' : 'copy'}</button>
       </h2>
       {#each shown as t (t.id)}
         <div class="todo" class:isdone={done.has(t.id)}>
