@@ -18,6 +18,7 @@ from collect import (
     collect_claude_skill_adherence,
     collect_purge_devlocal,
     collect_repo,
+    history_counts,
     main,
     should_rotate,
     stub_from_path,
@@ -909,3 +910,13 @@ def test_main_writes_data_json_when_audit_cadence_raises_unexpected_exception(
     captured = capsys.readouterr()
     assert new_data["external"]["audit_cadence"] == collect._seeded_audit_cadence()
     assert "WARN audit_cadence" in captured.err
+
+
+def test_history_counts_marks_a_repo_with_errors_and_no_data():
+    row = history_counts(
+        {"owner": "acme", "name": "widget", "errors": ["meta: gh: not authenticated"]},
+    )
+    assert row["e"] == 1
+    # The marker is added to the counts, not substituted for them.
+    assert row["c"] == 0
+    assert row["u"] == 0
