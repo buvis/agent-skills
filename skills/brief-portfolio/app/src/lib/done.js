@@ -2,8 +2,26 @@
 // ponytail: localStorage-on-file:// is one shared bucket; fine for one user
 const KEY = 'brief-portfolio-done'
 
-export const loadDone = () => new Set(JSON.parse(localStorage.getItem(KEY) ?? '[]'))
-export const saveDone = (s) => localStorage.setItem(KEY, JSON.stringify([...s]))
+let storageBlocked = false
+
+export const isStorageBlocked = () => storageBlocked
+
+export const loadDone = () => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(KEY) ?? '[]'))
+  } catch {
+    storageBlocked = true
+    return new Set()
+  }
+}
+
+export const saveDone = (s) => {
+  try {
+    localStorage.setItem(KEY, JSON.stringify([...s]))
+  } catch {
+    storageBlocked = true
+  }
+}
 
 // Drop ids that no longer exist in the payload so the set can't grow forever.
 export function pruneDone(validIds) {

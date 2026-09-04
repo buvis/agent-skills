@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brief-portfolio**: `loadDone()`/`saveDone()` no longer throw when
+  `localStorage` is unreachable (e.g. an opaque-origin mount, or a browser
+  blocking site data) — the page no longer blanks silently at mount on those
+  browsers.
 - **brief-portfolio**: `build.py --dir <somewhere>` now writes the page beside
   the inputs it read (`<dir>/portfolio-brief.html`) instead of always
   overwriting the live dashboard under `$HOME`, regardless of `--dir`.
