@@ -444,3 +444,16 @@ test('render(payload) still mounts on a real origin, so localStorage works by de
   const { doc } = render(PAYLOAD)
   assert.doesNotThrow(() => doc.defaultView.localStorage)
 })
+
+test('Brief tab still renders with a persistence notice when localStorage is blocked', () => {
+  // render(PAYLOAD, { url: null }) omits the jsdom url option, landing on
+  // jsdom's default opaque origin where localStorage throws instead of
+  // working — the same mechanism the two render() tests above use to reach
+  // this condition. isStorageBlocked() (from src/lib/done.js) should flip
+  // true once mounted here, and the page should show a one-line notice
+  // instead of silently dropping the ability to persist checked state.
+  const { doc } = render(PAYLOAD, { url: null })
+  assert.equal(doc.querySelector('h1').textContent.trim(), 'Portfolio Brief')
+  assert.ok(doc.querySelector('main').textContent.trim().length > 0, 'Brief tab is blank')
+  assert.match(doc.body.textContent, /will not persist/)
+})
