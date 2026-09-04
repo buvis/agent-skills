@@ -407,3 +407,29 @@ test('aria-live region clears once the failed-copy button label has reverted', a
     'aria-live region still holds stale "✗ copy failed" text after the button label reverted',
   )
 })
+
+test('done.js survives a blocked localStorage: loadDone returns empty, saveDone no-ops, isStorageBlocked flips true', async () => {
+  // Simulates a file:// page or a browser with storage access disabled, where
+  // both getItem and setItem throw (e.g. a SecurityError) instead of working.
+  const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage')
+  const previousLocalStorage = globalThis.localStorage
+  globalThis.localStorage = {
+    getItem() { throw new Error('SecurityError') },
+    setItem() { throw new Error('SecurityError') },
+  }
+  try {
+    const { loadDone, saveDone, isStorageBlocked } = await import('./src/lib/done.js')
+    assert.equal(loadDone().size, 0, 'loadDone should return an empty Set when localStorage.getItem throws')
+    assert.doesNotThrow(
+      () => saveDone(new Set(['x'])),
+      'saveDone should not throw when localStorage.setItem throws',
+    )
+    assert.equal(isStorageBlocked(), true, 'isStorageBlocked should be true once a helper has caught an error')
+  } finally {
+    if (hadLocalStorage) {
+      globalThis.localStorage = previousLocalStorage
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
