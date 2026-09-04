@@ -28,6 +28,7 @@
       .filter((r) => r.ci?.length)
       .toSorted((a, b) => ciFailing(b).length - ciFailing(a).length)
   )
+  const ciNeverFetched = $derived(repos.filter((r) => r.ci === undefined))
   const runClass = (w) =>
     w.status !== 'completed'
       ? 'sev-warning'
@@ -154,6 +155,12 @@
         </div>
       </div>
     {/each}
+  {/if}
+  {#if ciNeverFetched.length}
+    <p class="empty">
+      <strong class="sev-warning">{ciNeverFetched.length}</strong> not collected this run:
+      {ciNeverFetched.map((r) => `${r.owner}/${r.name}`).join(', ')}
+    </p>
   {/if}
 </section>
 
