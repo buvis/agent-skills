@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `localStorage` is unreachable (e.g. an opaque-origin mount, or a browser
   blocking site data) — the page no longer blanks silently at mount on those
   browsers.
+- **brief-portfolio**: show a one-line notice ("Checked state will not
+  persist: this browser is blocking local storage.") above the tabs when
+  `localStorage` is blocked, instead of silently dropping the ability to
+  persist checked-todo state.
 - **brief-portfolio**: `build.py --dir <somewhere>` now writes the page beside
   the inputs it read (`<dir>/portfolio-brief.html`) instead of always
   overwriting the live dashboard under `$HOME`, regardless of `--dir`.
