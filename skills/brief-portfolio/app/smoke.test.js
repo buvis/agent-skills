@@ -182,6 +182,35 @@ test('Work tab does not name a repo with `ci: []` as not collected this run', as
   assert.doesNotMatch(mainText, /not collected this run/)
 })
 
+test('Work tab shows the not-collected-this-run line even when the CI wall has rows from another repo', async () => {
+  // The exclusion line and the wall's empty state are independent: a wall
+  // that already has rows (repo A's fetched, non-empty `ci` array) must still
+  // carry the "not collected this run" line for a different repo (repo B,
+  // with no `ci` key at all).
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos = [
+    {
+      owner: 'acme', name: 'widget-a', org: 'acme',
+      ci: [
+        { workflow: 'deploy-prod', status: 'completed', conclusion: 'success', url: 'https://example.org/run/1', date: new Date(0).toISOString() },
+      ],
+    },
+    { owner: 'acme', name: 'widget-b', org: 'acme' },
+  ]
+
+  const { doc, openTab } = render(payload)
+  await openTab('Work')
+  const mainText = doc.querySelector('main').textContent
+  assert.match(mainText, /deploy-prod/, 'wall does not show the fetched repo\'s workflow row')
+  assert.match(mainText, /not collected this run/)
+  assert.match(
+    mainText,
+    /1 not collected this run:\s*acme\/widget-b/,
+    'exclusion line should name only the never-fetched repo',
+  )
+  assert.doesNotMatch(mainText, /No CI runs/, 'empty state should not show once the wall has rows')
+})
+
 test('Brief tab names repos it could not collect this run', () => {
   const payload = structuredClone(PAYLOAD)
   payload.data.skipped = [
