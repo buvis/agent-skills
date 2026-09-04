@@ -144,6 +144,16 @@ test('Work tab has no "Waiting on you elsewhere" section when there is no extern
   assert.doesNotMatch(mainText, /Waiting on you elsewhere/)
 })
 
+test('Work tab shows "No CI runs." on the CI wall when no repo has CI data', async () => {
+  // The default PAYLOAD repo carries no `ci` key at all (the "never
+  // fetched" case), which derives ciRows to an empty array — the CI wall
+  // must render an empty-state message instead of going blank.
+  const { doc, openTab } = render()
+  await openTab('Work')
+  const mainText = doc.querySelector('main').textContent
+  assert.match(mainText, /No CI runs/)
+})
+
 test('Brief tab names repos it could not collect this run', () => {
   const payload = structuredClone(PAYLOAD)
   payload.data.skipped = [
