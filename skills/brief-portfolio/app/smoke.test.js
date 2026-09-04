@@ -154,6 +154,34 @@ test('Work tab shows "No CI runs." on the CI wall when no repo has CI data', asy
   assert.match(mainText, /No CI runs/)
 })
 
+test('Work tab names a never-fetched-CI repo below the wall, alongside the wall\'s own empty state', async () => {
+  // The default PAYLOAD repo carries no `ci` key at all — CI was never
+  // fetched for it, distinct from a fetched-but-empty `ci: []`. The wall
+  // itself is empty (no repo has a `ci` array with rows), so both the
+  // "No CI runs." empty state and the exclusion line naming the repo must
+  // show up together.
+  const { doc, openTab } = render()
+  await openTab('Work')
+  const mainText = doc.querySelector('main').textContent
+  assert.match(mainText, /No CI runs/)
+  assert.match(mainText, /not collected this run/)
+  assert.match(mainText, /buvis\/demo/)
+})
+
+test('Work tab does not name a repo with `ci: []` as not collected this run', async () => {
+  // `ci: []` means CI was fetched and came back empty — a different case
+  // from the default payload's missing `ci` key. The wall still renders its
+  // empty state, but the repo must not appear in the exclusion line.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].ci = []
+
+  const { doc, openTab } = render(payload)
+  await openTab('Work')
+  const mainText = doc.querySelector('main').textContent
+  assert.match(mainText, /No CI runs/)
+  assert.doesNotMatch(mainText, /not collected this run/)
+})
+
 test('Brief tab names repos it could not collect this run', () => {
   const payload = structuredClone(PAYLOAD)
   payload.data.skipped = [
