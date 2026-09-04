@@ -92,6 +92,7 @@
       <button
         class="chip"
         class:active={org !== 'all'}
+        aria-pressed={org !== 'all'}
         aria-label="Filter by org"
         onclick={() => (filterOpen = !filterOpen)}
       >

@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **brief-portfolio**: the Repos tab's filter input and sort select now carry
   `aria-label`s ("Filter repos", "Sort repos"), instead of relying on
   placeholder text that vanishes once the user types.
+- **brief-portfolio**: the four toggle chips (Todo's "hide done", Work's
+  "deps-bot PRs" and "drafts", and the header's org filter) now expose their
+  on/off state via `aria-pressed`, instead of relying on the `active` CSS
+  class alone.
 
 ### Changed
 

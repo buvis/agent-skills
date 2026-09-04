@@ -81,7 +81,7 @@
 
 <div class="bar">
   <span class="count"><b>{openCount}</b> open follow-ups · checked state survives regeneration</span>
-  <button class="chip" class:active={hideDone} onclick={() => (hideDone = !hideDone)}>hide done</button>
+  <button class="chip" class:active={hideDone} aria-pressed={hideDone} onclick={() => (hideDone = !hideDone)}>hide done</button>
   <button class="chip" disabled={openCount === 0} onclick={() => copy(todos, 'all')}>
     {outcome?.label === 'all' && outcome.kind === 'copied' ? '✓ copied' : outcome?.label === 'all' && outcome.kind === 'failed' ? '✗ copy failed' : 'copy open as markdown'}
   </button>

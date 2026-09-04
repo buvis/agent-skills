@@ -66,10 +66,10 @@
 <section class="sec">
   <h2>Open PRs · {prs.length}</h2>
   <div class="filters">
-    <button class="chip" class:active={showDeps} onclick={() => (showDeps = !showDeps)}>
+    <button class="chip" class:active={showDeps} aria-pressed={showDeps} onclick={() => (showDeps = !showDeps)}>
       deps-bot PRs ({depCount})
     </button>
-    <button class="chip" class:active={showDrafts} onclick={() => (showDrafts = !showDrafts)}>
+    <button class="chip" class:active={showDrafts} aria-pressed={showDrafts} onclick={() => (showDrafts = !showDrafts)}>
       drafts
     </button>
   </div>
