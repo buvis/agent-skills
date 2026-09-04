@@ -34,8 +34,8 @@
 <svelte:window {onkeydown} />
 
 <div class="bar">
-  <input bind:this={searchEl} bind:value={search} placeholder="filter repos… ( / )" />
-  <select bind:value={sort}>
+  <input bind:this={searchEl} bind:value={search} placeholder="filter repos… ( / )" aria-label="Filter repos" />
+  <select bind:value={sort} aria-label="Sort repos">
     <option value="attention">sort: attention</option>
     <option value="activity">sort: activity</option>
     <option value="pushed">sort: last push</option>
