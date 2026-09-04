@@ -107,6 +107,53 @@ test('mounts with zero errors on the default Brief tab', () => {
   assert.equal(doc.querySelector('h1').textContent.trim(), 'Portfolio Brief')
 })
 
+test('nav element has an accessible label', () => {
+  const { doc } = render()
+  const nav = doc.querySelector('header nav')
+  assert.ok(nav, 'missing <nav> inside <header>')
+  assert.equal(nav.getAttribute('aria-label'), 'Sections')
+})
+
+test('exactly one tab button carries aria-current="page" on the default Brief tab, and no others', () => {
+  const { doc } = render()
+  const buttons = [...doc.querySelectorAll('header nav button')]
+  assert.ok(buttons.length > 1, 'expected multiple tab buttons')
+  const current = buttons.filter((b) => b.getAttribute('aria-current') === 'page')
+  assert.equal(
+    current.length,
+    1,
+    `expected exactly 1 button with aria-current="page", got ${current.length}`,
+  )
+  assert.ok(
+    current[0].textContent.trim().startsWith('Brief'),
+    'the button carrying aria-current="page" is not the Brief tab',
+  )
+  const others = buttons.filter((b) => b !== current[0])
+  for (const b of others) {
+    assert.equal(
+      b.getAttribute('aria-current'),
+      null,
+      `non-active tab button "${b.textContent.trim()}" should have no aria-current attribute`,
+    )
+  }
+})
+
+test('aria-current moves to the Work tab once it becomes active', async () => {
+  const { doc, openTab } = render()
+  await openTab('Work')
+  const buttons = [...doc.querySelectorAll('header nav button')]
+  const current = buttons.filter((b) => b.getAttribute('aria-current') === 'page')
+  assert.equal(
+    current.length,
+    1,
+    `expected exactly 1 button with aria-current="page" after opening Work, got ${current.length}`,
+  )
+  assert.ok(
+    current[0].textContent.trim().startsWith('Work'),
+    'the button carrying aria-current="page" is not the Work tab',
+  )
+})
+
 test('PRDs tab renders both duplicate backlog entries instead of crashing', async () => {
   const { doc, openTab } = render()
   await openTab('PRDs')
