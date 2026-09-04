@@ -413,12 +413,15 @@ test('aria-live region clears once the failed-copy button label has reverted', a
 
 test('Todos tab shows a "nothing" status on a per-group copy when the group\'s only open item is checked done', async () => {
   // This payload derives exactly two open todos: one 'soon' (brush_last_run
-  // is left unset) and one 'later' (a non-empty backlog). Checking off the
-  // sole 'soon' item leaves that group with nothing open, so clicking its
-  // own per-group copy button should decline instead of touching the
-  // clipboard.
+  // is left unset) and one 'later' (a non-empty backlog). purge_last_run is
+  // set to now so the repo-scoped purge-devlocal maintenance nag (also
+  // 'soon' whenever it's unset) doesn't add a second item to the soon group.
+  // Checking off the sole 'soon' item leaves that group with nothing open,
+  // so clicking its own per-group copy button should decline instead of
+  // touching the clipboard.
   const payload = structuredClone(PAYLOAD)
   payload.data.repos[0].prds = { backlog: ['Ship it.'], wip: [], done_count: 0 }
+  payload.data.repos[0].purge_last_run = new Date().toISOString()
 
   const { doc, openTab, flush } = render(payload)
   await openTab('Todo')
