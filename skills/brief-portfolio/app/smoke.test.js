@@ -28,7 +28,7 @@ const PAYLOAD = {
   epics: { summary: '', repos: {} }, prev: null, history: [],
 }
 
-function render(payload = PAYLOAD) {
+function render(payload = PAYLOAD, { url = 'https://example.org/' } = {}) {
   const page = readFileSync(TEMPLATE, 'utf8').replace(
     '__PORTFOLIO_PAYLOAD__',
     JSON.stringify(payload).replace(/<\//g, '<\\/'),
@@ -43,8 +43,9 @@ function render(payload = PAYLOAD) {
     pretendToBeVisual: true,
     // jsdom treats the default about:blank as an opaque origin, where
     // localStorage throws instead of working — give it a real origin so the
-    // app's own localStorage use behaves as it would in a browser.
-    url: 'https://example.org/',
+    // app's own localStorage use behaves as it would in a browser. Passing
+    // { url: null } omits this option so a caller can exercise that default.
+    ...(url == null ? {} : { url }),
     virtualConsole: new VirtualConsole().on('jsdomError', (e) => errors.push(e)),
   })
   // jsdom has no ResizeObserver; stub it so components that size themselves
