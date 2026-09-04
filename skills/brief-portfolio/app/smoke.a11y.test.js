@@ -68,7 +68,7 @@ test('Repos tab sort select has an accessible name', async () => {
 test('Todo tab "hide done" chip exposes its on/off state via aria-pressed, not just the active class', async () => {
   // Duplicate backlog/wip entries (as in the shared PAYLOAD) trip the
   // unrelated each_key_duplicate crash on this tab, so use unique data here —
-  // same fixup as the other Todos-tab tests above.
+  // same fixup the Todos-tab tests in smoke.test.js use.
   const payload = structuredClone(PAYLOAD)
   payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
 
