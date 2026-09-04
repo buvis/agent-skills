@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **brief-portfolio**: the "copy open as markdown" button and each per-group
   copy button are now disabled whenever there is nothing open to copy,
   instead of staying clickable and relying on the decline status alone.
+- **brief-portfolio**: a declined copy is now announced truthfully even right
+  after a successful one, instead of the aria-live region still showing the
+  previous copy's "✓ copied" status.
 - **brief-portfolio**: `loadDone()`/`saveDone()` no longer throw when
   `localStorage` is unreachable (e.g. an opaque-origin mount, or a browser
   blocking site data) — the page no longer blanks silently at mount on those

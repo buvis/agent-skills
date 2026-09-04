@@ -68,6 +68,8 @@ kbd {
 }
 .chip.active { border-color: var(--lcars-a); background: color-mix(in srgb, var(--lcars-a) 22%, var(--surface)); color: var(--ink); }
 .chip:hover { border-color: var(--axis); }
+.chip:disabled { cursor: default; border-color: var(--grid); background: var(--surface); color: color-mix(in srgb, var(--ink-2) 50%, var(--surface)); }
+.chip:disabled:hover { border-color: var(--grid); }
 
 .sec { margin-top: 22px; }
 /* LCARS label: lavender cap bar + amber condensed caps — colored text on the

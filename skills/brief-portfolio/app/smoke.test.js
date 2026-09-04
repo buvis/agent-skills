@@ -442,9 +442,6 @@ test('Todos tab shows a "nothing" status on a per-group copy when the group\'s o
 
   const writes = stubClipboard(doc)
 
-  // Among the sections that actually hold a todo, urgency order (now < soon
-  // < later) puts 'soon' before 'later' — this payload has no 'now' item, so
-  // the first such section is 'soon'.
   const sectionsWithTodos = [...doc.querySelectorAll('main section.sec')].filter(
     (sec) => sec.querySelector('.todo'),
   )
@@ -453,7 +450,9 @@ test('Todos tab shows a "nothing" status on a per-group copy when the group\'s o
     2,
     `expected 2 urgency sections holding a todo (soon, later), got ${sectionsWithTodos.length}`,
   )
-  const [soonSection] = sectionsWithTodos
+  // Select the soon group directly by its heading class, rather than relying
+  // on the sections' urgency order.
+  const soonSection = doc.querySelector('h2.u-soon').closest('section.sec')
 
   const checkbox = soonSection.querySelector('.todo input[type="checkbox"]')
   assert.ok(checkbox, 'missing checkbox on the soon-group todo')
