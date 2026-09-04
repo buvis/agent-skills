@@ -872,3 +872,64 @@ test('Repos tab sort select has an accessible name', async () => {
   assert.ok(select, 'missing sort select inside <main> on the Repos tab')
   assert.equal(select.getAttribute('aria-label'), 'Sort repos')
 })
+
+test('Todo tab "hide done" chip exposes its on/off state via aria-pressed, not just the active class', async () => {
+  // Duplicate backlog/wip entries (as in the shared PAYLOAD) trip the
+  // unrelated each_key_duplicate crash on this tab, so use unique data here —
+  // same fixup as the other Todos-tab tests above.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+  const button = [...doc.querySelectorAll('main button.chip')].find(
+    (b) => b.textContent.trim() === 'hide done',
+  )
+  assert.ok(button, 'missing "hide done" chip')
+  assert.equal(button.getAttribute('aria-pressed'), 'false', 'chip should read aria-pressed="false" before any click')
+
+  button.click()
+  await flush()
+  assert.equal(button.getAttribute('aria-pressed'), 'true', 'chip should read aria-pressed="true" after one click')
+})
+
+test('Work tab filter chips expose their on/off state via aria-pressed on mount', async () => {
+  const { doc, openTab } = render()
+  await openTab('Work')
+  const chips = [...doc.querySelectorAll('main .filters button.chip')]
+  assert.equal(chips.length, 2, `expected 2 filter chips on the Work tab, got ${chips.length}`)
+  assert.equal(
+    chips[0].getAttribute('aria-pressed'),
+    'false',
+    'deps-bot PRs chip should read aria-pressed="false" by default (showDeps starts false)',
+  )
+  assert.equal(
+    chips[1].getAttribute('aria-pressed'),
+    'true',
+    'drafts chip should read aria-pressed="true" by default (showDrafts starts true)',
+  )
+})
+
+test('Header org filter chip exposes its on/off state via aria-pressed, on mount and once an org is picked', async () => {
+  // Brief is the default tab, and the header is rendered regardless of the
+  // active tab — no openTab call needed.
+  const { doc, flush } = render()
+  const toggle = doc.querySelector('header .filter button.chip')
+  assert.ok(toggle, 'missing header org filter chip')
+  assert.equal(toggle.getAttribute('aria-pressed'), 'false', 'chip should read aria-pressed="false" while org is "all"')
+
+  toggle.click()
+  await flush()
+  const buvisOption = [...doc.querySelectorAll('header .pop button')].find(
+    (b) => b.textContent.trim() === 'buvis',
+  )
+  assert.ok(buvisOption, 'missing "buvis" org option in the filter panel')
+  buvisOption.click()
+  await flush()
+
+  assert.equal(
+    toggle.getAttribute('aria-pressed'),
+    'true',
+    'chip should read aria-pressed="true" once an org other than "all" is selected',
+  )
+})
