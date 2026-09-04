@@ -856,3 +856,19 @@ test('A newer status announcement survives an older one\'s 1500ms expiry, and st
     'the announcement did not clear once its own 1500ms window elapsed',
   )
 })
+
+test('Repos tab filter input has an accessible name', async () => {
+  const { doc, openTab } = render()
+  await openTab('Repos')
+  const input = doc.querySelector('main input')
+  assert.ok(input, 'missing filter input inside <main> on the Repos tab')
+  assert.equal(input.getAttribute('aria-label'), 'Filter repos')
+})
+
+test('Repos tab sort select has an accessible name', async () => {
+  const { doc, openTab } = render()
+  await openTab('Repos')
+  const select = doc.querySelector('main select')
+  assert.ok(select, 'missing sort select inside <main> on the Repos tab')
+  assert.equal(select.getAttribute('aria-label'), 'Sort repos')
+})
