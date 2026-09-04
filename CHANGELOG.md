@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brief-portfolio**: the CI wall now renders "No CI runs." when no repo has
+  CI data, instead of printing its heading over blank space with no trace of
+  why.
 - **brief-portfolio**: copying open follow-ups with nothing open no longer
   wipes the clipboard and claims success — it declines with a "nothing to
   copy" status instead.

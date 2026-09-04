@@ -137,20 +137,24 @@
 
 <section class="sec">
   <h2>CI wall · latest run per workflow on default branch</h2>
-  {#each ciRows as r (slug(r))}
-    <div class="cirow">
-      <button class="repobtn" onclick={() => onselect(r)}>
-        <span class="dot" style="background: var(--cat{slots.get(r.org)})"></span>{r.name}
-      </button>
-      <div class="runs">
-        {#each r.ci as w (w.workflow)}
-          <a class="run {runClass(w)}" href={w.url} target="_blank" rel="noreferrer">
-            {runMark(w)} {w.workflow}
-          </a>
-        {/each}
+  {#if ciRows.length === 0}
+    <p class="empty">No CI runs.</p>
+  {:else}
+    {#each ciRows as r (slug(r))}
+      <div class="cirow">
+        <button class="repobtn" onclick={() => onselect(r)}>
+          <span class="dot" style="background: var(--cat{slots.get(r.org)})"></span>{r.name}
+        </button>
+        <div class="runs">
+          {#each r.ci as w (w.workflow)}
+            <a class="run {runClass(w)}" href={w.url} target="_blank" rel="noreferrer">
+              {runMark(w)} {w.workflow}
+            </a>
+          {/each}
+        </div>
       </div>
-    </div>
-  {/each}
+    {/each}
+  {/if}
 </section>
 
 <style>
