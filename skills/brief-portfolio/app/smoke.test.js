@@ -411,6 +411,55 @@ test('aria-live region clears once the failed-copy button label has reverted', a
   )
 })
 
+test('Todos tab shows a "nothing" status on a per-group copy when the group\'s only open item is checked done', async () => {
+  // This payload derives exactly two open todos: one 'soon' (brush_last_run
+  // is left unset) and one 'later' (a non-empty backlog). Checking off the
+  // sole 'soon' item leaves that group with nothing open, so clicking its
+  // own per-group copy button should decline instead of touching the
+  // clipboard.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: ['Ship it.'], wip: [], done_count: 0 }
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const writes = []
+  doc.defaultView.navigator.clipboard = {
+    writeText: (text) => { writes.push(text); return Promise.resolve() },
+  }
+  doc.execCommand = (cmd) => { writes.push(cmd); return true }
+
+  // Among the sections that actually hold a todo, urgency order (now < soon
+  // < later) puts 'soon' before 'later' — this payload has no 'now' item, so
+  // the first such section is 'soon'.
+  const sectionsWithTodos = [...doc.querySelectorAll('main section.sec')].filter(
+    (sec) => sec.querySelector('.todo'),
+  )
+  assert.equal(
+    sectionsWithTodos.length,
+    2,
+    `expected 2 urgency sections holding a todo (soon, later), got ${sectionsWithTodos.length}`,
+  )
+  const [soonSection] = sectionsWithTodos
+
+  const checkbox = soonSection.querySelector('.todo input[type="checkbox"]')
+  assert.ok(checkbox, 'missing checkbox on the soon-group todo')
+  checkbox.click()
+  await flush()
+
+  const miniButton = soonSection.querySelector('button.chip.mini')
+  assert.ok(miniButton, 'missing per-group button.chip.mini in the soon section')
+  miniButton.click()
+  await flush()
+
+  assert.equal(writes.length, 0, 'a declined copy should not touch the clipboard')
+  assert.equal(miniButton.textContent.trim(), 'nothing')
+
+  const liveRegion = doc.querySelector('[aria-live="polite"]')
+  assert.ok(liveRegion, 'missing aria-live="polite" element')
+  assert.equal(liveRegion.textContent.trim(), 'nothing to copy')
+})
+
 test('done.js survives a blocked localStorage: loadDone returns empty, saveDone no-ops, isStorageBlocked flips true', async () => {
   // Simulates a file:// page or a browser with storage access disabled, where
   // both getItem and setItem throw (e.g. a SecurityError) instead of working.
