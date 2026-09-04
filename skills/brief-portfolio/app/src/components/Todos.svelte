@@ -13,6 +13,7 @@
   let hideDone = $state(false)
   let copied = $state('')
   let failed = $state('')
+  let nothing = $state('')
 
   const byslug = $derived(new Map(repos.map((r) => [slug(r), r])))
   const todos = $derived(allTodos(repos, epics, external))
@@ -24,7 +25,7 @@
     }))
   )
   const openCount = $derived(todos.filter((t) => !done.has(t.id)).length)
-  const status = $derived(copied ? '✓ copied' : failed ? '✗ copy failed' : '')
+  const status = $derived(copied ? '✓ copied' : failed ? '✗ copy failed' : nothing ? 'nothing to copy' : '')
 
   function toggle(id) {
     const s = new Set(done)
@@ -50,6 +51,11 @@
 
   async function copy(items, label) {
     const open = items.filter((t) => !done.has(t.id))
+    if (open.length === 0) {
+      nothing = label
+      setTimeout(() => (nothing = ''), 1500)
+      return
+    }
     const md = open.map((t) => `- [ ] ${t.repo}: ${t.action}`).join('\n')
     try {
       await navigator.clipboard.writeText(md)
@@ -80,7 +86,7 @@
     <section class="sec">
       <h2 class="u-{u}">
         {u} · {all.filter((t) => !done.has(t.id)).length} open
-        <button class="chip mini" onclick={() => copy(all, u)}>{copied === u ? '✓' : failed === u ? '✗' : 'copy'}</button>
+        <button class="chip mini" onclick={() => copy(all, u)}>{copied === u ? '✓' : failed === u ? '✗' : nothing === u ? 'nothing' : 'copy'}</button>
       </h2>
       {#each shown as t (t.id)}
         <div class="todo" class:isdone={done.has(t.id)}>

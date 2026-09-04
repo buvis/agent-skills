@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brief-portfolio**: copying open follow-ups with nothing open no longer
+  wipes the clipboard and claims success — it declines with a "nothing to
+  copy" status instead.
 - **brief-portfolio**: `loadDone()`/`saveDone()` no longer throw when
   `localStorage` is unreachable (e.g. an opaque-origin mount, or a browser
   blocking site data) — the page no longer blanks silently at mount on those
