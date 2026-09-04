@@ -439,7 +439,7 @@ test('done.js survives a blocked localStorage: loadDone returns empty, saveDone 
 
 test('loadDone() returns an empty Set when the stored value is corrupt JSON', async () => {
   // getItem succeeds but returns a string JSON.parse chokes on; setItem works
-  // fine — only the parse should trip the catch.
+  // fine, only the parse should trip the catch.
   const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage')
   const previousLocalStorage = globalThis.localStorage
   globalThis.localStorage = {
@@ -459,7 +459,7 @@ test('loadDone() returns an empty Set when the stored value is corrupt JSON', as
 })
 
 test('saveDone() alone flips isStorageBlocked when only setItem throws', async () => {
-  // getItem works and returns a valid stored value; only setItem throws —
+  // getItem works and returns a valid stored value; only setItem throws,
   // proving saveDone sets the flag on its own, without loadDone catching first.
   const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage')
   const previousLocalStorage = globalThis.localStorage
@@ -511,5 +511,11 @@ test('Brief tab still renders with a persistence notice when localStorage is blo
   assert.ok(
     doc.querySelectorAll('header nav button').length > 0,
     'tab controls missing',
+  )
+  const activeTab = doc.querySelector('header nav button.active')
+  assert.ok(activeTab, 'no active tab button found')
+  assert.ok(
+    activeTab.textContent.trim().startsWith('Brief'),
+    'the active tab is not Brief',
   )
 })
