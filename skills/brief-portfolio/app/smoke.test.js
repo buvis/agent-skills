@@ -28,7 +28,9 @@ const PAYLOAD = {
   epics: { summary: '', repos: {} }, prev: null, history: [],
 }
 
-function render(payload = PAYLOAD, { url = 'https://example.org/' } = {}) {
+function render(payload = PAYLOAD, options = {}) {
+  const defaults = { url: 'https://example.org/' }
+  const { url } = { ...defaults, ...options }
   const page = readFileSync(TEMPLATE, 'utf8').replace(
     '__PORTFOLIO_PAYLOAD__',
     JSON.stringify(payload).replace(/<\//g, '<\\/'),
@@ -435,6 +437,52 @@ test('done.js survives a blocked localStorage: loadDone returns empty, saveDone 
   }
 })
 
+test('loadDone() returns an empty Set when the stored value is corrupt JSON', async () => {
+  // getItem succeeds but returns a string JSON.parse chokes on; setItem works
+  // fine — only the parse should trip the catch.
+  const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage')
+  const previousLocalStorage = globalThis.localStorage
+  globalThis.localStorage = {
+    getItem() { return '{not json' },
+    setItem() {},
+  }
+  try {
+    const { loadDone } = await import('./src/lib/done.js?case=corrupt')
+    assert.equal(loadDone().size, 0, 'loadDone should return an empty Set when the stored value is corrupt JSON')
+  } finally {
+    if (hadLocalStorage) {
+      globalThis.localStorage = previousLocalStorage
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
+
+test('saveDone() alone flips isStorageBlocked when only setItem throws', async () => {
+  // getItem works and returns a valid stored value; only setItem throws —
+  // proving saveDone sets the flag on its own, without loadDone catching first.
+  const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage')
+  const previousLocalStorage = globalThis.localStorage
+  globalThis.localStorage = {
+    getItem() { return '[]' },
+    setItem() { throw new Error('SecurityError') },
+  }
+  try {
+    const { saveDone, isStorageBlocked } = await import('./src/lib/done.js?case=savefail')
+    assert.doesNotThrow(
+      () => saveDone(new Set(['x'])),
+      'saveDone should not throw when localStorage.setItem throws',
+    )
+    assert.equal(isStorageBlocked(), true, 'isStorageBlocked should be true after saveDone alone caught an error')
+  } finally {
+    if (hadLocalStorage) {
+      globalThis.localStorage = previousLocalStorage
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
+
 test('render(payload, { url: null }) omits the jsdom url option, so localStorage throws on the default opaque origin', () => {
   const { doc } = render(PAYLOAD, { url: null })
   assert.throws(() => doc.defaultView.localStorage)
@@ -445,15 +493,23 @@ test('render(payload) still mounts on a real origin, so localStorage works by de
   assert.doesNotThrow(() => doc.defaultView.localStorage)
 })
 
+test('Brief tab shows no persistence notice when localStorage works', () => {
+  const { doc } = render()
+  assert.doesNotMatch(doc.body.textContent, /will not persist/)
+})
+
 test('Brief tab still renders with a persistence notice when localStorage is blocked', () => {
-  // render(PAYLOAD, { url: null }) omits the jsdom url option, landing on
-  // jsdom's default opaque origin where localStorage throws instead of
-  // working — the same mechanism the two render() tests above use to reach
-  // this condition. isStorageBlocked() (from src/lib/done.js) should flip
-  // true once mounted here, and the page should show a one-line notice
-  // instead of silently dropping the ability to persist checked state.
   const { doc } = render(PAYLOAD, { url: null })
   assert.equal(doc.querySelector('h1').textContent.trim(), 'Portfolio Brief')
   assert.ok(doc.querySelector('main').textContent.trim().length > 0, 'Brief tab is blank')
-  assert.match(doc.body.textContent, /will not persist/)
+  assert.ok(
+    doc.body.textContent.includes(
+      'Checked state will not persist: this browser is blocking local storage.',
+    ),
+    'exact persistence notice not found',
+  )
+  assert.ok(
+    doc.querySelectorAll('header nav button').length > 0,
+    'tab controls missing',
+  )
 })
