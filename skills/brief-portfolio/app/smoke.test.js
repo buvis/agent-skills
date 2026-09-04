@@ -88,6 +88,20 @@ function backlogListItems(container, selector, text) {
   return [...ul.querySelectorAll('li')]
 }
 
+// Stubs both clipboard write paths jsdom doesn't implement, and records
+// every write attempt so "nothing was copied" is assertable. Both stubs are
+// needed: the page falls back to execCommand when
+// navigator.clipboard.writeText rejects, and a declined copy must touch
+// NEITHER.
+function stubClipboard(doc) {
+  const writes = []
+  doc.defaultView.navigator.clipboard = {
+    writeText: (text) => { writes.push(text); return Promise.resolve() },
+  }
+  doc.execCommand = (cmd) => { writes.push(cmd); return true }
+  return writes
+}
+
 test('mounts with zero errors on the default Brief tab', () => {
   const { doc } = render()
   assert.equal(doc.querySelector('h1').textContent.trim(), 'Portfolio Brief')
@@ -426,11 +440,7 @@ test('Todos tab shows a "nothing" status on a per-group copy when the group\'s o
   const { doc, openTab, flush } = render(payload)
   await openTab('Todo')
 
-  const writes = []
-  doc.defaultView.navigator.clipboard = {
-    writeText: (text) => { writes.push(text); return Promise.resolve() },
-  }
-  doc.execCommand = (cmd) => { writes.push(cmd); return true }
+  const writes = stubClipboard(doc)
 
   // Among the sections that actually hold a todo, urgency order (now < soon
   // < later) puts 'soon' before 'later' — this payload has no 'now' item, so
@@ -587,11 +597,7 @@ test('Todos tab disables the "copy open as markdown" button and touches nothing 
   const { doc, openTab, flush } = render(payload)
   await openTab('Todo')
 
-  const writes = []
-  doc.defaultView.navigator.clipboard = {
-    writeText: (text) => { writes.push(text); return Promise.resolve() },
-  }
-  doc.execCommand = (cmd) => { writes.push(cmd); return true }
+  const writes = stubClipboard(doc)
 
   const button = [...doc.querySelectorAll('main button.chip')].find(
     (b) => b.textContent.trim() === 'copy open as markdown',
@@ -632,11 +638,7 @@ test('Todos tab disables the per-group button too, once the whole-list openCount
   checkbox.click()
   await flush()
 
-  const writes = []
-  doc.defaultView.navigator.clipboard = {
-    writeText: (text) => { writes.push(text); return Promise.resolve() },
-  }
-  doc.execCommand = (cmd) => { writes.push(cmd); return true }
+  const writes = stubClipboard(doc)
 
   const miniButton = section.querySelector('button.chip.mini')
   assert.ok(miniButton, 'missing per-group button.chip.mini')
@@ -651,4 +653,160 @@ test('Todos tab disables the per-group button too, once the whole-list openCount
   )
   assert.ok(barButton, 'missing "copy open as markdown" button')
   assert.equal(barButton.disabled, true, 'the bar button shares the same openCount and should also be disabled')
+})
+
+test('A declined copy is announced truthfully even right after a successful copy', async () => {
+  // Two open todos in different urgency groups: one 'soon' (brush_last_run
+  // left unset) and one 'later' (a non-empty backlog) — the same fixture
+  // recipe as the "shows a 'nothing' status" test above. purge_last_run is
+  // set to now so the repo-scoped purge-devlocal nag doesn't add a second
+  // 'soon' item.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: ['Ship it.'], wip: [], done_count: 0 }
+  payload.data.repos[0].purge_last_run = new Date().toISOString()
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const writes = stubClipboard(doc)
+
+  const sectionsWithTodos = [...doc.querySelectorAll('main section.sec')].filter(
+    (sec) => sec.querySelector('.todo'),
+  )
+  assert.equal(
+    sectionsWithTodos.length,
+    2,
+    `expected 2 urgency sections holding a todo (soon, later), got ${sectionsWithTodos.length}`,
+  )
+  const [soonSection] = sectionsWithTodos
+
+  // Check off the soon group's only item so that group has nothing open,
+  // while the whole list (the later item) still does — both buttons stay
+  // enabled, since `disabled` is driven by the whole-list count only.
+  const checkbox = soonSection.querySelector('.todo input[type="checkbox"]')
+  assert.ok(checkbox, 'missing checkbox on the soon-group todo')
+  checkbox.click()
+  await flush()
+
+  const barButton = [...doc.querySelectorAll('.bar button.chip')].find(
+    (b) => b.textContent.trim().startsWith('copy open as markdown'),
+  )
+  assert.ok(barButton, 'missing "copy open as markdown" button')
+  const miniButton = soonSection.querySelector('button.chip.mini')
+  assert.ok(miniButton, 'missing per-group button.chip.mini in the soon section')
+  const liveRegion = doc.querySelector('[aria-live="polite"]')
+  assert.ok(liveRegion, 'missing aria-live="polite" element')
+
+  // Both clicks happen back to back, inside a single 1500ms announcement
+  // window — no wait between them.
+  barButton.click()
+  await flush()
+  assert.equal(liveRegion.textContent.trim(), '✓ copied', 'test setup: the bar copy did not succeed')
+  const writesAfterBarClick = writes.length
+
+  miniButton.click()
+  await flush()
+
+  assert.equal(
+    liveRegion.textContent.trim(),
+    'nothing to copy',
+    'a declined copy must announce "nothing to copy", not the stale success from the click right before it',
+  )
+  assert.notEqual(liveRegion.textContent.trim(), '✓ copied')
+  assert.equal(
+    writes.length,
+    writesAfterBarClick,
+    'a declined copy must not touch the clipboard, even right after a successful one',
+  )
+})
+
+test('A newer status announcement survives an older one\'s 1500ms expiry, and still clears once its own window elapses', async () => {
+  // Real waiting, not a stubbed clock: the contract only promises "clears
+  // itself 1500ms later" — it doesn't say how many timers the page keeps or
+  // how it tracks which announcement is newest, and stubbing
+  // doc.defaultView.setTimeout here would mean guessing that internal
+  // shape. Real time keeps this test bound to the documented behaviour
+  // only, at the cost of ~2.2s of wall time (comparable to the existing
+  // 1.6s real-wait test above).
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  // Same two-group fixture as the "declined right after a successful copy"
+  // test above: one open 'soon' todo and one open 'later' todo.
+  // purge_last_run is set to now so the maintenance nag doesn't add a
+  // second 'soon' item.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: ['Ship it.'], wip: [], done_count: 0 }
+  payload.data.repos[0].purge_last_run = new Date().toISOString()
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const writes = stubClipboard(doc)
+
+  const sectionsWithTodos = [...doc.querySelectorAll('main section.sec')].filter(
+    (sec) => sec.querySelector('.todo'),
+  )
+  assert.equal(
+    sectionsWithTodos.length,
+    2,
+    `expected 2 urgency sections holding a todo (soon, later), got ${sectionsWithTodos.length}`,
+  )
+  const [soonSection] = sectionsWithTodos
+
+  // Check off the soon group's only item so that group has nothing open,
+  // while the whole list (the later item) still does — both buttons stay
+  // enabled.
+  const checkbox = soonSection.querySelector('.todo input[type="checkbox"]')
+  assert.ok(checkbox, 'missing checkbox on the soon-group todo')
+  checkbox.click()
+  await flush()
+
+  const barButton = [...doc.querySelectorAll('.bar button.chip')].find(
+    (b) => b.textContent.trim().startsWith('copy open as markdown'),
+  )
+  assert.ok(barButton, 'missing "copy open as markdown" button')
+  const miniButton = soonSection.querySelector('button.chip.mini')
+  assert.ok(miniButton, 'missing per-group button.chip.mini in the soon section')
+  const liveRegion = doc.querySelector('[aria-live="polite"]')
+  assert.ok(liveRegion, 'missing aria-live="polite" element')
+
+  // Older announcement: the bar copy succeeds.
+  barButton.click()
+  await flush()
+  assert.equal(liveRegion.textContent.trim(), '✓ copied', 'test setup: the bar copy did not succeed')
+
+  await sleep(500)
+
+  // Newer announcement, 500ms later: the fully-done group's own button is
+  // clicked, which declines instead of touching the clipboard.
+  const writesBeforeDecline = writes.length
+  miniButton.click()
+  await flush()
+  assert.equal(
+    liveRegion.textContent.trim(),
+    'nothing to copy',
+    'the declined copy did not announce truthfully right after the successful one',
+  )
+  assert.equal(writes.length, writesBeforeDecline, 'test setup: the declined copy touched the clipboard')
+
+  // ~1700ms after the older click: its own 1500ms window has expired, but
+  // the newer click's window (started 500ms later) has not — the newer
+  // announcement must still be showing.
+  await sleep(1200)
+  await flush()
+  assert.equal(
+    liveRegion.textContent.trim(),
+    'nothing to copy',
+    "the newer announcement was wiped out by the older announcement's own expiry",
+  )
+
+  // ~2200ms after the older click, ~1700ms after the newer one: the newer
+  // announcement's own 1500ms window has now elapsed too.
+  await sleep(500)
+  await flush()
+  assert.equal(
+    liveRegion.textContent.trim(),
+    '',
+    'the announcement did not clear once its own 1500ms window elapsed',
+  )
 })
