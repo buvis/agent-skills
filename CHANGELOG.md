@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **brief-portfolio**: the nav names itself (`aria-label="Sections"`) and the
+  active tab announces itself (`aria-current="page"`) to assistive tech,
+  instead of only a CSS class marking the current view.
+
 ### Changed
 
 - **brief-portfolio**: nag each config audit on its own cadence instead of
