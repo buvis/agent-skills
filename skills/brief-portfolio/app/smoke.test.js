@@ -433,3 +433,13 @@ test('done.js survives a blocked localStorage: loadDone returns empty, saveDone 
     }
   }
 })
+
+test('render(payload, { url: null }) omits the jsdom url option, so localStorage throws on the default opaque origin', () => {
+  const { doc } = render(PAYLOAD, { url: null })
+  assert.throws(() => doc.defaultView.localStorage)
+})
+
+test('render(payload) still mounts on a real origin, so localStorage works by default', () => {
+  const { doc } = render(PAYLOAD)
+  assert.doesNotThrow(() => doc.defaultView.localStorage)
+})
