@@ -81,9 +81,9 @@
     {#if storageBlocked}
       <span class="meta">Checked state will not persist: this browser is blocking local storage.</span>
     {/if}
-    <nav>
+    <nav aria-label="Sections">
       {#each TABS as [id, label] (id)}
-        <button class:active={tab === id} onclick={() => (tab = id)}>
+        <button class:active={tab === id} aria-current={tab === id ? 'page' : undefined} onclick={() => (tab = id)}>
           {label}{#if counts[id] != null}<span class="cnt">{counts[id]}</span>{/if}
         </button>
       {/each}
