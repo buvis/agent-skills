@@ -427,3 +427,35 @@ def test_main_start_with_queue_flag_re_arms_the_per_run_cap_at_the_given_path(
     assert exit_code == 0
     assert docket.next_undecided(path=queue_path) is not None
     assert not default_report_dir.exists()
+
+
+# save's default queue path when --queue is absent. Unlike the other
+# subcommands (which fall back to _report_dir()'s cwd walk), save without
+# --queue derives the queue path from --proposals-dir's parent, not cwd.
+
+
+def test_main_save_without_queue_flag_derives_queue_path_from_proposals_dir_parent(
+    tmp_path, monkeypatch
+):
+    repo_a_proposals = tmp_path / "repo_a" / "proposals"
+    repo_a_proposals.mkdir(parents=True)
+    repo_b = tmp_path / "repo_b"
+    repo_b.mkdir()
+    monkeypatch.chdir(repo_b)
+    (repo_a_proposals / "widget-fact.md").write_text("---\nname: widget-fact\n---\n\nBody text.\n")
+    record = {
+        "name": "widget-fact",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 7,
+        "evidence_text": "evidence for widget",
+        "existing_text": None,
+        "file": "widget-fact.md",
+    }
+    (repo_a_proposals / "proposals.json").write_text(json.dumps([record]))
+
+    exit_code = docket.main(["save", "--proposals-dir", str(repo_a_proposals)])
+
+    assert exit_code == 0
+    assert (tmp_path / "repo_a" / "distil-memory-queue.json").exists() is True
+    assert not list(repo_b.rglob("distil-memory-queue.json"))
