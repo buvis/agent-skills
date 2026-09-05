@@ -347,11 +347,15 @@ def history_counts(repo):
     prds = repo.get("prds") or {}
     failing = sum(1 for w in repo.get("ci", [])
                   if w.get("conclusion") in ("failure", "timed_out", "startup_failure"))
-    return {"c": len(repo.get("commits", [])), "i": len(repo.get("issues", [])),
-            "p": len(repo.get("prs", [])), "a": len(repo.get("security", [])),
-            "f": failing, "d": l.get("dirty", 0), "ah": l.get("ahead", 0),
-            "b": len(prds.get("backlog", [])), "w": len(prds.get("wip", [])),
-            "s": repo.get("stars", 0), "u": repo.get("unreleased_commits") or 0}
+    row = {"c": len(repo.get("commits", [])), "i": len(repo.get("issues", [])),
+           "p": len(repo.get("prs", [])), "a": len(repo.get("security", [])),
+           "f": failing, "d": l.get("dirty", 0), "ah": l.get("ahead", 0),
+           "b": len(prds.get("backlog", [])), "w": len(prds.get("wip", [])),
+           "s": repo.get("stars", 0), "u": repo.get("unreleased_commits") or 0}
+    # zeros from a failed collection are not real zeros; mark the row
+    if repo.get("errors"):
+        row["e"] = 1
+    return row
 
 
 def collect_local(path, branch):

@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brief-portfolio**: a repo whose GitHub metadata call failed is now marked
+  `e: 1` in its trend-history row, instead of being recorded as a fabricated
+  all-zero data point the trend sparkline cannot tell apart from a real quiet
+  repo.
 - **brief-portfolio**: the CI wall now renders "No CI runs." when no repo has
   CI data, instead of printing its heading over blank space with no trace of
   why.
