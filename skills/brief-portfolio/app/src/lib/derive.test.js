@@ -197,6 +197,26 @@ const incompleteSeries = historySeries([
 ])
 assert.deepEqual(incompleteSeries.map((h) => h.incomplete), [true, false, false])
 
+// --- history trend: `incomplete` also fires when any repo entry carries `e`
+// (metadata fetch failed for that repo), independent of `skipped` ---
+const eMarkedSeries = historySeries([
+  { at: 'd1', repos: { 'o/r': { i: 1, e: 1 } } }, // e marker alone, no `skipped` key at all
+])
+assert.equal(eMarkedSeries[0].incomplete, true)
+
+// only one of several repos in the run carries `e` -> the whole run is still incomplete
+const partialEMarkedSeries = historySeries([
+  { at: 'd1', repos: { 'o/r': { i: 1 }, 'o/r2': { i: 2, e: 1 } } },
+])
+assert.equal(partialEMarkedSeries[0].incomplete, true)
+
+// repos present but none carry `e`, and no `skipped` -> incomplete stays false
+// (guards against an implementation that treats any `repos` entry as incomplete)
+const noEMarkedSeries = historySeries([
+  { at: 'd1', repos: { 'o/r': { i: 1 }, 'o/r2': { i: 2 } } },
+])
+assert.equal(noEMarkedSeries[0].incomplete, false)
+
 // --- external PR lookup failure surfaces as its own todo, not silence ---
 // Selects on the `ext:error` PREFIX, not on the whole id: the id now carries a
 // deterministic encoding of the error text (see the next block for why), so an
