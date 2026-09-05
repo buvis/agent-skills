@@ -920,3 +920,8 @@ def test_history_counts_marks_a_repo_with_errors_and_no_data():
     # The marker is added to the counts, not substituted for them.
     assert row["c"] == 0
     assert row["u"] == 0
+
+
+def test_history_counts_leaves_a_repo_without_errors_unmarked():
+    row = history_counts({"owner": "acme", "name": "widget", "errors": []})
+    assert "e" not in row
