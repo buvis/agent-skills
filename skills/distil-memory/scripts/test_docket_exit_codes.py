@@ -81,32 +81,14 @@ def _load_raising(message):
     return _explode
 
 
-@pytest.mark.parametrize(
-    "corrupt_text", list(_CORRUPT_QUEUE_SHAPES.values()), ids=list(_CORRUPT_QUEUE_SHAPES)
-)
-def test_main_next_returns_two_and_reports_the_error_when_the_queue_is_unreadable(
-    corrupt_text, tmp_path, monkeypatch, capsys
-):
-    monkeypatch.chdir(tmp_path)
-    _corrupt_the_working_directory_queue(tmp_path, corrupt_text)
-    expected_message = _corrupt_queue_error_message()
-
-    exit_code = docket.main(["next"])
-
-    assert exit_code == 2
-    captured = capsys.readouterr()
-    assert expected_message in captured.err
-    assert "Traceback" not in captured.err
-    assert captured.out == ""
-
-
 # What each corruption class has to SAY, written out rather than asked for.
-# The test above compares stderr against whatever load() itself raised, so a
-# load() that answered every corruption with one blanket sentence would satisfy
-# it for all seven shapes at once - the implementation acting as its own oracle.
-# Naming the words here is what keeps the classes distinguishable to whoever
-# reads stderr. "entries is missing" and "entries is present but not a list" are
-# deliberately one class, and share their wording.
+# The test below also compares stderr against whatever load() itself raised, and
+# that comparison alone would be satisfied for all seven shapes at once by a
+# load() that answered every corruption with one blanket sentence - the
+# implementation acting as its own oracle. Naming the words here is what keeps
+# the classes distinguishable to whoever reads stderr. "entries is missing" and
+# "entries is present but not a list" are deliberately one class, and share
+# their wording.
 _CORRUPT_QUEUE_DIAGNOSTICS = {
     "truncated-json": "cannot read the review queue",
     "truncated-json-trailing-newline": "cannot read the review queue",
@@ -119,16 +101,21 @@ _CORRUPT_QUEUE_DIAGNOSTICS = {
 
 
 @pytest.mark.parametrize("shape", list(_CORRUPT_QUEUE_SHAPES), ids=list(_CORRUPT_QUEUE_SHAPES))
-def test_each_corruption_class_is_named_in_its_own_words_on_stderr(
+def test_main_next_returns_two_and_reports_the_error_when_the_queue_is_unreadable(
     shape, tmp_path, monkeypatch, capsys
 ):
     monkeypatch.chdir(tmp_path)
     _corrupt_the_working_directory_queue(tmp_path, _CORRUPT_QUEUE_SHAPES[shape])
+    expected_message = _corrupt_queue_error_message()
 
     exit_code = docket.main(["next"])
 
     assert exit_code == 2
-    assert _CORRUPT_QUEUE_DIAGNOSTICS[shape] in capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert expected_message in captured.err
+    assert _CORRUPT_QUEUE_DIAGNOSTICS[shape] in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
 
 
 def test_main_cursor_returns_two_and_reports_the_error_when_the_queue_is_unreadable(
@@ -384,7 +371,8 @@ def test_the_queue_layer_raises_queue_error_when_the_queue_file_is_not_valid_utf
     message = str(raised.value)
     assert str(queue_file) in message
     reason = _reason_without_the_queue_path(message, queue_file)
-    assert "utf-8" in reason or "decode" in reason
+    assert "utf-8" in reason
+    assert "decode" in reason
 
 
 _NON_OBJECT_QUEUE_PAYLOADS = {
