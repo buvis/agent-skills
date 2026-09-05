@@ -228,10 +228,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         elif args.command == "decide":
             file_text = Path(args.file).read_text() if args.file else None
-            # Read the queue here, once, so an unreadable one leaves through
-            # the exit 2 handler below. decide() then works from what was read
-            # rather than reading again, which is what keeps a read failure out
-            # of the refusal handler entirely.
+            # Read once, outside the refusal handler below, so an unreadable
+            # queue leaves through the exit 2 handler instead.
             data = load()
             try:
                 decide(args.id, args.state, file_text=file_text, data=data)
