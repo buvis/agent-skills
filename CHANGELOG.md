@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **capture-experiment**: notes carry an `id` frontmatter field holding the
   same zettelkasten id as the filename, matching the `digest-github-repo`
   template, so vault-wide queries on `id` see experiment notes too.
+- **handoff-session**: new skill that turns the current session into a
+  paste-ready continuation prompt for the next one (state, work done, open
+  tasks, decisions, dead ends, what needs the user), saves it under
+  `dev/local/tmp/`, and copies it to the system clipboard on request.
 - **brief-portfolio**: the nav names itself (`aria-label="Sections"`) and the
   active tab announces itself (`aria-current="page"`) to assistive tech,
   instead of only a CSS class marking the current view.
