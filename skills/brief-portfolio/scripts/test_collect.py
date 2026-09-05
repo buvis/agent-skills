@@ -949,3 +949,66 @@ def test_history_counts_leaves_a_partial_failure_unmarked():
     row = history_counts({"errors": ["fetch: timeout"], "commits": []})
     # A non-fatal error alongside collected data must not get the "e" marker.
     assert "e" not in row
+
+
+# Found by an agoge run on 2026-09-05. Each fails against the code as it stands,
+# so the strict xfail is the executable record of the defect: fix the defect and
+# the marker goes stale, turning the suite red to say "delete me".
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=FileNotFoundError,
+    reason="agoge 2026-09-05: main() opens GITA_CSV unguarded, so a missing registry "
+    "escapes as a FileNotFoundError traceback instead of the 'no repos found in gita "
+    "registry' exit that SKILL.md documents for that case",
+)
+def test_missing_registry_file_exits_with_the_documented_message(tmp_path, monkeypatch):
+    monkeypatch.setattr(collect, "GITA_CSV", tmp_path / "absent" / "repos.csv")
+    monkeypatch.setattr(
+        sys, "argv", ["collect.py", "--no-git-fetch", "--out", str(tmp_path / "out")]
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        main()
+
+    assert "no repos found in gita registry" in str(exc.value)
+
+
+def make_git_repo(path: Path, commits: int) -> None:
+    """A real repository with `commits` empty commits and origin/master at HEAD."""
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com", "-C", str(path)]
+    path.mkdir()
+    subprocess.run(git + ["init", "-q", "-b", "master"], check=True)
+    for n in range(commits):
+        subprocess.run(git + ["commit", "-q", "--allow-empty", "-m", f"c{n}"], check=True)
+    subprocess.run(git + ["update-ref", "refs/remotes/origin/master", "HEAD"], check=True)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=KeyError,
+    reason="agoge 2026-09-05: collect_commits truncates git log at MAX_COMMITS and nothing "
+    "records the true total, so a busy repo reads as exactly '200 commits' on the page "
+    "and the Brief headline undercounts the portfolio",
+)
+def test_a_capped_commit_list_still_carries_the_true_commit_count(tmp_path, monkeypatch):
+    repo = tmp_path / "busy"
+    make_git_repo(repo, commits=3)
+    real_run = collect.run
+
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:acme/busy.git\n"
+        if cmd[0] == "git":
+            return real_run(cmd, cwd=cwd, timeout=timeout)
+        raise RuntimeError("gh: not authenticated")
+
+    monkeypatch.setattr(collect, "MAX_COMMITS", 2)
+    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "gh_json", lambda path: {"default_branch": "master"})
+
+    result = collect_repo(str(repo), 60, False)
+
+    assert len(result["commits"]) == 2
+    assert result["commit_count"] == 3

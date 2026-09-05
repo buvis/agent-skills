@@ -319,3 +319,27 @@ def test_a_failed_state_write_reports_a_braid_error_and_leaves_no_temp_file(
         run(config)
 
     assert list(state_path.parent.glob(".*.tmp")) == []
+
+
+# Found by an agoge run on 2026-09-05; same contract as the 2026-08-31 block above.
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="agoge 2026-09-05: discover_inventory follows a symlinked skill directory "
+    "(candidate.is_dir() is true through the link) and records its resolved target, so a "
+    "link planted in a source tree projects a directory that lives outside that tree",
+)
+def test_a_symlinked_skill_directory_outside_the_source_is_not_inventoried(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "personal"
+    make_skill(source, "kept")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "SKILL.md").write_text("---\nname: evil\ndescription: Test evil.\n---\n\n# evil\n")
+    (source / "skills" / "evil").symlink_to(outside, target_is_directory=True)
+
+    inventory = cli.discover_inventory([source])
+
+    assert "evil" not in inventory

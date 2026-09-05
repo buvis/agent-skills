@@ -11,6 +11,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 # Loaded by path under a unique name rather than via sys.path: the repo carries
 # a second, unrelated scripts/build.py under skills/debrief-meeting, and a plain
 # `import build` would let whichever suite ran first win in sys.modules.
@@ -71,3 +73,48 @@ def test_no_flags_writes_the_home_default(tmp_path, monkeypatch):
     build.main()
 
     assert (home / ".local/share/agents/portfolio-brief/portfolio-brief.html").is_file()
+
+
+# Found by an agoge run on 2026-09-05. Each fails against the code as it stands,
+# so the strict xfail is the executable record of the defect: fix the defect and
+# the marker goes stale, turning the suite red to say "delete me".
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=json.JSONDecodeError,
+    reason="agoge 2026-09-05: build.py json.loads every history.jsonl line unguarded, so one "
+    "torn append from a killed collect run kills every later build with a traceback, and "
+    "SKILL.md tells the user never to delete that file",
+)
+def test_a_torn_history_line_does_not_abort_the_build(tmp_path, monkeypatch):
+    workdir = _workdir(tmp_path, {"repos": []})
+    (workdir / "history.jsonl").write_text(
+        '{"at": "2026-09-04T00:00:00+00:00", "skipped": 0, "repos": {}}\n{"at":'
+    )
+    out = tmp_path / "page.html"
+    monkeypatch.setattr(sys, "argv", ["build.py", "--dir", str(workdir), "--out", str(out)])
+
+    build.main()
+
+    assert out.is_file()
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=json.JSONDecodeError,
+    reason="agoge 2026-09-05: a truncated data.json reaches json.loads unguarded, so the "
+    "user sees a traceback instead of an exit message naming the file",
+)
+def test_a_truncated_data_json_exits_with_a_message_naming_the_file(tmp_path, monkeypatch):
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    (workdir / "data.json").write_text('{"repos": [{"owner": "o", "name": ')
+    monkeypatch.setattr(
+        sys, "argv", ["build.py", "--dir", str(workdir), "--out", str(tmp_path / "page.html")]
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        build.main()
+
+    assert "data.json" in str(exc.value)
