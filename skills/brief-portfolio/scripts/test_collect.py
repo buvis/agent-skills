@@ -925,3 +925,14 @@ def test_history_counts_marks_a_repo_with_errors_and_no_data():
 def test_history_counts_leaves_a_repo_without_errors_unmarked():
     row = history_counts({"owner": "acme", "name": "widget", "errors": []})
     assert "e" not in row
+
+
+def test_history_counts_leaves_a_partly_fetched_repo_unmarked():
+    row = history_counts(
+        {"owner": "acme", "name": "widget", "errors": ["ci: gh api: HTTP 500"],
+         "commits": [{"sha": "abc1234"}], "stars": 3},
+    )
+    # One field failed but the rest is real data, so these are not fake zeros.
+    assert "e" not in row
+    assert row["c"] == 1
+    assert row["s"] == 3

@@ -352,8 +352,11 @@ def history_counts(repo):
            "f": failing, "d": l.get("dirty", 0), "ah": l.get("ahead", 0),
            "b": len(prds.get("backlog", [])), "w": len(prds.get("wip", [])),
            "s": repo.get("stars", 0), "u": repo.get("unreleased_commits") or 0}
-    # zeros from a failed collection are not real zeros; mark the row
-    if repo.get("errors"):
+    # zeros from a failed collection are not real zeros; mark the row only when
+    # nothing landed: a partial failure still carries real counts
+    if repo.get("errors") and not any(k in repo for k in (
+            "commits", "issues", "prs", "security", "ci", "local", "prds",
+            "stars", "unreleased_commits")):
         row["e"] = 1
     return row
 
