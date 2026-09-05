@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **capture-experiment**: notes carry an `id` frontmatter field holding the
+  same zettelkasten id as the filename, matching the `digest-github-repo`
+  template, so vault-wide queries on `id` see experiment notes too.
 - **brief-portfolio**: the nav names itself (`aria-label="Sections"`) and the
   active tab announces itself (`aria-current="page"`) to assistive tech,
   instead of only a CSS class marking the current view.
@@ -29,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **capture-experiment**: a title with a backslash no longer breaks the
+  note's YAML (backslashes are escaped before quotes, frontmatter only), and
+  a second capture in the same second regenerates its id from the clock
+  instead of advancing it by arithmetic.
 - **brief-portfolio**: a repo whose GitHub metadata call failed is now marked
   `e: 1` in its trend-history row, instead of being recorded as a fabricated
   all-zero data point the trend sparkline cannot tell apart from a real quiet

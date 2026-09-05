@@ -13,15 +13,13 @@ details are lost to compaction or a new session.
 
 - `digest-github-repo` (this repo): source of the frontmatter shape and the
   `YYYYMMDDHHmmss` zettelkasten id scheme (`date +%Y%m%d%H%M%S`) this skill
-  reuses. Not invoked - referenced for convention only. If it is absent,
-  nothing changes: capture proceeds unaffected, since it is only a convention
-  reference, not a runtime dependency.
+  reuses. Convention reference only, never invoked; its absence changes
+  nothing.
 - `spike` and `create-prd`: named in the note's follow-up checkboxes as the
   skill that would do the next piece of work, where one applies (e.g.
-  `- [ ] /spike the alternative approach`). Never invoked directly - a human
-  runs them later from the note. If either is absent, nothing changes:
-  capture proceeds, and the follow-up checkbox is still written as plain
-  text naming the intended next step.
+  `- [ ] /spike the alternative approach`). Never invoked; a human runs them
+  later from the note, and an absent skill still gets its checkbox as plain
+  text.
 - External `~/bim/` tree (hard anchor, no fallback): output only, into
   `~/bim/inbox/automated/capture-experiment/`. A missing `~/bim/` is a loud
   failure - stop and report it, never fall back to another directory, and
@@ -70,8 +68,10 @@ compaction), say so in the window line rather than guessing a precise start
 Use `~/.agents/skills/capture-experiment/assets/note-template.md` as the fixed
 shape. Every section is required:
 
-1. Frontmatter block (`title`, `date`, `tags`, `type: experiment-log`,
-   `publish: false`, `processed: false`)
+1. Frontmatter block (`id`, `title`, `date`, `tags`, `type: experiment-log`,
+   `publish: false`, `processed: false`); `id` is the same
+   `YYYYMMDDHHmmss` value as the filename, as in `digest-github-repo`'s
+   template, so vault-wide queries on `id` see these notes too
 2. Window line
 3. Hypothesis
 4. Setup
@@ -80,9 +80,10 @@ shape. Every section is required:
 7. Verdict
 8. Follow-up (checkboxes)
 
-Before substituting the title into the frontmatter and heading, collapse it to
-a single line and escape any embedded double quotes, since the template's
-`title:` field is a quoted YAML scalar.
+Collapse the title to a single line. The heading takes that plain collapsed
+title. The frontmatter `title:` value is a double-quoted YAML scalar, so before
+substituting it there escape every backslash as `\\` and then every double
+quote as `\"`, in that order, and nothing else.
 
 Fill in:
 
@@ -110,8 +111,10 @@ If `~/bim/` exists but `~/bim/inbox/automated/capture-experiment/` does not,
 create that leaf directory before writing.
 
 Generate the zettelkasten id: `date +%Y%m%d%H%M%S`. If `<id>.md` already
-exists at the destination, advance to the next free second rather than
-overwriting it.
+exists at the destination, wait for the clock to tick (`sleep 1`), run
+`date +%Y%m%d%H%M%S` again, and repeat the existence check until the id is
+free. Never derive an id by adding to the previous one: `...5960` is not a
+timestamp. Put the same value in the frontmatter `id:` field.
 
 Write the note to:
 
@@ -139,5 +142,6 @@ Show the note in chat, then confirm the save path.
   section rather than omitting the section.
 - **Window start unknown** (e.g. after compaction) — say so in the window
   line instead of guessing a date.
-- **`<id>.md` already exists** (two captures in the same second) — advance to
-  the next free second rather than overwriting the existing note.
+- **`<id>.md` already exists** (two captures in the same second) — sleep a
+  second, regenerate the id from the clock, and re-check; never overwrite,
+  and never compute the next id by arithmetic.

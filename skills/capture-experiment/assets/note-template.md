@@ -1,4 +1,5 @@
 ---
+id: <zettelkasten-id>
 title: "<experiment title>"
 date: <YYYY-MM-DDTHH:MM:SS>
 tags: [<tag1>, <tag2>, <tag3>]
