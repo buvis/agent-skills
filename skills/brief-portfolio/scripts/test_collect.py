@@ -322,6 +322,13 @@ def test_main_history_entry_counts_skipped_repos(tmp_path, monkeypatch):
     assert last["skipped"] == 1
 
 
+def test_main_history_row_marks_the_repo_whose_metadata_call_failed(tmp_path, monkeypatch):
+    _, out_dir = run_collector(tmp_path, monkeypatch, ["alpha"], [])
+    lines = (out_dir / "history.jsonl").read_text().strip().splitlines()
+    last = json.loads(lines[-1])
+    assert last["repos"]["acme/alpha"]["e"] == 1
+
+
 def test_main_summary_line_reports_paths_and_skipped_counts(
     tmp_path,
     monkeypatch,
