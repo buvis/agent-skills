@@ -10,6 +10,20 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { PAYLOAD, render } from './smoke.harness.js'
 
+// Retries `predicate` every `interval` ms, letting pending updates flush
+// between checks, until it returns true or `timeout` ms have passed. Not
+// wired into any test yet.
+async function waitFor(predicate, { timeout = 3000, interval = 25 } = {}) {
+  const deadline = Date.now() + timeout
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  while (!predicate()) {
+    if (Date.now() >= deadline) {
+      throw new Error(`waitFor: predicate did not become true within ${timeout}ms`)
+    }
+    await new Promise((resolve) => setTimeout(resolve, interval))
+  }
+}
+
 // Finds the heading/label element matching `text` among `selector` candidates
 // inside `container`, then reads its next sibling `<ul>` and returns the
 // `<li>` elements inside it. Doesn't assume DOM order beyond "list follows
