@@ -394,6 +394,27 @@ test('Brief tab trend sparkline plots only complete history runs, not incomplete
   )
 })
 
+test('Brief tab trend sparkline skips a run where a repo failed to collect', () => {
+  const payload = structuredClone(PAYLOAD)
+  payload.prev = { repos: [], generated_at: new Date(0).toISOString() }
+  payload.history = [
+    { at: new Date(0).toISOString(), repos: {} },
+    { at: new Date(0).toISOString(), repos: {}, skipped: 0 },
+    { at: new Date(0).toISOString(), repos: {} },
+    { at: new Date(0).toISOString(), repos: {}, skipped: 1 },
+    { at: new Date(0).toISOString(), repos: { 'o/r': { i: 0, e: 1 } } },
+  ]
+
+  // Brief is the default tab — no openTab call needed.
+  const { doc } = render(payload)
+  const mainText = doc.querySelector('main').textContent
+  assert.match(
+    mainText,
+    /open items across 3 briefs/,
+    'trend label should still report 3 complete runs, dropping the run where a repo failed to collect',
+  )
+})
+
 test('aria-live region clears once the failed-copy button label has reverted', async () => {
   // Same failure path as the tests above. The button's own copied/failed
   // state resets to '' after 1.5s via setTimeout, but the aria-live status
