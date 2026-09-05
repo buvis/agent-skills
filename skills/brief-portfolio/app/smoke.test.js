@@ -10,19 +10,52 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { PAYLOAD, render } from './smoke.harness.js'
 
-// Retries `predicate` every `interval` ms, letting pending updates flush
-// between checks, until it returns true or `timeout` ms have passed. Not
-// wired into any test yet.
-async function waitFor(predicate, { timeout = 3000, interval = 25 } = {}) {
+// Retries `predicate` every `interval` ms, awaiting `flush` (if supplied)
+// between checks so pending updates land, until it returns true or
+// `timeout` ms have passed.
+async function waitFor(predicate, { flush, timeout = 3000, interval = 25 } = {}) {
   const deadline = Date.now() + timeout
-  await new Promise((resolve) => setTimeout(resolve, 0))
-  while (!predicate()) {
+  const tick = flush ?? (() => new Promise((resolve) => setTimeout(resolve, 0)))
+  await tick()
+  while (true) {
     if (Date.now() >= deadline) {
       throw new Error(`waitFor: predicate did not become true within ${timeout}ms`)
     }
-    await new Promise((resolve) => setTimeout(resolve, interval))
+    if (predicate()) {
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, Math.min(interval, deadline - Date.now())))
+    await tick()
   }
 }
+
+test('waitFor resolves once the predicate turns true', async () => {
+  let ready = false
+  setTimeout(() => { ready = true }, 20)
+  await waitFor(() => ready, { timeout: 200, interval: 5 })
+  assert.equal(ready, true)
+})
+
+test('waitFor awaits the supplied flush between predicate checks', async () => {
+  let value = false
+  let flushCalls = 0
+  const flush = () => {
+    flushCalls += 1
+    if (flushCalls === 2) {
+      value = true
+    }
+    return Promise.resolve()
+  }
+  await waitFor(() => value, { flush, interval: 5, timeout: 200 })
+  assert.equal(flushCalls, 2, 'predicate turned true without waitFor awaiting flush between checks')
+})
+
+test('waitFor throws an Error naming the timeout once the deadline passes', async () => {
+  await assert.rejects(
+    () => waitFor(() => false, { timeout: 50, interval: 10 }),
+    (err) => err instanceof Error && err.message.includes('50'),
+  )
+})
 
 // Finds the heading/label element matching `text` among `selector` candidates
 // inside `container`, then reads its next sibling `<ul>` and returns the
@@ -450,7 +483,7 @@ test('aria-live region clears once the failed-copy button label has reverted', a
 
   // Wait past the component's 1.5s reset (real time, not a stubbed clock),
   // then flush so the resulting DOM update lands.
-  await waitFor(() => button.textContent.trim() === 'copy open as markdown')
+  await waitFor(() => button.textContent.trim() === 'copy open as markdown', { flush })
   await flush()
   assert.equal(button.textContent.trim(), 'copy open as markdown', 'label did not revert after 1.5s')
 
