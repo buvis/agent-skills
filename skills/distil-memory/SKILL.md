@@ -196,8 +196,9 @@ approval or rejection:
 
    Recording `kept` is not the same as having published. The decision and the
    write are two separate steps, and only the write puts the memory file on
-   disk. `decide` and `write` both exit 1 and print the reason to stderr
-   instead of raising, so a failure here is legible. If `write.py write` exits
+   disk. `decide` exits 1 for a refused decision and 2 if the queue cannot be
+   read; `write` exits 1. Both print the reason to stderr instead of raising,
+   so a failure here is legible. If `write.py write` exits
    non-zero after the `kept` decision, fix the cause named on stderr first (a
    missing store directory, for example, is reported, never created; that is
    deliberate), then re-run the same `write.py write` command with the same
