@@ -450,7 +450,7 @@ test('aria-live region clears once the failed-copy button label has reverted', a
 
   // Wait past the component's 1.5s reset (real time, not a stubbed clock),
   // then flush so the resulting DOM update lands.
-  await new Promise((resolve) => setTimeout(resolve, 1600))
+  await waitFor(() => button.textContent.trim() === 'copy open as markdown')
   await flush()
   assert.equal(button.textContent.trim(), 'copy open as markdown', 'label did not revert after 1.5s')
 
