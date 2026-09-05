@@ -162,7 +162,9 @@ approval or rejection:
 
    Empty output with exit 1 means either the queue is drained or this sitting
    has reached `docket.PER_RUN_CAP` (10). Stop and report. `next` enforces the
-   cap itself, so do not count decisions in chat.
+   cap itself, so do not count decisions in chat. A queue file that is
+   unreadable produces exit 2 instead; stop and report that separately from
+   a drained or capped queue.
 
 3. Show `transcript`, `line_no`, and `evidence_text`, then show the proposed
    `file_text`. For an update, show `existing_text` beside `file_text`. When
@@ -243,8 +245,10 @@ approval or rejection:
    gives that same replacement to `write.py`. Return to step 2 after any
    completed decision.
 
-7. When `next` exits 1, write a sitting report under
-   `dev/local/audit-results/`. Include counts of kept without edit, edited, and
+7. When `next` exits 1 (drained or capped), write a sitting report under
+   `dev/local/audit-results/`. A `next` that produces exit 2 means the queue
+   file is unreadable; stop and report the failure instead of writing a
+   sitting report. Include counts of kept without edit, edited, and
    dropped entries, the lifetime cursor printed by:
 
    ```bash
