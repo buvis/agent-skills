@@ -269,8 +269,8 @@ approval or rejection:
    Also include every path written, and list any entry decided `kept` whose
    `write.py write` did not succeed, so the sitting cannot end silently having
    lost one. Compare the cursor with the total entry count in
-   `dev/local/audit-results/distil-memory-queue.json` to distinguish a drained
-   queue from a sitting that stopped at the cap. End with this verbatim block:
+   `<queue-path>` to distinguish a drained queue from a sitting that stopped
+   at the cap. End with this verbatim block:
 
    ```text
    How to proceed: this report was also written to dev/local/audit-results/. Review the survivors and promote durable facts into memory.

@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "deps-bot PRs" and "drafts", and the header's org filter) now expose their
   on/off state via `aria-pressed`, instead of relying on the `active` CSS
   class alone.
+- **distil-memory**: `docket.py`'s `save`, `start`, `next`, `decide` and
+  `cursor` now accept `--queue PATH` and operate on exactly that file,
+  whatever the working directory is.
 
 ### Changed
 
@@ -168,6 +171,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   against a readable queue, but also now exits 2 when the queue itself is
   unreadable - and it reads the queue once instead of twice, so a corruption
   arriving mid-command can no longer come back as a refused decision.
+- **distil-memory**: `save` now derives its default queue from
+  `--proposals-dir`'s parent instead of walking up from the working
+  directory when `--queue` is omitted, so the queue follows the proposals
+  it describes rather than the shell it was invoked from. This changes
+  where an existing `save` call with no `--queue` writes; `start`, `next`,
+  `decide`, and `cursor` keep the cwd walk.
 
 ### Added
 
