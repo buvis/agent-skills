@@ -7,15 +7,15 @@ import docket
 import pytest
 
 
-def _proposal(transcript="t.jsonl", line_no=1, name=None, file_text=None):
-    label = name or f"name-{line_no}"
+def _proposal(line_no):
+    label = f"name-{line_no}"
     return {
         "name": label,
         "kind": "new",
-        "transcript": transcript,
+        "transcript": "t.jsonl",
         "line_no": line_no,
         "evidence_text": f"evidence for line {line_no}",
-        "file_text": file_text or f"file text for {label}",
+        "file_text": f"file text for {label}",
         "existing_text": None,
     }
 
@@ -24,15 +24,17 @@ def _proposal(transcript="t.jsonl", line_no=1, name=None, file_text=None):
 # decide" (drained or capped), exit 2 means "the queue could not be read", so a
 # caller polling `next` can tell a finished walkthrough from a broken one.
 #
-# Two techniques below, on purpose. `next` (the primary caller) and `decide`
-# (the only subcommand that also has an exit 1 of its own) go through a REAL
-# corrupt file on disk, over every corruption shape load() recognises, so the
-# unmocked path is proved end to end and no single byte string can be
-# special-cased. `cursor`, `start`, `save` and one extra `decide` case make
-# load() raise a QueueError carrying a sentinel string this file could not
+# Two techniques below, on purpose. `next` (the primary caller) goes through a
+# REAL corrupt file on disk, over every corruption shape load() recognises, so
+# the unmocked path is proved end to end and no single byte string can be
+# special-cased. `cursor`, `start`, `save`, and `decide`'s refusal-shaped case
+# make load() raise a QueueError carrying a sentinel string this file could not
 # otherwise produce, which pins the reported message to the exception that was
 # actually raised rather than to one the test (or the implementation) could
-# reconstruct from the queue file.
+# reconstruct from the queue file. `decide` (the only other subcommand with an
+# exit 1 of its own) also gets one real corrupt file, to prove its own
+# real-file path shares `next`'s unreadable-queue handling without re-sweeping
+# every shape `next` already covers.
 
 
 _CORRUPT_QUEUE_SHAPES = {
@@ -41,6 +43,7 @@ _CORRUPT_QUEUE_SHAPES = {
     "empty-file": "",
     "top-level-list": "[]",
     "missing-entries-key": '{"cursor": 0}',
+    "non-list-entries": '{"cursor": 0, "entries": {}}',
     "non-dict-entry": '{"cursor": 0, "entries": ["not-a-dict"]}',
 }
 
@@ -158,46 +161,44 @@ def test_main_save_returns_two_and_reports_the_error_when_the_queue_is_unreadabl
     assert captured.out == ""
 
 
-_DECIDE_UNREADABLE_QUEUE_CASES = {
-    **{
-        f"corrupt-file-{shape}": ("corrupt-file", text)
-        for shape, text in _CORRUPT_QUEUE_SHAPES.items()
-    },
-    # A sentinel worded like a refused decision ("no undecided entry with id
-    # ..." is what a refusal reads like). The split between exit 1 and exit 2
-    # has to follow which call failed, not which words the message happens to
-    # carry, so this must still be exit 2.
-    "load-raises-a-refusal-shaped-message": (
-        "load-raises",
-        "decide-entry-lookup-failed-6a41ef",
-    ),
-}
-
-
-@pytest.mark.parametrize(
-    "failure,payload",
-    list(_DECIDE_UNREADABLE_QUEUE_CASES.values()),
-    ids=list(_DECIDE_UNREADABLE_QUEUE_CASES),
-)
-def test_main_decide_returns_two_rather_than_one_when_the_queue_is_unreadable(
-    failure, payload, tmp_path, monkeypatch, capsys
+def test_main_decide_returns_two_rather_than_one_when_the_queue_file_is_corrupt(
+    tmp_path, monkeypatch, capsys
 ):
     # A refused decision against a readable queue stays exit 1 (tested above);
     # a queue that cannot be read at all is a different failure and must not be
-    # reported as one more refusal, whatever its message says.
+    # reported as one more refusal, whatever its message says. `next`'s
+    # parametrized test above already sweeps every corruption shape load()
+    # recognises; this proves decide's own real-file path shares that same
+    # unreadable-queue handling.
     monkeypatch.chdir(tmp_path)
-    if failure == "corrupt-file":
-        _corrupt_the_working_directory_queue(tmp_path, payload)
-        expected_message = _corrupt_queue_error_message()
-    else:
-        monkeypatch.setattr(docket, "load", _load_raising(payload))
-        expected_message = payload
+    _corrupt_the_working_directory_queue(tmp_path, _CORRUPT_QUEUE_SHAPES["empty-file"])
+    expected_message = _corrupt_queue_error_message()
 
     exit_code = docket.main(["decide", docket.slice_key("t.jsonl", 1), "kept"])
 
     assert exit_code == 2
     captured = capsys.readouterr()
     assert expected_message in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+
+
+def test_main_decide_returns_two_rather_than_one_for_a_refusal_shaped_message(
+    tmp_path, monkeypatch, capsys
+):
+    # A sentinel worded like a refused decision ("no undecided entry with id
+    # ..." is what a refusal reads like). The split between exit 1 and exit 2
+    # has to follow which call failed, not which words the message happens to
+    # carry, so this must still be exit 2.
+    monkeypatch.chdir(tmp_path)
+    sentinel = "decide-entry-lookup-failed-6a41ef"
+    monkeypatch.setattr(docket, "load", _load_raising(sentinel))
+
+    exit_code = docket.main(["decide", docket.slice_key("t.jsonl", 1), "kept"])
+
+    assert exit_code == 2
+    captured = capsys.readouterr()
+    assert sentinel in captured.err
     assert "Traceback" not in captured.err
     assert captured.out == ""
 
@@ -209,7 +210,7 @@ def test_main_decide_does_not_report_a_missing_file_argument_as_an_unreadable_qu
     # a --file path that does not exist has nothing to do with the queue, so it
     # must not be swallowed into that exit code.
     monkeypatch.chdir(tmp_path)
-    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    docket.save([_proposal(1)])
     entry_id = docket.slice_key("t.jsonl", 1)
 
     with pytest.raises(FileNotFoundError):
@@ -226,7 +227,7 @@ def test_main_decide_reads_the_queue_once_so_no_later_read_can_be_taken_for_a_re
     # once closes the window instead of guarding it: there is no second read
     # left to fail, and the count is what proves it rather than a message.
     monkeypatch.chdir(tmp_path)
-    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    docket.save([_proposal(1)])
     real_load = docket.load
     reads = []
 
@@ -249,7 +250,7 @@ def test_main_next_still_returns_one_with_empty_stdout_when_every_entry_is_decid
     tmp_path, monkeypatch, capsys
 ):
     monkeypatch.chdir(tmp_path)
-    docket.save([_proposal(transcript="t.jsonl", line_no=n) for n in range(1, 3)])
+    docket.save([_proposal(n) for n in range(1, 3)])
     for n in range(1, 3):
         docket.decide(docket.slice_key("t.jsonl", n), "kept")
     capsys.readouterr()
@@ -283,7 +284,7 @@ def _reason_without_the_queue_path(message, queue_file):
 def _break_one_byte_of_a_saved_queue(tmp_path):
     """Undecodable bytes that are not knowable when this test is written: let
     save() write a real queue, then knock one byte of its output out of UTF-8."""
-    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    docket.save([_proposal(1)])
     written = _the_working_directory_queue_path(tmp_path).read_bytes()
     return written.replace(b"}", b"\xff}", 1)
 
