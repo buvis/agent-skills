@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **brief-portfolio**: the nav names itself (`aria-label="Sections"`) and the
+  active tab announces itself (`aria-current="page"`) to assistive tech,
+  instead of only a CSS class marking the current view.
+- **brief-portfolio**: the Repos tab's filter input and sort select now carry
+  `aria-label`s ("Filter repos", "Sort repos"), instead of relying on
+  placeholder text that vanishes once the user types.
+- **brief-portfolio**: the four toggle chips (Todo's "hide done", Work's
+  "deps-bot PRs" and "drafts", and the header's org filter) now expose their
+  on/off state via `aria-pressed`, instead of relying on the `active` CSS
+  class alone.
+
 ### Changed
 
 - **use-qwen**: record Qwen3.8's measured multi-file trust scope (single-file-only) in the Model Selection guidance, backed by a 6-task comparison against Sonnet.
@@ -16,6 +29,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brief-portfolio**: a repo whose GitHub metadata call failed is now marked
+  `e: 1` in its trend-history row, instead of being recorded as a fabricated
+  all-zero data point the trend sparkline cannot tell apart from a real quiet
+  repo.
+- **brief-portfolio**: the CI wall now renders "No CI runs." when no repo has
+  CI data, instead of printing its heading over blank space with no trace of
+  why.
+- **brief-portfolio**: repos whose CI was never fetched this run are now named
+  below the CI wall ("N not collected this run: owner/name, ..."), instead of
+  silently dropping out of the wall with no trace they were skipped.
+- **brief-portfolio**: copying open follow-ups with nothing open no longer
+  wipes the clipboard and claims success — it declines with a "nothing to
+  copy" status instead.
+- **brief-portfolio**: the "copy open as markdown" button and each per-group
+  copy button are now disabled whenever there is nothing open to copy,
+  instead of staying clickable and relying on the decline status alone.
+- **brief-portfolio**: a declined copy is now announced truthfully even right
+  after a successful one, instead of the aria-live region still showing the
+  previous copy's "✓ copied" status.
+- **brief-portfolio**: `loadDone()`/`saveDone()` no longer throw when
+  `localStorage` is unreachable (e.g. an opaque-origin mount, or a browser
+  blocking site data) — the page no longer blanks silently at mount on those
+  browsers.
+- **brief-portfolio**: show a one-line notice ("Checked state will not
+  persist: this browser is blocking local storage.") above the tabs when
+  `localStorage` is blocked, instead of silently dropping the ability to
+  persist checked-todo state.
 - **brief-portfolio**: `build.py --dir <somewhere>` now writes the page beside
   the inputs it read (`<dir>/portfolio-brief.html`) instead of always
   overwriting the live dashboard under `$HOME`, regardless of `--dir`.

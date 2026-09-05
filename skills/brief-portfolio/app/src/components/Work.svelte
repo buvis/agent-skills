@@ -28,6 +28,7 @@
       .filter((r) => r.ci?.length)
       .toSorted((a, b) => ciFailing(b).length - ciFailing(a).length)
   )
+  const ciMissing = $derived(repos.filter((r) => r.ci === undefined))
   const runClass = (w) =>
     w.status !== 'completed'
       ? 'sev-warning'
@@ -66,10 +67,10 @@
 <section class="sec">
   <h2>Open PRs · {prs.length}</h2>
   <div class="filters">
-    <button class="chip" class:active={showDeps} onclick={() => (showDeps = !showDeps)}>
+    <button class="chip" class:active={showDeps} aria-pressed={showDeps} onclick={() => (showDeps = !showDeps)}>
       deps-bot PRs ({depCount})
     </button>
-    <button class="chip" class:active={showDrafts} onclick={() => (showDrafts = !showDrafts)}>
+    <button class="chip" class:active={showDrafts} aria-pressed={showDrafts} onclick={() => (showDrafts = !showDrafts)}>
       drafts
     </button>
   </div>
@@ -137,20 +138,30 @@
 
 <section class="sec">
   <h2>CI wall · latest run per workflow on default branch</h2>
-  {#each ciRows as r (slug(r))}
-    <div class="cirow">
-      <button class="repobtn" onclick={() => onselect(r)}>
-        <span class="dot" style="background: var(--cat{slots.get(r.org)})"></span>{r.name}
-      </button>
-      <div class="runs">
-        {#each r.ci as w (w.workflow)}
-          <a class="run {runClass(w)}" href={w.url} target="_blank" rel="noreferrer">
-            {runMark(w)} {w.workflow}
-          </a>
-        {/each}
+  {#if ciRows.length === 0}
+    <p class="empty">No CI runs.</p>
+  {:else}
+    {#each ciRows as r (slug(r))}
+      <div class="cirow">
+        <button class="repobtn" onclick={() => onselect(r)}>
+          <span class="dot" style="background: var(--cat{slots.get(r.org)})"></span>{r.name}
+        </button>
+        <div class="runs">
+          {#each r.ci as w (w.workflow)}
+            <a class="run {runClass(w)}" href={w.url} target="_blank" rel="noreferrer">
+              {runMark(w)} {w.workflow}
+            </a>
+          {/each}
+        </div>
       </div>
-    </div>
-  {/each}
+    {/each}
+  {/if}
+  {#if ciMissing.length}
+    <p class="empty">
+      <strong class="sev-warning">{ciMissing.length}</strong> not collected this run:
+      {ciMissing.map(slug).join(', ')}
+    </p>
+  {/if}
 </section>
 
 <style>

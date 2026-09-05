@@ -11,8 +11,10 @@
 
   let done = $state(loadDone())
   let hideDone = $state(false)
-  let copied = $state('')
-  let failed = $state('')
+  // The single latest copy outcome, so a later announcement always replaces
+  // an earlier one instead of racing three independent timers.
+  let outcome = $state(null) // { kind: 'copied' | 'failed' | 'nothing', label } | null
+  let outcomeTimer
 
   const byslug = $derived(new Map(repos.map((r) => [slug(r), r])))
   const todos = $derived(allTodos(repos, epics, external))
@@ -24,7 +26,9 @@
     }))
   )
   const openCount = $derived(todos.filter((t) => !done.has(t.id)).length)
-  const status = $derived(copied ? '✓ copied' : failed ? '✗ copy failed' : '')
+  const status = $derived(
+    outcome?.kind === 'copied' ? '✓ copied' : outcome?.kind === 'failed' ? '✗ copy failed' : outcome?.kind === 'nothing' ? 'nothing to copy' : ''
+  )
 
   function toggle(id) {
     const s = new Set(done)
@@ -48,8 +52,18 @@
     }
   }
 
+  function announce(kind, label) {
+    clearTimeout(outcomeTimer)
+    outcome = { kind, label }
+    outcomeTimer = setTimeout(() => (outcome = null), 1500)
+  }
+
   async function copy(items, label) {
     const open = items.filter((t) => !done.has(t.id))
+    if (open.length === 0) {
+      announce('nothing', label)
+      return
+    }
     const md = open.map((t) => `- [ ] ${t.repo}: ${t.action}`).join('\n')
     try {
       await navigator.clipboard.writeText(md)
@@ -57,21 +71,19 @@
       try {
         fallbackCopy(md)
       } catch {
-        failed = label
-        setTimeout(() => (failed = ''), 1500)
+        announce('failed', label)
         return
       }
     }
-    copied = label
-    setTimeout(() => (copied = ''), 1500)
+    announce('copied', label)
   }
 </script>
 
 <div class="bar">
   <span class="count"><b>{openCount}</b> open follow-ups · checked state survives regeneration</span>
-  <button class="chip" class:active={hideDone} onclick={() => (hideDone = !hideDone)}>hide done</button>
-  <button class="chip" onclick={() => copy(todos, 'all')}>
-    {copied === 'all' ? '✓ copied' : failed === 'all' ? '✗ copy failed' : 'copy open as markdown'}
+  <button class="chip" class:active={hideDone} aria-pressed={hideDone} onclick={() => (hideDone = !hideDone)}>hide done</button>
+  <button class="chip" disabled={openCount === 0} onclick={() => copy(todos, 'all')}>
+    {outcome?.label === 'all' && outcome.kind === 'copied' ? '✓ copied' : outcome?.label === 'all' && outcome.kind === 'failed' ? '✗ copy failed' : 'copy open as markdown'}
   </button>
 </div>
 
@@ -80,7 +92,7 @@
     <section class="sec">
       <h2 class="u-{u}">
         {u} · {all.filter((t) => !done.has(t.id)).length} open
-        <button class="chip mini" onclick={() => copy(all, u)}>{copied === u ? '✓' : failed === u ? '✗' : 'copy'}</button>
+        <button class="chip mini" disabled={openCount === 0} onclick={() => copy(all, u)}>{outcome?.label === u && outcome.kind === 'copied' ? '✓' : outcome?.label === u && outcome.kind === 'failed' ? '✗' : outcome?.label === u && outcome.kind === 'nothing' ? 'nothing' : 'copy'}</button>
       </h2>
       {#each shown as t (t.id)}
         <div class="todo" class:isdone={done.has(t.id)}>

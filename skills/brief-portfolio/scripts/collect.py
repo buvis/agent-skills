@@ -347,11 +347,18 @@ def history_counts(repo):
     prds = repo.get("prds") or {}
     failing = sum(1 for w in repo.get("ci", [])
                   if w.get("conclusion") in ("failure", "timed_out", "startup_failure"))
-    return {"c": len(repo.get("commits", [])), "i": len(repo.get("issues", [])),
-            "p": len(repo.get("prs", [])), "a": len(repo.get("security", [])),
-            "f": failing, "d": l.get("dirty", 0), "ah": l.get("ahead", 0),
-            "b": len(prds.get("backlog", [])), "w": len(prds.get("wip", [])),
-            "s": repo.get("stars", 0), "u": repo.get("unreleased_commits") or 0}
+    row = {"c": len(repo.get("commits", [])), "i": len(repo.get("issues", [])),
+           "p": len(repo.get("prs", [])), "a": len(repo.get("security", [])),
+           "f": failing, "d": l.get("dirty", 0), "ah": l.get("ahead", 0),
+           "b": len(prds.get("backlog", [])), "w": len(prds.get("wip", [])),
+           "s": repo.get("stars", 0), "u": repo.get("unreleased_commits") or 0}
+    # zeros from a failed collection are not real zeros; mark the row only when
+    # nothing landed: a partial failure still carries real counts
+    if repo.get("errors") and not any(k in repo for k in (
+            "commits", "issues", "prs", "security", "ci", "local", "prds",
+            "stars", "unreleased_commits")):
+        row["e"] = 1
+    return row
 
 
 def collect_local(path, branch):

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "test": "node --test src/lib/derive.test.js smoke.test.js"
+    "test": "node --test src/lib/derive.test.js smoke.test.js smoke.a11y.test.js"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.2.0",

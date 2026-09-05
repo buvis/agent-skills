@@ -1,7 +1,7 @@
 <script>
   import { setContext } from 'svelte'
   import { loadPayload, aggregate, attention, orgSlots, slug, ago, allTodos, quadrant } from './lib/derive.js'
-  import { pruneDone } from './lib/done.js'
+  import { pruneDone, isStorageBlocked } from './lib/done.js'
   import Brief from './components/Brief.svelte'
   import Todos from './components/Todos.svelte'
   import Matrix from './components/Matrix.svelte'
@@ -26,6 +26,7 @@
   setContext('slots', slots)
   setContext('scored', scored)
   if (payload) pruneDone(new Set(allTodos(repos, epics, external).map((t) => t.id)))
+  const storageBlocked = isStorageBlocked()
 
   let tab = $state('brief')
   let org = $state('all')
@@ -77,9 +78,12 @@
   <header>
     <h1>Portfolio Brief</h1>
     <span class="meta">generated {ago(payload.data.generated_at)} · window {sinceDays}d</span>
-    <nav>
+    {#if storageBlocked}
+      <span class="meta">Checked state will not persist: this browser is blocking local storage.</span>
+    {/if}
+    <nav aria-label="Sections">
       {#each TABS as [id, label] (id)}
-        <button class:active={tab === id} onclick={() => (tab = id)}>
+        <button class:active={tab === id} aria-current={tab === id ? 'page' : undefined} onclick={() => (tab = id)}>
           {label}{#if counts[id] != null}<span class="cnt">{counts[id]}</span>{/if}
         </button>
       {/each}
@@ -88,6 +92,7 @@
       <button
         class="chip"
         class:active={org !== 'all'}
+        aria-pressed={org !== 'all'}
         aria-label="Filter by org"
         onclick={() => (filterOpen = !filterOpen)}
       >

@@ -18,6 +18,7 @@ from collect import (
     collect_claude_skill_adherence,
     collect_purge_devlocal,
     collect_repo,
+    history_counts,
     main,
     should_rotate,
     stub_from_path,
@@ -319,6 +320,13 @@ def test_main_history_entry_counts_skipped_repos(tmp_path, monkeypatch):
     lines = (out_dir / "history.jsonl").read_text().strip().splitlines()
     last = json.loads(lines[-1])
     assert last["skipped"] == 1
+
+
+def test_main_history_row_marks_the_repo_whose_metadata_call_failed(tmp_path, monkeypatch):
+    _, out_dir = run_collector(tmp_path, monkeypatch, ["alpha"], [])
+    lines = (out_dir / "history.jsonl").read_text().strip().splitlines()
+    last = json.loads(lines[-1])
+    assert last["repos"]["acme/alpha"]["e"] == 1
 
 
 def test_main_summary_line_reports_paths_and_skipped_counts(
@@ -909,3 +917,35 @@ def test_main_writes_data_json_when_audit_cadence_raises_unexpected_exception(
     captured = capsys.readouterr()
     assert new_data["external"]["audit_cadence"] == collect._seeded_audit_cadence()
     assert "WARN audit_cadence" in captured.err
+
+
+def test_history_counts_marks_a_repo_with_errors_and_no_data():
+    row = history_counts(
+        {"owner": "acme", "name": "widget", "errors": ["meta: gh: not authenticated"]},
+    )
+    assert row["e"] == 1
+    # The marker is added to the counts, not substituted for them.
+    assert row["c"] == 0
+    assert row["u"] == 0
+
+
+def test_history_counts_leaves_a_repo_without_errors_unmarked():
+    row = history_counts({"owner": "acme", "name": "widget", "errors": []})
+    assert "e" not in row
+
+
+def test_history_counts_leaves_a_partly_fetched_repo_unmarked():
+    row = history_counts(
+        {"owner": "acme", "name": "widget", "errors": ["ci: gh api: HTTP 500"],
+         "commits": [{"sha": "abc1234"}], "stars": 3},
+    )
+    # One field failed but the rest is real data, so these are not fake zeros.
+    assert "e" not in row
+    assert row["c"] == 1
+    assert row["s"] == 3
+
+
+def test_history_counts_leaves_a_partial_failure_unmarked():
+    row = history_counts({"errors": ["fetch: timeout"], "commits": []})
+    # A non-fatal error alongside collected data must not get the "e" marker.
+    assert "e" not in row

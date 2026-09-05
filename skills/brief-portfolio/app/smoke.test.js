@@ -8,68 +8,69 @@
 // way, duplicate-valued items should render twice, not crash.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { JSDOM, VirtualConsole } from 'jsdom'
+import { PAYLOAD, render } from './smoke.harness.js'
 
-const TEMPLATE = new URL('../assets/template.html', import.meta.url)
-
-const PAYLOAD = {
-  data: {
-    repos: [{
-      owner: 'buvis', name: 'demo', org: 'buvis',
-      prds: {
-        backlog: ['Ship pagination this week.', 'Ship pagination this week.'],
-        wip: [{ title: 'Same title', idle_days: 3 }, { title: 'Same title', idle_days: 9 }],
-        done_count: 0,
-      },
-    }],
-    generated_at: new Date(0).toISOString(), since_days: 60, external: null, skill_adherence: null,
-  },
-  epics: { summary: '', repos: {} }, prev: null, history: [],
+async function waitFor(predicate, { flush, timeout = 3000, interval = 25 } = {}) {
+  const deadline = Date.now() + timeout
+  const tick = flush ?? (() => new Promise((resolve) => setTimeout(resolve, 0)))
+  await tick()
+  while (true) {
+    if (Date.now() >= deadline) {
+      throw new Error(`waitFor: predicate did not become true within ${timeout}ms`)
+    }
+    if (predicate()) {
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, Math.min(interval, deadline - Date.now())))
+    await tick()
+  }
 }
 
-function render(payload = PAYLOAD) {
-  const page = readFileSync(TEMPLATE, 'utf8').replace(
-    '__PORTFOLIO_PAYLOAD__',
-    JSON.stringify(payload).replace(/<\//g, '<\\/'),
+test('waitFor resolves once the predicate turns true', async () => {
+  let ready = false
+  setTimeout(() => { ready = true }, 20)
+  await waitFor(() => ready, { timeout: 200, interval: 5 })
+  assert.equal(ready, true)
+})
+
+test('waitFor awaits the supplied flush between predicate checks', async () => {
+  let value = false
+  let pending = false
+  let flushCalls = 0
+  const flush = () => {
+    flushCalls += 1
+    const call = flushCalls
+    pending = true
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (call === 2) {
+          value = true
+        }
+        pending = false
+        resolve()
+      }, 0)
+    })
+  }
+  await waitFor(() => {
+    assert.equal(pending, false, 'predicate ran while a flush was still pending, meaning waitFor did not await it')
+    return value
+  }, { flush, interval: 5, timeout: 200 })
+  assert.equal(flushCalls, 2, 'predicate turned true without waitFor awaiting flush between checks')
+})
+
+test('waitFor throws an Error naming the timeout once the deadline passes', async () => {
+  await assert.rejects(
+    () => waitFor(() => false, { timeout: 50, interval: 10 }),
+    (err) => err instanceof Error && err.message.includes('50'),
   )
-  // jsdom does not run type="module", and running the bundle inline would fire
-  // before #app exists. Lift it out and eval it once the document is built —
-  // same code, same order a deferred module script would give it.
-  const [tag, bundle] = page.match(/<script type="module"[^>]*>([\s\S]*?)<\/script>/)
-  const errors = []
-  const dom = new JSDOM(page.replace(tag, ''), {
-    runScripts: 'dangerously',
-    pretendToBeVisual: true,
-    // jsdom treats the default about:blank as an opaque origin, where
-    // localStorage throws instead of working — give it a real origin so the
-    // app's own localStorage use behaves as it would in a browser.
-    url: 'https://example.org/',
-    virtualConsole: new VirtualConsole().on('jsdomError', (e) => errors.push(e)),
-  })
-  // jsdom has no ResizeObserver; stub it so components that size themselves
-  // off it (e.g. the sparkline) don't throw a ReferenceError at mount.
-  dom.window.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  }
-  dom.window.eval(bundle)
-  assert.deepEqual(errors.map((e) => e.message), [], 'the page threw while mounting')
-  const doc = dom.window.document
-  // Svelte 5 applies updates in a microtask, so every click needs a flush
-  const flush = () => new Promise((resolve) => dom.window.setTimeout(resolve, 0))
-  const openTab = async (label) => {
-    const button = [...doc.querySelectorAll('header nav button')].find((b) =>
-      b.textContent.trim().startsWith(label),
-    )
-    assert.ok(button, `missing tab ${label}`)
-    button.click()
-    await flush()
-    return button
-  }
-  return { doc, flush, openTab }
-}
+
+  // The predicate turns true only after the deadline, mid-way through an
+  // oversized interval; waitFor must still reject rather than accept it.
+  let value = false
+  setTimeout(() => { value = true }, 80)
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 40))
+  await assert.rejects(() => waitFor(() => value, { flush, timeout: 60, interval: 10000 }))
+})
 
 // Finds the heading/label element matching `text` among `selector` candidates
 // inside `container`, then reads its next sibling `<ul>` and returns the
@@ -83,6 +84,20 @@ function backlogListItems(container, selector, text) {
   const ul = heading.nextElementSibling
   assert.ok(ul && ul.tagName === 'UL', `expected a <ul> right after ${selector} "${text}"`)
   return [...ul.querySelectorAll('li')]
+}
+
+// Stubs both clipboard write paths jsdom doesn't implement, and records
+// every write attempt so "nothing was copied" is assertable. Both stubs are
+// needed: the page falls back to execCommand when
+// navigator.clipboard.writeText rejects, and a declined copy must touch
+// NEITHER.
+function stubClipboard(doc) {
+  const writes = []
+  doc.defaultView.navigator.clipboard = {
+    writeText: (text) => { writes.push(text); return Promise.resolve() },
+  }
+  doc.execCommand = (cmd) => { writes.push(cmd); return true }
+  return writes
 }
 
 test('mounts with zero errors on the default Brief tab', () => {
@@ -189,6 +204,73 @@ test('Work tab has no "Waiting on you elsewhere" section when there is no extern
   await openTab('Work')
   const mainText = doc.querySelector('main').textContent
   assert.doesNotMatch(mainText, /Waiting on you elsewhere/)
+})
+
+test('Work tab shows "No CI runs." on the CI wall when no repo has CI data', async () => {
+  // The default PAYLOAD repo carries no `ci` key at all (the "never
+  // fetched" case), which derives ciRows to an empty array — the CI wall
+  // must render an empty-state message instead of going blank.
+  const { doc, openTab } = render()
+  await openTab('Work')
+  const mainText = doc.querySelector('main').textContent
+  assert.match(mainText, /No CI runs/)
+})
+
+test('Work tab names a never-fetched-CI repo below the wall, alongside the wall\'s own empty state', async () => {
+  // The default PAYLOAD repo carries no `ci` key at all — CI was never
+  // fetched for it, distinct from a fetched-but-empty `ci: []`. The wall
+  // itself is empty (no repo has a `ci` array with rows), so both the
+  // "No CI runs." empty state and the exclusion line naming the repo must
+  // show up together.
+  const { doc, openTab } = render()
+  await openTab('Work')
+  const mainText = doc.querySelector('main').textContent
+  assert.match(mainText, /No CI runs/)
+  assert.match(mainText, /not collected this run/)
+  assert.match(mainText, /buvis\/demo/)
+})
+
+test('Work tab does not name a repo with `ci: []` as not collected this run', async () => {
+  // `ci: []` means CI was fetched and came back empty — a different case
+  // from the default payload's missing `ci` key. The wall still renders its
+  // empty state, but the repo must not appear in the exclusion line.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].ci = []
+
+  const { doc, openTab } = render(payload)
+  await openTab('Work')
+  const mainText = doc.querySelector('main').textContent
+  assert.match(mainText, /No CI runs/)
+  assert.doesNotMatch(mainText, /not collected this run/)
+})
+
+test('Work tab shows the not-collected-this-run line even when the CI wall has rows from another repo', async () => {
+  // The exclusion line and the wall's empty state are independent: a wall
+  // that already has rows (repo A's fetched, non-empty `ci` array) must still
+  // carry the "not collected this run" line for a different repo (repo B,
+  // with no `ci` key at all).
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos = [
+    {
+      owner: 'acme', name: 'widget-a', org: 'acme',
+      ci: [
+        { workflow: 'deploy-prod', status: 'completed', conclusion: 'success', url: 'https://example.org/run/1', date: new Date(0).toISOString() },
+      ],
+    },
+    { owner: 'acme', name: 'widget-b', org: 'acme' },
+  ]
+
+  const { doc, openTab } = render(payload)
+  await openTab('Work')
+  const mainText = doc.querySelector('main').textContent
+  assert.match(mainText, /deploy-prod/, 'wall does not show the fetched repo\'s workflow row')
+  assert.match(mainText, /not collected this run/)
+  assert.match(
+    mainText,
+    /1 not collected this run:\s*acme\/widget-b/,
+    'exclusion line should name only the never-fetched repo',
+  )
+  assert.doesNotMatch(mainText, /No CI runs/, 'empty state should not show once the wall has rows')
 })
 
 test('Brief tab names repos it could not collect this run', () => {
@@ -374,6 +456,27 @@ test('Brief tab trend sparkline plots only complete history runs, not incomplete
   )
 })
 
+test('Brief tab trend sparkline skips a run where a repo failed to collect', () => {
+  const payload = structuredClone(PAYLOAD)
+  payload.prev = { repos: [], generated_at: new Date(0).toISOString() }
+  payload.history = [
+    { at: new Date(0).toISOString(), repos: {} },
+    { at: new Date(0).toISOString(), repos: {}, skipped: 0 },
+    { at: new Date(0).toISOString(), repos: {} },
+    { at: new Date(0).toISOString(), repos: {}, skipped: 1 },
+    { at: new Date(0).toISOString(), repos: { 'o/r': { i: 0, e: 1 } } },
+  ]
+
+  // Brief is the default tab — no openTab call needed.
+  const { doc } = render(payload)
+  const mainText = doc.querySelector('main').textContent
+  assert.match(
+    mainText,
+    /open items across 3 briefs/,
+    'trend label should still report 3 complete runs, dropping the run where a repo failed to collect',
+  )
+})
+
 test('aria-live region clears once the failed-copy button label has reverted', async () => {
   // Same failure path as the tests above. The button's own copied/failed
   // state resets to '' after 1.5s via setTimeout, but the aria-live status
@@ -393,10 +496,9 @@ test('aria-live region clears once the failed-copy button label has reverted', a
   await flush()
   assert.equal(button.textContent.trim(), '✗ copy failed')
 
-  // Wait past the component's 1.5s reset (real time, not a stubbed clock),
-  // then flush so the resulting DOM update lands.
-  await new Promise((resolve) => setTimeout(resolve, 1600))
-  await flush()
+  // Wait past the component's 1.5s reset (real time, not a stubbed clock);
+  // waitFor already flushes before the predicate check that resolves it.
+  await waitFor(() => button.textContent.trim() === 'copy open as markdown', { flush })
   assert.equal(button.textContent.trim(), 'copy open as markdown', 'label did not revert after 1.5s')
 
   const liveRegion = doc.querySelector('[aria-live="polite"]')
@@ -405,5 +507,390 @@ test('aria-live region clears once the failed-copy button label has reverted', a
     liveRegion.textContent.trim(),
     '',
     'aria-live region still holds stale "✗ copy failed" text after the button label reverted',
+  )
+})
+
+test('Todos tab shows a "nothing" status on a per-group copy when the group\'s only open item is checked done', async () => {
+  // This payload derives exactly two open todos: one 'soon' (brush_last_run
+  // is left unset) and one 'later' (a non-empty backlog). purge_last_run is
+  // set to now so the repo-scoped purge-devlocal maintenance nag (also
+  // 'soon' whenever it's unset) doesn't add a second item to the soon group.
+  // Checking off the sole 'soon' item leaves that group with nothing open,
+  // so clicking its own per-group copy button should decline instead of
+  // touching the clipboard.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: ['Ship it.'], wip: [], done_count: 0 }
+  payload.data.repos[0].purge_last_run = new Date().toISOString()
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const writes = stubClipboard(doc)
+
+  const sectionsWithTodos = [...doc.querySelectorAll('main section.sec')].filter(
+    (sec) => sec.querySelector('.todo'),
+  )
+  assert.equal(
+    sectionsWithTodos.length,
+    2,
+    `expected 2 urgency sections holding a todo (soon, later), got ${sectionsWithTodos.length}`,
+  )
+  // Select the soon group directly by its heading class, rather than relying
+  // on the sections' urgency order.
+  const soonSection = doc.querySelector('h2.u-soon').closest('section.sec')
+
+  const checkbox = soonSection.querySelector('.todo input[type="checkbox"]')
+  assert.ok(checkbox, 'missing checkbox on the soon-group todo')
+  checkbox.click()
+  await flush()
+
+  const miniButton = soonSection.querySelector('button.chip.mini')
+  assert.ok(miniButton, 'missing per-group button.chip.mini in the soon section')
+  miniButton.click()
+  await flush()
+
+  assert.equal(writes.length, 0, 'a declined copy should not touch the clipboard')
+  assert.equal(miniButton.textContent.trim(), 'nothing')
+
+  const liveRegion = doc.querySelector('[aria-live="polite"]')
+  assert.ok(liveRegion, 'missing aria-live="polite" element')
+  assert.equal(liveRegion.textContent.trim(), 'nothing to copy')
+})
+
+test('done.js survives a blocked localStorage: loadDone returns empty, saveDone no-ops, isStorageBlocked flips true', async () => {
+  // Simulates a file:// page or a browser with storage access disabled, where
+  // both getItem and setItem throw (e.g. a SecurityError) instead of working.
+  const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage')
+  const previousLocalStorage = globalThis.localStorage
+  globalThis.localStorage = {
+    getItem() { throw new Error('SecurityError') },
+    setItem() { throw new Error('SecurityError') },
+  }
+  try {
+    const { loadDone, saveDone, isStorageBlocked } = await import('./src/lib/done.js')
+    assert.equal(loadDone().size, 0, 'loadDone should return an empty Set when localStorage.getItem throws')
+    assert.doesNotThrow(
+      () => saveDone(new Set(['x'])),
+      'saveDone should not throw when localStorage.setItem throws',
+    )
+    assert.equal(isStorageBlocked(), true, 'isStorageBlocked should be true once a helper has caught an error')
+  } finally {
+    if (hadLocalStorage) {
+      globalThis.localStorage = previousLocalStorage
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
+
+test('loadDone() returns an empty Set when the stored value is corrupt JSON', async () => {
+  // getItem succeeds but returns a string JSON.parse chokes on; setItem works
+  // fine, only the parse should trip the catch.
+  const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage')
+  const previousLocalStorage = globalThis.localStorage
+  globalThis.localStorage = {
+    getItem() { return '{not json' },
+    setItem() {},
+  }
+  try {
+    const { loadDone } = await import('./src/lib/done.js?case=corrupt')
+    assert.equal(loadDone().size, 0, 'loadDone should return an empty Set when the stored value is corrupt JSON')
+  } finally {
+    if (hadLocalStorage) {
+      globalThis.localStorage = previousLocalStorage
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
+
+test('saveDone() alone flips isStorageBlocked when only setItem throws', async () => {
+  // getItem works and returns a valid stored value; only setItem throws,
+  // proving saveDone sets the flag on its own, without loadDone catching first.
+  const hadLocalStorage = Object.prototype.hasOwnProperty.call(globalThis, 'localStorage')
+  const previousLocalStorage = globalThis.localStorage
+  globalThis.localStorage = {
+    getItem() { return '[]' },
+    setItem() { throw new Error('SecurityError') },
+  }
+  try {
+    const { saveDone, isStorageBlocked } = await import('./src/lib/done.js?case=savefail')
+    assert.doesNotThrow(
+      () => saveDone(new Set(['x'])),
+      'saveDone should not throw when localStorage.setItem throws',
+    )
+    assert.equal(isStorageBlocked(), true, 'isStorageBlocked should be true after saveDone alone caught an error')
+  } finally {
+    if (hadLocalStorage) {
+      globalThis.localStorage = previousLocalStorage
+    } else {
+      delete globalThis.localStorage
+    }
+  }
+})
+
+test('render(payload, { url: null }) omits the jsdom url option, so localStorage throws on the default opaque origin', () => {
+  const { doc } = render(PAYLOAD, { url: null })
+  assert.throws(() => doc.defaultView.localStorage)
+})
+
+test('render(payload) still mounts on a real origin, so localStorage works by default', () => {
+  const { doc } = render(PAYLOAD)
+  assert.doesNotThrow(() => doc.defaultView.localStorage)
+})
+
+test('Brief tab shows no persistence notice when localStorage works', () => {
+  const { doc } = render()
+  assert.doesNotMatch(doc.body.textContent, /will not persist/)
+})
+
+test('Brief tab still renders with a persistence notice when localStorage is blocked', () => {
+  const { doc } = render(PAYLOAD, { url: null })
+  assert.equal(doc.querySelector('h1').textContent.trim(), 'Portfolio Brief')
+  assert.ok(doc.querySelector('main').textContent.trim().length > 0, 'Brief tab is blank')
+  assert.ok(
+    doc.body.textContent.includes(
+      'Checked state will not persist: this browser is blocking local storage.',
+    ),
+    'exact persistence notice not found',
+  )
+  assert.ok(
+    doc.querySelectorAll('header nav button').length > 0,
+    'tab controls missing',
+  )
+  const activeTab = doc.querySelector('header nav button.active')
+  assert.ok(activeTab, 'no active tab button found')
+  assert.ok(
+    activeTab.textContent.trim().startsWith('Brief'),
+    'the active tab is not Brief',
+  )
+})
+
+test('Todos tab disables the "copy open as markdown" button and touches nothing when there are no open todos', async () => {
+  // Zero todos: an empty backlog/wip/done_count alone still leaves two
+  // repo-scoped nags standing — a 'soon' brush nag whenever brush_last_run
+  // is unset or stale, and a 'soon' maintenance "Run /purge-devlocal" nag
+  // whenever purge_last_run is unset or stale (generated unconditionally,
+  // it does not depend on the external field) — so both must also be set to
+  // now to actually reach openCount === 0.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
+  payload.data.repos[0].brush_last_run = new Date().toISOString()
+  payload.data.repos[0].purge_last_run = new Date().toISOString()
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const writes = stubClipboard(doc)
+
+  const button = [...doc.querySelectorAll('main button.chip')].find(
+    (b) => b.textContent.trim() === 'copy open as markdown',
+  )
+  assert.ok(button, 'missing "copy open as markdown" button')
+  assert.equal(button.disabled, true, 'the bar button should be disabled when openCount is 0')
+
+  button.click()
+  await flush()
+
+  assert.equal(writes.length, 0, 'clicking the disabled button must not touch the clipboard')
+
+  const liveRegion = doc.querySelector('[aria-live="polite"]')
+  assert.ok(liveRegion, 'missing aria-live="polite" element')
+  assert.equal(liveRegion.textContent.trim(), '', 'no status should be set since no copy was ever attempted')
+})
+
+test('Todos tab disables the per-group button too, once the whole-list openCount reaches 0', async () => {
+  // Exactly one open todo: a single-item backlog produces one 'later' todo;
+  // brush_last_run and purge_last_run (as in the zero-todos test above)
+  // suppress the 'soon' brush and maintenance nags, leaving one rendered
+  // section. Checking that lone item off drives openCount (the whole-list
+  // count of not-done todos) to 0 while the section itself still renders,
+  // since a section's visibility depends on the group holding any todo, not
+  // on whether that todo is done.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: ['Ship it.'], wip: [], done_count: 0 }
+  payload.data.repos[0].brush_last_run = new Date().toISOString()
+  payload.data.repos[0].purge_last_run = new Date().toISOString()
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const section = doc.querySelector('main section.sec')
+  assert.ok(section, 'missing the single rendered urgency section')
+  const checkbox = section.querySelector('.todo input[type="checkbox"]')
+  assert.ok(checkbox, 'missing checkbox on the only todo')
+  checkbox.click()
+  await flush()
+
+  const writes = stubClipboard(doc)
+
+  const miniButton = section.querySelector('button.chip.mini')
+  assert.ok(miniButton, 'missing per-group button.chip.mini')
+  assert.equal(miniButton.disabled, true, 'the per-group button should be disabled once the whole-list openCount is 0')
+
+  miniButton.click()
+  await flush()
+  assert.equal(writes.length, 0, 'clicking the disabled per-group button must not touch the clipboard')
+
+  const barButton = [...doc.querySelectorAll('main button.chip')].find(
+    (b) => b.textContent.trim() === 'copy open as markdown',
+  )
+  assert.ok(barButton, 'missing "copy open as markdown" button')
+  assert.equal(barButton.disabled, true, 'the bar button shares the same openCount and should also be disabled')
+})
+
+test('A declined copy is announced truthfully even right after a successful copy', async () => {
+  // Two open todos in different urgency groups: one 'soon' (brush_last_run
+  // left unset) and one 'later' (a non-empty backlog) — the same fixture
+  // recipe as the "shows a 'nothing' status" test above. purge_last_run is
+  // set to now so the repo-scoped purge-devlocal nag doesn't add a second
+  // 'soon' item.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: ['Ship it.'], wip: [], done_count: 0 }
+  payload.data.repos[0].purge_last_run = new Date().toISOString()
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const writes = stubClipboard(doc)
+
+  const sectionsWithTodos = [...doc.querySelectorAll('main section.sec')].filter(
+    (sec) => sec.querySelector('.todo'),
+  )
+  assert.equal(
+    sectionsWithTodos.length,
+    2,
+    `expected 2 urgency sections holding a todo (soon, later), got ${sectionsWithTodos.length}`,
+  )
+  const [soonSection] = sectionsWithTodos
+
+  // Check off the soon group's only item so that group has nothing open,
+  // while the whole list (the later item) still does — both buttons stay
+  // enabled, since `disabled` is driven by the whole-list count only.
+  const checkbox = soonSection.querySelector('.todo input[type="checkbox"]')
+  assert.ok(checkbox, 'missing checkbox on the soon-group todo')
+  checkbox.click()
+  await flush()
+
+  const barButton = [...doc.querySelectorAll('.bar button.chip')].find(
+    (b) => b.textContent.trim().startsWith('copy open as markdown'),
+  )
+  assert.ok(barButton, 'missing "copy open as markdown" button')
+  const miniButton = soonSection.querySelector('button.chip.mini')
+  assert.ok(miniButton, 'missing per-group button.chip.mini in the soon section')
+  const liveRegion = doc.querySelector('[aria-live="polite"]')
+  assert.ok(liveRegion, 'missing aria-live="polite" element')
+
+  // Both clicks happen back to back, inside a single 1500ms announcement
+  // window — no wait between them.
+  barButton.click()
+  await flush()
+  assert.equal(liveRegion.textContent.trim(), '✓ copied', 'test setup: the bar copy did not succeed')
+  const writesAfterBarClick = writes.length
+
+  miniButton.click()
+  await flush()
+
+  assert.equal(
+    liveRegion.textContent.trim(),
+    'nothing to copy',
+    'a declined copy must announce "nothing to copy", not the stale success from the click right before it',
+  )
+  assert.notEqual(liveRegion.textContent.trim(), '✓ copied')
+  assert.equal(
+    writes.length,
+    writesAfterBarClick,
+    'a declined copy must not touch the clipboard, even right after a successful one',
+  )
+})
+
+test('A newer status announcement survives an older one\'s 1500ms expiry, and still clears once its own window elapses', async () => {
+  // Real waiting, not a stubbed clock: the contract only promises "clears
+  // itself 1500ms later" — it doesn't say how many timers the page keeps or
+  // how it tracks which announcement is newest, and stubbing
+  // doc.defaultView.setTimeout here would mean guessing that internal
+  // shape. Real time keeps this test bound to the documented behaviour
+  // only, at the cost of ~2.2s of wall time (comparable to the existing
+  // 1.6s real-wait test above).
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+  // Same two-group fixture as the "declined right after a successful copy"
+  // test above: one open 'soon' todo and one open 'later' todo.
+  // purge_last_run is set to now so the maintenance nag doesn't add a
+  // second 'soon' item.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: ['Ship it.'], wip: [], done_count: 0 }
+  payload.data.repos[0].purge_last_run = new Date().toISOString()
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const writes = stubClipboard(doc)
+
+  const sectionsWithTodos = [...doc.querySelectorAll('main section.sec')].filter(
+    (sec) => sec.querySelector('.todo'),
+  )
+  assert.equal(
+    sectionsWithTodos.length,
+    2,
+    `expected 2 urgency sections holding a todo (soon, later), got ${sectionsWithTodos.length}`,
+  )
+  const [soonSection] = sectionsWithTodos
+
+  // Check off the soon group's only item so that group has nothing open,
+  // while the whole list (the later item) still does — both buttons stay
+  // enabled.
+  const checkbox = soonSection.querySelector('.todo input[type="checkbox"]')
+  assert.ok(checkbox, 'missing checkbox on the soon-group todo')
+  checkbox.click()
+  await flush()
+
+  const barButton = [...doc.querySelectorAll('.bar button.chip')].find(
+    (b) => b.textContent.trim().startsWith('copy open as markdown'),
+  )
+  assert.ok(barButton, 'missing "copy open as markdown" button')
+  const miniButton = soonSection.querySelector('button.chip.mini')
+  assert.ok(miniButton, 'missing per-group button.chip.mini in the soon section')
+  const liveRegion = doc.querySelector('[aria-live="polite"]')
+  assert.ok(liveRegion, 'missing aria-live="polite" element')
+
+  // Older announcement: the bar copy succeeds.
+  barButton.click()
+  await flush()
+  assert.equal(liveRegion.textContent.trim(), '✓ copied', 'test setup: the bar copy did not succeed')
+
+  await sleep(500)
+
+  // Newer announcement, 500ms later: the fully-done group's own button is
+  // clicked, which declines instead of touching the clipboard.
+  const writesBeforeDecline = writes.length
+  miniButton.click()
+  await flush()
+  assert.equal(
+    liveRegion.textContent.trim(),
+    'nothing to copy',
+    'the declined copy did not announce truthfully right after the successful one',
+  )
+  assert.equal(writes.length, writesBeforeDecline, 'test setup: the declined copy touched the clipboard')
+
+  // ~1700ms after the older click: its own 1500ms window has expired, but
+  // the newer click's window (started 500ms later) has not — the newer
+  // announcement must still be showing.
+  await sleep(1200)
+  await flush()
+  assert.equal(
+    liveRegion.textContent.trim(),
+    'nothing to copy',
+    "the newer announcement was wiped out by the older announcement's own expiry",
+  )
+
+  // ~2200ms after the older click, ~1700ms after the newer one: the newer
+  // announcement's own 1500ms window has now elapsed too.
+  await sleep(500)
+  await flush()
+  assert.equal(
+    liveRegion.textContent.trim(),
+    '',
+    'the announcement did not clear once its own 1500ms window elapsed',
   )
 })
