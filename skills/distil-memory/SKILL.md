@@ -145,8 +145,14 @@ explicit per-entry decision.
 Before the first sitting, add the published proposals to the durable queue:
 
 ```bash
-python3 ~/.agents/skills/distil-memory/scripts/docket.py save --proposals-dir <proposals-dir>
+python3 ~/.agents/skills/distil-memory/scripts/docket.py save --proposals-dir <proposals-dir> --queue "<queue-path>"
 ```
+
+The driver derives `<queue-path>` as `<proposals-dir>`'s parent directory joined
+with `distil-memory-queue.json`, matching `save`'s own default when no
+`--queue` is given. `docket.py` does not compute this derivation itself once
+the flag is passed explicitly - every example below passes the same derived
+`<queue-path>`.
 
 Then run this walkthrough in chat. Ask about one entry at a time, with no bulk
 approval or rejection:
@@ -155,13 +161,13 @@ approval or rejection:
    lifetime cursor:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/docket.py start
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py start --queue "<queue-path>"
    ```
 
 2. Get the next undecided entry and keep the printed JSON as `entry.json`:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/docket.py next > entry.json
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py next --queue "<queue-path>" > entry.json
    ```
 
    Empty output with exit 1 means either the queue is drained or this sitting
@@ -179,14 +185,14 @@ approval or rejection:
 4. For drop, record the decision and return to step 2:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" dropped
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" dropped --queue "<queue-path>"
    ```
 
 5. For keep with no edit, record the decision, derive the store path as
    `Path(entry["transcript"]).parent / "memory"`, then write the saved entry:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" kept
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" kept --queue "<queue-path>"
    python3 ~/.agents/skills/distil-memory/scripts/write.py write --store "<store-path>" < entry.json
    ```
 
@@ -241,7 +247,7 @@ approval or rejection:
    `entry.json`, save the same text as `<edited-file-path>`, then run:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" kept --file "<edited-file-path>"
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" kept --file "<edited-file-path>" --queue "<queue-path>"
    python3 ~/.agents/skills/distil-memory/scripts/write.py write --store "<store-path>" < entry.json
    ```
 
@@ -257,7 +263,7 @@ approval or rejection:
    dropped entries, the lifetime cursor printed by:
 
    ```bash
-   python3 ~/.agents/skills/distil-memory/scripts/docket.py cursor
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py cursor --queue "<queue-path>"
    ```
 
    Also include every path written, and list any entry decided `kept` whose
