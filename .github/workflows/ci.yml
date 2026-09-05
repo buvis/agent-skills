@@ -28,6 +28,26 @@ jobs:
       # for every event this workflow triggers on.
       - uses: astral-sh/setup-uv@v10.0.1
 
+      # sweep-fix shells out to rg and ast-grep, and the hosted runner ships
+      # neither, so 21 of its tests fail. The two need OPPOSITE treatment:
+      #
+      #   rg       must be ON PATH. resolve_rg() checks PATH, then falls back
+      #            to a bundled claude binary that does not exist here.
+      #   ast-grep must be mise-managed and OFF PATH. resolve_ast_grep()
+      #            prefers a PATH copy, but
+      #            test_resolve_ast_grep_matches_mise_which_output asserts the
+      #            resolved path equals `mise which ast-grep`. An apt copy or a
+      #            mise shim on PATH resolves to a different path and fails it.
+      #
+      # So mise itself goes on PATH and its shims deliberately do not.
+      - name: Install the sweep-fix tool chain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+          curl -fsSL https://mise.run | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/mise" use -g -y ast-grep@latest
+
       - name: Run the suite
         run: uv run --python ${{ matrix.python-version }} pytest
 
