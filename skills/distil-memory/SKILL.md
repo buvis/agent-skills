@@ -60,7 +60,11 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
   stderr saying so and continues.
 - `--distil-limit N` (default `25`): cap how many survivors are distilled.
   `0` means no cap. A negative value is a usage error - argparse rejects it
-  before the run starts.
+  before the run starts. Triage is never capped: it makes one cheap-tier call
+  per kept slice before this limit applies, so on a wide window the run's cost
+  and wall time are dominated by triage (the first real run spent 315 triage
+  calls, about 58 minutes, against 5 distil calls). Bound it with `--days` or
+  `--project`, not with this flag.
 
 ## Pipeline
 
