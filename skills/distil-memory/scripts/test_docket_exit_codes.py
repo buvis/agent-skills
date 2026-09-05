@@ -45,8 +45,12 @@ _CORRUPT_QUEUE_SHAPES = {
 }
 
 
+def _the_working_directory_queue_path(tmp_path):
+    return tmp_path / "dev" / "local" / "audit-results" / "distil-memory-queue.json"
+
+
 def _write_the_working_directory_queue_bytes(tmp_path, data):
-    queue_file = tmp_path / "dev" / "local" / "audit-results" / "distil-memory-queue.json"
+    queue_file = _the_working_directory_queue_path(tmp_path)
     queue_file.parent.mkdir(parents=True, exist_ok=True)
     queue_file.write_bytes(data)
     return queue_file
@@ -232,27 +236,63 @@ def test_main_next_still_returns_one_with_empty_stdout_when_every_entry_is_decid
 # the bytes on disk are interpreted, so both go through a real file rather than
 # a stand-in load(): a mocked loader would decide the answer the test is asking
 # for.
+#
+# Both are also swept over a family of payloads rather than one literal, for the
+# same reason the corruption shapes above are: recognising one byte string, or
+# one spelling of `null`, is not the behaviour being asked for. The last
+# undecodable payload is built from the bytes save() wrote during the run, so it
+# cannot be enumerated by an implementation at all.
 
 
-_INVALID_UTF8_QUEUE_BYTES = b'{"cursor": 0, "entries": [\xff\xfe]}'
+def _reason_without_the_queue_path(message, queue_file):
+    """The diagnosis with the queue path cut out. The path is built from the
+    test's own name, so left in it could satisfy an assertion about the
+    diagnosis on its own."""
+    return message.replace(str(queue_file), "").lower()
 
 
+def _break_one_byte_of_a_saved_queue(tmp_path):
+    """Undecodable bytes that are not knowable when this test is written: let
+    save() write a real queue, then knock one byte of its output out of UTF-8."""
+    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    written = _the_working_directory_queue_path(tmp_path).read_bytes()
+    return written.replace(b"}", b"\xff}", 1)
+
+
+_INVALID_UTF8_QUEUE_PAYLOADS = {
+    "an-entries-list-of-raw-bytes": lambda tmp_path: b'{"cursor": 0, "entries": [\xff\xfe]}',
+    "a-lone-undecodable-byte": lambda tmp_path: b"\xff",
+    "a-stray-continuation-byte": lambda tmp_path: b"\x80",
+    "a-truncated-multibyte-sequence": lambda tmp_path: b'{"cursor": 0, "entries": [\xc3\x28]}',
+    "a-queue-encoded-as-latin1": lambda tmp_path: '{"cursor": 0, "note": "caf\xe9"}'.encode(
+        "latin-1"
+    ),
+    "a-saved-queue-with-one-byte-knocked-out": _break_one_byte_of_a_saved_queue,
+}
+
+
+@pytest.mark.parametrize(
+    "build_payload",
+    list(_INVALID_UTF8_QUEUE_PAYLOADS.values()),
+    ids=list(_INVALID_UTF8_QUEUE_PAYLOADS),
+)
 def test_main_next_returns_two_when_the_queue_file_is_not_valid_utf8(
-    tmp_path, monkeypatch, capsys
+    build_payload, tmp_path, monkeypatch, capsys
 ):
     # Bytes that do not decode leave the queue unreadable, which is exit 2.
     # Exiting 1 with empty stdout would be byte-for-byte "nothing left to
     # decide", so a caller polling `next` would call the sitting finished when
     # in fact it never read a single entry.
     monkeypatch.chdir(tmp_path)
-    _write_the_working_directory_queue_bytes(tmp_path, _INVALID_UTF8_QUEUE_BYTES)
+    queue_file = _write_the_working_directory_queue_bytes(tmp_path, build_payload(tmp_path))
+    capsys.readouterr()
     expected_message = _corrupt_queue_error_message()
 
     exit_code = docket.main(["next"])
 
     assert exit_code == 2
     captured = capsys.readouterr()
-    assert expected_message.strip() != ""
+    assert str(queue_file) in expected_message
     assert expected_message in captured.err
     assert "Traceback" not in captured.err
     assert captured.out == ""
@@ -261,33 +301,58 @@ def test_main_next_returns_two_when_the_queue_file_is_not_valid_utf8(
 @pytest.mark.parametrize(
     "read_the_queue", [docket.load, docket.next_undecided], ids=["load", "next_undecided"]
 )
+@pytest.mark.parametrize(
+    "build_payload",
+    list(_INVALID_UTF8_QUEUE_PAYLOADS.values()),
+    ids=list(_INVALID_UTF8_QUEUE_PAYLOADS),
+)
 def test_the_queue_layer_raises_queue_error_when_the_queue_file_is_not_valid_utf8(
-    read_the_queue, tmp_path
+    build_payload, read_the_queue, tmp_path, monkeypatch
 ):
     # The decoding failure has to be converted at the queue layer, not left to
     # escape as whatever the decoder raises: main() only turns QueueError into
-    # exit 2, and only a QueueError carries a reason worth printing.
-    queue_file = _write_the_working_directory_queue_bytes(tmp_path, _INVALID_UTF8_QUEUE_BYTES)
+    # exit 2, and only a QueueError carries a reason worth printing. "A reason"
+    # means one a reader can act on, so it has to name the file that could not
+    # be read and the fact that it could not be decoded.
+    monkeypatch.chdir(tmp_path)
+    queue_file = _write_the_working_directory_queue_bytes(tmp_path, build_payload(tmp_path))
 
     with pytest.raises(docket.QueueError) as raised:
         read_the_queue(path=queue_file)
 
-    assert str(raised.value).strip() != ""
+    message = str(raised.value)
+    assert str(queue_file) in message
+    reason = _reason_without_the_queue_path(message, queue_file)
+    assert "utf-8" in reason or "decode" in reason
 
 
-def test_main_next_diagnoses_a_null_queue_payload_as_a_payload_that_is_not_an_object(
-    tmp_path, monkeypatch, capsys
+_NON_OBJECT_QUEUE_PAYLOADS = {
+    "null": "null",
+    "null-as-an-editor-writes-it": "null\n",
+    "null-with-surrounding-space": " null ",
+    "true": "true",
+    "a-number": "123",
+    "a-string": '"a string"',
+}
+
+
+@pytest.mark.parametrize(
+    "payload_text",
+    list(_NON_OBJECT_QUEUE_PAYLOADS.values()),
+    ids=list(_NON_OBJECT_QUEUE_PAYLOADS),
+)
+def test_main_next_names_a_non_object_queue_payload_rather_than_calling_the_file_empty(
+    payload_text, tmp_path, monkeypatch, capsys
 ):
     # `null` is valid JSON, so the file is not empty: it holds a payload that
     # is not the queue object. Naming it "empty" names the wrong corruption
-    # class, and the name on stderr is the entire product of exit 2.
+    # class, and the name on stderr is the entire product of exit 2. The rule is
+    # about the payload, not about a spelling, so a trailing newline or a pad of
+    # spaces (what a real editor leaves behind) must read the same way.
     monkeypatch.chdir(tmp_path)
-    queue_file = _corrupt_the_working_directory_queue(tmp_path, "null")
+    queue_file = _corrupt_the_working_directory_queue(tmp_path, payload_text)
     expected_message = _corrupt_queue_error_message()
-    # The queue path is part of the message and carries the test's own name, so
-    # drop it before reading the diagnosis: otherwise the path could satisfy
-    # these assertions on its own.
-    reason = expected_message.replace(str(queue_file), "").lower()
+    reason = _reason_without_the_queue_path(expected_message, queue_file)
 
     exit_code = docket.main(["next"])
 
