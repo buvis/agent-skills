@@ -818,6 +818,7 @@ def test_main_save_next_decide_and_cursor_with_queue_flag_all_operate_on_the_giv
     assert saved_entries[0]["id"] == docket.slice_key("t.jsonl", 7)
     assert saved_entries[0]["decision"] == "undecided"
 
+    capsys.readouterr()
     next_exit = docket.main(["next", "--queue", str(queue_path)])
 
     assert next_exit == 0
