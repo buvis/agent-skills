@@ -142,6 +142,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   can no longer land under an unusable filename; and ship `write.py`'s
   documented `write --store` command line, which the approval walkthrough
   invokes to write an approved proposal from stdin.
+- **distil-memory**: `docket.load()` now raises `QueueError` naming the
+  corruption for an unreadable, empty, or structurally invalid review queue,
+  instead of leaking a bare `JSONDecodeError`/`KeyError` that looked
+  identical to a drained queue.
 
 ### Added
 
