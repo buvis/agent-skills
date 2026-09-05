@@ -36,7 +36,6 @@ test('waitFor resolves once the predicate turns true', async () => {
 test('waitFor awaits the supplied flush between predicate checks', async () => {
   let value = false
   let pending = false
-  let observedWhilePending = false
   let flushCalls = 0
   const flush = () => {
     flushCalls += 1
@@ -53,12 +52,9 @@ test('waitFor awaits the supplied flush between predicate checks', async () => {
     })
   }
   await waitFor(() => {
-    if (pending) {
-      observedWhilePending = true
-    }
+    assert.equal(pending, false, 'predicate ran while a flush was still pending, meaning waitFor did not await it')
     return value
   }, { flush, interval: 5, timeout: 200 })
-  assert.equal(observedWhilePending, false, 'predicate ran while a flush was still pending, meaning waitFor did not await it')
   assert.equal(flushCalls, 2, 'predicate turned true without waitFor awaiting flush between checks')
 })
 
