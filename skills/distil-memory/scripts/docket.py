@@ -177,21 +177,27 @@ def _parse_args(argv):
 
     save_parser = subparsers.add_parser("save")
     save_parser.add_argument("--proposals-dir", required=True)
+    save_parser.add_argument("--queue", default=None)
 
-    subparsers.add_parser("start")
-    subparsers.add_parser("next")
+    start_parser = subparsers.add_parser("start")
+    start_parser.add_argument("--queue", default=None)
+
+    next_parser = subparsers.add_parser("next")
+    next_parser.add_argument("--queue", default=None)
 
     decide_parser = subparsers.add_parser("decide")
     decide_parser.add_argument("id")
     decide_parser.add_argument("state", choices=["kept", "dropped"])
     decide_parser.add_argument("--file", default=None)
+    decide_parser.add_argument("--queue", default=None)
 
-    subparsers.add_parser("cursor")
+    cursor_parser = subparsers.add_parser("cursor")
+    cursor_parser.add_argument("--queue", default=None)
 
     return parser.parse_args(argv)
 
 
-def _save_from_proposals_dir(proposals_dir: Path) -> int:
+def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
     records = json.loads((proposals_dir / "proposals.json").read_text())
     proposals = [
         {
@@ -206,7 +212,7 @@ def _save_from_proposals_dir(proposals_dir: Path) -> int:
         }
         for record in records
     ]
-    added = save(proposals)
+    added = save(proposals, path=path)
     print(f"added {added} of {len(proposals)}")
     return 0
 
@@ -216,12 +222,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "save":
-            return _save_from_proposals_dir(Path(args.proposals_dir))
+            return _save_from_proposals_dir(Path(args.proposals_dir), path=args.queue)
         elif args.command == "start":
-            advance()
+            advance(path=args.queue)
             return 0
         elif args.command == "next":
-            entry = next_undecided()
+            entry = next_undecided(path=args.queue)
             if entry is None:
                 return 1
             print(json.dumps(entry))
@@ -230,15 +236,15 @@ def main(argv: list[str] | None = None) -> int:
             file_text = Path(args.file).read_text() if args.file else None
             # Read once, outside the refusal handler below, so an unreadable
             # queue leaves through the exit 2 handler instead.
-            data = load()
+            data = load(path=args.queue)
             try:
-                decide(args.id, args.state, file_text=file_text, data=data)
+                decide(args.id, args.state, file_text=file_text, path=args.queue, data=data)
             except QueueError as exc:
                 print(str(exc), file=sys.stderr)
                 return 1
             return 0
         elif args.command == "cursor":
-            print(cursor())
+            print(cursor(path=args.queue))
             return 0
     except QueueError as exc:
         print(str(exc), file=sys.stderr)
