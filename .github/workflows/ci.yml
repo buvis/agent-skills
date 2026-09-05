@@ -29,24 +29,26 @@ jobs:
       - uses: astral-sh/setup-uv@v10.0.1
 
       # sweep-fix shells out to rg and ast-grep, and the hosted runner ships
-      # neither, so 21 of its tests fail. The two need OPPOSITE treatment:
+      # neither, so 21 of its tests fail. Both come from mise, but they need
+      # OPPOSITE placement, and each rule is pinned by a test:
       #
-      #   rg       must be ON PATH. resolve_rg() checks PATH, then falls back
-      #            to a bundled claude binary that does not exist here.
-      #   ast-grep must be mise-managed and OFF PATH. resolve_ast_grep()
-      #            prefers a PATH copy, but
+      #   rg       ON PATH, and NOT in /usr/bin. resolve_rg() checks PATH and
+      #            then a bundled claude binary absent here, so it must be
+      #            findable - but
+      #            test_resolve_rg_exits_naming_both_candidates_when_neither_resolves
+      #            sets PATH=/usr/bin:/bin and requires a RuntimeError there,
+      #            so `apt install ripgrep` (which lands /usr/bin/rg) breaks
+      #            it. Hence the symlink into ~/.local/bin.
+      #   ast-grep OFF PATH. resolve_ast_grep() prefers a PATH copy, but
       #            test_resolve_ast_grep_matches_mise_which_output asserts the
-      #            resolved path equals `mise which ast-grep`. An apt copy or a
-      #            mise shim on PATH resolves to a different path and fails it.
-      #
-      # So mise itself goes on PATH and its shims deliberately do not.
+      #            resolved path equals `mise which ast-grep`; any PATH copy
+      #            or shim resolves elsewhere and fails that assertion.
       - name: Install the sweep-fix tool chain
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ripgrep
           curl -fsSL https://mise.run | sh
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/mise" use -g -y ast-grep@latest
+          "$HOME/.local/bin/mise" use -g -y ast-grep@latest ripgrep@latest
+          ln -sf "$("$HOME/.local/bin/mise" which rg)" "$HOME/.local/bin/rg"
 
       - name: Run the suite
         run: uv run --python ${{ matrix.python-version }} pytest
