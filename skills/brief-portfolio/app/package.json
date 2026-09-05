@@ -4,9 +4,11 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "test": "node --test src/lib/derive.test.js smoke.test.js smoke.a11y.test.js"
+    "test": "node --test src/lib/derive.test.js smoke.test.js smoke.a11y.test.js",
+    "test:browser": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@sveltejs/vite-plugin-svelte": "7.2.0",
     "jsdom": "^30.0.1",
     "svelte": "5.56.8",

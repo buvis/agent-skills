@@ -133,6 +133,7 @@ It works without epics.json but say so if you skipped step 2.
 ```bash
 python3 -m pytest ~/.agents/skills/brief-portfolio/scripts -q
 npm --prefix ~/.agents/skills/brief-portfolio/app test
+npm --prefix ~/.agents/skills/brief-portfolio/app run test:browser  # real chromium on a file:// page; once: npx playwright install chromium
 ```
 
 ## Rebuilding the SPA template (maintenance only)

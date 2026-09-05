@@ -7,6 +7,7 @@
 # artifact is committed as assets/, the build tree is not.
 node_modules/
 skills/*/app/dist/
+skills/*/app/test-results/
 __pycache__/
 *.py[cod]
 /*.egg-info/
