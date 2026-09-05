@@ -398,7 +398,7 @@ export const historySeries = (history) =>
   (history ?? []).map((h) => ({
     at: h.at,
     open: Object.values(h.repos ?? {}).reduce((s, c) => s + (c.i ?? 0) + (c.p ?? 0) + (c.a ?? 0) + (c.f ?? 0), 0),
-    incomplete: (h.skipped ?? 0) > 0,
+    incomplete: (h.skipped ?? 0) > 0 || Object.values(h.repos ?? {}).some((c) => c.e),
   }))
 
 export function epicsFor(repo, epics) {
