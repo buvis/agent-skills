@@ -54,8 +54,10 @@ def load(path=None):
     if not isinstance(data, dict):
         raise QueueError(f"invalid review queue schema in {p}: expected a JSON object (dict), not a {type(data).__name__}")
     entries = data.get("entries")
-    if not isinstance(entries, list) or not all(isinstance(entry, dict) for entry in entries):
-        raise QueueError(f"invalid review queue schema in {p}: entries must be a list of dict entries")
+    if not isinstance(entries, list):
+        raise QueueError(f"invalid review queue schema in {p}: entries must be a list")
+    if not all(isinstance(entry, dict) for entry in entries):
+        raise QueueError(f"invalid review queue schema in {p}: entries must contain only dict entries")
     return data
 
 
