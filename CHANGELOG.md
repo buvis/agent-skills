@@ -146,6 +146,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   corruption for an unreadable, empty, or structurally invalid review queue,
   instead of leaking a bare `JSONDecodeError`/`KeyError` that looked
   identical to a drained queue.
+- **distil-memory**: `docket.py`'s `next`, `cursor`, `start`, and `save`
+  subcommands now exit 2 with the corruption named on stderr when the review
+  queue is unreadable, instead of exiting 1 with empty stdout exactly like a
+  drained or capped queue. `decide` keeps its exit 1 for a refused decision
+  against a readable queue, but also now exits 2 when the queue itself is
+  unreadable.
 
 ### Added
 

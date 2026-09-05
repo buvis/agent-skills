@@ -210,28 +210,35 @@ def _save_from_proposals_dir(proposals_dir: Path) -> int:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
-    if args.command == "save":
-        return _save_from_proposals_dir(Path(args.proposals_dir))
-    elif args.command == "start":
-        advance()
-        return 0
-    elif args.command == "next":
-        entry = next_undecided()
-        if entry is None:
-            return 1
-        print(json.dumps(entry))
-        return 0
-    elif args.command == "decide":
-        file_text = Path(args.file).read_text() if args.file else None
-        try:
-            decide(args.id, args.state, file_text=file_text)
-        except QueueError as exc:
-            print(str(exc), file=sys.stderr)
-            return 1
-        return 0
-    elif args.command == "cursor":
-        print(cursor())
-        return 0
+    try:
+        if args.command == "save":
+            return _save_from_proposals_dir(Path(args.proposals_dir))
+        elif args.command == "start":
+            advance()
+            return 0
+        elif args.command == "next":
+            entry = next_undecided()
+            if entry is None:
+                return 1
+            print(json.dumps(entry))
+            return 0
+        elif args.command == "decide":
+            file_text = Path(args.file).read_text() if args.file else None
+            # Read the queue first, so an unreadable one leaves through the
+            # exit 2 handler below instead of being reported as a refusal.
+            load()
+            try:
+                decide(args.id, args.state, file_text=file_text)
+            except QueueError as exc:
+                print(str(exc), file=sys.stderr)
+                return 1
+            return 0
+        elif args.command == "cursor":
+            print(cursor())
+            return 0
+    except QueueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
