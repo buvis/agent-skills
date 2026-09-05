@@ -936,3 +936,9 @@ def test_history_counts_leaves_a_partly_fetched_repo_unmarked():
     assert "e" not in row
     assert row["c"] == 1
     assert row["s"] == 3
+
+
+def test_history_counts_leaves_a_partial_failure_unmarked():
+    row = history_counts({"errors": ["fetch: timeout"], "commits": []})
+    # A non-fatal error alongside collected data must not get the "e" marker.
+    assert "e" not in row
