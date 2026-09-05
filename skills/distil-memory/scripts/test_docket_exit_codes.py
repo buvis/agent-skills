@@ -216,6 +216,35 @@ def test_main_decide_does_not_report_a_missing_file_argument_as_an_unreadable_qu
         docket.main(["decide", entry_id, "kept", "--file", str(tmp_path / "does-not-exist.md")])
 
 
+def test_main_decide_reads_the_queue_once_so_no_later_read_can_be_taken_for_a_refusal(
+    tmp_path, monkeypatch, capsys
+):
+    # main() used to read the queue as a gate, throw the result away, and let
+    # decide() read it again. A QueueError from that second read landed in the
+    # inner handler and came back as exit 1 - "the decision was refused" - for a
+    # queue that had merely become unreadable between the two reads. Reading
+    # once closes the window instead of guarding it: there is no second read
+    # left to fail, and the count is what proves it rather than a message.
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(transcript="t.jsonl", line_no=1)])
+    real_load = docket.load
+    reads = []
+
+    def _load_once_then_refuse_to_read(path=None):
+        reads.append(path)
+        if len(reads) > 1:
+            raise docket.QueueError("the queue stopped being readable after the gate read")
+        return real_load(path=path)
+
+    monkeypatch.setattr(docket, "load", _load_once_then_refuse_to_read)
+
+    exit_code = docket.main(["decide", docket.slice_key("t.jsonl", 1), "kept"])
+
+    assert reads == [None]
+    assert exit_code == 0
+    assert capsys.readouterr().err == ""
+
+
 def test_main_next_still_returns_one_with_empty_stdout_when_every_entry_is_decided(
     tmp_path, monkeypatch, capsys
 ):
