@@ -100,6 +100,37 @@ def test_main_next_returns_two_and_reports_the_error_when_the_queue_is_unreadabl
     assert captured.out == ""
 
 
+# What each corruption class has to SAY, written out rather than asked for.
+# The test above compares stderr against whatever load() itself raised, so a
+# load() that answered every corruption with one blanket sentence would satisfy
+# it for all seven shapes at once - the implementation acting as its own oracle.
+# Naming the words here is what keeps the classes distinguishable to whoever
+# reads stderr. "entries is missing" and "entries is present but not a list" are
+# deliberately one class, and share their wording.
+_CORRUPT_QUEUE_DIAGNOSTICS = {
+    "truncated-json": "cannot read the review queue",
+    "truncated-json-trailing-newline": "cannot read the review queue",
+    "empty-file": "file is empty",
+    "top-level-list": "expected a JSON object (dict), not a list",
+    "missing-entries-key": "entries must be a list",
+    "non-list-entries": "entries must be a list",
+    "non-dict-entry": "entries must contain only dict entries",
+}
+
+
+@pytest.mark.parametrize("shape", list(_CORRUPT_QUEUE_SHAPES), ids=list(_CORRUPT_QUEUE_SHAPES))
+def test_each_corruption_class_is_named_in_its_own_words_on_stderr(
+    shape, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    _corrupt_the_working_directory_queue(tmp_path, _CORRUPT_QUEUE_SHAPES[shape])
+
+    exit_code = docket.main(["next"])
+
+    assert exit_code == 2
+    assert _CORRUPT_QUEUE_DIAGNOSTICS[shape] in capsys.readouterr().err
+
+
 def test_main_cursor_returns_two_and_reports_the_error_when_the_queue_is_unreadable(
     tmp_path, monkeypatch, capsys
 ):
