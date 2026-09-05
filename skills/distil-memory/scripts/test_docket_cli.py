@@ -7,24 +7,15 @@ import docket
 
 import pytest
 
-
-def _proposal(transcript="t.jsonl", line_no=1, name=None, file_text=None):
-    label = name or f"name-{line_no}"
-    return {
-        "name": label,
-        "kind": "new",
-        "transcript": transcript,
-        "line_no": line_no,
-        "evidence_text": f"evidence for line {line_no}",
-        "file_text": file_text or f"file text for {label}",
-        "existing_text": None,
-    }
+from docket_test_helpers import make_proposal as _proposal
 
 
-# main() CLI wiring. These subcommands resolve the queue file from the
-# working directory (no path= is passed through), so every test below
-# chdirs into tmp_path first and reads the queue back the same way (no
-# explicit path=), never touching a real queue file.
+# main() CLI wiring. save derives its default queue from --proposals-dir
+# (see below), so its tests below read the queue back at that derived path
+# explicitly rather than through the cwd walk. start, next, decide, and
+# cursor still resolve the queue file from the working directory when
+# --queue is omitted, so their tests below chdir into tmp_path first and
+# read the queue back the same way (no explicit path=).
 
 
 def test_main_save_reads_proposals_json_and_sibling_files_and_prints_added_n_of_m(
