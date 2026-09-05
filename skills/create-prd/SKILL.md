@@ -83,6 +83,8 @@ While drafting, mark every contract detail you invented rather than sourced from
 
 **Premise rule (observed-state tasks):** Any task whose action deletes, moves, overwrites, or edits content justified by observed repo state MUST (a) state that premise in its Feature or task text (e.g. `Premise: path X is an unused scaffold, not a live skill`) and (b) include an execution-time re-check in its acceptance criteria — a failed premise means skip and report, never force. Rationale: during the 2026-07-07 skill audit a queued task nearly archived a skill the user was actively building (`brief-portfolio` went live between audit read and PRD write), and only a lucky mid-session refresh caught it. This is authoring guidance, not structure — the `assets/` templates are unaffected.
 
+**Metric rule (no suite-wide numbers):** Success criteria and acceptance criteria name the tests that must pass (by test name, or a `pytest -k` / `node --test` filter) and, when timing matters, the budget of the test this PRD owns. Never pin a suite total ("18 passing, up from 16", "suite under 2050ms"): a neighbouring PRD adds one test and the criterion is stale before this one is drained, and no implementer can satisfy it without deleting coverage. Rationale: batch 202609040601 deferred four such criteria across PRDs 00019 and 00033, every one unmeetable on the day it was reviewed.
+
 ### Optional frontmatter fields
 
 PRD frontmatter is a YAML block at the top of the file delimited by `---` lines. Seven fields are recognized by the autopilot pipeline (six parsed by `/autopilot:run-autopilot` Phase 0; `default_model` is owned and re-read by `/autopilot:plan-tasks`). All six Phase-0 fields are optional; `default_model` is decided for every PRD by step 5.6:
