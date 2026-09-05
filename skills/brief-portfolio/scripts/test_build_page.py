@@ -3,7 +3,7 @@
 Both cases were found by an agoge run on 2026-08-31. The tokenizer-injection
 case is fixed (PRD 00011); the --out/--dir default case is fixed (PRD 00013).
 
-Run: python3 -m pytest test_build.py -q
+Run: python3 -m pytest test_build_page.py -q
 """
 
 import importlib.util
