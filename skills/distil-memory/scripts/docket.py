@@ -198,7 +198,7 @@ def _parse_args(argv):
 
 
 def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
-    if path is None and proposals_dir.parent != Path.cwd():
+    if path is None:
         path = proposals_dir.parent / "distil-memory-queue.json"
     records = json.loads((proposals_dir / "proposals.json").read_text())
     proposals = [
