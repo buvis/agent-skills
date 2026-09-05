@@ -103,9 +103,9 @@ def test_scan_supports_astgrep_kind_and_returns_matching_hits(tmp_path):
 
 
 def test_scan_finds_a_dash_prefixed_pattern_via_rg(tmp_path):
-    # Today the pattern is handed to rg as a bare positional argument, so a
-    # leading "-" is parsed as one of rg's own flags instead of being
-    # searched for. This must fail against the current code.
+    # Invariant: a pattern that starts with "-" is searched for, never parsed
+    # as one of rg's own flags. scan() passes "--" before the pattern; drop
+    # that separator and this test goes red.
     repo = _plant_matches(tmp_path / "repo", "-x", 1)
 
     hits, _suppressed, _failed = sweep.scan("-x", "rg", [repo])

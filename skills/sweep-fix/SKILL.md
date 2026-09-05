@@ -39,10 +39,12 @@ python3 ~/.agents/skills/sweep-fix/scripts/sweep.py \
 ```
 
 `--control-repo` is the current repo, where the fix commit lives. `main()`
-resolves the scan tool, enumerates every repo in the gita registry, verifies
-the control term is found in `--control-repo` (aborts loud if not, because an
-unverified empty sweep is not a clean sweep), scans every registered repo,
-renders the report, and writes it under `dev/local/audit-results/`.
+resolves the scan tool, enumerates every repo in the gita registry, scans
+every registered repo, and only when the whole sweep found zero hits checks
+that the control term is present in `--control-repo` (aborting loud if it is,
+because a pattern that misses a known-present term is broken, and an
+unverified empty sweep is not a clean sweep). It then renders the report and
+writes it under `dev/local/audit-results/`.
 
 ### 3. Report
 
@@ -60,9 +62,10 @@ and only after the user approves each one.
 
 ## Dependencies
 
-- `skills/brief-portfolio/scripts/collect.py`: its gita registry read shape
-  (parsing `~/.config/gita/repos.csv`) is reused verbatim by
-  `enumerate_repos()` to list every repo to sweep.
+- `~/.agents/skills/brief-portfolio/scripts/collect.py`: provenance, not a
+  runtime import. `enumerate_repos()` copies its gita registry read shape
+  (parsing `~/.config/gita/repos.csv`) rather than importing it, because that
+  read is inline in `collect.py`'s `main()`; keep the two in step by hand.
 - Claude Code's cartographer-echo hook (a host-local hook, not shipped with
   this skill, so it is not present on every host): its `_resolve_rg()`
   algorithm (cached PATH-then-execpath fallback, for the case where `rg` is
