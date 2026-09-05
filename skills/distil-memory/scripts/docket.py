@@ -44,7 +44,19 @@ def load(path=None):
     p = _resolve_path(path)
     if not p.exists():
         return {"cursor": 0, "entries": []}
-    return json.loads(p.read_text())
+    try:
+        text = p.read_text()
+        data = json.loads(text) if text else None
+    except (OSError, json.JSONDecodeError) as error:
+        raise QueueError(f"cannot read the review queue {p}: {error}") from error
+    if data is None:
+        raise QueueError(f"cannot read the review queue {p}: file is empty")
+    if not isinstance(data, dict):
+        raise QueueError(f"invalid review queue schema in {p}: expected a JSON object (dict), not a {type(data).__name__}")
+    entries = data.get("entries")
+    if not isinstance(entries, list) or not all(isinstance(entry, dict) for entry in entries):
+        raise QueueError(f"invalid review queue schema in {p}: entries must be a list of dict entries")
+    return data
 
 
 def _dropped_at(entries, key, rubric_version):
