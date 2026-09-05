@@ -166,7 +166,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   queue is unreadable, instead of exiting 1 with empty stdout exactly like a
   drained or capped queue. `decide` keeps its exit 1 for a refused decision
   against a readable queue, but also now exits 2 when the queue itself is
-  unreadable.
+  unreadable - and it reads the queue once instead of twice, so a corruption
+  arriving mid-command can no longer come back as a refused decision.
 
 ### Added
 

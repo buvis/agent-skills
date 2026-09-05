@@ -121,17 +121,21 @@ def next_undecided(path=None):
     )
 
 
-def decide(entry_id, state, file_text=None, path=None):
+def decide(entry_id, state, file_text=None, path=None, data=None):
     """Record a "kept"/"dropped" decision for an undecided entry.
 
     Increments both the lifetime cursor and the per-sitting session_decided
     counter; the latter is what next_undecided() checks against PER_RUN_CAP
     and what advance() resets to re-arm the next sitting.
+
+    Pass `data` to decide against a queue the caller has already read, so the
+    read and the decision cannot report different failures for one command.
     """
     if state not in ("kept", "dropped"):
         raise QueueError(f"invalid decision: {state!r}")
     p = _resolve_path(path)
-    data = load(path=p)
+    if data is None:
+        data = load(path=p)
     entry = next(
         (e for e in data["entries"] if e["id"] == entry_id and e["decision"] == "undecided"),
         None,
@@ -224,11 +228,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         elif args.command == "decide":
             file_text = Path(args.file).read_text() if args.file else None
-            # Read the queue first, so an unreadable one leaves through the
-            # exit 2 handler below instead of being reported as a refusal.
-            load()
+            # Read the queue here, once, so an unreadable one leaves through
+            # the exit 2 handler below. decide() then works from what was read
+            # rather than reading again, which is what keeps a read failure out
+            # of the refusal handler entirely.
+            data = load()
             try:
-                decide(args.id, args.state, file_text=file_text)
+                decide(args.id, args.state, file_text=file_text, data=data)
             except QueueError as exc:
                 print(str(exc), file=sys.stderr)
                 return 1
