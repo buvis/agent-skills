@@ -727,13 +727,54 @@ def test_main_save_keeps_each_entrys_dedup_error_matched_to_the_right_entry_in_a
     assert entry_b["dedup_error"] is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="agoge 2026-08-31: load() does not validate, so a corrupt queue raises a bare "
-    "JSONDecodeError the walkthrough cannot tell apart from a drained queue",
-)
 def test_a_corrupt_queue_is_named_as_corrupt_rather_than_read_as_drained(queue_path):
     queue_path.write_text('{"cursor": 0, "entries": [')
 
     with pytest.raises(docket.QueueError):
         docket.next_undecided(path=queue_path)
+
+
+def test_an_empty_queue_file_is_named_as_corrupt_rather_than_read_as_drained(queue_path):
+    queue_path.write_text("")
+
+    with pytest.raises(docket.QueueError) as exc_info:
+        docket.next_undecided(path=queue_path)
+
+    message = str(exc_info.value)
+    assert message
+    assert "empty" in message.lower()
+
+
+def test_a_top_level_json_list_is_named_as_corrupt_rather_than_read_as_drained(queue_path):
+    queue_path.write_text("[]")
+
+    with pytest.raises(docket.QueueError) as exc_info:
+        docket.next_undecided(path=queue_path)
+
+    message = str(exc_info.value)
+    assert message
+    assert any(hint in message.lower() for hint in ("dict", "object", "mapping", "list"))
+
+
+def test_a_queue_missing_the_entries_key_is_named_as_corrupt_rather_than_read_as_drained(
+    queue_path,
+):
+    queue_path.write_text('{"cursor": 0}')
+
+    with pytest.raises(docket.QueueError) as exc_info:
+        docket.next_undecided(path=queue_path)
+
+    message = str(exc_info.value)
+    assert message
+    assert "entries" in message.lower()
+
+
+def test_a_non_dict_entry_in_entries_is_named_as_corrupt_rather_than_read_as_drained(queue_path):
+    queue_path.write_text('{"cursor": 0, "entries": ["not-a-dict"]}')
+
+    with pytest.raises(docket.QueueError) as exc_info:
+        docket.next_undecided(path=queue_path)
+
+    message = str(exc_info.value)
+    assert message
+    assert any(hint in message.lower() for hint in ("entry", "entries", "dict"))
