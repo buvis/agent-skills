@@ -51,7 +51,7 @@ def test_main_save_reads_proposals_json_and_sibling_files_and_prints_added_n_of_
     captured = capsys.readouterr()
     assert "added 1 of 1" in captured.out
 
-    entries = docket.load()["entries"]
+    entries = docket.load(path=proposals_dir.parent / "distil-memory-queue.json")["entries"]
     assert len(entries) == 1
     entry = entries[0]
     assert entry["name"] == "widget-fact"
@@ -83,7 +83,7 @@ def test_main_save_ingests_a_record_whose_existing_text_key_is_absent(tmp_path, 
     assert exit_code == 0
     captured = capsys.readouterr()
     assert "added 1 of 1" in captured.out
-    entries = docket.load()["entries"]
+    entries = docket.load(path=proposals_dir.parent / "distil-memory-queue.json")["entries"]
     assert len(entries) == 1
     assert entries[0]["name"] == "new-fact"
 
@@ -277,7 +277,7 @@ def test_main_save_carries_a_records_dedup_error_into_the_stored_entry(tmp_path,
     exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
 
     assert exit_code == 0
-    entries = docket.load()["entries"]
+    entries = docket.load(path=proposals_dir.parent / "distil-memory-queue.json")["entries"]
     assert len(entries) == 1
     assert entries[0]["dedup_error"] == "could not compare against existing memories: index unavailable"
 
@@ -302,7 +302,7 @@ def test_main_save_ingests_a_record_whose_dedup_error_key_is_absent_and_stores_n
     exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
 
     assert exit_code == 0
-    entries = docket.load()["entries"]
+    entries = docket.load(path=proposals_dir.parent / "distil-memory-queue.json")["entries"]
     assert len(entries) == 1
     assert entries[0]["dedup_error"] is None
 
@@ -341,7 +341,7 @@ def test_main_save_keeps_each_entrys_dedup_error_matched_to_the_right_entry_in_a
     exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
 
     assert exit_code == 0
-    entries = docket.load()["entries"]
+    entries = docket.load(path=proposals_dir.parent / "distil-memory-queue.json")["entries"]
     assert len(entries) == 2
     entry_a = next(e for e in entries if e["name"] == "fact-a")
     entry_b = next(e for e in entries if e["name"] == "fact-b")
