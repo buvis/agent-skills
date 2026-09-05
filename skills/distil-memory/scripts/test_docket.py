@@ -778,3 +778,82 @@ def test_a_non_dict_entry_in_entries_is_named_as_corrupt_rather_than_read_as_dra
     message = str(exc_info.value)
     assert message
     assert any(hint in message.lower() for hint in ("entry", "entries", "dict"))
+
+
+# --queue CLI flag. save, next, decide, and cursor here are exercised through
+# docket.main() with an explicit --queue pointing at a path other than the
+# cwd-derived default, so a subcommand that silently falls back to the
+# default location is caught two ways: the assertion on queue_path's own
+# contents, and the assertion that the default report dir was never created.
+
+
+def test_main_save_next_decide_and_cursor_with_queue_flag_all_operate_on_the_given_path(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    queue_path = tmp_path / "elsewhere" / "q.json"
+    default_report_dir = tmp_path / "dev" / "local" / "audit-results"
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "widget-fact.md").write_text("---\nname: widget-fact\n---\n\nBody text.\n")
+    record = {
+        "name": "widget-fact",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 7,
+        "evidence_text": "evidence for widget",
+        "existing_text": None,
+        "file": "widget-fact.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+
+    save_exit = docket.main(
+        ["save", "--proposals-dir", str(proposals_dir), "--queue", str(queue_path)]
+    )
+
+    assert save_exit == 0
+    assert not default_report_dir.exists()
+    saved_entries = docket.load(path=queue_path)["entries"]
+    assert len(saved_entries) == 1
+    assert saved_entries[0]["id"] == docket.slice_key("t.jsonl", 7)
+    assert saved_entries[0]["decision"] == "undecided"
+
+    next_exit = docket.main(["next", "--queue", str(queue_path)])
+
+    assert next_exit == 0
+    payload = json.loads(capsys.readouterr().out.strip())
+    assert payload["id"] == docket.slice_key("t.jsonl", 7)
+
+    decide_exit = docket.main(["decide", payload["id"], "kept", "--queue", str(queue_path)])
+
+    assert decide_exit == 0
+    assert docket.load(path=queue_path)["entries"][0]["decision"] == "kept"
+
+    capsys.readouterr()
+    cursor_exit = docket.main(["cursor", "--queue", str(queue_path)])
+
+    assert cursor_exit == 0
+    assert capsys.readouterr().out.strip() == "1"
+    assert not default_report_dir.exists()
+
+
+def test_main_start_with_queue_flag_re_arms_the_per_run_cap_at_the_given_path(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+    queue_path = tmp_path / "elsewhere" / "q.json"
+    default_report_dir = tmp_path / "dev" / "local" / "audit-results"
+    proposals = [
+        _proposal(transcript="t.jsonl", line_no=n) for n in range(1, docket.PER_RUN_CAP + 3)
+    ]
+    docket.save(proposals, path=queue_path)
+    for _ in range(docket.PER_RUN_CAP):
+        entry = docket.next_undecided(path=queue_path)
+        docket.decide(entry["id"], "kept", path=queue_path)
+    assert docket.next_undecided(path=queue_path) is None
+
+    exit_code = docket.main(["start", "--queue", str(queue_path)])
+
+    assert exit_code == 0
+    assert docket.next_undecided(path=queue_path) is not None
+    assert not default_report_dir.exists()
