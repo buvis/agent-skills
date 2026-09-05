@@ -47,9 +47,9 @@ def load(path=None):
     try:
         text = p.read_text()
         data = json.loads(text) if text else None
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise QueueError(f"cannot read the review queue {p}: {error}") from error
-    if data is None:
+    if not text:
         raise QueueError(f"cannot read the review queue {p}: file is empty")
     if not isinstance(data, dict):
         raise QueueError(f"invalid review queue schema in {p}: expected a JSON object (dict), not a {type(data).__name__}")

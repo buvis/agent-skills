@@ -156,7 +156,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **distil-memory**: `docket.load()` now raises `QueueError` naming the
   corruption for an unreadable, empty, or structurally invalid review queue,
   instead of leaking a bare `JSONDecodeError`/`KeyError` that looked
-  identical to a drained queue.
+  identical to a drained queue. This now covers a queue whose bytes are not
+  valid UTF-8, which used to escape as an uncaught `UnicodeDecodeError` and
+  crash `next` with exit 1 and empty stdout - byte-for-byte a drained queue -
+  and a queue holding the JSON literal `null`, which used to be reported as
+  an empty file rather than as a payload that is not the queue object.
 - **distil-memory**: `docket.py`'s `next`, `cursor`, `start`, and `save`
   subcommands now exit 2 with the corruption named on stderr when the review
   queue is unreadable, instead of exiting 1 with empty stdout exactly like a
