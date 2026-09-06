@@ -28,14 +28,34 @@ def _target_stem(entry: dict) -> tuple[str, bool]:
     return proposal.sanitise_name(entry["name"]), True
 
 
-def _atomic_write(path: Path, text: str) -> None:
+def _atomic_write(path: Path, data: str | bytes) -> None:
     tmp = path.with_suffix(path.suffix + ".tmp")
     try:
-        tmp.write_text(text)
+        if isinstance(data, bytes):
+            tmp.write_bytes(data)
+        else:
+            tmp.write_text(data)
         tmp.replace(path)
     except OSError:
         tmp.unlink(missing_ok=True)
         raise
+
+
+def _readable_bytes(path: Path) -> bytes:
+    """The bytes `path` holds now, refused as a WriteError when unreadable.
+
+    Bytes rather than text: read_text translates line endings, so a memory
+    written with CRLF would come back punctuated differently. Decoding is
+    only the check that the store can read the file at all, strictly as
+    UTF-8 so that legal non-ASCII passes through untouched. The refusal
+    names the file, because that is what the caller has to repair.
+    """
+    try:
+        raw = path.read_bytes()
+        raw.decode()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise WriteError(f"{path}: {exc}") from exc
+    return raw
 
 
 def write_memory(entry: dict, store_path: Path) -> Path:
@@ -90,7 +110,7 @@ def append_pointer(store_path: Path, entry: dict) -> str | None:
 
     line = _pointer_line(stem, description)
     index_path = store_path / "MEMORY.md"
-    lines = index_path.read_text().splitlines() if index_path.exists() else []
+    lines = _readable_bytes(index_path).decode().splitlines() if index_path.exists() else []
 
     if not is_new:
         for i, existing_line in enumerate(lines):
@@ -104,10 +124,10 @@ def append_pointer(store_path: Path, entry: dict) -> str | None:
     return line
 
 
-def _rollback(target: Path, previous: str | None) -> None:
+def _rollback(target: Path, previous: bytes | None) -> None:
     """Put `target` back the way this run found it.
 
-    `previous` is the text the target held before this run wrote it, or None
+    `previous` is the bytes the target held before this run wrote it, or None
     when this run created it. A rollback that cannot happen is reported rather
     than swallowed: the store is left holding a memory nothing points to.
     """
@@ -143,18 +163,21 @@ def main(argv: list[str] | None = None) -> int:
             target = store_path / f"{stem}.md"
             # read fresh, every run: the entry's own copy of the previous text
             # may be stale, and only the bytes on disk are what a rollback owes
-            # back
-            previous = target.read_text() if target.is_file() else None
+            # back. A target this run cannot read is one to refuse, not to
+            # overwrite: nothing has been written yet, so the store keeps
+            # every byte it came in with.
+            previous = _readable_bytes(target) if target.is_file() else None
             written = write_memory(entry, store_path)
         except (WriteError, KeyError) as exc:
             print(str(exc), file=sys.stderr)
             return 1
         try:
             line = append_pointer(store_path, entry)
-        except (OSError, proposal.ProposalError, KeyError) as exc:
+        except (OSError, WriteError, proposal.ProposalError, KeyError) as exc:
             # the pointer line is built from frontmatter, so this step fails on
             # the entry as well as on the disk: file text carrying no
-            # description, or an update whose existing_text will not parse. The
+            # description, an update whose existing_text will not parse, or an
+            # index this process cannot read (a WriteError naming it). The
             # memory file is already on disk by then, so the store has to go
             # back to the state this run found it in. MEMORY.md needs no
             # restoring: _atomic_write only ever moves a complete file into
