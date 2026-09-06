@@ -211,9 +211,10 @@ test('brief tiles show em dashes and a not-run note when extraction did not run'
   assert.ok(tiles.includes('—decisions'), `tiles were: ${tiles.join(' | ')}`)
   assert.ok(tiles.includes('—actions'), `tiles were: ${tiles.join(' | ')}`)
   assert.ok(tiles.includes('—openquestions'), `tiles were: ${tiles.join(' | ')}`)
+  assert.ok(tiles.includes('—liverisks'), `tiles were: ${tiles.join(' | ')}`)
   assert.equal(
     doc.querySelector('main .muted').textContent.trim(),
-    "The extraction step hasn't run — decisions, actions, and open questions above are not counted.",
+    "The extraction step hasn't run — decisions, actions, open questions, and live risks above are not counted.",
   )
 })
 
