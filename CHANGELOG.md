@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **debrief-meeting**: the live-risks tile no longer shows a false `0` when
+  extraction hasn't run — it now renders `—` like its three sibling tiles,
+  and the not-run note names live risks alongside decisions, actions, and
+  open questions.
 - **capture-experiment**: a title with a backslash no longer breaks the
   note's YAML (backslashes are escaped before quotes, frontmatter only), and
   a second capture in the same second regenerates its id from the clock

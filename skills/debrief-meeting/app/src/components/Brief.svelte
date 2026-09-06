@@ -16,7 +16,7 @@
     [extractRan ? (extract.decisions?.length ?? 0) : na, 'decisions'],
     [extractRan ? (extract.actions?.length ?? 0) : na, 'actions'],
     [extractRan ? open.length : na, 'open questions'],
-    [unresolvedRisks.length, 'live risks'],
+    [extractRan ? unresolvedRisks.length : na, 'live risks'],
   ]
 </script>
 
@@ -27,7 +27,7 @@
       <div class="tile"><div class="n">{value}</div><div class="k">{key}</div></div>
     {/each}
   </div>
-  {#if !extractRan}<p class="muted">The extraction step hasn't run — decisions, actions, and open questions above are not counted.</p>{/if}
+  {#if !extractRan}<p class="muted">The extraction step hasn't run — decisions, actions, open questions, and live risks above are not counted.</p>{/if}
 </section>
 
 {#if extract.tldr?.length}
