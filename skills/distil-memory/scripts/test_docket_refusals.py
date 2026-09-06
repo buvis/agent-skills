@@ -16,6 +16,24 @@ def queue_path(tmp_path):
     return tmp_path / "queue.json"
 
 
+def _record(name, line_no, file=None):
+    """One proposals.json record, the shape save reads from a proposals dir.
+
+    A record names the sibling file carrying its text, so `file` defaults to
+    the record's own name and is only spelled out by a test that needs it to
+    name a file that is not there.
+    """
+    return {
+        "name": name,
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": line_no,
+        "evidence_text": f"evidence for {name.split('-')[0]}",
+        "existing_text": None,
+        "file": file or f"{name}.md",
+    }
+
+
 # An unreadable PROPOSALS directory is a refusal (exit 1), not a queue fault
 # (exit 2) and never a traceback. The three ways in: the directory is absent,
 # proposals.json is not JSON, and a record names a sibling file that is not
@@ -73,24 +91,8 @@ def test_main_save_refuses_the_whole_batch_when_one_record_names_an_absent_file(
     proposals_dir = tmp_path / "proposals"
     proposals_dir.mkdir()
     (proposals_dir / "gadget-note.md").write_text("---\nname: gadget-note\n---\n\nGadget.\n")
-    readable_record = {
-        "name": "gadget-note",
-        "kind": "new",
-        "transcript": "t.jsonl",
-        "line_no": 7,
-        "evidence_text": "evidence for gadget",
-        "existing_text": None,
-        "file": "gadget-note.md",
-    }
-    absent_record = {
-        "name": "cog-note",
-        "kind": "new",
-        "transcript": "t.jsonl",
-        "line_no": 8,
-        "evidence_text": "evidence for cog",
-        "existing_text": None,
-        "file": "never-written.md",
-    }
+    readable_record = _record("gadget-note", 7)
+    absent_record = _record("cog-note", 8, file="never-written.md")
     (proposals_dir / "proposals.json").write_text(json.dumps([readable_record, absent_record]))
 
     exit_code = docket.main(
@@ -121,15 +123,7 @@ def test_main_save_keeps_exit_2_for_the_queue_alone_and_answers_a_bad_proposals_
     readable_proposals = tmp_path / "readable"
     readable_proposals.mkdir()
     (readable_proposals / "flange-fact.md").write_text("---\nname: flange-fact\n---\n\nBody.\n")
-    record = {
-        "name": "flange-fact",
-        "kind": "new",
-        "transcript": "t.jsonl",
-        "line_no": 7,
-        "evidence_text": "evidence for flange",
-        "existing_text": None,
-        "file": "flange-fact.md",
-    }
+    record = _record("flange-fact", 7)
     (readable_proposals / "proposals.json").write_text(json.dumps([record]))
 
     queue_fault = docket.main(
@@ -166,26 +160,7 @@ def test_main_save_still_returns_zero_and_prints_added_n_of_m_for_a_readable_pro
     proposals_dir.mkdir()
     (proposals_dir / "widget-fact.md").write_text("---\nname: widget-fact\n---\n\nBody text.\n")
     (proposals_dir / "sprocket-fact.md").write_text("---\nname: sprocket-fact\n---\n\nMore.\n")
-    records = [
-        {
-            "name": "widget-fact",
-            "kind": "new",
-            "transcript": "t.jsonl",
-            "line_no": 7,
-            "evidence_text": "evidence for widget",
-            "existing_text": None,
-            "file": "widget-fact.md",
-        },
-        {
-            "name": "sprocket-fact",
-            "kind": "new",
-            "transcript": "t.jsonl",
-            "line_no": 8,
-            "evidence_text": "evidence for sprocket",
-            "existing_text": None,
-            "file": "sprocket-fact.md",
-        },
-    ]
+    records = [_record("widget-fact", 7), _record("sprocket-fact", 8)]
     (proposals_dir / "proposals.json").write_text(json.dumps(records))
 
     exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])

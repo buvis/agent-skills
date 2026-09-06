@@ -44,7 +44,7 @@ def test_append_pointer_leaves_memory_md_fully_intact_when_the_move_fails_append
     )
     monkeypatch.setattr(Path, "replace", _raise_replace)
 
-    with pytest.raises(Exception):
+    with pytest.raises(OSError, match="boom"):
         write.append_pointer(store_path, entry)
 
     assert index_path.read_text() == original_text
@@ -69,7 +69,7 @@ def test_append_pointer_leaves_memory_md_fully_intact_when_the_move_fails_replac
     )
     monkeypatch.setattr(Path, "replace", _raise_replace)
 
-    with pytest.raises(Exception):
+    with pytest.raises(OSError, match="boom"):
         write.append_pointer(store_path, entry)
 
     assert index_path.read_text() == original_text
@@ -89,9 +89,10 @@ def test_write_memory_update_leaves_the_existing_file_fully_intact_when_the_move
     )
     monkeypatch.setattr(Path, "replace", _raise_replace)
 
-    with pytest.raises(Exception):
+    with pytest.raises(write.WriteError, match="boom") as raised:
         write.write_memory(entry, store_path)
 
+    assert isinstance(raised.value.__cause__, OSError)
     assert target_path.read_text() == original_text
     assert [p.name for p in store_path.iterdir()] == ["widget-fact.md"]
 
@@ -114,7 +115,7 @@ def test_append_pointer_leaves_no_leftover_tmp_file_when_the_write_step_itself_f
     )
     monkeypatch.setattr(Path, "write_text", _raise_write_text)
 
-    with pytest.raises(Exception):
+    with pytest.raises(OSError, match="boom"):
         write.append_pointer(store_path, entry)
 
     assert [p.name for p in store_path.iterdir()] == ["MEMORY.md"]
@@ -254,6 +255,37 @@ def test_main_write_removes_only_the_new_memory_file_when_the_pointer_write_fail
     assert lines[1] == "- [Widget fact](widget-fact.md) — keeps facts about widgets straight"
     assert (store_path / "widget-fact.md").read_text() == entry["file_text"]
     assert index_path.read_text().splitlines() == [unrelated_line, lines[1]]
+
+
+def test_main_write_leaves_a_store_that_had_no_index_without_one_when_the_pointer_write_fails_and_a_retry_then_succeeds(
+    store_path, monkeypatch, capsys
+):
+    store_path.mkdir()
+    index_path = store_path / "MEMORY.md"
+    entry = _entry(name="widget-fact", kind="new")
+    index_fault = f"index boom {uuid.uuid4()}"
+    monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    failed = capsys.readouterr()
+    assert index_fault in failed.err
+    assert "Traceback" not in failed.err
+    assert failed.out == ""
+    # the store had no index when the run started, so it owes that absence back
+    assert not index_path.exists()
+    assert sorted(p.name for p in store_path.iterdir()) == []
+
+    monkeypatch.setattr(Path, "replace", _REAL_REPLACE)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    retry_status = write.main(["write", "--store", str(store_path)])
+
+    assert retry_status == 0
+    assert (store_path / "widget-fact.md").read_text() == entry["file_text"]
+    assert index_path.read_text() == "- [Widget fact](widget-fact.md) — a fact worth keeping\n"
 
 
 def test_main_write_restores_the_updated_targets_original_text_and_the_index_when_the_pointer_write_fails_and_a_retry_then_succeeds(
@@ -474,6 +506,40 @@ def test_main_write_reports_both_the_pointer_error_and_the_rollback_error_when_t
     assert "widget-fact.md" in captured.err
     assert "rolled back" not in captured.err
     assert sorted(p.name for p in store_path.iterdir()) == ["widget-fact.md"]
+
+
+def test_main_write_reports_both_the_pointer_error_and_the_rollback_error_when_restoring_an_updated_target_fails(
+    store_path, monkeypatch, capsys
+):
+    store_path.mkdir()
+    target_path = store_path / "widget-fact.md"
+    original_text = _file_text(name="widget-fact", description="old description")
+    target_path.write_text(original_text)
+    (store_path / "MEMORY.md").write_text("- [Widget fact](widget-fact.md) — old description\n")
+    new_text = _file_text(name="widget-fact", description="new, more accurate description")
+    entry = _entry(kind="update widget-fact", file_text=new_text, existing_text=original_text)
+    index_fault = f"index boom {uuid.uuid4()}"
+    rollback_fault = f"rollback boom {uuid.uuid4()}"
+
+    # the rollback of an update is the only write in this run that passes bytes
+    def _refuse_to_write_the_previous_bytes_back(self, *args, **kwargs):
+        raise OSError(f"{rollback_fault}: {self}")
+
+    monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
+    monkeypatch.setattr(Path, "write_bytes", _refuse_to_write_the_previous_bytes_back)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    captured = capsys.readouterr()
+    assert index_fault in captured.err
+    assert rollback_fault in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    # the target still holds this run's text, so stderr must not claim otherwise
+    assert target_path.read_text() == new_text
+    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
 
 
 # The index step can fail on the entry itself, not just on the filesystem: the
