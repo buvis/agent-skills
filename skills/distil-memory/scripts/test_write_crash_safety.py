@@ -377,6 +377,46 @@ def test_main_write_restores_the_targets_bytes_from_disk_when_the_pointer_write_
     assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
 
 
+def test_main_write_restores_the_update_targets_crlf_bytes_exactly_when_the_pointer_write_fails(
+    store_path, monkeypatch, capsys
+):
+    store_path.mkdir()
+    target_path = store_path / "widget-fact.md"
+    # the memory on disk was written with CRLF line endings, so a rollback that
+    # snapshots it as text and writes it back loses every \r without noticing
+    original_target_bytes = (
+        _file_text(name="widget-fact", description="old description").replace("\n", "\r\n").encode()
+    )
+    target_path.write_bytes(original_target_bytes)
+    assert b"\r\n" in original_target_bytes
+    index_path = store_path / "MEMORY.md"
+    index_path.write_text("- [Widget fact](widget-fact.md) — old description\n")
+    original_index_bytes = index_path.read_bytes()
+    new_text = _file_text(name="widget-fact", description="new, more accurate description")
+    entry = _entry(
+        name="widget-fact",
+        kind="update widget-fact",
+        file_text=new_text,
+        # the proposal's copy of the previous text carries plain newlines: only
+        # the bytes on disk say how that memory is really punctuated
+        existing_text=_file_text(name="widget-fact", description="old description"),
+    )
+    index_fault = f"index boom {uuid.uuid4()}"
+    monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    captured = capsys.readouterr()
+    assert index_fault in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert target_path.read_bytes() == original_target_bytes
+    assert index_path.read_bytes() == original_index_bytes
+    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
+
+
 def test_main_write_leaves_the_update_target_and_the_index_untouched_when_the_file_text_will_not_parse(
     store_path, monkeypatch, capsys
 ):
@@ -545,3 +585,149 @@ def test_main_write_leaves_the_store_untouched_and_reports_the_reason_when_the_e
     assert unrelated_path.read_text() == unrelated_text
     assert index_path.read_bytes() == original_index_bytes
     assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "other-thing.md"]
+
+
+# The store's own files can defeat the run before it writes anything: an index
+# or a target the process cannot decode or cannot open. That is a reason to
+# refuse, not a reason to crash, and refusing means the store keeps every byte
+# it had, so the caller can repair it and re-run the same write.
+
+
+def _refuses_to_decode(raw):
+    """These bytes really are unreadable as UTF-8, not merely suspicious-looking."""
+    try:
+        raw.decode()
+    except UnicodeDecodeError:
+        return True
+    return False
+
+
+def _not_utf_8_flavours(prefix):
+    """Four unrelated ways to be undecodable, appended to otherwise readable text.
+
+    They share no byte pattern, so nothing short of decoding tells all four
+    apart from a file the store can read.
+    """
+    return [
+        pytest.param(prefix.encode() + b"\xff\xfe not utf-8\n", id="utf-16-byte-order-mark"),
+        pytest.param(prefix.encode() + b"\x80 not utf-8\n", id="bare-continuation-byte"),
+        pytest.param(prefix.encode() + b"\xc3 not utf-8\n", id="truncated-two-byte-sequence"),
+        pytest.param((prefix + "café\n").encode("utf-16-le"), id="utf-16le-without-a-bom"),
+    ]
+
+
+@pytest.mark.parametrize("original_index_bytes", _not_utf_8_flavours("- [X](x.md) "))
+def test_main_write_refuses_a_store_whose_index_is_not_valid_utf_8_and_a_repaired_index_then_lets_the_same_write_through(
+    original_index_bytes, store_path, monkeypatch, capsys
+):
+    store_path.mkdir()
+    index_path = store_path / "MEMORY.md"
+    assert _refuses_to_decode(original_index_bytes)
+    index_path.write_bytes(original_index_bytes)
+    entry = _entry(
+        name="widget-fact",
+        kind="new",
+        file_text=_file_text(name="widget-fact", description="keeps facts about widgets straight"),
+    )
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    failed = capsys.readouterr()
+    # a refusal that does not name the file it choked on tells the caller
+    # nothing about what to repair
+    assert "MEMORY.md" in failed.err
+    assert "Traceback" not in failed.err
+    assert failed.out == ""
+    assert not (store_path / "widget-fact.md").exists()
+    assert index_path.read_bytes() == original_index_bytes
+    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md"]
+
+    # the recovery is to repair the index and re-run the same write, which only
+    # works while no memory file from the refused run is left in the way
+    index_path.write_text("- [X](x.md) — a readable pointer\n")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    retry_status = write.main(["write", "--store", str(store_path)])
+
+    assert retry_status == 0
+    retried = capsys.readouterr()
+    lines = retried.out.splitlines()
+    assert lines[0] == str(store_path / "widget-fact.md")
+    assert lines[1] == "- [Widget fact](widget-fact.md) — keeps facts about widgets straight"
+    assert (store_path / "widget-fact.md").read_text() == entry["file_text"]
+    assert index_path.read_text().splitlines() == ["- [X](x.md) — a readable pointer", lines[1]]
+
+
+@pytest.mark.parametrize(
+    "original_target_bytes",
+    _not_utf_8_flavours(_file_text(name="widget-fact", description="old description")),
+)
+def test_main_write_refuses_an_update_whose_target_bytes_are_not_valid_utf_8_and_leaves_both_files_byte_identical(
+    original_target_bytes, store_path, monkeypatch, capsys
+):
+    store_path.mkdir()
+    target_path = store_path / "widget-fact.md"
+    assert _refuses_to_decode(original_target_bytes)
+    target_path.write_bytes(original_target_bytes)
+    index_path = store_path / "MEMORY.md"
+    index_path.write_text("- [Widget fact](widget-fact.md) — old description\n")
+    original_index_bytes = index_path.read_bytes()
+    entry = _entry(
+        name="widget-fact",
+        kind="update widget-fact",
+        file_text=_file_text(name="widget-fact", description="new, more accurate description"),
+        existing_text=_file_text(name="widget-fact", description="old description"),
+    )
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    captured = capsys.readouterr()
+    # the memory it could not read is the one thing the caller has to hear about
+    assert "widget-fact.md" in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    # nothing had been written when the read failed, so the refusal costs the
+    # store nothing: both files keep the bytes they came in with
+    assert target_path.read_bytes() == original_target_bytes
+    assert index_path.read_bytes() == original_index_bytes
+    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
+
+
+@pytest.mark.skipif(os.getuid() == 0, reason="root opens a 0o000 file whatever its mode says")
+def test_main_write_refuses_an_update_whose_target_cannot_be_read_and_leaves_both_files_byte_identical(
+    store_path, monkeypatch, capsys
+):
+    store_path.mkdir()
+    target_path = store_path / "widget-fact.md"
+    original_text = _file_text(name="widget-fact", description="old description")
+    target_path.write_text(original_text)
+    original_target_bytes = target_path.read_bytes()
+    index_path = store_path / "MEMORY.md"
+    index_path.write_text("- [Widget fact](widget-fact.md) — old description\n")
+    original_index_bytes = index_path.read_bytes()
+    entry = _entry(
+        name="widget-fact",
+        kind="update widget-fact",
+        file_text=_file_text(name="widget-fact", description="new, more accurate description"),
+        existing_text=original_text,
+    )
+    target_path.chmod(0o000)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert target_path.exists()
+    target_path.chmod(0o644)
+    assert status == 1
+    captured = capsys.readouterr()
+    # the memory it could not open is the one thing the caller has to hear about
+    assert "widget-fact.md" in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert target_path.read_bytes() == original_target_bytes
+    assert index_path.read_bytes() == original_index_bytes
+    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
