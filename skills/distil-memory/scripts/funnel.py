@@ -357,7 +357,9 @@ def _type_proposal(
         kind = dedup.classify(candidate, candidates)
     except FileNotFoundError:
         raise
-    except (RuntimeError, subprocess.TimeoutExpired, OSError) as exc:
+    except subprocess.TimeoutExpired as exc:
+        return replace(candidate, dedup_error=f"the typing call timed out after {exc.timeout}s")
+    except (RuntimeError, OSError) as exc:
         return replace(candidate, dedup_error=f"the typing call failed: {exc}")
     existing_text = dict(candidates).get(proposal.updated_name(kind))
     return replace(candidate, kind=kind, existing_text=existing_text)
