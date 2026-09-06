@@ -35,6 +35,34 @@ def _entry(name="widget-fact", kind="new", file_text=None, existing_text=None):
     }
 
 
+def _parser_message(file_text):
+    """The message proposal.parse_frontmatter itself reports for a file_text it refuses."""
+    try:
+        proposal.parse_frontmatter(file_text)
+    except proposal.ProposalError as exc:
+        return str(exc)
+    pytest.fail(f"expected proposal.parse_frontmatter to reject {file_text!r}")
+
+
+# file_texts the frontmatter parser refuses. The last three open and close their
+# --- block correctly, so only a real YAML parse can tell they are broken. The
+# last one is a _file_text() output with a defect injected into one value, so it
+# carries the same name, the same description key, the same metadata/type block
+# and the same body as the valid fixtures: no surface feature separates it from
+# a good file, and nothing but parsing it can decide it.
+MALFORMED_FILE_TEXTS = [
+    pytest.param("no frontmatter here\n", id="no-opening-marker"),
+    pytest.param(
+        "---\nname: widget-fact\ndescription: a fact worth keeping\n", id="no-closing-marker"
+    ),
+    pytest.param("---\n- a\n- b\n---\n\nBody.\n", id="sequence-not-mapping"),
+    pytest.param("---\nname: [unclosed\n---\n\nBody.\n", id="unparseable-yaml"),
+    pytest.param(
+        _file_text(description="[unclosed"), id="unparseable-yaml-with-full-metadata-block"
+    ),
+]
+
+
 @pytest.fixture
 def store_path(tmp_path):
     return tmp_path / "memory"
@@ -112,6 +140,68 @@ def test_write_memory_update_targets_the_file_named_by_kind_even_when_file_texts
     assert written == store_path / "widget-fact.md"
     assert written.read_text() == new_text
     assert not (store_path / "totally-different-name.md").exists()
+
+
+@pytest.mark.parametrize("malformed", MALFORMED_FILE_TEXTS)
+def test_write_memory_raises_the_parsers_own_message_and_leaves_the_store_empty_when_file_text_will_not_parse(
+    store_path, malformed
+):
+    store_path.mkdir()
+    parser_message = _parser_message(malformed)
+    entry = _entry(name="widget-fact", kind="new", file_text=malformed)
+
+    with pytest.raises(write.WriteError) as raised:
+        write.write_memory(entry, store_path)
+
+    assert parser_message in str(raised.value)
+    assert isinstance(raised.value.__cause__, proposal.ProposalError)
+    assert list(store_path.iterdir()) == []
+
+
+def test_write_memory_writes_file_text_whose_frontmatter_parses_even_when_it_is_not_the_usual_shape(
+    store_path,
+):
+    store_path.mkdir()
+    # A valid _file_text() with one unremarkable extra line in the frontmatter:
+    # the parser accepts it, so the write must too. Rejecting whatever looks
+    # unfamiliar is as wrong as accepting whatever looks familiar.
+    unusual_but_valid = _file_text(name="widget-fact").replace(
+        "---\n\n", "# a note for whoever reads this next\n---\n\n"
+    )
+    assert unusual_but_valid != _file_text(name="widget-fact")
+    proposal.parse_frontmatter(unusual_but_valid)
+    entry = _entry(name="widget-fact", kind="new", file_text=unusual_but_valid)
+
+    written = write.write_memory(entry, store_path)
+
+    assert written == store_path / "widget-fact.md"
+    assert written.read_text() == unusual_but_valid
+    assert [p.name for p in store_path.iterdir()] == ["widget-fact.md"]
+
+
+def test_write_memory_rejects_malformed_file_text_for_an_update_without_touching_the_existing_file(
+    store_path,
+):
+    store_path.mkdir()
+    target_path = store_path / "widget-fact.md"
+    original_text = _file_text(name="widget-fact", description="old description")
+    target_path.write_text(original_text)
+    malformed = "---\n- a\n- b\n---\n\nBody.\n"
+    parser_message = _parser_message(malformed)
+    entry = _entry(
+        name="widget-fact",
+        kind="update widget-fact",
+        file_text=malformed,
+        existing_text=original_text,
+    )
+
+    with pytest.raises(write.WriteError) as raised:
+        write.write_memory(entry, store_path)
+
+    assert parser_message in str(raised.value)
+    assert isinstance(raised.value.__cause__, proposal.ProposalError)
+    assert target_path.read_text() == original_text
+    assert [p.name for p in store_path.iterdir()] == ["widget-fact.md"]
 
 
 def test_append_pointer_new_creates_memory_md_with_one_parseable_line_when_it_is_absent(store_path):
@@ -471,6 +561,40 @@ def test_main_write_reports_the_write_errors_message_to_stderr_and_returns_one_w
     assert (store_path / "widget-fact.md").read_text() == "original content"
 
 
+@pytest.mark.parametrize(
+    ("malformed", "expected_message"),
+    [
+        pytest.param(
+            "no frontmatter here\n",
+            "file does not open with a --- frontmatter marker",
+            id="no-opening-marker",
+        ),
+        pytest.param(
+            "---\n- a\n- b\n---\n\nBody.\n",
+            "frontmatter is not a YAML mapping",
+            id="sequence-not-mapping",
+        ),
+    ],
+)
+def test_main_write_reports_the_frontmatter_parse_failure_and_returns_one_leaving_the_store_empty(
+    tmp_path, store_path, monkeypatch, capsys, malformed, expected_message
+):
+    monkeypatch.chdir(tmp_path)
+    store_path.mkdir()
+    assert _parser_message(malformed) == expected_message
+    entry = _entry(name="widget-fact", kind="new", file_text=malformed)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    captured = capsys.readouterr()
+    assert expected_message in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert list(store_path.iterdir()) == []
+
+
 # Crash safety: every write this module performs must be atomic, so a process
 # dying during the final move step leaves the target holding its complete
 # previous content, never a partial write, and no stray temp file behind.
@@ -572,6 +696,23 @@ def test_append_pointer_leaves_no_leftover_tmp_file_when_the_write_step_itself_f
         write.append_pointer(store_path, entry)
 
     assert [p.name for p in store_path.iterdir()] == ["MEMORY.md"]
+
+
+def test_write_memory_rejects_malformed_file_text_before_it_reaches_the_write_step(
+    store_path, monkeypatch
+):
+    store_path.mkdir()
+    malformed = "---\nname: [unclosed\n---\n\nBody.\n"
+    parser_message = _parser_message(malformed)
+    entry = _entry(name="widget-fact", kind="new", file_text=malformed)
+    monkeypatch.setattr(Path, "write_text", _raise_write_text)
+
+    with pytest.raises(write.WriteError) as raised:
+        write.write_memory(entry, store_path)
+
+    assert parser_message in str(raised.value)
+    assert isinstance(raised.value.__cause__, proposal.ProposalError)
+    assert list(store_path.iterdir()) == []
 
 
 @pytest.mark.xfail(
