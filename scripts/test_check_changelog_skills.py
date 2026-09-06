@@ -92,15 +92,18 @@ class TestFindMissing:
         assert c.find_missing(skills_dir, changelog) == []
 
     def test_substring_matching_requires_literal_substring(self, tmp_path):
-        """Skill name must appear as literal substring, not similar."""
+        """Literal substring matching: embedded in longer word counts as found."""
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
         (skills_dir / "foo").mkdir()
+        (skills_dir / "fu").mkdir()
 
         changelog = tmp_path / "CHANGELOG.md"
         changelog.write_text("# Changelog\n\n**foobar**: added feature\n")
 
-        assert c.find_missing(skills_dir, changelog) == ["foo"]
+        # "foo" is a literal substring of "foobar" (chars 0-3), so it's found.
+        # "fu" is NOT a substring of "foobar", so it's missing.
+        assert c.find_missing(skills_dir, changelog) == ["fu"]
 
     def test_multiple_missing_skills_returned_sorted(self, tmp_path):
         """Multiple missing skills returned in sorted order."""
