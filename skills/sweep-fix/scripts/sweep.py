@@ -573,6 +573,9 @@ def main(argv=None):
     """
     args = _parse_args(argv)
 
+    cwd_path = Path(args.cwd).resolve()
+    out_path = _resolve_report_path(cwd_path, args.out, args.reason)
+
     try:
         repos, gaps = enumerate_repos(args.registry, args.cwd)
         hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap)
@@ -589,9 +592,6 @@ def main(argv=None):
         "control_term": args.control_term,
     }
     report = render_report(derivation, hits, gaps, suppressed, failed)
-
-    cwd_path = Path(args.cwd).resolve()
-    out_path = _resolve_report_path(cwd_path, args.out, args.reason)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(report)
