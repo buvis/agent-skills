@@ -48,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **sweep-fix**: a mistyped `--out` is now refused before any repo is
+  searched, instead of after every repo has already been scanned and the
+  results thrown away.
 - **survey**: build and dependency directories (`node_modules`, `build`,
   `__pycache__`, `.venv`, …) are now pruned at every depth, not just at the
   top level, so a brief samples real source instead of compiled bytecode, and
