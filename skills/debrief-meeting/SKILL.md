@@ -147,6 +147,7 @@ quotes, numbers, jargon, cleanup log).
 ## Tests
 
 ```bash
+npm --prefix ~/.agents/skills/debrief-meeting/app install
 python3 -m pytest ~/.agents/skills/debrief-meeting/scripts/test_parse.py ~/.agents/skills/debrief-meeting/scripts/test_debrief_build.py -q
 npm --prefix ~/.agents/skills/debrief-meeting/app test
 ```

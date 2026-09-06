@@ -48,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **brief-portfolio**: the documented `## Tests` command block now installs
   before it tests, instead of dying with `ERR_MODULE_NOT_FOUND` on a fresh
   clone that has never run `npm install`.
+- **debrief-meeting**: the documented `## Tests` command block now installs
+  before it tests, instead of dying with `ERR_MODULE_NOT_FOUND` on a fresh
+  clone that has never run `npm install`.
 - **debrief-meeting**: the live-risks tile no longer shows a false `0` when
   extraction hasn't run — it now renders `—` like its three sibling tiles,
   and the not-run note names live risks alongside decisions, actions, and
