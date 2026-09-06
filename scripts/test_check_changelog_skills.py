@@ -7,6 +7,44 @@ sys.path.insert(0, str(Path(__file__).parent))
 import check_changelog_skills as c
 
 
+def _skills_tree(tmp_path: Path, changelog_text: str = "# Changelog\n") -> tuple[Path, Path]:
+    """Create an empty skills/ dir and a CHANGELOG.md with the given text under tmp_path."""
+    skills_dir = tmp_path / "skills"
+    skills_dir.mkdir()
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text(changelog_text)
+    return skills_dir, changelog
+
+
+def test_reports_a_skill_dir_absent_from_the_changelog(tmp_path):
+    """A skill directory not named in the changelog is reported missing."""
+    skills_dir, changelog = _skills_tree(tmp_path)
+    unlisted = skills_dir / "zz-unlisted"
+    unlisted.mkdir()
+    (unlisted / "SKILL.md").write_text("# zz-unlisted\n")
+
+    assert c.find_missing(skills_dir, changelog) == ["zz-unlisted"]
+
+
+def test_passes_when_every_skill_dir_is_named(tmp_path):
+    """No missing skills when every skill dir name appears in the changelog."""
+    skills_dir, changelog = _skills_tree(
+        tmp_path, "# Changelog\n\n**skill-alpha**: added\n**skill-beta**: fixed\n"
+    )
+    (skills_dir / "skill-alpha").mkdir()
+    (skills_dir / "skill-beta").mkdir()
+
+    assert c.find_missing(skills_dir, changelog) == []
+
+
+def test_grandfathered_name_is_skipped(tmp_path):
+    """A grandfathered skill dir not in the changelog is not reported missing."""
+    skills_dir, changelog = _skills_tree(tmp_path)
+    (skills_dir / "python-patterns").mkdir()
+
+    assert "python-patterns" not in c.find_missing(skills_dir, changelog)
+
+
 class TestGrandfathered:
     """GRANDFATHERED constant holds exactly 14 verified names."""
 
@@ -41,65 +79,23 @@ class TestFindMissing:
 
     def test_empty_skills_dir_returns_empty_list(self, tmp_path):
         """No skills, no missing skills."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
+        skills_dir, changelog = _skills_tree(tmp_path)
         assert c.find_missing(skills_dir, changelog) == []
 
     def test_skill_named_in_changelog_not_missing(self, tmp_path):
         """Skill found as substring in changelog is not missing."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        skills_dir, changelog = _skills_tree(
+            tmp_path, "# Changelog\n\n**my-skill**: fixed something\n"
+        )
         (skills_dir / "my-skill").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\n**my-skill**: fixed something\n")
-
-        assert c.find_missing(skills_dir, changelog) == []
-
-    def test_skill_not_named_in_changelog_is_missing(self, tmp_path):
-        """Skill not found in changelog is missing and returned."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        (skills_dir / "my-skill").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
-
-        assert c.find_missing(skills_dir, changelog) == ["my-skill"]
-
-    def test_grandfathered_not_in_changelog_not_missing(self, tmp_path):
-        """Grandfathered name not in changelog is still not missing."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        (skills_dir / "catchup-ecc").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
-
-        assert c.find_missing(skills_dir, changelog) == []
-
-    def test_substring_matching_finds_skill(self, tmp_path):
-        """Substring match counts: if changelog contains skill name, it's found."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        (skills_dir / "foo").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\n**foo**: added feature\n")
 
         assert c.find_missing(skills_dir, changelog) == []
 
     def test_substring_matching_requires_literal_substring(self, tmp_path):
         """Literal substring matching: embedded in longer word counts as found."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        skills_dir, changelog = _skills_tree(tmp_path, "# Changelog\n\n**foobar**: added feature\n")
         (skills_dir / "foo").mkdir()
         (skills_dir / "fu").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\n**foobar**: added feature\n")
 
         # "foo" is a literal substring of "foobar" (chars 0-3), so it's found.
         # "fu" is NOT a substring of "foobar", so it's missing.
@@ -107,115 +103,42 @@ class TestFindMissing:
 
     def test_multiple_missing_skills_returned_sorted(self, tmp_path):
         """Multiple missing skills returned in sorted order."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "zebra").mkdir()
         (skills_dir / "apple").mkdir()
         (skills_dir / "middle").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
 
         result = c.find_missing(skills_dir, changelog)
         assert result == ["apple", "middle", "zebra"]
 
     def test_mixed_present_and_missing(self, tmp_path):
         """Mix of present and missing skills; only missing returned."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        skills_dir, changelog = _skills_tree(
+            tmp_path, "# Changelog\n\n**in-changelog**: something\n"
+        )
         (skills_dir / "in-changelog").mkdir()
         (skills_dir / "not-in-changelog").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\n**in-changelog**: something\n")
 
         result = c.find_missing(skills_dir, changelog)
         assert result == ["not-in-changelog"]
 
     def test_grandfathered_and_missing_mixed(self, tmp_path):
         """Grandfathered skipped, only non-grandfathered missing returned."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "catchup-ecc").mkdir()
         (skills_dir / "some-new-skill").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
 
         result = c.find_missing(skills_dir, changelog)
         assert result == ["some-new-skill"]
 
-    def test_skill_with_hyphens_matched_exactly(self, tmp_path):
-        """Hyphenated skill name matched exactly as substring."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        (skills_dir / "my-skill-name").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\n**my-skill-name**: update\n")
-
-        assert c.find_missing(skills_dir, changelog) == []
-
     def test_ignores_non_directory_files_in_skills_dir(self, tmp_path):
         """Only directories under skills_dir are checked, not files."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "readme.txt").write_text("x")
         (skills_dir / "skill-dir").mkdir()
 
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
-
         result = c.find_missing(skills_dir, changelog)
         assert result == ["skill-dir"]
-
-    def test_changelog_content_is_searched_literally(self, tmp_path):
-        """Changelog text is searched for exact substring of skill name."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        (skills_dir / "test").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\nTesting framework added.\n")
-
-        result = c.find_missing(skills_dir, changelog)
-        assert result == []
-
-    def test_reports_a_skill_dir_absent_from_the_changelog(self, tmp_path):
-        """A skill directory not named in the changelog is reported missing."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        unlisted = skills_dir / "zz-unlisted"
-        unlisted.mkdir()
-        (unlisted / "SKILL.md").write_text("# zz-unlisted\n")
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
-
-        assert c.find_missing(skills_dir, changelog) == ["zz-unlisted"]
-
-    def test_passes_when_every_skill_dir_is_named(self, tmp_path):
-        """No missing skills when every skill dir name appears in the changelog."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        (skills_dir / "skill-alpha").mkdir()
-        (skills_dir / "skill-beta").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\n**skill-alpha**: added\n**skill-beta**: fixed\n")
-
-        assert c.find_missing(skills_dir, changelog) == []
-
-    def test_grandfathered_name_is_skipped(self, tmp_path):
-        """A grandfathered skill dir not in the changelog is not reported missing."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        (skills_dir / "python-patterns").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
-
-        assert "python-patterns" not in c.find_missing(skills_dir, changelog)
 
 
 class TestMain:
@@ -223,13 +146,9 @@ class TestMain:
 
     def test_main_exit_0_when_no_missing(self, tmp_path, monkeypatch, capsys):
         """Exit 0 and print nothing when all skills are in changelog."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path, "# Changelog\n\n**my-skill**: added\n")
         (skills_dir / "my-skill").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\n**my-skill**: added\n")
 
         exit_code = c.main()
         assert exit_code == 0
@@ -239,109 +158,80 @@ class TestMain:
 
     def test_main_exit_1_when_missing_skills(self, tmp_path, monkeypatch, capsys):
         """Exit 1 and print to stderr when skills are missing."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "missing-skill").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
 
         exit_code = c.main()
         assert exit_code == 1
         captured = capsys.readouterr()
         assert captured.out == ""
-        assert "missing-skill: not named in CHANGELOG.md" in captured.err
+        assert captured.err == "missing-skill: not named in CHANGELOG.md\n"
 
     def test_main_stderr_format_one_line_per_missing(self, tmp_path, monkeypatch, capsys):
         """Each missing skill printed to stderr in format '<name>: not named in CHANGELOG.md'."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "alpha").mkdir()
         (skills_dir / "beta").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
 
         exit_code = c.main()
         assert exit_code == 1
         captured = capsys.readouterr()
-        lines = captured.err.strip().split("\n")
-        assert len(lines) == 2
-        assert "alpha: not named in CHANGELOG.md" in captured.err
-        assert "beta: not named in CHANGELOG.md" in captured.err
+        assert captured.err == (
+            "alpha: not named in CHANGELOG.md\nbeta: not named in CHANGELOG.md\n"
+        )
 
     def test_main_missing_skills_printed_sorted_order(self, tmp_path, monkeypatch, capsys):
         """Missing skills printed in sorted order."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "z-skill").mkdir()
         (skills_dir / "a-skill").mkdir()
         (skills_dir / "m-skill").mkdir()
 
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
-
         c.main()
         captured = capsys.readouterr()
-        lines = captured.err.strip().split("\n")
-        assert lines[0].startswith("a-skill:")
-        assert lines[1].startswith("m-skill:")
-        assert lines[2].startswith("z-skill:")
+        assert captured.err == (
+            "a-skill: not named in CHANGELOG.md\n"
+            "m-skill: not named in CHANGELOG.md\n"
+            "z-skill: not named in CHANGELOG.md\n"
+        )
 
-    def test_main_with_argv_parameter(self, tmp_path, capsys):
-        """main(argv) accepts explicit argv for testing."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+    def test_main_with_argv_parameter(self, tmp_path, monkeypatch):
+        """main(argv) accepts an explicit argv and still returns the exact exit code."""
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path, "# Changelog\n\n**test-skill**: added\n")
         (skills_dir / "test-skill").mkdir()
 
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
+        assert c.main(argv=[]) == 0
 
-        result = c.main(argv=None)
-        assert result in (0, 1)
-
-    def test_main_resolves_skills_and_changelog_from_repo_root(self, tmp_path, monkeypatch, capsys):
+    def test_main_resolves_skills_and_changelog_from_repo_root(self, tmp_path, monkeypatch):
         """main() resolves skills/ and CHANGELOG.md from repo root."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path, "# Changelog\n\n**found-skill**: added\n")
         (skills_dir / "found-skill").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\n**found-skill**: added\n")
 
         exit_code = c.main()
         assert exit_code == 0
 
     def test_main_grandfathered_excluded_from_missing(self, tmp_path, monkeypatch, capsys):
         """Grandfathered skills not in changelog are not reported as missing."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "catchup-ecc").mkdir()
         (skills_dir / "actual-missing").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
 
         exit_code = c.main()
         assert exit_code == 1
         captured = capsys.readouterr()
-        assert "catchup-ecc" not in captured.err
-        assert "actual-missing: not named in CHANGELOG.md" in captured.err
+        assert captured.err == "actual-missing: not named in CHANGELOG.md\n"
 
     def test_main_no_output_on_stdout_ever(self, tmp_path, monkeypatch, capsys):
         """main() never prints to stdout, only stderr."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "missing").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
 
         c.main()
         captured = capsys.readouterr()
@@ -353,15 +243,9 @@ class TestIntegration:
 
     def test_real_changelog_like_structure(self, tmp_path, monkeypatch, capsys):
         """Test with a changelog that resembles the real structure."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        (skills_dir / "skill-one").mkdir()
-        (skills_dir / "skill-two").mkdir()
-        (skills_dir / "skill-three").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text(
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(
+            tmp_path,
             "# Changelog\n\n"
             "## [Unreleased]\n\n"
             "### Added\n\n"
@@ -369,24 +253,21 @@ class TestIntegration:
             "- **skill-two**: enhancement\n"
             "\n"
             "### Fixed\n\n"
-            "- **skill-two**: bug fix\n"
+            "- **skill-two**: bug fix\n",
         )
+        (skills_dir / "skill-one").mkdir()
+        (skills_dir / "skill-two").mkdir()
+        (skills_dir / "skill-three").mkdir()
 
         exit_code = c.main()
         assert exit_code == 1
         captured = capsys.readouterr()
-        assert "skill-one: not named in CHANGELOG.md" not in captured.err
-        assert "skill-two: not named in CHANGELOG.md" not in captured.err
-        assert "skill-three: not named in CHANGELOG.md" in captured.err
+        assert captured.err == "skill-three: not named in CHANGELOG.md\n"
 
     def test_acceptance_no_missing_exit_0_no_output(self, tmp_path, monkeypatch, capsys):
         """Acceptance: no missing -> exit 0, nothing on stdout/stderr."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        _skills_tree(tmp_path)
 
         exit_code = c.main()
         assert exit_code == 0
@@ -396,20 +277,15 @@ class TestIntegration:
 
     def test_acceptance_missing_exit_1_stderr_format(self, tmp_path, monkeypatch, capsys):
         """Acceptance: missing -> exit 1, one line per miss on stderr."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "one").mkdir()
         (skills_dir / "two").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
 
         exit_code = c.main()
         assert exit_code == 1
         captured = capsys.readouterr()
-        assert "one: not named in CHANGELOG.md" in captured.err
-        assert "two: not named in CHANGELOG.md" in captured.err
+        assert captured.err == "one: not named in CHANGELOG.md\ntwo: not named in CHANGELOG.md\n"
 
 
 class TestFindMissingCaseSensitivity:
@@ -456,20 +332,16 @@ class TestMainPathResolution:
 
 
 class TestMainStderrContract:
-    """main() writes exactly one '<name>: not named in CHANGELOG.md' line per missing name, sorted, and nothing else."""
+    """main() writes exactly one sorted stderr line per missing name, and nothing else."""
 
     def test_stderr_is_exactly_sorted_missing_lines_and_nothing_else(
         self, tmp_path, monkeypatch, capsys
     ):
         """Complete stderr equals the sorted, formatted missing-name lines, no more and no less."""
-        monkeypatch.chdir(tmp_path)
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
+        skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "zeta").mkdir()
         (skills_dir / "delta").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n")
 
         exit_code = c.main()
 
@@ -477,6 +349,5 @@ class TestMainStderrContract:
         captured = capsys.readouterr()
         assert captured.out == ""
         assert captured.err == (
-            "delta: not named in CHANGELOG.md\n"
-            "zeta: not named in CHANGELOG.md\n"
+            "delta: not named in CHANGELOG.md\nzeta: not named in CHANGELOG.md\n"
         )
