@@ -410,3 +410,73 @@ class TestIntegration:
         captured = capsys.readouterr()
         assert "one: not named in CHANGELOG.md" in captured.err
         assert "two: not named in CHANGELOG.md" in captured.err
+
+
+class TestFindMissingCaseSensitivity:
+    """find_missing matches a skill name against the changelog text case-sensitively."""
+
+    def test_different_case_occurrence_is_reported_missing(self, tmp_path):
+        """A skill named only in a different letter case in the changelog is missing."""
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
+        (skills_dir / "alpha").mkdir()
+
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# Changelog\n\nAlpha was released today.\n")
+
+        assert c.find_missing(skills_dir, changelog) == ["alpha"]
+
+    def test_exact_case_occurrence_embedded_in_longer_word_is_not_missing(self, tmp_path):
+        """An exact-case occurrence counts as named even embedded inside a longer word."""
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
+        (skills_dir / "beta").mkdir()
+
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# Changelog\n\nSee prebetatest for details.\n")
+
+        assert c.find_missing(skills_dir, changelog) == []
+
+
+class TestMainPathResolution:
+    """main() resolves this repository's own skills/ and CHANGELOG.md, not paths relative to cwd."""
+
+    def test_checks_real_repo_when_cwd_has_neither_skills_nor_changelog(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """main() still checks this repo's real skills/ and CHANGELOG.md when cwd has neither."""
+        monkeypatch.chdir(tmp_path)
+
+        exit_code = c.main()
+
+        assert exit_code == 0
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert captured.err == ""
+
+
+class TestMainStderrContract:
+    """main() writes exactly one '<name>: not named in CHANGELOG.md' line per missing name, sorted, and nothing else."""
+
+    def test_stderr_is_exactly_sorted_missing_lines_and_nothing_else(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """Complete stderr equals the sorted, formatted missing-name lines, no more and no less."""
+        monkeypatch.chdir(tmp_path)
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
+        (skills_dir / "zeta").mkdir()
+        (skills_dir / "delta").mkdir()
+
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# Changelog\n")
+
+        exit_code = c.main()
+
+        assert exit_code == 1
+        captured = capsys.readouterr()
+        assert captured.out == ""
+        assert captured.err == (
+            "delta: not named in CHANGELOG.md\n"
+            "zeta: not named in CHANGELOG.md\n"
+        )
