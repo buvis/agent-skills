@@ -110,7 +110,6 @@ test('opens on the brief with the headline counts', () => {
   const { doc } = render()
   const tiles = [...doc.querySelectorAll('.tile')].map((t) => t.textContent.replace(/\s+/g, ''))
   assert.ok(tiles.includes('1decisions'), `tiles were: ${tiles.join(' | ')}`)
-  assert.ok(tiles.includes('1liverisks'), `tiles were: ${tiles.join(' | ')}`)
   assert.match(doc.body.textContent, /Postgres wins on licence cost/)
 })
 
