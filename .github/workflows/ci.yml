@@ -100,3 +100,9 @@ jobs:
             uv run python3 skills/create-skill/scripts/validate_skill.py "$skill" || status=1
           done
           exit $status
+
+      - name: Check every skill has a changelog entry
+        run: python3 scripts/check_changelog_skills.py
+
+      - name: Test the changelog check
+        run: uv run pytest scripts/test_check_changelog_skills.py -q

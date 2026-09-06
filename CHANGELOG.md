@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **distil-memory**: `docket.py`'s `save`, `start`, `next`, `decide` and
   `cursor` now accept `--queue PATH` and operate on exactly that file,
   whatever the working directory is.
+- **changelog-check**: CI now fails when a skill directory under `skills/` is
+  not named anywhere in this file (`scripts/check_changelog_skills.py`),
+  catching a shipped skill that never got a changelog entry before merge.
 
 ### Changed
 
