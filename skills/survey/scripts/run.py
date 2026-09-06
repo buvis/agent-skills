@@ -1,3 +1,4 @@
+import os
 import re
 from collections.abc import Iterable
 from pathlib import Path
@@ -59,7 +60,12 @@ def _scan_layers(repo_path: Path) -> tuple[dict[str, list[Path]], bool]:
         return layers, truncated
 
     for d in top_dirs:
-        all_files = [f for f in d.rglob("*") if f.is_file()]
+        all_files = []
+        for dirpath, dirnames, filenames in os.walk(d):
+            dirnames[:] = [
+                n for n in dirnames if not n.startswith(".") and n not in _SKIP_DIRS
+            ]
+            all_files.extend(Path(dirpath) / fn for fn in filenames)
         if len(all_files) > _FILE_CAP:
             truncated = True
             all_files = all_files[:_FILE_CAP]
