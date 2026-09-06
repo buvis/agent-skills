@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **distil-memory**: a typing call that times out now records a fixed message
+  naming only the timeout, instead of one carrying the whole `claude` command
+  line - which held the proposal's text and up to five shortlisted memory
+  files, and was written verbatim into `proposals.json` and printed in the
+  review queue.
 - **sweep-fix**: a mistyped `--out` is now refused before any repo is
   searched, instead of after every repo has already been scanned and the
   results thrown away.
