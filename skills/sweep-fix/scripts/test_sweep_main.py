@@ -453,11 +453,6 @@ def test_main_accepts_cap_of_one_as_smallest_legal_value(tmp_path, monkeypatch):
         assert str(repo) in report
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="agoge 2026-08-31: main() runs the whole cross-repo scan before it resolves "
-    "--out, so a refused path costs a full sweep before the message appears",
-)
 def test_an_out_path_outside_the_cwd_repo_is_refused_before_any_repo_is_scanned(
     tmp_path, monkeypatch
 ):
