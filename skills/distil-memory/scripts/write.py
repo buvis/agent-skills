@@ -104,6 +104,22 @@ def append_pointer(store_path: Path, entry: dict) -> str | None:
     return line
 
 
+def _rollback(target: Path, previous: str | None) -> None:
+    """Put `target` back the way this run found it.
+
+    `previous` is the text the target held before this run wrote it, or None
+    when this run created it. A rollback that cannot happen is reported rather
+    than swallowed: the store is left holding a memory nothing points to.
+    """
+    try:
+        if previous is None:
+            target.unlink()
+        else:
+            _atomic_write(target, previous)
+    except OSError as exc:
+        print(f"rollback failed: {exc}", file=sys.stderr)
+
+
 def _parse_args(argv):
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -120,13 +136,31 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "write":
         entry = json.loads(sys.stdin.read())
         store_path = Path(args.store)
+        stem, _ = _target_stem(entry)
+        target = store_path / f"{stem}.md"
+        # read fresh, every run: the entry's own copy of the previous text may
+        # be stale, and only the bytes on disk are what a rollback owes back
+        previous = target.read_text() if target.is_file() else None
         try:
             written = write_memory(entry, store_path)
         except WriteError as exc:
             print(str(exc), file=sys.stderr)
             return 1
+        try:
+            line = append_pointer(store_path, entry)
+        except (OSError, proposal.ProposalError, KeyError) as exc:
+            # the pointer line is built from frontmatter, so this step fails on
+            # the entry as well as on the disk: file text carrying no
+            # description, or an update whose existing_text will not parse. The
+            # memory file is already on disk by then, so the store has to go
+            # back to the state this run found it in. MEMORY.md needs no
+            # restoring: _atomic_write only ever moves a complete file into
+            # place, so a failed index write leaves the index holding its
+            # previous bytes, and an entry fault never reaches the index at all.
+            print(str(exc), file=sys.stderr)
+            _rollback(written, previous)
+            return 1
         print(written)
-        line = append_pointer(store_path, entry)
         print(line if line is not None else "MEMORY.md: unchanged")
         return 0
 
