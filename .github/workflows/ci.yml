@@ -115,3 +115,15 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+
+      - name: Install brief-portfolio dependencies
+        run: npm --prefix skills/brief-portfolio/app ci
+
+      - name: Test brief-portfolio
+        run: npm --prefix skills/brief-portfolio/app test
+
+      - name: Install debrief-meeting dependencies
+        run: npm --prefix skills/debrief-meeting/app ci
+
+      - name: Test debrief-meeting
+        run: npm --prefix skills/debrief-meeting/app test
