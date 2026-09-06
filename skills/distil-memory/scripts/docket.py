@@ -200,20 +200,29 @@ def _parse_args(argv):
 def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
     if path is None:
         path = proposals_dir.parent / "distil-memory-queue.json"
-    records = json.loads((proposals_dir / "proposals.json").read_text())
-    proposals = [
-        {
-            "name": record["name"],
-            "kind": record["kind"],
-            "transcript": record["transcript"],
-            "line_no": record["line_no"],
-            "evidence_text": record["evidence_text"],
-            "file_text": (proposals_dir / record["file"]).read_text(),
-            "existing_text": record.get("existing_text"),
-            "dedup_error": record.get("dedup_error"),
-        }
-        for record in records
-    ]
+    # `source` always names the file whose read is next, so the handler below
+    # blames the one that actually failed rather than the last one seen.
+    source = proposals_dir / "proposals.json"
+    try:
+        records = json.loads(source.read_text())
+        proposals = []
+        for record in records:
+            source = proposals_dir / record["file"]
+            proposals.append(
+                {
+                    "name": record["name"],
+                    "kind": record["kind"],
+                    "transcript": record["transcript"],
+                    "line_no": record["line_no"],
+                    "evidence_text": record["evidence_text"],
+                    "file_text": source.read_text(),
+                    "existing_text": record.get("existing_text"),
+                    "dedup_error": record.get("dedup_error"),
+                }
+            )
+    except (OSError, json.JSONDecodeError) as error:
+        print(f"cannot read the proposals {source}: {error}", file=sys.stderr)
+        return 1
     added = save(proposals, path=path)
     print(f"added {added} of {len(proposals)}")
     return 0
