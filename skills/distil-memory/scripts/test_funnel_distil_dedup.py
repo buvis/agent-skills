@@ -7,6 +7,7 @@ import dedup
 import distil
 import funnel
 import proposal
+import pytest
 
 from funnel_test_helpers import (
     FakeClaudeCli,
@@ -397,22 +398,14 @@ def test_type_proposal_reports_a_fixed_message_when_the_typing_call_times_out(tm
     assert typed.dedup_error == "the typing call timed out after 120s"
 
 
-def test_type_proposal_reports_the_runtime_error_message_unchanged(tmp_path):
-    """A `RuntimeError` from the typing call is not a leak risk the way a
-    timeout's argv is, so its message keeps flowing into the report."""
+@pytest.mark.parametrize("exc_type", [RuntimeError, OSError])
+def test_type_proposal_reports_the_error_message_unchanged(tmp_path, exc_type):
+    """Neither a `RuntimeError` nor an `OSError` from the typing call is a leak
+    risk the way a timeout's argv is, so each keeps its message flowing into
+    the report unchanged. Only the timeout branch is rewritten to a fixed
+    string."""
     candidate, memory_dir, index_text = _typing_candidate(tmp_path)
-    dedup_stub = _DedupClassifyRaises(RuntimeError("boom"))
-
-    typed = funnel._type_proposal(candidate, memory_dir, index_text, None, dedup_stub)
-
-    assert typed.dedup_error == "the typing call failed: boom"
-
-
-def test_type_proposal_reports_the_os_error_message_unchanged(tmp_path):
-    """An `OSError` from the typing call is handled the same as a
-    `RuntimeError`: its message keeps flowing into the report."""
-    candidate, memory_dir, index_text = _typing_candidate(tmp_path)
-    dedup_stub = _DedupClassifyRaises(OSError("boom"))
+    dedup_stub = _DedupClassifyRaises(exc_type("boom"))
 
     typed = funnel._type_proposal(candidate, memory_dir, index_text, None, dedup_stub)
 
