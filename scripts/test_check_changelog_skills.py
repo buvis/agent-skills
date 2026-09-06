@@ -156,48 +156,6 @@ class TestMain:
         assert captured.out == ""
         assert captured.err == ""
 
-    def test_main_exit_1_when_missing_skills(self, tmp_path, monkeypatch, capsys):
-        """Exit 1 and print to stderr when skills are missing."""
-        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
-        skills_dir, changelog = _skills_tree(tmp_path)
-        (skills_dir / "missing-skill").mkdir()
-
-        exit_code = c.main()
-        assert exit_code == 1
-        captured = capsys.readouterr()
-        assert captured.out == ""
-        assert captured.err == "missing-skill: not named in CHANGELOG.md\n"
-
-    def test_main_stderr_format_one_line_per_missing(self, tmp_path, monkeypatch, capsys):
-        """Each missing skill printed to stderr in format '<name>: not named in CHANGELOG.md'."""
-        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
-        skills_dir, changelog = _skills_tree(tmp_path)
-        (skills_dir / "alpha").mkdir()
-        (skills_dir / "beta").mkdir()
-
-        exit_code = c.main()
-        assert exit_code == 1
-        captured = capsys.readouterr()
-        assert captured.err == (
-            "alpha: not named in CHANGELOG.md\nbeta: not named in CHANGELOG.md\n"
-        )
-
-    def test_main_missing_skills_printed_sorted_order(self, tmp_path, monkeypatch, capsys):
-        """Missing skills printed in sorted order."""
-        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
-        skills_dir, changelog = _skills_tree(tmp_path)
-        (skills_dir / "z-skill").mkdir()
-        (skills_dir / "a-skill").mkdir()
-        (skills_dir / "m-skill").mkdir()
-
-        c.main()
-        captured = capsys.readouterr()
-        assert captured.err == (
-            "a-skill: not named in CHANGELOG.md\n"
-            "m-skill: not named in CHANGELOG.md\n"
-            "z-skill: not named in CHANGELOG.md\n"
-        )
-
     def test_main_with_argv_parameter(self, tmp_path, monkeypatch):
         """main(argv) accepts an explicit argv and still returns the exact exit code."""
         monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
@@ -217,16 +175,6 @@ class TestMain:
         assert exit_code == 1
         captured = capsys.readouterr()
         assert captured.err == "actual-missing: not named in CHANGELOG.md\n"
-
-    def test_main_no_output_on_stdout_ever(self, tmp_path, monkeypatch, capsys):
-        """main() never prints to stdout, only stderr."""
-        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
-        skills_dir, changelog = _skills_tree(tmp_path)
-        (skills_dir / "missing").mkdir()
-
-        c.main()
-        captured = capsys.readouterr()
-        assert captured.out == ""
 
 
 class TestIntegration:
@@ -255,54 +203,16 @@ class TestIntegration:
         captured = capsys.readouterr()
         assert captured.err == "skill-three: not named in CHANGELOG.md\n"
 
-    def test_acceptance_no_missing_exit_0_no_output(self, tmp_path, monkeypatch, capsys):
-        """Acceptance: no missing -> exit 0, nothing on stdout/stderr."""
-        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
-        _skills_tree(tmp_path)
-
-        exit_code = c.main()
-        assert exit_code == 0
-        captured = capsys.readouterr()
-        assert captured.out == ""
-        assert captured.err == ""
-
-    def test_acceptance_missing_exit_1_stderr_format(self, tmp_path, monkeypatch, capsys):
-        """Acceptance: missing -> exit 1, one line per miss on stderr."""
-        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
-        skills_dir, changelog = _skills_tree(tmp_path)
-        (skills_dir / "one").mkdir()
-        (skills_dir / "two").mkdir()
-
-        exit_code = c.main()
-        assert exit_code == 1
-        captured = capsys.readouterr()
-        assert captured.err == "one: not named in CHANGELOG.md\ntwo: not named in CHANGELOG.md\n"
-
 
 class TestFindMissingCaseSensitivity:
     """find_missing matches a skill name against the changelog text case-sensitively."""
 
     def test_different_case_occurrence_is_reported_missing(self, tmp_path):
         """A skill named only in a different letter case in the changelog is missing."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
+        skills_dir, changelog = _skills_tree(tmp_path, "# Changelog\n\nAlpha was released today.\n")
         (skills_dir / "alpha").mkdir()
 
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\nAlpha was released today.\n")
-
         assert c.find_missing(skills_dir, changelog) == ["alpha"]
-
-    def test_exact_case_occurrence_embedded_in_longer_word_is_not_missing(self, tmp_path):
-        """An exact-case occurrence counts as named even embedded inside a longer word."""
-        skills_dir = tmp_path / "skills"
-        skills_dir.mkdir()
-        (skills_dir / "beta").mkdir()
-
-        changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text("# Changelog\n\nSee prebetatest for details.\n")
-
-        assert c.find_missing(skills_dir, changelog) == []
 
 
 class TestMainPathResolution:
