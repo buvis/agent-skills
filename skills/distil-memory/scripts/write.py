@@ -136,14 +136,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "write":
         entry = json.loads(sys.stdin.read())
         store_path = Path(args.store)
-        stem, _ = _target_stem(entry)
-        target = store_path / f"{stem}.md"
-        # read fresh, every run: the entry's own copy of the previous text may
-        # be stale, and only the bytes on disk are what a rollback owes back
-        previous = target.read_text() if target.is_file() else None
         try:
+            # naming the target reads the entry envelope, so a malformed one
+            # fails here: report it and return 1 like every other fault
+            stem, _ = _target_stem(entry)
+            target = store_path / f"{stem}.md"
+            # read fresh, every run: the entry's own copy of the previous text
+            # may be stale, and only the bytes on disk are what a rollback owes
+            # back
+            previous = target.read_text() if target.is_file() else None
             written = write_memory(entry, store_path)
-        except WriteError as exc:
+        except (WriteError, KeyError) as exc:
             print(str(exc), file=sys.stderr)
             return 1
         try:
