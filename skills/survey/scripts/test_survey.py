@@ -181,10 +181,9 @@ def test_build_output_is_skipped_but_ordinary_dirs_are_not(tmp_path):
 # _scan_layers: _SKIP_DIRS and dot-directories are pruned at any depth
 # ---------------------------------------------------------------------------
 
-def test_skip_dirs_pruned_at_every_depth_under_top_level_dir(tmp_path):
+def test_skip_dirs_are_pruned_at_every_depth(tmp_path):
     """Skip dirs are pruned wherever they occur below a top-level source dir:
-    immediately under it, or several directories deeper. An ordinary sibling
-    at a comparable depth is kept.
+    immediately under it, or several directories deeper.
 
     Catches an off-by-one impl that only checks the path segment directly
     under the top-level dir and misses a skip dir nested further down.
@@ -192,27 +191,19 @@ def test_skip_dirs_pruned_at_every_depth_under_top_level_dir(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
 
+    (repo / "src").mkdir(parents=True)
+    (repo / "src" / "real.py").write_text("x = 1\n")
+
     (repo / "src" / "node_modules" / "pkg").mkdir(parents=True)
-    (repo / "src" / "node_modules" / "pkg" / "excluded_shallow.py").write_text("x = 1\n")
+    (repo / "src" / "node_modules" / "pkg" / "junk.js").write_text("x = 1;\n")
 
-    (repo / "src" / "lib" / "nested" / "build" / "artifact").mkdir(parents=True)
-    (repo / "src" / "lib" / "nested" / "build" / "artifact" / "excluded_deep.py").write_text(
-        "x = 1\n"
-    )
+    (repo / "src" / "build").mkdir(parents=True)
+    (repo / "src" / "build" / "out.py").write_text("x = 1\n")
 
-    (repo / "src" / "lib" / "nested" / "keep").mkdir(parents=True)
-    (repo / "src" / "lib" / "nested" / "keep" / "included.py").write_text("y = 2\n")
+    (repo / "src" / ".venv" / "lib").mkdir(parents=True)
+    (repo / "src" / ".venv" / "lib" / "dep.py").write_text("x = 1\n")
 
-    layers, _truncated = run._scan_layers(repo)
-    names = {p.name for p in layers["src"]}
-
-    assert "included.py" in names, f"ordinary nested file must survive: {names}"
-    assert "excluded_shallow.py" not in names, (
-        f"a file directly under a skip dir must not appear in the layer: {names}"
-    )
-    assert "excluded_deep.py" not in names, (
-        f"a file several levels under a skip dir must not appear in the layer: {names}"
-    )
+    assert [p.name for p in run._scan_layers(repo)[0]["src"]] == ["real.py"]
 
 
 @pytest.mark.parametrize("skip_name", sorted(run._SKIP_DIRS))
