@@ -106,3 +106,12 @@ jobs:
 
       - name: Test the changelog check
         run: uv run pytest scripts/test_check_changelog_skills.py -q
+
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
