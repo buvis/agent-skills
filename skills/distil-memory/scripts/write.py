@@ -41,10 +41,14 @@ def _atomic_write(path: Path, text: str) -> None:
 def write_memory(entry: dict, store_path: Path) -> Path:
     """Write `entry["file_text"]` to its target file inside `store_path`.
 
-    A new entry must not already have a file at its target; an update must.
-    Raises WriteError otherwise, or when the write itself fails (for example
-    because `store_path` does not exist).
+    The file text's frontmatter must parse. A new entry must not already have
+    a file at its target; an update must. Raises WriteError otherwise, or when
+    the write itself fails (for example because `store_path` does not exist).
     """
+    try:
+        proposal.parse_frontmatter(entry["file_text"])
+    except proposal.ProposalError as exc:
+        raise WriteError(str(exc)) from exc
     stem, is_new = _target_stem(entry)
     target = store_path / f"{stem}.md"
     exists = target.exists()
