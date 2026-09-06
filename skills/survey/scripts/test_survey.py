@@ -286,7 +286,9 @@ def test_pruned_directories_are_never_descended_into(tmp_path, monkeypatch):
     run._scan_layers(repo)
 
     for dirpath in recorded_dirpaths:
-        parts = Path(dirpath).parts
+        # Relative to the repo: an absolute tmp base can itself contain a dot
+        # segment or a _SKIP_DIRS name, which would fail a correct walk.
+        parts = Path(dirpath).relative_to(repo).parts
         assert not any(part in run._SKIP_DIRS for part in parts), (
             f"walk descended into a skip dir: {dirpath}"
         )
