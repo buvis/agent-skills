@@ -1014,3 +1014,80 @@ def test_main_write_reports_both_the_pointer_error_and_the_rollback_error_when_t
     assert "widget-fact.md" in captured.err
     assert "rolled back" not in captured.err
     assert sorted(p.name for p in store_path.iterdir()) == ["widget-fact.md"]
+
+
+# The index step can fail on the entry itself, not just on the filesystem: the
+# pointer line is built from frontmatter, and an entry whose frontmatter cannot
+# yield a description reaches that step only after the memory file has landed.
+# These two faults need no monkeypatching at all, and the store still has to be
+# put back exactly as it was.
+
+
+def test_main_write_removes_the_new_memory_file_and_reports_the_reason_when_the_file_text_carries_no_description(
+    store_path, monkeypatch, capsys
+):
+    store_path.mkdir()
+    unrelated_path = store_path / "other-thing.md"
+    unrelated_text = _file_text(name="other-thing", description="something unrelated")
+    unrelated_path.write_text(unrelated_text)
+    index_path = store_path / "MEMORY.md"
+    index_path.write_text("- [Other thing](other-thing.md) — something unrelated\n")
+    original_index_bytes = index_path.read_bytes()
+    # frontmatter the parser happily accepts, carrying everything except the one
+    # key the pointer line is built from
+    no_description = "---\nname: widget-fact\n---\n\nBody.\n"
+    assert "description" not in proposal.parse_frontmatter(no_description)
+    entry = _entry(name="widget-fact", kind="new", file_text=no_description)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert not (store_path / "widget-fact.md").exists()
+    assert unrelated_path.read_text() == unrelated_text
+    assert index_path.read_bytes() == original_index_bytes
+    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "other-thing.md"]
+
+
+def test_main_write_restores_the_update_targets_original_bytes_and_reports_the_reason_when_the_entrys_existing_text_will_not_parse(
+    store_path, monkeypatch, capsys
+):
+    store_path.mkdir()
+    target_path = store_path / "widget-fact.md"
+    original_text = _file_text(name="widget-fact", description="old description")
+    target_path.write_text(original_text)
+    original_target_bytes = target_path.read_bytes()
+    index_path = store_path / "MEMORY.md"
+    index_path.write_text(
+        "- [Something](something.md) — unrelated\n"
+        "- [Widget fact](widget-fact.md) — old description\n"
+    )
+    original_index_bytes = index_path.read_bytes()
+    # the new text is faultless; the entry's own copy of the previous text is the
+    # broken half, and it is only needed after the target has been overwritten
+    new_text = _file_text(name="widget-fact", description="new, more accurate description")
+    proposal.parse_frontmatter(new_text)
+    unparseable_existing = "no frontmatter here\n"
+    assert _parser_message(unparseable_existing)
+    entry = _entry(
+        name="widget-fact",
+        kind="update widget-fact",
+        file_text=new_text,
+        existing_text=unparseable_existing,
+    )
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert target_path.read_bytes() == original_target_bytes
+    assert index_path.read_bytes() == original_index_bytes
+    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
