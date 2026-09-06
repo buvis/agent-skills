@@ -178,6 +178,135 @@ def test_build_output_is_skipped_but_ordinary_dirs_are_not(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# _scan_layers: _SKIP_DIRS and dot-directories are pruned at any depth
+# ---------------------------------------------------------------------------
+
+def test_skip_dirs_pruned_at_every_depth_under_top_level_dir(tmp_path):
+    """Skip dirs are pruned wherever they occur below a top-level source dir:
+    immediately under it, or several directories deeper. An ordinary sibling
+    at a comparable depth is kept.
+
+    Catches an off-by-one impl that only checks the path segment directly
+    under the top-level dir and misses a skip dir nested further down.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    (repo / "src" / "node_modules" / "pkg").mkdir(parents=True)
+    (repo / "src" / "node_modules" / "pkg" / "excluded_shallow.py").write_text("x = 1\n")
+
+    (repo / "src" / "lib" / "nested" / "build" / "artifact").mkdir(parents=True)
+    (repo / "src" / "lib" / "nested" / "build" / "artifact" / "excluded_deep.py").write_text(
+        "x = 1\n"
+    )
+
+    (repo / "src" / "lib" / "nested" / "keep").mkdir(parents=True)
+    (repo / "src" / "lib" / "nested" / "keep" / "included.py").write_text("y = 2\n")
+
+    layers, _truncated = run._scan_layers(repo)
+    names = {p.name for p in layers["src"]}
+
+    assert "included.py" in names, f"ordinary nested file must survive: {names}"
+    assert "excluded_shallow.py" not in names, (
+        f"a file directly under a skip dir must not appear in the layer: {names}"
+    )
+    assert "excluded_deep.py" not in names, (
+        f"a file several levels under a skip dir must not appear in the layer: {names}"
+    )
+
+
+@pytest.mark.parametrize("skip_name", sorted(run._SKIP_DIRS))
+def test_skip_dir_at_any_depth_excluded_from_layer(tmp_path, skip_name):
+    """Every name in _SKIP_DIRS is pruned when nested below a top-level dir,
+    not just the ones exercised by other tests (e.g. node_modules, build).
+
+    An ordinary sibling directory at the same depth keeps its file, so an
+    impl that drops the whole top-level layer instead of pruning one branch
+    also fails here.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "src" / "mid" / skip_name / "deep").mkdir(parents=True)
+    (repo / "src" / "mid" / skip_name / "deep" / "excluded.py").write_text("x = 1\n")
+    (repo / "src" / "mid" / "keep" / "deep").mkdir(parents=True)
+    (repo / "src" / "mid" / "keep" / "deep" / "included.py").write_text("y = 2\n")
+
+    layers, _truncated = run._scan_layers(repo)
+    names = {p.name for p in layers["src"]}
+
+    assert "included.py" in names, f"ordinary nested file must survive: {names}"
+    assert "excluded.py" not in names, (
+        f"a file nested under skip dir {skip_name!r} at depth must not appear "
+        f"in the 'src' layer: {names}"
+    )
+
+
+@pytest.mark.parametrize("dot_name", [".venv", ".secretdir"])
+def test_dot_directory_at_any_depth_excluded_from_layer(tmp_path, dot_name):
+    """A file nested under any dot-prefixed directory, at any depth, must not
+    appear in its top directory's layer.
+
+    Two different dot names guard against an impl that special-cases a single
+    literal (e.g. only '.venv') instead of a generic dot-prefix rule.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "src" / "mid" / dot_name / "deep").mkdir(parents=True)
+    (repo / "src" / "mid" / dot_name / "deep" / "excluded.py").write_text("x = 1\n")
+    (repo / "src" / "mid" / "keep" / "deep").mkdir(parents=True)
+    (repo / "src" / "mid" / "keep" / "deep" / "included.py").write_text("y = 2\n")
+
+    layers, _truncated = run._scan_layers(repo)
+    names = {p.name for p in layers["src"]}
+
+    assert "included.py" in names, f"ordinary nested file must survive: {names}"
+    assert "excluded.py" not in names, (
+        f"a file nested under dot-directory {dot_name!r} at depth must not "
+        f"appear in the 'src' layer: {names}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# _scan_layers: return shape and the 50-file-per-layer cap
+# ---------------------------------------------------------------------------
+
+def test_scan_layers_returns_dict_of_path_lists_and_bool_flag(tmp_path):
+    """_scan_layers returns (layers, truncated): a dict of Path lists and a bool."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "app").mkdir()
+    (repo / "app" / "main.py").write_text("x = 1\n")
+
+    result = run._scan_layers(repo)
+
+    assert isinstance(result, tuple) and len(result) == 2
+    layers, truncated = result
+    assert isinstance(layers, dict)
+    assert isinstance(truncated, bool)
+    assert "app" in layers
+    assert isinstance(layers["app"], list)
+    assert all(isinstance(p, Path) for p in layers["app"]), \
+        f"layer entries must be Path objects: {layers['app']}"
+    assert truncated is False, "a single file must not trip the per-layer cap"
+
+
+def test_scan_layers_caps_each_layer_at_50_files(tmp_path):
+    """A layer with more than 50 files is capped at 50, and truncated is True."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "many").mkdir()
+    for i in range(60):
+        (repo / "many" / f"mod_{i:03d}.py").write_text(f"x = {i}\n")
+
+    layers, truncated = run._scan_layers(repo)
+
+    assert len(layers["many"]) == 50, (
+        f"layer must be capped at 50 files, got {len(layers['many'])}"
+    )
+    assert truncated is True, "exceeding the per-layer cap must report truncated=True"
+
+
+# ---------------------------------------------------------------------------
 # Brief: error_style enum
 # ---------------------------------------------------------------------------
 
