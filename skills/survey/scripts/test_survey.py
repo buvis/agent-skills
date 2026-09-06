@@ -182,11 +182,11 @@ def test_build_output_is_skipped_but_ordinary_dirs_are_not(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_skip_dirs_are_pruned_at_every_depth(tmp_path):
-    """Skip dirs are pruned wherever they occur below a top-level source dir:
-    immediately under it, or several directories deeper.
+    """Every _SKIP_DIRS name and every dot-directory under a top-level source
+    dir is pruned, leaving only the ordinary file in the layer.
 
-    Catches an off-by-one impl that only checks the path segment directly
-    under the top-level dir and misses a skip dir nested further down.
+    Skip dirs nested further down are covered by
+    test_skip_dir_at_any_depth_excluded_from_layer.
     """
     repo = tmp_path / "repo"
     repo.mkdir()
