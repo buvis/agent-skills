@@ -181,6 +181,42 @@ class TestFindMissing:
         result = c.find_missing(skills_dir, changelog)
         assert result == []
 
+    def test_reports_a_skill_dir_absent_from_the_changelog(self, tmp_path):
+        """A skill directory not named in the changelog is reported missing."""
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
+        unlisted = skills_dir / "zz-unlisted"
+        unlisted.mkdir()
+        (unlisted / "SKILL.md").write_text("# zz-unlisted\n")
+
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# Changelog\n")
+
+        assert c.find_missing(skills_dir, changelog) == ["zz-unlisted"]
+
+    def test_passes_when_every_skill_dir_is_named(self, tmp_path):
+        """No missing skills when every skill dir name appears in the changelog."""
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
+        (skills_dir / "skill-alpha").mkdir()
+        (skills_dir / "skill-beta").mkdir()
+
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# Changelog\n\n**skill-alpha**: added\n**skill-beta**: fixed\n")
+
+        assert c.find_missing(skills_dir, changelog) == []
+
+    def test_grandfathered_name_is_skipped(self, tmp_path):
+        """A grandfathered skill dir not in the changelog is not reported missing."""
+        skills_dir = tmp_path / "skills"
+        skills_dir.mkdir()
+        (skills_dir / "python-patterns").mkdir()
+
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text("# Changelog\n")
+
+        assert "python-patterns" not in c.find_missing(skills_dir, changelog)
+
 
 class TestMain:
     """main(argv=None) resolves paths, calls find_missing, exits correctly."""
