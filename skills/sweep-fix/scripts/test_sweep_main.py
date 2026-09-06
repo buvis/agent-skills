@@ -250,6 +250,19 @@ def test_main_accepts_out_nested_several_directories_inside_cwd_repo(
     assert nested_out.read_text().strip() != ""
 
 
+def test_a_refused_out_path_creates_no_report_directory(tmp_path, monkeypatch):
+    argv, (_repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "NODIRCREATEDMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    argv[out_index + 1] = str(tmp_path / "outside" / "report.md")
+
+    with pytest.raises(SystemExit):
+        sweep.main(argv)
+
+    assert (tmp_path / "outside").exists() is False
+
+
 # -- main: control check runs only when the whole sweep found nothing -------
 
 
