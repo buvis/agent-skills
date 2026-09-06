@@ -65,7 +65,11 @@ def _scan_layers(repo_path: Path) -> tuple[dict[str, list[Path]], bool]:
             dirnames[:] = [
                 n for n in dirnames if not n.startswith(".") and n not in _SKIP_DIRS
             ]
-            all_files.extend(Path(dirpath) / fn for fn in filenames)
+            # os.walk lists every non-directory entry, dangling symlinks and
+            # special files included; rglob + is_file() used to filter those.
+            all_files.extend(
+                f for f in (Path(dirpath) / fn for fn in filenames) if f.is_file()
+            )
         if len(all_files) > _FILE_CAP:
             truncated = True
             all_files = all_files[:_FILE_CAP]

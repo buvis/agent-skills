@@ -295,6 +295,25 @@ def test_pruned_directories_are_never_descended_into(tmp_path, monkeypatch):
         )
 
 
+def test_only_regular_files_enter_a_layer(tmp_path):
+    """A layer holds regular files only, never a dangling symlink.
+
+    os.walk reports every non-directory entry in `filenames`, dangling
+    symlinks and special files included, so the walk needs its own is_file()
+    filter. Without it they consume _FILE_CAP slots ahead of real source and
+    reach read_text.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "src").mkdir()
+    (repo / "src" / "real.py").write_text("x = 1\n")
+    (repo / "src" / "dangling.py").symlink_to(repo / "src" / "gone.py")
+
+    names = [p.name for p in run._scan_layers(repo)[0]["src"]]
+
+    assert names == ["real.py"], f"only regular files belong in a layer: {names}"
+
+
 # ---------------------------------------------------------------------------
 # _scan_layers: return shape and the 50-file-per-layer cap
 # ---------------------------------------------------------------------------

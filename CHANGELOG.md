@@ -48,6 +48,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **survey**: build and dependency directories (`node_modules`, `build`,
+  `__pycache__`, `.venv`, …) are now pruned at every depth, not just at the
+  top level, so a brief samples real source instead of compiled bytecode, and
+  the walk no longer descends into the subtrees it excludes.
+- **survey**: only regular files enter a layer — a dangling symlink no longer
+  takes one of the 50 per-layer slots away from real source.
 - **brief-portfolio**: the documented `## Tests` command block now installs
   before it tests, instead of dying with `ERR_MODULE_NOT_FOUND` on a fresh
   clone that has never run `npm install`.
