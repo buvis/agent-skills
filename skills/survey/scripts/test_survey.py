@@ -266,6 +266,44 @@ def test_dot_directory_at_any_depth_excluded_from_layer(tmp_path, dot_name):
     )
 
 
+def test_pruned_directories_are_never_descended_into(tmp_path, monkeypatch):
+    """_scan_layers must prune skip dirs and dot-dirs from the walk itself, not
+    just filter the results afterward.
+
+    Wraps run.os.walk with a recorder that delegates to the real os.walk, so
+    the walk's real behavior is unchanged and only observed. An impl that
+    filters after a naive, unpruned walk would still yield dirpaths inside
+    the skip/dot directories, which this test catches directly.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "src" / "node_modules" / "pkg").mkdir(parents=True)
+    (repo / "src" / "node_modules" / "pkg" / "file.py").write_text("x = 1\n")
+    (repo / "src" / ".venv" / "lib").mkdir(parents=True)
+    (repo / "src" / ".venv" / "lib" / "file.py").write_text("x = 1\n")
+
+    real_walk = run.os.walk
+    recorded_dirpaths = []
+
+    def _recording_walk(top, *args, **kwargs):
+        for dirpath, dirnames, filenames in real_walk(top, *args, **kwargs):
+            recorded_dirpaths.append(dirpath)
+            yield dirpath, dirnames, filenames
+
+    monkeypatch.setattr(run.os, "walk", _recording_walk)
+
+    run._scan_layers(repo)
+
+    for dirpath in recorded_dirpaths:
+        parts = Path(dirpath).parts
+        assert not any(part in run._SKIP_DIRS for part in parts), (
+            f"walk descended into a skip dir: {dirpath}"
+        )
+        assert not any(part.startswith(".") for part in parts), (
+            f"walk descended into a dot-directory: {dirpath}"
+        )
+
+
 # ---------------------------------------------------------------------------
 # _scan_layers: return shape and the 50-file-per-layer cap
 # ---------------------------------------------------------------------------
