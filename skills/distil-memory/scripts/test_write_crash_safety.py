@@ -511,3 +511,37 @@ def test_main_write_restores_the_update_targets_original_bytes_and_reports_the_r
     assert target_path.read_bytes() == original_target_bytes
     assert index_path.read_bytes() == original_index_bytes
     assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
+
+
+# An entry whose envelope is malformed cannot even name the file it targets, so
+# the run has nothing to write and nothing to put back. It still owes the caller
+# a reason and an untouched store, not a traceback.
+
+
+def test_main_write_leaves_the_store_untouched_and_reports_the_reason_when_the_entry_carries_no_kind(
+    store_path, monkeypatch, capsys
+):
+    store_path.mkdir()
+    unrelated_path = store_path / "other-thing.md"
+    unrelated_text = _file_text(name="other-thing", description="something unrelated")
+    unrelated_path.write_text(unrelated_text)
+    index_path = store_path / "MEMORY.md"
+    index_path.write_text("- [Other thing](other-thing.md) — something unrelated\n")
+    original_index_bytes = index_path.read_bytes()
+    # the key that says whether this is a new memory or an update is simply
+    # missing, so the store cannot work out which file the entry is about
+    malformed_envelope = {k: v for k, v in _entry(name="widget-fact").items() if k != "kind"}
+    assert "kind" not in malformed_envelope
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(malformed_envelope)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert not (store_path / "widget-fact.md").exists()
+    assert unrelated_path.read_text() == unrelated_text
+    assert index_path.read_bytes() == original_index_bytes
+    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "other-thing.md"]
