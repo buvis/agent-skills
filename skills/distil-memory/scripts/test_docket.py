@@ -439,3 +439,210 @@ def test_a_non_dict_entry_in_entries_is_named_as_corrupt_rather_than_read_as_dra
     message = str(exc_info.value)
     assert message
     assert any(hint in message.lower() for hint in ("entry", "entries", "dict"))
+
+
+# An unreadable PROPOSALS directory is a refusal (exit 1), not a queue fault
+# (exit 2) and never a traceback. The three ways in: the directory is absent,
+# proposals.json is not JSON, and a record names a sibling file that is not
+# there. A refusal is all-or-nothing: the queue must gain nothing. The wording
+# of the messages is not pinned, only that stderr carries something and that it
+# names the path or filename that actually failed, so one constant string
+# cannot stand in for three different faults.
+
+
+def test_main_save_refuses_a_missing_proposals_directory_rather_than_crashing(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    missing_dir = tmp_path / "gone"
+
+    exit_code = docket.main(["save", "--proposals-dir", str(missing_dir)])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    assert str(missing_dir) in captured.err
+    assert captured.out == ""
+
+
+def test_main_save_refuses_a_proposals_json_that_does_not_hold_valid_json_rather_than_crashing(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "proposals.json").write_text("not json at all")
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    assert str(proposals_dir) in captured.err
+    # The message must name the file that failed to parse, not just the
+    # directory: three different faults reported with one constant string
+    # tell the operator nothing about which one they hit.
+    assert "proposals.json" in captured.err
+    assert captured.out == ""
+
+
+def test_main_save_refuses_the_whole_batch_when_one_record_names_an_absent_file(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    # A MIXED batch is the only shape that tells the two answers apart: with a
+    # single record, "refuse the batch" and "silently drop the record, then
+    # refuse because nothing is left" look identical from outside. Here the
+    # first record's sibling is on disk and the second's is not, so a refusal
+    # that half-applies leaves one entry in the queue and is caught.
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "gadget-note.md").write_text("---\nname: gadget-note\n---\n\nGadget.\n")
+    readable_record = {
+        "name": "gadget-note",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 7,
+        "evidence_text": "evidence for gadget",
+        "existing_text": None,
+        "file": "gadget-note.md",
+    }
+    absent_record = {
+        "name": "cog-note",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 8,
+        "evidence_text": "evidence for cog",
+        "existing_text": None,
+        "file": "never-written.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([readable_record, absent_record]))
+
+    exit_code = docket.main(
+        ["save", "--proposals-dir", str(proposals_dir), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    # The message must name the sibling that was missing, so the operator can
+    # find it without re-reading proposals.json themselves.
+    assert "never-written.md" in captured.err
+    assert captured.out == ""
+    # All or nothing: the readable half of the batch must not have landed.
+    assert docket.load(path=queue_path)["entries"] == []
+
+
+def test_main_save_keeps_exit_2_for_the_queue_alone_and_answers_a_bad_proposals_dir_with_exit_1(
+    tmp_path, monkeypatch, capsys
+):
+    # The boundary that matters: 2 means "the review queue file itself is
+    # unreadable" and nothing else, so the same command with a healthy queue
+    # and an unreadable proposals directory must answer with a different,
+    # smaller code.
+    monkeypatch.chdir(tmp_path)
+    corrupt_queue = tmp_path / "corrupt-queue.json"
+    corrupt_queue.write_text('{"cursor": 0, "entries": [')
+    readable_proposals = tmp_path / "readable"
+    readable_proposals.mkdir()
+    (readable_proposals / "flange-fact.md").write_text("---\nname: flange-fact\n---\n\nBody.\n")
+    record = {
+        "name": "flange-fact",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 7,
+        "evidence_text": "evidence for flange",
+        "existing_text": None,
+        "file": "flange-fact.md",
+    }
+    (readable_proposals / "proposals.json").write_text(json.dumps([record]))
+
+    queue_fault = docket.main(
+        ["save", "--proposals-dir", str(readable_proposals), "--queue", str(corrupt_queue)]
+    )
+
+    assert queue_fault == 2
+    assert capsys.readouterr().err.strip() != ""
+
+    proposals_fault = docket.main(
+        [
+            "save",
+            "--proposals-dir",
+            str(tmp_path / "gone"),
+            "--queue",
+            str(tmp_path / "healthy-queue.json"),
+        ]
+    )
+
+    assert proposals_fault == 1
+    assert proposals_fault != queue_fault
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+
+
+def test_main_save_still_returns_zero_and_prints_added_n_of_m_for_a_readable_proposals_dir(
+    tmp_path, monkeypatch, capsys
+):
+    # Two records, not one: with a single record "added 1 of 1" cannot tell a
+    # denominator counting the records READ from one counting the proposals
+    # BUILT, and those two differ exactly when a record is quietly dropped.
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "widget-fact.md").write_text("---\nname: widget-fact\n---\n\nBody text.\n")
+    (proposals_dir / "sprocket-fact.md").write_text("---\nname: sprocket-fact\n---\n\nMore.\n")
+    records = [
+        {
+            "name": "widget-fact",
+            "kind": "new",
+            "transcript": "t.jsonl",
+            "line_no": 7,
+            "evidence_text": "evidence for widget",
+            "existing_text": None,
+            "file": "widget-fact.md",
+        },
+        {
+            "name": "sprocket-fact",
+            "kind": "new",
+            "transcript": "t.jsonl",
+            "line_no": 8,
+            "evidence_text": "evidence for sprocket",
+            "existing_text": None,
+            "file": "sprocket-fact.md",
+        },
+    ]
+    (proposals_dir / "proposals.json").write_text(json.dumps(records))
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "added 2 of 2" in captured.out
+    assert captured.err == ""
+    entries = docket.load(path=proposals_dir.parent / "distil-memory-queue.json")["entries"]
+    assert len(entries) == 2
+    assert {entry["name"]: entry["file_text"] for entry in entries} == {
+        "widget-fact": "---\nname: widget-fact\n---\n\nBody text.\n",
+        "sprocket-fact": "---\nname: sprocket-fact\n---\n\nMore.\n",
+    }
+
+
+def test_main_save_reads_an_empty_proposals_list_as_nothing_to_add_not_as_a_refusal(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    # A run that proposed nothing is a normal, successful run. Folding it into
+    # the refusal path would make every quiet window look like a fault.
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "proposals.json").write_text("[]")
+
+    exit_code = docket.main(
+        ["save", "--proposals-dir", str(proposals_dir), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "added 0 of 0" in captured.out
+    assert captured.err == ""
+    assert docket.load(path=queue_path)["entries"] == []
