@@ -178,6 +178,26 @@ def test_build_output_is_skipped_but_ordinary_dirs_are_not(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# Source contract: the old glob-based scan helper must be gone
+# ---------------------------------------------------------------------------
+
+def test_source_no_longer_names_rglob_scan_helper():
+    """run.py's source must not name the old glob-based scan helper (rglob).
+
+    Pins `rg -n "rglob" skills/survey/scripts/run.py` printing no match, a
+    gate stated as both a task acceptance criterion and a project Success
+    Criterion. This is a source-content rule, not a runtime behavior: read
+    the module's own file through run.__file__ so the test follows the
+    module rather than a hardcoded path.
+    """
+    source = Path(run.__file__).read_text()
+    assert "rglob" not in source, (
+        "run.py must not contain the literal token 'rglob'; the glob-based "
+        "scan helper must be fully replaced by the pruning os.walk traversal"
+    )
+
+
+# ---------------------------------------------------------------------------
 # _scan_layers: _SKIP_DIRS and dot-directories are pruned at any depth
 # ---------------------------------------------------------------------------
 
@@ -266,8 +286,12 @@ def test_pruned_directories_are_never_descended_into(tmp_path, monkeypatch):
     filters after a naive, unpruned walk would still yield dirpaths inside
     the skip/dot directories, which this test catches directly.
     """
-    repo = tmp_path / "repo"
-    repo.mkdir()
+    # The repo sits beneath a dot-prefixed ancestor (tmp_path/.cache/repo), not
+    # directly under tmp_path: if the assertions below stopped scoping to
+    # paths relative to the repo, the ancestor's ".cache" segment would show
+    # up in every recorded dirpath and this test would fail.
+    repo = tmp_path / ".cache" / "repo"
+    repo.mkdir(parents=True)
     (repo / "src" / "node_modules" / "pkg").mkdir(parents=True)
     (repo / "src" / "node_modules" / "pkg" / "file.py").write_text("x = 1\n")
     (repo / "src" / ".venv" / "lib").mkdir(parents=True)
