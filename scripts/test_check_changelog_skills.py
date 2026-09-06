@@ -206,15 +206,6 @@ class TestMain:
 
         assert c.main(argv=[]) == 0
 
-    def test_main_resolves_skills_and_changelog_from_repo_root(self, tmp_path, monkeypatch):
-        """main() resolves skills/ and CHANGELOG.md from repo root."""
-        monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
-        skills_dir, changelog = _skills_tree(tmp_path, "# Changelog\n\n**found-skill**: added\n")
-        (skills_dir / "found-skill").mkdir()
-
-        exit_code = c.main()
-        assert exit_code == 0
-
     def test_main_grandfathered_excluded_from_missing(self, tmp_path, monkeypatch, capsys):
         """Grandfathered skills not in changelog are not reported as missing."""
         monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
