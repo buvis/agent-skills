@@ -222,17 +222,23 @@ def test_main_decide_returns_two_rather_than_one_for_a_refusal_shaped_message(
 
 
 def test_main_decide_does_not_report_a_missing_file_argument_as_an_unreadable_queue(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, capsys
 ):
     # Exit 2 means "the queue could not be read", not "something went wrong":
     # a --file path that does not exist has nothing to do with the queue, so it
-    # must not be swallowed into that exit code.
+    # must not be swallowed into that exit code. It is answered on its own
+    # terms instead - the refusal, exit 1, with the fault on stderr.
     monkeypatch.chdir(tmp_path)
     docket.save([_proposal(1)])
     entry_id = docket.slice_key("t.jsonl", 1)
 
-    with pytest.raises(FileNotFoundError):
-        docket.main(["decide", entry_id, "kept", "--file", str(tmp_path / "does-not-exist.md")])
+    exit_code = docket.main(
+        ["decide", entry_id, "kept", "--file", str(tmp_path / "does-not-exist.md")]
+    )
+
+    assert exit_code == 1
+    assert exit_code != 2
+    assert capsys.readouterr().err.strip() != ""
 
 
 def test_main_decide_reads_the_queue_once_so_no_later_read_can_be_taken_for_a_refusal(
