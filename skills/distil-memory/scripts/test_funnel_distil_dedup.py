@@ -36,6 +36,33 @@ def _fail_with_missing_binary(cmd, **kwargs):
     raise FileNotFoundError("[Errno 2] No such file or directory: 'claude'")
 
 
+def _fail_with_timeout(cmd, **kwargs):
+    raise subprocess.TimeoutExpired(cmd=cmd, timeout=120)
+
+
+def test_no_dedup_error_ever_embeds_the_typing_prompt(make_corpus, monkeypatch, capsys):
+    """A `TimeoutExpired` from the typing call carries the whole argv it ran,
+    which can hold a long prompt built from the proposal's own text and the
+    shortlisted memory it was read against. The fixed timeout message must
+    never leak either into the published record. The `RuntimeError` branch is
+    a known boundary this test leaves unexamined: it interpolates `claude`'s
+    stderr, which this test does not probe."""
+    built = make_corpus(slice_texts=(_SLICE_ONE,))
+    fake_cli = FakeClaudeCli({_SLICE_ONE: _PROPOSAL_ONE}, classify=lambda prompt: _fail_with_timeout)
+    monkeypatch.setattr(funnel.subprocess, "run", fake_cli)
+
+    exit_code = funnel.main(["--distil"])
+
+    assert exit_code == 0
+    assert "dedup_errors: 1" in capsys.readouterr().out
+
+    _out_dir, records, _discards = _published(built.audit_dir)
+    dedup_error = records[0]["dedup_error"]
+    assert dedup_error == "the typing call timed out after 120s"
+    assert _PROPOSAL_ONE not in dedup_error
+    assert _MEMORY_CHEAP_TIER_MAP not in dedup_error
+
+
 def test_main_keeps_the_proposal_as_new_with_a_dedup_error_when_the_index_cannot_be_read(
     make_corpus, monkeypatch, capsys
 ):
