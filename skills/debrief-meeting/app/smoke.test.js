@@ -218,6 +218,12 @@ test('brief tiles show em dashes and a not-run note when extraction did not run'
   )
 })
 
+test('brief live-risks tile shows the unresolved count when extraction ran', () => {
+  const { doc } = render()
+  const tiles = [...doc.querySelectorAll('.tile')].map((t) => t.textContent.replace(/\s+/g, ''))
+  assert.ok(tiles.includes('1liverisks'), `tiles were: ${tiles.join(' | ')}`)
+})
+
 test('decisions tab shows the not-run message when extraction did not run', async () => {
   const payload = structuredClone(PAYLOAD)
   payload.extract_ran = false
