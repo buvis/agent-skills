@@ -244,7 +244,13 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(entry))
             return 0
         elif args.command == "decide":
-            file_text = Path(args.file).read_text() if args.file else None
+            file_text = None
+            if args.file:
+                try:
+                    file_text = Path(args.file).read_text()
+                except (OSError, json.JSONDecodeError) as exc:
+                    print(f"cannot read the note file {args.file}: {exc}", file=sys.stderr)
+                    return 1
             # Read once, outside the refusal handler below, so an unreadable
             # queue leaves through the exit 2 handler instead.
             data = load(path=args.queue)
