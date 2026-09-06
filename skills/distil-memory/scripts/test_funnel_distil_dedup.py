@@ -6,9 +6,12 @@ import subprocess
 import dedup
 import distil
 import funnel
+import proposal
 
 from funnel_test_helpers import (
     FakeClaudeCli,
+    _ENTRY_CHEAP_TIER_MAP,
+    _INDEX_HEADER,
     _MEMORY_CHEAP_TIER_MAP,
     _MEMORY_REPORT_DIRECTORY,
     _PROPOSAL_ONE,
@@ -316,3 +319,74 @@ def test_main_types_each_projects_proposal_against_that_projects_own_memory_plan
     assert by_name["report-under-audit-results"]["existing_text"] == _MEMORY_REPORT_DIRECTORY
     assert reads.count(built.one.memory_dir / "MEMORY.md") == 1
     assert reads.count(built.two.memory_dir / "MEMORY.md") == 1
+
+
+class _DedupClassifyRaises:
+    """A `dedup`-shaped stub that shortlists and reads the one memory
+    `_typing_candidate` always writes to disk, with no read failures, so
+    `_type_proposal` reaches its typing call - and whose `classify` then
+    always raises `exc`. `_type_proposal` can be exercised directly this way,
+    without ever reaching the real `dedup.classify` or a `claude` CLI call."""
+
+    def __init__(self, exc):
+        self._exc = exc
+
+    def shortlist(self, *args, **kwargs):
+        return ["cheap-tier-map"]
+
+    def read_candidates(self, *args, **kwargs):
+        return [("cheap-tier-map", _MEMORY_CHEAP_TIER_MAP)], []
+
+    def classify(self, *args, **kwargs):
+        raise self._exc
+
+
+def _typing_candidate(tmp_path):
+    """One `Proposal` plus the memory plane beside it - just enough for
+    `_type_proposal` to reach its call into `dedup` before that call raises."""
+    memory_dir = tmp_path / "memory"
+    memory_dir.mkdir()
+    (memory_dir / "cheap-tier-map.md").write_text(_MEMORY_CHEAP_TIER_MAP)
+    candidate = proposal.Proposal(
+        file_text=_PROPOSAL_ONE,
+        evidence=proposal.Evidence(transcript=tmp_path / "t1.jsonl", line_no=1, text=_SLICE_ONE),
+    )
+    index_text = _INDEX_HEADER + _ENTRY_CHEAP_TIER_MAP
+    return candidate, memory_dir, index_text
+
+
+def test_type_proposal_reports_a_fixed_message_when_the_typing_call_times_out(tmp_path):
+    """A `TimeoutExpired` carries the whole argv it ran, which can hold a long
+    prompt built from the candidate's own text. Echoing that into the
+    published proposal would leak it, so the report holds a fixed message
+    naming only the timeout, never the command or the prompt."""
+    candidate, memory_dir, index_text = _typing_candidate(tmp_path)
+    long_prompt = "classify this candidate against the shortlist: " + "x" * 500
+    timeout = subprocess.TimeoutExpired(cmd=["claude", "-p", "sonnet", long_prompt], timeout=120)
+    dedup_stub = _DedupClassifyRaises(timeout)
+
+    typed = funnel._type_proposal(candidate, memory_dir, index_text, None, dedup_stub)
+
+    assert typed.dedup_error == "the typing call timed out after 120s"
+
+
+def test_type_proposal_reports_the_runtime_error_message_unchanged(tmp_path):
+    """A `RuntimeError` from the typing call is not a leak risk the way a
+    timeout's argv is, so its message keeps flowing into the report."""
+    candidate, memory_dir, index_text = _typing_candidate(tmp_path)
+    dedup_stub = _DedupClassifyRaises(RuntimeError("boom"))
+
+    typed = funnel._type_proposal(candidate, memory_dir, index_text, None, dedup_stub)
+
+    assert typed.dedup_error == "the typing call failed: boom"
+
+
+def test_type_proposal_reports_the_os_error_message_unchanged(tmp_path):
+    """An `OSError` from the typing call is handled the same as a
+    `RuntimeError`: its message keeps flowing into the report."""
+    candidate, memory_dir, index_text = _typing_candidate(tmp_path)
+    dedup_stub = _DedupClassifyRaises(OSError("boom"))
+
+    typed = funnel._type_proposal(candidate, memory_dir, index_text, None, dedup_stub)
+
+    assert typed.dedup_error == "the typing call failed: boom"
