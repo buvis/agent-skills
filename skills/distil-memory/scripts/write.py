@@ -166,7 +166,14 @@ def main(argv: list[str] | None = None) -> int:
             # back. A target this run cannot read is one to refuse, not to
             # overwrite: nothing has been written yet, so the store keeps
             # every byte it came in with.
-            previous = _readable_bytes(target) if target.is_file() else None
+            # is_file answers False for a target that is merely absent, but a
+            # store this process cannot search makes it raise instead: refuse
+            # on that too, naming the file the probe could not answer for
+            try:
+                exists = target.is_file()
+            except OSError as exc:
+                raise WriteError(f"{target}: {exc}") from exc
+            previous = _readable_bytes(target) if exists else None
             written = write_memory(entry, store_path)
         except (WriteError, KeyError) as exc:
             print(str(exc), file=sys.stderr)
