@@ -343,3 +343,20 @@ def test_a_symlinked_skill_directory_outside_the_source_is_not_inventoried(
     inventory = cli.discover_inventory([source])
 
     assert "evil" not in inventory
+
+
+def test_parser_documents_previously_bare_options_with_help_text() -> None:
+    parser = cli._parser()
+    named_options = ("--policy", "--agents-root", "--claude-root", "--config-root", "--no-claude")
+
+    help_by_option = {
+        option: action.help
+        for action in parser._actions
+        for option in action.option_strings
+        if option in named_options
+    }
+
+    assert set(help_by_option) == set(named_options)
+    for help_text in help_by_option.values():
+        assert isinstance(help_text, str)
+        assert help_text.strip()
