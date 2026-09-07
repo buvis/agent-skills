@@ -198,6 +198,36 @@ def test_exits_with_the_given_code_and_writes_the_given_streams(
     assert argv_file.read_text(encoding="utf-8").splitlines() == ["one"]
 
 
+def test_keeps_an_apostrophe_in_the_streams_and_the_argv_path_intact(
+    tmp_path, run_resolved_tool
+):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    # An apostrophe is ordinary English ("didn't") and a legal path character on
+    # both platforms. Interpolated raw, each one closes the quoting the stub
+    # body opened around it, so the stub breaks when it is written, not here.
+    argv_dir = tmp_path / "bob's runs"
+    argv_dir.mkdir()
+    argv_file = argv_dir / "argv.txt"
+
+    stub = eval_harness_fixtures.write_argv_recording_stub(
+        bin_dir,
+        "apostrophe",
+        argv_file,
+        stdout="engine didn't stop",
+        stderr="engine didn't warn",
+    )
+    done = run_resolved_tool(stub, ["apostrophe", "--who", "bob's flag"])
+
+    assert done.returncode == 0
+    assert done.stdout.splitlines() == ["engine didn't stop"]
+    assert done.stderr.splitlines() == ["engine didn't warn"]
+    assert argv_file.read_text(encoding="utf-8").splitlines() == [
+        "--who",
+        "bob's flag",
+    ]
+
+
 # -- fake_engine_command ---------------------------------------------------
 
 # The effect each mode is named for, told apart by what it leaves behind. No

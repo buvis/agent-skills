@@ -6,6 +6,7 @@ Test-only module. Tests import it; production code never does.
 from __future__ import annotations
 
 import os
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -103,6 +104,18 @@ def build_fixture_repo(root: Path, *, change_test: bool = False) -> dict:
     }
 
 
+def _cmd_echo_arg(text: str) -> str:
+    """Escape one `echo` argument for a batch file, so it prints verbatim.
+
+    `%` doubles; the command metacharacters take a caret. Carets go first, or
+    the ones this adds get escaped again.
+    """
+    escaped = text.replace("%", "%%")
+    for char in "^&<>|()":
+        escaped = escaped.replace(char, f"^{char}")
+    return escaped
+
+
 def write_argv_recording_stub(
     directory: Path,
     name: str,
@@ -133,18 +146,19 @@ def write_argv_recording_stub(
             ":done",
         ]
         if stdout:
-            lines.append(f"echo {stdout}")
+            lines.append(f"echo {_cmd_echo_arg(stdout)}")
         if stderr:
-            lines.append(f"1>&2 echo {stderr}")
+            lines.append(f"1>&2 echo {_cmd_echo_arg(stderr)}")
         lines.append(f"exit /b {exit_code}")
         stub = Path(directory) / f"{name}.cmd"
         stub.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8", newline="")
     else:
-        lines = ["#!/bin/sh", f"printf '%s\\n' \"$@\" > '{argv_file}'"]
+        target = shlex.quote(str(argv_file))
+        lines = ["#!/bin/sh", f"printf '%s\\n' \"$@\" > {target}"]
         if stdout:
-            lines.append(f"printf '%s\\n' '{stdout}'")
+            lines.append(f"printf '%s\\n' {shlex.quote(stdout)}")
         if stderr:
-            lines.append(f"printf '%s\\n' '{stderr}' >&2")
+            lines.append(f"printf '%s\\n' {shlex.quote(stderr)} >&2")
         lines.append(f"exit {exit_code}")
         stub = Path(directory) / name
         stub.write_text("\n".join(lines) + "\n", encoding="utf-8")
