@@ -163,8 +163,9 @@ def create_job():
 def assign_process(job, pid: int) -> None:
     """Join a process to the job by pid: `subprocess` keeps its handle to itself.
 
-    Quota rights are what the assignment itself needs; terminate rights are what
-    the halt path needs on a child the job would not take.
+    `AssignProcessToJobObject` requires both rights on the handle it is given,
+    so quota and terminate are what the assignment itself needs, not rights the
+    caller reserves for anything later.
     """
     access = _PROCESS_SET_QUOTA | _PROCESS_TERMINATE
     process = _kernel32.OpenProcess(access, False, pid)

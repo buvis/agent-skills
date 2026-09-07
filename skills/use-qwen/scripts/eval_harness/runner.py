@@ -213,15 +213,15 @@ def _log_at(stdout_path: Path | None) -> Iterator[Path]:
 def _start(argv: Sequence[str], cwd: Path, env: dict[str, str] | None,
            log: Path) -> subprocess.Popen:
     """Start the command inside a boundary of its own, both streams landing in `log`."""
-    held = {"start_new_session": True}
+    boundary_kwargs = {"start_new_session": True}
     if os.name == "nt":
         from eval_harness import win32
         # Suspended rather than contained: the job assignment has to land before
         # the child's first instruction, or a grandchild is born outside the job.
-        held = {"creationflags": win32.CREATE_SUSPENDED}
+        boundary_kwargs = {"creationflags": win32.CREATE_SUSPENDED}
     with open(log, "wb") as sink:
         return subprocess.Popen(list(argv), cwd=str(cwd), env=env, stdin=subprocess.DEVNULL,
-                                stdout=sink, stderr=subprocess.STDOUT, **held)
+                                stdout=sink, stderr=subprocess.STDOUT, **boundary_kwargs)
 
 
 def _exit_within(process: subprocess.Popen, timeout_s: float) -> tuple[int | None, bool]:
