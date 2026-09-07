@@ -48,9 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **review-prd-backlog**: `check_links` now stats each distinct path once per
-  run instead of once per reference - 1,216 stat calls dropped to 150 on the
-  real backlog (87.7% were repeats of a path already checked).
+- **review-prd-backlog**: `check_links` now stats each distinct `(token, root)`
+  pair at most once per process instead of once per reference - 1,216 stat calls
+  dropped to 150 on the real backlog (87.7% were repeats of a path already
+  checked).
 - **distil-memory**: a run that loses the race for its output directory on
   Windows now leaves the winning run's published proposals alone instead of
   deleting the directory it failed to claim.
