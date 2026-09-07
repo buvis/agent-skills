@@ -38,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ci**: run the `brief-portfolio` and `debrief-meeting` node app suites in a
   new `node` job (install then test for each), so a UI regression in either
   app now gates CI instead of only a laptop run.
+- **use-sonnet**: `sonnet-run.sh` takes `-S/--session-id UUID`, pinning the
+  Claude session id in print mode so a caller can find the transcript
+  afterwards. Interactive, resume and continue runs are unaffected.
 
 ### Changed
 

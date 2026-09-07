@@ -44,6 +44,7 @@ ADD_DIRS=()
 PROMPT=""
 PROMPT_FILE=""
 OUTPUT_FILE=""
+SESSION_ID=""
 
 usage() {
     echo "Usage: $0 [options] [prompt]"
@@ -61,6 +62,7 @@ usage() {
     echo "  -o, --output FILE      Write output to file (via tee)"
     echo "  -r, --resume [ID]      Resume session (optionally specify ID)"
     echo "  -c, --continue         Resume most recent session"
+    echo "  -S, --session-id UUID  Pin the Claude session id (print mode only)"
     echo "  -h, --help             Show this help"
     echo ""
     echo "Examples:"
@@ -119,6 +121,10 @@ while [[ $# -gt 0 ]]; do
             MODE="continue"
             shift
             ;;
+        -S|--session-id)
+            SESSION_ID="$2"
+            shift 2
+            ;;
         -h|--help)
             usage
             exit 0
@@ -147,6 +153,13 @@ run_cmd() {
         "$@"
     fi
 }
+
+# Pinning the session id only makes sense for a fresh headless run: resume and
+# continue already carry an id, and interactive claude picks its own.
+SESSION_ARGS=()
+if [ -n "$SESSION_ID" ]; then
+    SESSION_ARGS=("--session-id" "$SESSION_ID")
+fi
 
 case $MODE in
     resume)
@@ -185,10 +198,10 @@ case $MODE in
         # prompt from stdin byte-verbatim when no positional prompt is given.
         case "$PROMPT" in
             -*)
-                printf '%s' "$PROMPT" | run_cmd claude --print --model "$MODEL" $PERM "${ADD_DIRS[@]}"
+                printf '%s' "$PROMPT" | run_cmd claude --print --model "$MODEL" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}"
                 ;;
             *)
-                run_cmd claude --print --model "$MODEL" $PERM "${ADD_DIRS[@]}" "$PROMPT" < /dev/null
+                run_cmd claude --print --model "$MODEL" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}" "$PROMPT" < /dev/null
                 ;;
         esac
         ;;
