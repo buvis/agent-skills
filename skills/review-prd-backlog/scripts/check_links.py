@@ -17,6 +17,7 @@ intentionally-removed paths). Findings quote the citing line.
 Exit codes: 0 clean, 1 dangling references or scan errors found.
 """
 import argparse
+import functools
 import json
 import re
 import sys
@@ -63,6 +64,7 @@ def resolvable_numbers(root: Path) -> set[str]:
     return nums
 
 
+@functools.lru_cache
 def resolve_path(token: str, root: Path) -> bool:
     if token.startswith("dev/local/"):
         p = root / token
