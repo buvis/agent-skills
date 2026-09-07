@@ -853,25 +853,13 @@ def test_implementations_index_uses_file_path_not_layer_name(
     )
 
 
-@pytest.mark.parametrize(
-    "subdir, filename, class_name, class_line, plain_func, func_line",
-    [
-        ("ports/payment", "payment_port.py", "PaymentPort", 1, "helper_util", 5),
-        ("adapters/email", "email_adapter.py", "EmailAdapter", 1, "build_headers", 5),
-    ],
-)
-def test_extension_points_uses_file_path_not_layer_name(
-    tmp_path, subdir, filename, class_name, class_line, plain_func, func_line
-):
-    """Extension points section: full file path shown and kind filter enforced.
-
-    Two requirements in one fixture:
-    1. The FULL nested relative path (e.g. ports/payment/payment_port.py:1) must
-       appear as one contiguous substring — not just the filename alone, which would
-       allow a layer/filename impl (dropping intermediate dirs) to pass.
-    2. A class-based extension point IS present in the section; a plain top-level
-       function in the same file is NOT — confirming the kind filter (interface/class
-       only, not every function).
+def _make_repo_with_class_and_function(
+    tmp_path, subdir: str, filename: str, class_name: str, plain_func: str
+) -> Path:
+    """
+    Create a git repo containing one Python file at `subdir/filename` holding
+    `class class_name` at line 1 and `def plain_func()` at line 5.
+    Returns the repo path.
     """
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -892,7 +880,34 @@ def test_extension_points_uses_file_path_not_layer_name(
     )
 
     subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "add ext point"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "add ext point"], cwd=repo, check=True, capture_output=True
+    )
+
+    return repo
+
+
+@pytest.mark.parametrize(
+    "subdir, filename, class_name, class_line, plain_func, func_line",
+    [
+        ("ports/payment", "payment_port.py", "PaymentPort", 1, "helper_util", 5),
+        ("adapters/email", "email_adapter.py", "EmailAdapter", 1, "build_headers", 5),
+    ],
+)
+def test_extension_points_uses_file_path_not_layer_name(
+    tmp_path, subdir, filename, class_name, class_line, plain_func, func_line
+):
+    """Extension points section: full file path shown and kind filter enforced.
+
+    Two requirements in one fixture:
+    1. The FULL nested relative path (e.g. ports/payment/payment_port.py:1) must
+       appear as one contiguous substring — not just the filename alone, which would
+       allow a layer/filename impl (dropping intermediate dirs) to pass.
+    2. A class-based extension point IS present in the section; a plain top-level
+       function in the same file is NOT — confirming the kind filter (interface/class
+       only, not every function).
+    """
+    repo = _make_repo_with_class_and_function(tmp_path, subdir, filename, class_name, plain_func)
 
     section = _section_body(run._survey(repo), "Extension points")
 
