@@ -53,6 +53,59 @@ jobs:
       - name: Run the suite
         run: uv run --python ${{ matrix.python-version }} pytest
 
+  # The same suite on a CRLF checkout and Windows path separators. 3.13 only:
+  # the deny_access boundary wrappers rely on 3.11+ pathlib resolving its
+  # accessor at call time, so a 3.10 lane here would pass while doing nothing.
+  windows:
+    runs-on: windows-latest
+    env:
+      # The runner's console codepage is 1252, and the fixtures are UTF-8.
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.0.1
+
+      # The ubuntu `test` job's two OPPOSITE placement rules, in their Windows
+      # spelling: `rg` is COPIED onto PATH (a symlink is the wrong tool on a
+      # Windows runner), and `ast-grep` stays OFF PATH, so mise's shim
+      # directory is never added to it.
+      - name: Install the sweep-fix tool chain
+        run: |
+          Invoke-WebRequest -Uri https://mise.jdx.dev/mise-latest-windows-x64.zip -OutFile "$env:RUNNER_TEMP\mise.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\mise.zip" -DestinationPath "$env:USERPROFILE"
+          "$env:USERPROFILE\mise\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          & "$env:USERPROFILE\mise\bin\mise.exe" use -g -y ast-grep@latest ripgrep@latest
+          Copy-Item -Path (& "$env:USERPROFILE\mise\bin\mise.exe" which rg) -Destination "$env:USERPROFILE\mise\bin\rg.exe"
+
+      # A missing capability has to end the lane by name. Left to the suite it
+      # would surface as a skip, and a skipped test keeps the badge green over
+      # the platform it was added to cover.
+      - name: Verify runner capabilities
+        run: |
+          $missing = @()
+          $probeFile = New-Item -ItemType File -Path "$env:RUNNER_TEMP\probe.txt" -Force
+          $probeDir = New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\probe-dir" -Force
+          try { New-Item -ItemType SymbolicLink -Path "$env:RUNNER_TEMP\file.link" -Target $probeFile.FullName | Out-Null }
+          catch { $missing += "creating a file symlink" }
+          try { New-Item -ItemType SymbolicLink -Path "$env:RUNNER_TEMP\dir.link" -Target $probeDir.FullName | Out-Null }
+          catch { $missing += "creating a directory symlink" }
+          foreach ($tool in "bash", "mise", "rg") {
+            if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { $missing += "$tool on PATH" }
+          }
+          if (Get-Command ast-grep -ErrorAction SilentlyContinue) {
+            $missing += "ast-grep OFF PATH, so that resolve_ast_grep falls through to mise"
+          }
+          try { $resolved = mise which ast-grep } catch { $resolved = "" }
+          if (-not $resolved) { $missing += "ast-grep resolvable through 'mise which ast-grep'" }
+          if ($missing) {
+            foreach ($capability in $missing) { Write-Host "::error::the runner is missing: $capability" }
+            exit 1
+          }
+
+      - name: Run the suite
+        run: uv run --python 3.13 pytest
+
   # Five skills ship bash suites their helper scripts are the subject of.
   # pytest never sees them, so without this job they pass or fail invisibly.
   shell:

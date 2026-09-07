@@ -24,7 +24,7 @@ packages = ["src/agent_skills_braid"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
-testpaths = ["tests", "skills"]
+testpaths = ["tests", "skills", "scripts"]
 
 [tool.ruff]
 # Skill and specification trees carry illustrative code in markdown, including
