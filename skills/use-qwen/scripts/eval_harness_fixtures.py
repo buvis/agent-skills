@@ -124,12 +124,17 @@ def write_argv_recording_stub(
     exit_code: int = 0,
     stdout: str = "",
     stderr: str = "",
+    cwd_file: Path | None = None,
 ) -> Path:
     """Write a stub that records its argv, one line per argument, then answers.
 
     The repo-root `write_executable_stub` fixture emits a single fixed echo line
     and captures no argv, which the adapter tests need byte for byte. The
     returned path is `shutil.which`'s, so Windows `%PATHEXT%` casing is handled.
+
+    With `cwd_file` the stub also records the directory it ran in, which is the
+    only trace a caller leaves when it names its target by changing directory
+    rather than by passing a path.
     """
     if IS_WINDOWS:
         # The shift loop keeps one argument per line; `for %%A in (%*)` would
@@ -145,6 +150,8 @@ def write_argv_recording_stub(
             "goto loop",
             ":done",
         ]
+        if cwd_file is not None:
+            lines.append(f'>"{cwd_file}" echo %CD%')
         if stdout:
             lines.append(f"echo {_cmd_echo_arg(stdout)}")
         if stderr:
@@ -155,6 +162,10 @@ def write_argv_recording_stub(
     else:
         target = shlex.quote(str(argv_file))
         lines = ["#!/bin/sh", f"printf '%s\\n' \"$@\" > {target}"]
+        if cwd_file is not None:
+            # `-P` prints the directory the kernel says the stub is in, not the
+            # inherited PWD a symlinked temporary directory would spell.
+            lines.append(f"pwd -P > {shlex.quote(str(cwd_file))}")
         if stdout:
             lines.append(f"printf '%s\\n' {shlex.quote(stdout)}")
         if stderr:
