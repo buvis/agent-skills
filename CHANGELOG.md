@@ -210,6 +210,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it describes rather than the shell it was invoked from. This changes
   where an existing `save` call with no `--queue` writes; `start`, `next`,
   `decide`, and `cursor` keep the cwd walk.
+- **create-skill**: `validate_skill.py --help` and `-h` now print usage and
+  exit 0, instead of treating the flag as a path and dying with
+  `[ERROR] Path not found: <repo>/--help`.
+- **create-skill**: the scaffolder's printed step 3 now names the
+  interpreter-prefixed union validator
+  (`python3 ~/.agents/skills/create-skill/scripts/validate_skill.py <dir>`),
+  instead of the Claude-only `~/.claude/skills/...` form that
+  `braid --no-claude` never creates.
 
 ### Added
 
