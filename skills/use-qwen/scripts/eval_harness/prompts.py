@@ -27,7 +27,7 @@ _CLOSING_LINE = ("Read only the relevant files, the failing tests and those anch
                  "with narrow symbol or line-range reads and no recursive exploration.")
 
 # A marker counts only where it opens a line: the same text mid-sentence is prose.
-_LEAK_MARKERS = ("diff --git", "@@", "+++", "---", "Acceptance:", "Acceptance criteria")
+_LEAK_MARKERS = ("diff --git", "@@ ", "+++ ", "--- ", "Acceptance:", "Acceptance criteria")
 
 _REFERENCES_FILE = "dispatch-references.json"
 _REFERENCE_KEYS = ("name", "version", "instructions", "provenance")
@@ -54,7 +54,7 @@ def _fail(key: str, value: object) -> None:
 def _rendered_texts(spec: Spec, shape: str) -> dict[str, tuple[str, ...]]:
     """Every spec text this shape puts in front of the candidate, by key."""
     if shape == "description":
-        return {"task_text": (spec.task_text,)}
+        return {"task_text": (spec.task_text,), "pins": tuple(spec.pins)}
     return {"architecture": (spec.architecture,),
             "invariants": tuple(spec.invariants),
             "read_anchors": tuple(field for anchor in spec.read_anchors
@@ -115,7 +115,10 @@ def _vendored(evidence_dir: Path, shape: str) -> list:
         if shape == "tdd":
             raise SpecError("%s: missing" % _REFERENCES_FILE)
         return []
-    value = json.loads(path.read_text())
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, ValueError) as exc:
+        raise SpecError("%s: %s" % (_REFERENCES_FILE, exc)) from exc
     if not isinstance(value, list):
         raise SpecError("%s: not an array" % _REFERENCES_FILE)
     return value
