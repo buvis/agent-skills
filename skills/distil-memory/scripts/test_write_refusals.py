@@ -4,7 +4,6 @@ cannot open, or cannot even probe."""
 
 import io
 import json
-import os
 import sys
 import uuid
 from pathlib import Path
@@ -131,9 +130,8 @@ def test_main_write_refuses_an_update_whose_target_bytes_are_not_valid_utf_8_and
     assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "queue-cursor.md"]
 
 
-@pytest.mark.skipif(os.geteuid() == 0, reason="root opens a 0o000 file whatever its mode says")
 def test_main_write_refuses_an_update_whose_target_cannot_be_read_and_leaves_both_files_byte_identical(
-    store_path, monkeypatch, capsys
+    store_path, monkeypatch, capsys, deny_access
 ):
     store_path.mkdir()
     # a stem no other test in this module uses, so a name in stderr can only
@@ -151,7 +149,7 @@ def test_main_write_refuses_an_update_whose_target_cannot_be_read_and_leaves_bot
         file_text=_file_text(name="queue-cursor", description="new, more accurate description"),
         existing_text=original_text,
     )
-    target_path.chmod(0o000)
+    allow = deny_access(target_path)
     try:
         target_path.read_bytes()
     except OSError as exc:
@@ -159,13 +157,13 @@ def test_main_write_refuses_an_update_whose_target_cannot_be_read_and_leaves_bot
         # keeps the assertion honest on a machine that words it differently
         refusal = str(exc)
     else:
-        pytest.fail(f"expected {target_path} to be unopenable at mode 0o000")
+        pytest.fail(f"expected {target_path} to be unopenable once access is denied")
     monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
 
     status = write.main(["write", "--store", str(store_path)])
 
     assert target_path.exists()
-    target_path.chmod(0o644)
+    allow()
     assert status == 1
     captured = capsys.readouterr()
     # the memory it could not open is the one thing the caller has to hear
@@ -179,11 +177,8 @@ def test_main_write_refuses_an_update_whose_target_cannot_be_read_and_leaves_bot
     assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "queue-cursor.md"]
 
 
-@pytest.mark.skipif(
-    os.geteuid() == 0, reason="root traverses a 0o000 directory whatever its mode says"
-)
 def test_main_write_refuses_an_update_whose_target_cannot_even_be_probed_and_leaves_both_files_byte_identical(
-    store_path, monkeypatch, capsys
+    store_path, monkeypatch, capsys, deny_access
 ):
     store_path.mkdir()
     target_path = store_path / "widget-fact.md"
@@ -200,14 +195,14 @@ def test_main_write_refuses_an_update_whose_target_cannot_even_be_probed_and_lea
         existing_text=original_text,
     )
     monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
-    store_path.chmod(0o000)
+    allow = deny_access(store_path)
 
     try:
         status = write.main(["write", "--store", str(store_path)])
     finally:
-        # a store left at 0o000 defeats pytest's own tmp_path cleanup for every
-        # later test, so it goes back whatever the call did
-        store_path.chmod(0o755)
+        # a store left denied answers none of the assertions below, so the
+        # denial is lifted whatever the call did
+        allow()
 
     assert status == 1
     captured = capsys.readouterr()

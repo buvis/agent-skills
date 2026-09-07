@@ -92,16 +92,16 @@ def test_trash_and_placeholders_skipped(tmp_path):
     assert findings == []
 
 
-def test_unreadable_file_is_a_scan_error(tmp_path):
+def test_unreadable_file_is_a_scan_error(tmp_path, deny_access):
     make_tree(tmp_path)
     bad = tmp_path / "dev/local/notes/locked.md"
     bad.write_text("secret\n")
-    bad.chmod(0)
+    allow = deny_access(bad)
     try:
         findings, errors = check_links.run(tmp_path)
         assert len(errors) == 1 and "locked.md" in errors[0]
     finally:
-        bad.chmod(0o644)
+        allow()
 
 
 def test_cli_exit_codes_and_json(tmp_path):

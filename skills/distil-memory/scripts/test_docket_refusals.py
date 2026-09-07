@@ -2,7 +2,6 @@
 decide --file cannot be read."""
 
 import json
-import os
 
 import docket
 
@@ -347,11 +346,8 @@ def test_main_decide_refuses_a_file_flag_that_exists_but_cannot_be_read_as_a_fil
     assert entry["file_text"] == "original"
 
 
-@pytest.mark.skipif(
-    os.geteuid() == 0, reason="root reads a mode 000 file, so there is no refusal to observe"
-)
 def test_main_decide_refuses_a_regular_file_the_process_is_not_allowed_to_read(
-    tmp_path, monkeypatch, capsys, queue_path
+    tmp_path, monkeypatch, capsys, queue_path, deny_access
 ):
     # A real file, of the right shape, that still cannot be read. Nothing about
     # the path says so, so only attempting the read finds this fault: a guard
@@ -363,7 +359,7 @@ def test_main_decide_refuses_a_regular_file_the_process_is_not_allowed_to_read(
     entry_id = docket.slice_key("t.jsonl", 1)
     forbidden = tmp_path / "locked-note.md"
     forbidden.write_text("body nobody may read")
-    forbidden.chmod(0o000)
+    deny_access(forbidden)
     assert forbidden.is_file()
 
     exit_code = docket.main(

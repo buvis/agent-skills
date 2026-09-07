@@ -298,7 +298,9 @@ class TestDecisionSide:
         assert candidates == [("tallow-02", memories["tallow-02"])]
         assert unread_names == []
 
-    def test_read_candidates_reports_an_unreadable_memory_and_skips_a_missing_one(self, tmp_path):
+    def test_read_candidates_reports_an_unreadable_memory_and_skips_a_missing_one(
+        self, tmp_path, deny_access
+    ):
         """A name the index lists but the plane no longer holds is a stale
         entry, not a failure, so it leaves no trace. A file that is there but
         unreadable is the dangerous case - nothing can be compared against it -
@@ -307,22 +309,14 @@ class TestDecisionSide:
         memory_dir = _memory_plane(tmp_path, memories)
         missing = "gantry-04"
         locked = memory_dir / "gantry-03.md"
-        locked.chmod(0o000)
-
-        try:
-            locked.read_text()
-        except OSError:
-            pass
-        else:
-            locked.chmod(0o600)
-            pytest.skip("this user reads a 0o000 file anyway, so unreadable cannot be exercised")
+        allow = deny_access(locked)
 
         try:
             candidates, unread_names = dedup.read_candidates(
                 memory_dir, ["gantry-01", missing, "gantry-03", "gantry-02"]
             )
         finally:
-            locked.chmod(0o600)
+            allow()
 
         assert candidates == [
             ("gantry-01", memories["gantry-01"]),
@@ -373,10 +367,22 @@ class TestDecisionSide:
         """
         memories = _generated_memories("mullion", 2)
         memory_dir = _memory_plane(tmp_path, memories)
-        (memory_dir / "..\\outside\\secret.md").write_text(_decoy_text("mullion", 3))
+        if os.name == "nt":
+            # a literal `..\outside\secret.md` is a traversal on this host, not
+            # a filename, so the decoy is spelled the way a backslash means here
+            (memory_dir / "outside").mkdir()
+            traversing_name = "outside\\secret"
+        else:
+            traversing_name = "..\\outside\\secret"
+        planted = memory_dir / f"{traversing_name}.md"
+        planted.write_text(_decoy_text("mullion", 3))
+        # the decoy only controls anything while it is a readable file inside
+        # the plane: a reader blind to backslashes hands its text back
+        assert planted.is_file()
+        assert planted.resolve().is_relative_to(memory_dir.resolve())
 
         candidates, unread_names = dedup.read_candidates(
-            memory_dir, ["..\\outside\\secret", "mullion-01"]
+            memory_dir, [traversing_name, "mullion-01"]
         )
 
         assert candidates == [("mullion-01", memories["mullion-01"])]

@@ -430,26 +430,20 @@ def test_read_index_returns_the_index_text_when_it_is_present(tmp_path):
     assert dedup.read_index(memory_dir) == _RANKING_INDEX
 
 
-def test_read_index_raises_oserror_when_the_index_exists_but_cannot_be_read(tmp_path):
+def test_read_index_raises_oserror_when_the_index_exists_but_cannot_be_read(
+    tmp_path, deny_access
+):
     memory_dir = tmp_path / "memory"
     memory_dir.mkdir()
     index = memory_dir / "MEMORY.md"
     index.write_text(_RANKING_INDEX)
-    index.chmod(0o000)
-
-    try:
-        index.read_text()
-    except OSError:
-        pass
-    else:
-        index.chmod(0o600)
-        pytest.skip("this user reads a 0o000 file anyway, so unreadable cannot be exercised")
+    allow = deny_access(index)
 
     try:
         with pytest.raises(OSError):
             dedup.read_index(memory_dir)
     finally:
-        index.chmod(0o600)
+        allow()
 
 
 def _index_whose_read_fails(tmp_path, monkeypatch, error: OSError) -> Path:
