@@ -131,9 +131,17 @@ a work-machine-only `work` file:
 ~/git/src/<employer>/agent-skills
 ```
 
-`--source PATH` adds an ad hoc repository or `skills/` directory. `--no-claude`
-updates only the shared union. `AGENTS_ROOT`, `CLAUDE_ROOT`, and
-`AGENT_SKILLS_CONFIG` override the default roots.
+| Flag | Effect |
+|---|---|
+| `--source PATH` | Adds an ad hoc repository or `skills/` directory. |
+| `--policy PATH` | Repeatable extra `.braidignore` policy file, loaded with the repository, agents-root, config-root and per-source files. |
+| `--agents-root PATH` | Overrides the union root, ahead of `AGENTS_ROOT`. |
+| `--claude-root PATH` | Overrides the Claude root, ahead of `CLAUDE_ROOT`. |
+| `--config-root PATH` | Overrides the config directory holding `sources.d`, ahead of `AGENT_SKILLS_CONFIG`. |
+| `--no-claude` | Updates only the shared union, skips the Claude projection. |
+
+`AGENTS_ROOT`, `CLAUDE_ROOT`, and `AGENT_SKILLS_CONFIG` override the default
+roots.
 
 For each non-ignored canonical skill, `braid` creates an absolute symlink at
 `~/.claude/skills/<name>`. If that name is already a real directory or points
