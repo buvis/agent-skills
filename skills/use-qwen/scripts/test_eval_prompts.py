@@ -221,6 +221,14 @@ ALLOWED_ARCHITECTURES = [
     ),
 ]
 
+# Architecture prose whose lines OPEN with a bare marker character. Every patch
+# marker carries a trailing space (`--- `, `@@ `, `+++ `), so a markdown rule and
+# a decorator line are ordinary text and still reach the model.
+BARE_MARKER_ARCHITECTURES = [
+    pytest.param("%s\n---\nThe tokenizer sits underneath." % ARCHITECTURE, id="markdown-rule"),
+    pytest.param("%s\n@@decorator wraps the entry point." % ARCHITECTURE, id="decorator-line"),
+]
+
 # (broken key, replacement value, key names the message may cite, a key it may not)
 MALFORMED_ENTRIES = [
     pytest.param("version", _ABSENT, ("version",), "provenance", id="missing-key"),
@@ -486,6 +494,24 @@ def test_refuses_any_line_opening_with_a_patch_or_acceptance_marker(leaked):
         _render("tdd", references=(IVAN, SUBAGENT), architecture=architecture)
 
 
+@pytest.mark.parametrize("leaked", LEAKED_LINES)
+def test_refuses_leaked_solution_text_planted_in_a_pin(leaked):
+    # The pins reach the model through the description shape, so a patch hunk
+    # or an acceptance line hidden among them is refused like any other leak.
+    with pytest.raises(spec.SpecError):
+        _render("description", pins=PINS + (leaked,))
+
+
+@pytest.mark.parametrize("architecture", BARE_MARKER_ARCHITECTURES)
+def test_allows_architecture_lines_opening_with_a_bare_marker_character(architecture):
+    # A markdown rule and a decorator open a line with the characters a patch
+    # marker starts with, but neither carries the trailing space the marker
+    # needs, so both are ordinary prose and still render.
+    rendered = _render("tdd", references=(IVAN, SUBAGENT), architecture=architecture)
+
+    assert architecture in rendered
+
+
 @pytest.mark.parametrize("architecture", ALLOWED_ARCHITECTURES)
 def test_allows_prose_that_names_a_marker_without_leaking(architecture):
     # A patch marker only counts when it opens a line, and the acceptance
@@ -533,6 +559,16 @@ def test_renders_the_description_shape_with_no_references_file_present(tmp_path)
     loaded = prompts.load_dispatch_references(_evidence(tmp_path))
 
     assert _render("description", references=loaded) == DESCRIPTION_EXPECTED
+
+
+def test_refuses_a_references_file_that_is_not_valid_json(tmp_path):
+    # A vendored file the operator broke while editing is a spec failure, not a
+    # raw parser crash: absent means no references, unreadable means refused.
+    evidence_dir = _evidence(tmp_path)
+    (evidence_dir / "dispatch-references.json").write_text("{not json")
+
+    with pytest.raises(spec.SpecError):
+        prompts.load_dispatch_references(evidence_dir)
 
 
 def test_requires_a_references_file_for_the_tdd_shape(tmp_path):
