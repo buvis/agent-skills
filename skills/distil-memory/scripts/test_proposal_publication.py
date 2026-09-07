@@ -133,10 +133,12 @@ def _by_name(records):
 
 @dataclasses.dataclass(frozen=True)
 class _WriteView:
-    """One mid-run observation: the path the run is about to write, what the
-    final directory holds at that instant, and which staging siblings stand."""
+    """One mid-run observation: the path the run is about to write, the identity
+    of the directory receiving it, what the final directory holds at that
+    instant, and which staging siblings stand."""
 
     target: Path
+    parent_id: tuple[int, int]
     out_dir_contents: list[str]
     staged: list[str]
 
@@ -157,37 +159,64 @@ def _staging_root(target, reservation):
     return None
 
 
-def _watch_publication(monkeypatch, out_dir):
-    """Mid-run views taken at every write the run makes, through every vector it
-    can write through - `Path.write_text`, `Path.open`, the builtin `open`,
-    `os.open`, and the `os.replace`/`os.rename` that publishes. Each view keeps
-    WHERE the write lands, what `out_dir` holds at that instant, and which
-    staging siblings exist.
+@dataclasses.dataclass(frozen=True)
+class _Watch:
+    """What one watched run showed: a view per write it made through a watched
+    vector, and the identity of every directory it renamed onto the
+    destination."""
 
-    This is what a reader watching `out_dir` while the run is in flight would
-    see. A run that stages elsewhere and publishes by rename writes only inside
-    a live sibling and leaves `out_dir` empty in every view; a run that builds in
-    place fills `out_dir` file by file, which is the failure the contract forbids
-    and which no after-the-fact inspection can tell apart from a rename."""
+    views: list[_WriteView]
+    publishes: list[tuple[int, int]]
+
+
+def _directory_id(path):
+    """`path`'s filesystem identity - the pair that tells two directories apart,
+    and that follows a directory when its name changes."""
+    info = os.stat(path)
+    return (info.st_dev, info.st_ino)
+
+
+def _watch_publication(monkeypatch, out_dir):
+    """A watched run: mid-run views of `out_dir`, plus the identity of every
+    directory renamed onto it.
+
+    Each view keeps WHERE a write lands, what `out_dir` holds at that instant,
+    and which staging siblings exist - what a reader watching `out_dir` while
+    the run is in flight would see. Those views cover the vectors
+    `_patch_write_vectors` wraps and no others, so they are evidence about those
+    calls rather than proof that nothing else filled `out_dir`; `publishes`
+    carries the positive half, which does not depend on catching every write."""
     views = []
+    publishes = []
 
     def record(target):
         contents = sorted(path.name for path in out_dir.iterdir()) if out_dir.is_dir() else []
         views.append(
             _WriteView(
                 target=_resolved(target),
+                parent_id=_directory_id(Path(target).parent),
                 out_dir_contents=contents,
                 staged=[path.name for path in _staged_siblings(out_dir)],
             )
         )
 
-    _patch_write_vectors(monkeypatch, record)
-    return views
+    def record_publish(source, target):
+        if _resolved(target) == _resolved(out_dir):
+            publishes.append(_directory_id(source))
+
+    _patch_write_vectors(monkeypatch, record, record_publish)
+    return _Watch(views=views, publishes=publishes)
 
 
-def _patch_write_vectors(monkeypatch, record):
-    """Hand every vector the run can write through to `record`, which is passed
-    the path that write lands on."""
+def _patch_write_vectors(monkeypatch, record, record_publish):
+    """Hand the write vectors below to `record`, which is passed the path each
+    write lands on, and every rename-family call to `record_publish`, which is
+    passed its source and its destination.
+
+    This list of writes is deliberately NOT called complete: a directory can
+    also be filled through `os.link`, `shutil`, or a subprocess, and none of
+    those pass through here. `record` gathers evidence; what proves the
+    destination appeared in one step is `record_publish`."""
     real_write_text = Path.write_text
     real_path_open = Path.open
     real_builtin_open = builtins.open
@@ -219,10 +248,12 @@ def _patch_write_vectors(monkeypatch, record):
 
     def watched_replace(src, dst, *args, **kwargs):
         record(dst)
+        record_publish(src, dst)
         return real_replace(src, dst, *args, **kwargs)
 
     def watched_rename(src, dst, *args, **kwargs):
         record(dst)
+        record_publish(src, dst)
         return real_rename(src, dst, *args, **kwargs)
 
     monkeypatch.setattr(Path, "write_text", watched_write_text)
@@ -233,13 +264,34 @@ def _patch_write_vectors(monkeypatch, record):
     monkeypatch.setattr(os, "rename", watched_rename)
 
 
-def _assert_never_built_in_place(views, out_dir, published=None):
-    """Every observed write landed inside a staging sibling while `out_dir` stood
-    empty, and - for a run that published - those staged writes are exactly the
-    files the reader ends up seeing. Watching timing alone is not enough: a run
-    can leave `out_dir` empty at the one instant it writes a decoy file into a
-    sibling and put every real file straight into `out_dir`, so the destination
-    of each write is checked too."""
+def _assert_never_built_in_place(watch, out_dir, published=None):
+    """The destination appeared in one step.
+
+    The decisive half is positive and vector-blind: the directory a reader ends
+    up with IS the directory the run staged, moved onto the name by exactly one
+    rename. A run that fills the destination entry by entry - through os.link, a
+    copy, a subprocess, anything - leaves the reservation's own directory
+    standing under that name, and no count of watched writes can hide that.
+
+    The watched writes are then evidence on top: each landed inside a staging
+    sibling while `out_dir` stood empty, and for a run that published those
+    staged writes are exactly the files the reader ends up seeing. Timing alone
+    would not be enough - a run can leave `out_dir` empty at the one instant it
+    writes a decoy file into a sibling - so the destination of each write is
+    checked too."""
+    if published is None:
+        assert not watch.publishes, "a run that failed still moved a directory onto the destination"
+    else:
+        assert len(watch.publishes) == 1, (
+            f"the destination must appear in one rename, {len(watch.publishes)} landed on it"
+        )
+        assert _directory_id(published) == watch.publishes[0], (
+            "the published directory is not the directory that was renamed onto "
+            "the name, so it was filled entry by entry and a reader could see it "
+            "half full"
+        )
+
+    views = watch.views
     assert views, (
         "no write was observed: the run must write through Path.write_text, "
         "Path.open, the builtin open, or os.open"
@@ -252,6 +304,7 @@ def _assert_never_built_in_place(views, out_dir, published=None):
 
     reservation = _resolved(out_dir)
     staged_writes = set()
+    write_roots = set()
     for view in views:
         # The publishing rename moves the staging directory onto the
         # reservation: the one write whose target IS the final directory.
@@ -263,10 +316,17 @@ def _assert_never_built_in_place(views, out_dir, published=None):
         root = _staging_root(view.target, reservation)
         assert root is not None, f"{view.target} was written outside the run's staging sibling"
         staged_writes.add(view.target.relative_to(root))
+        write_roots.add(view.parent_id)
     if published is not None:
         # Every published file is one of those staged writes, so the staging
         # directory held the run's real content rather than a decoy beside it.
         assert staged_writes == {Path(entry.name) for entry in published.iterdir()}
+        # ...and the directory those writes landed in is the very directory the
+        # reader now has, so the run moved the directory it filled rather than
+        # renaming an empty stand-in onto the name and filling it afterwards.
+        assert write_roots == {_directory_id(published)}, (
+            "the published directory is not the directory the run wrote its files into"
+        )
 
 
 def _watch_reservation(monkeypatch, out_dir):
@@ -290,14 +350,15 @@ def test_write_proposals_publishes_a_markdown_file_per_proposal_and_returns_the_
     first = _named(evidence, "cache-eviction-rule")
     second = _named(evidence, "Signing Key Rotation")
     out_dir = _run_dir(tmp_path)
-    views = _watch_publication(monkeypatch, out_dir)
+    watch = _watch_publication(monkeypatch, out_dir)
 
     published = proposal.write_proposals([first, second], [], out_dir)
 
-    # The directory a reader sees appears in one step, holding everything: no
-    # view taken while the run was writing showed a partly filled out_dir, and
-    # every file it now holds was written into the staging sibling instead.
-    _assert_never_built_in_place(views, out_dir, published)
+    # The directory a reader sees appears in one step, holding everything: it is
+    # the staged directory renamed onto the name, no view taken while the run was
+    # writing showed a partly filled out_dir, and every file it now holds was
+    # written into the staging sibling instead.
+    _assert_never_built_in_place(watch, out_dir, published)
     assert published == out_dir
     # The whole published surface, so a leftover staging file inside it fails here.
     assert sorted(path.name for path in published.iterdir()) == [
@@ -422,10 +483,11 @@ def test_write_proposals_refuses_to_publish_over_a_directory_that_already_exists
     with pytest.raises(FileExistsError) as excinfo:
         proposal.write_proposals([_named(evidence, "cache-eviction-rule")], [], out_dir)
 
-    # EEXIST comes from the mkdir syscall itself, so the name was claimed in one
-    # atomic step. A hand-raised FileExistsError behind an out_dir.exists() test
-    # carries errno None, and leaves the check-then-write race the contract
-    # names: two runs in the same UTC second would both pass that test.
+    # The error surface the contract promises the caller: FileExistsError
+    # carrying EEXIST. This says nothing about where the refusal was decided -
+    # any code can raise FileExistsError(errno.EEXIST, ...) after a look - so
+    # that the name is claimed rather than probed is pinned by the test built on
+    # _take_the_name_the_moment_the_run_looks instead.
     assert excinfo.value.errno == errno.EEXIST
     assert sorted(path.name for path in out_dir.iterdir()) == before
     assert not _staged_siblings(out_dir)
@@ -439,7 +501,7 @@ def test_write_proposals_leaves_no_directory_and_no_staged_sibling_when_a_write_
     # A reader must find no directory at all rather than the surviving half.
     proposals = [_named(evidence, "cache-eviction-rule"), _named(evidence, _UNWRITEABLE_NAME)]
     out_dir = _run_dir(tmp_path)
-    views = _watch_publication(monkeypatch, out_dir)
+    watch = _watch_publication(monkeypatch, out_dir)
 
     with pytest.raises(OSError):
         proposal.write_proposals(proposals, [], out_dir)
@@ -447,7 +509,7 @@ def test_write_proposals_leaves_no_directory_and_no_staged_sibling_when_a_write_
     # The half that did get written never reached out_dir, so the survivor was
     # never visible to a reader: this is a rollback of a staged run, not a
     # deletion of a directory that was briefly wrong.
-    _assert_never_built_in_place(views, out_dir)
+    _assert_never_built_in_place(watch, out_dir)
     assert not out_dir.exists()
     assert not _staged_siblings(out_dir)
 
@@ -479,6 +541,246 @@ def test_write_proposals_removes_its_reservation_when_the_staging_directory_cann
     # was one to release - and it is gone now.
     assert staging[0][1] is True
     assert not out_dir.exists()
+
+
+class _ForcedOs:
+    """The real `os` module with `name` forced to another host's value.
+
+    write_proposals reads `os.name` at call time to choose the call it publishes
+    with, so forcing that name is the only way to drive the branch this host does
+    not take. The override stays inside the binding write_proposals reads:
+    assigning to `os.name` on the module itself would be read by pathlib too,
+    which picks WindowsPath over PosixPath from that same attribute, and every
+    path the test built afterwards would be parsed for the wrong host."""
+
+    def __init__(self, name):
+        self.name = name
+
+    def __getattr__(self, attribute):
+        # Resolved on every access, so a call another helper patched on the real
+        # module - os.replace, os.rename - is the one the run reaches.
+        return getattr(os, attribute)
+
+
+def _publish_branch(monkeypatch, os_name):
+    """Send write_proposals down `os_name`'s publish branch, or leave it on this
+    host's own branch when `os_name` is None."""
+    if os_name is not None:
+        monkeypatch.setattr(proposal, "os", _ForcedOs(os_name))
+
+
+def _run_competitor_at_the_reservation(monkeypatch, out_dir, competitor):
+    """Run `competitor` at the instant the first writer holds the reservation on
+    `out_dir` and has staged nothing yet - where a second run stamped the same
+    UTC second arrives. Its outcome is recorded rather than raised, so the first
+    writer runs on undisturbed, and the reservation is looked at once more right
+    afterwards: a loser that takes down the name it failed to claim is the
+    defect, and by the end of the run nothing tells that apart from a name it
+    never touched."""
+    outcome = {}
+    real_mkdir = Path.mkdir
+
+    def watched_mkdir(self, *args, **kwargs):
+        created = real_mkdir(self, *args, **kwargs)
+        if Path(self) == out_dir and not outcome:
+            outcome["ran"] = True
+            try:
+                outcome["published"] = competitor()
+            except OSError as error:
+                outcome["error"] = error
+            outcome["reservation_stood"] = out_dir.is_dir()
+        return created
+
+    monkeypatch.setattr(Path, "mkdir", watched_mkdir)
+    return outcome
+
+
+# The file a competing run publishes once it holds the name, and its bytes: a
+# loser that removes either has removed somebody else's published proposals.
+_CLAIMED_FILE = "the-other-runs-proposal.md"
+_CLAIMED_TEXT = "the run that took the name published this\n"
+
+
+def _claim_the_name_at_publication(monkeypatch, out_dir):
+    """Let a competing run take `out_dir` at the instant this run publishes onto
+    it, through either call a publish can go through.
+
+    Taking it needs the name to be free, and on the windows branch it is: the
+    reservation is released immediately before the rename. `claimed` records
+    that it really was free, so a run publishing onto a name it still holds
+    fails the test rather than quietly skipping the race it was meant to lose."""
+    claim = {}
+
+    def claiming(publish):
+        def claim_first(src, dst, *args, **kwargs):
+            if not claim and _resolved(dst) == _resolved(out_dir):
+                claim["attempted"] = True
+                out_dir.mkdir(parents=True)
+                (out_dir / _CLAIMED_FILE).write_text(_CLAIMED_TEXT)
+                claim["claimed"] = True
+            return publish(src, dst, *args, **kwargs)
+
+        return claim_first
+
+    monkeypatch.setattr(os, "replace", claiming(os.replace))
+    monkeypatch.setattr(os, "rename", claiming(os.rename))
+    return claim
+
+
+@pytest.mark.parametrize(("branch", "os_name"), [("this host's own", None), ("windows", "nt")])
+def test_write_proposals_leaves_exactly_one_winner_when_two_writers_race_for_one_directory(
+    evidence, monkeypatch, tmp_path, branch, os_name
+):
+    """Two runs stamped the same UTC second aim at one directory. The name is
+    claimed in one atomic step, so the second writer meets it standing: it
+    fails, it publishes nothing, and - the part no after-the-fact look can tell
+    apart from a lucky ordering - it leaves the reservation it could not take
+    exactly where it found it, so the first writer still publishes.
+
+    Both publish branches are driven, because a run that wins the name on one
+    host and loses it on the other is the defect here. The windows branch is
+    forced on every host; the posix branch is this host's own wherever the host
+    is posix, and is not forced onto windows, where a single os.replace onto a
+    directory cannot succeed at all."""
+    _publish_branch(monkeypatch, os_name)
+    out_dir = _run_dir(tmp_path)
+    winner = _named(evidence, "cache-eviction-rule")
+    watch = _watch_publication(monkeypatch, out_dir)
+    outcome = _run_competitor_at_the_reservation(
+        monkeypatch,
+        out_dir,
+        lambda: proposal.write_proposals([_named(evidence, "queue-backlog-rule")], [], out_dir),
+    )
+
+    published = proposal.write_proposals([winner], [], out_dir)
+
+    assert outcome.get("ran"), "the second writer never reached the reserved name"
+    # The loser met the standing name and failed on it, with the errno the
+    # contract promises its caller. What the errno does NOT say is where the
+    # refusal came from - any code can raise FileExistsError(errno.EEXIST, ...) -
+    # so the reservation's atomicity is pinned by the test built on
+    # _take_the_name_the_moment_the_run_looks instead.
+    assert isinstance(outcome.get("error"), FileExistsError)
+    assert outcome["error"].errno == errno.EEXIST
+    assert "published" not in outcome
+    # ...and it did not take the winner's name down with it on the way out.
+    assert outcome["reservation_stood"] is True
+    # The one winner published whole, on this branch too.
+    _assert_never_built_in_place(watch, out_dir, published)
+    assert published == out_dir
+    assert sorted(path.name for path in published.iterdir()) == [
+        "cache-eviction-rule.md",
+        "discards.json",
+        "proposals.json",
+    ]
+    assert (published / "cache-eviction-rule.md").read_text() == winner.file_text
+    # Nothing of the loser's reached the directory: not its file, not its record.
+    assert [record["name"] for record in _read_json(published, "proposals.json")] == [
+        "cache-eviction-rule"
+    ]
+    assert not _staged_siblings(out_dir)
+
+
+def test_write_proposals_leaves_the_directory_a_competitor_took_when_it_loses_the_publish_race(
+    evidence, monkeypatch, tmp_path
+):
+    """The windows branch releases its reservation immediately before renaming
+    the staging directory onto it, so for that instant the name is anybody's. A
+    competing run takes it here; this run's rename then fails against the
+    directory now standing there, and its rollback owns nothing of that name: it
+    clears its own staging sibling and leaves a directory and a file it never
+    created alone. Rolling back a name it no longer holds would delete the other
+    run's published proposals, which is why the run tracks what it still owns.
+
+    Only this branch has the window - the posix branch holds the reservation
+    right through the replace - so it is forced on every host rather than waited
+    for on one."""
+    _publish_branch(monkeypatch, "nt")
+    out_dir = _run_dir(tmp_path)
+    claim = _claim_the_name_at_publication(monkeypatch, out_dir)
+
+    with pytest.raises(OSError):
+        proposal.write_proposals([_named(evidence, "cache-eviction-rule")], [], out_dir)
+
+    assert claim.get("claimed"), (
+        "the competing run could not take the name: this run published onto a "
+        "reservation it was still holding, so the release before the rename is missing"
+    )
+    assert out_dir.is_dir(), "the rollback removed a directory this run no longer owned"
+    assert sorted(path.name for path in out_dir.iterdir()) == [_CLAIMED_FILE]
+    assert (out_dir / _CLAIMED_FILE).read_text() == _CLAIMED_TEXT
+    # Its own mess stays its own to clear.
+    assert not _staged_siblings(out_dir)
+
+
+def _take_the_name_the_moment_the_run_looks(monkeypatch, out_dir):
+    """Hand `out_dir` to a competing run the first time this run looks at that
+    name while it is still free.
+
+    A second run stamped the same UTC second cannot be timed from a test, so the
+    look itself is the trigger. A run that decides from what it saw leaves a
+    window between the look and the claim, and this drops a competitor squarely
+    into it; a run that claims the name in one exclusive step never looks, so it
+    never opens a window. Pathlib's two looks are covered, `Path.exists` and
+    `Path.is_dir`, which is what an implementation written on `Path` reaches
+    for."""
+    taken = {}
+    real_exists = Path.exists
+    real_is_dir = Path.is_dir
+
+    def take_the_name(path):
+        if taken or _resolved(path) != _resolved(out_dir) or os.path.lexists(out_dir):
+            return
+        taken["looked_at"] = str(path)
+        out_dir.mkdir(parents=True)
+        (out_dir / _CLAIMED_FILE).write_text(_CLAIMED_TEXT)
+
+    def watched_exists(self, *args, **kwargs):
+        answer = real_exists(self, *args, **kwargs)
+        take_the_name(self)
+        return answer
+
+    def watched_is_dir(self, *args, **kwargs):
+        answer = real_is_dir(self, *args, **kwargs)
+        take_the_name(self)
+        return answer
+
+    monkeypatch.setattr(Path, "exists", watched_exists)
+    monkeypatch.setattr(Path, "is_dir", watched_is_dir)
+    return taken
+
+
+def test_write_proposals_does_not_hand_a_free_destination_to_a_competitor_before_claiming_it(
+    evidence, monkeypatch, tmp_path
+):
+    """The destination is free when the run starts, and a run stamped the same
+    UTC second is standing by for it. That second run gets its chance the moment
+    this one looks at the name: a run that looks before it claims hands the name
+    away inside its own window and publishes nothing, while a run that claims the
+    name in one exclusive step never opens the window and publishes.
+
+    This is the part the EEXIST the refusal test reads cannot show on its own. An
+    implementation that probes and then raises by hand answers with that same
+    errno while leaving this window open, and a probe that then creates the
+    directory anyway publishes over whoever took it."""
+    out_dir = _run_dir(tmp_path)
+    winner = _named(evidence, "cache-eviction-rule")
+    competitor = _take_the_name_the_moment_the_run_looks(monkeypatch, out_dir)
+
+    published = proposal.write_proposals([winner], [], out_dir)
+
+    assert not competitor, (
+        f"the destination was handed away at a look ({competitor}) taken before it was claimed"
+    )
+    assert published == out_dir
+    # Nothing of the competitor's is here, and nothing of this run's is missing.
+    assert sorted(path.name for path in published.iterdir()) == [
+        "cache-eviction-rule.md",
+        "discards.json",
+        "proposals.json",
+    ]
+    assert (published / "cache-eviction-rule.md").read_text() == winner.file_text
+    assert not _staged_siblings(out_dir)
 
 
 # Five distinct names sanitise_name maps onto the one stem "cache-eviction",
