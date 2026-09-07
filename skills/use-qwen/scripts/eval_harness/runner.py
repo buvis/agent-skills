@@ -1,10 +1,10 @@
 """The bounded command runner of the qwen evaluation harness: trees, reaping, the gate.
 
 Every command a gate or an engine runs goes through this module, so nothing the
-harness starts outlives the command that started it: the child leads its own
-process group, both of its streams land in one log, and the group is killed and
-counted on every path. POSIX only; the Windows job object branch is its own
-module.
+harness starts outlives the command that started it: the child is held inside a
+boundary of its own, both of its streams land in one log, and the tree is killed
+and counted on every path. The boundary is a process group on POSIX and a job
+object on Windows, whose kernel32 half lives in its own module.
 """
 import os
 import signal
@@ -35,6 +35,17 @@ class OrphanError(RuntimeError):
 
 class GateConcurrencyError(RuntimeError):
     """Raised when a gate starts while another gate's marker is still in flight."""
+
+
+class JobAssignmentError(RuntimeError):
+    """Raised when the host will not contain a child, which halts the whole run.
+
+    Never an attempt-level discard: the process was created, so its launch is
+    "started", and only "not-started" may be blamed on the harness and retried.
+    A host that could not contain this child cannot contain the next one either.
+    """
+
+    reason = "job_assignment_failed"
 
 
 @dataclass(frozen=True)
@@ -84,23 +95,62 @@ class ProcessTree:
     exited still carries the group id and is still reachable. A descendant that
     calls setsid of its own accord leaves the group and is out of reach: the
     handle answers for the group, not for every process the command ever begat.
+
+    Windows: a job object the child joins while it is still suspended, so no
+    descendant of it can be born outside the boundary. The job handle is held
+    here for the tree's whole life - the job kills what is left in it as soon as
+    its last handle closes, so a collected handle would kill the tree early.
     """
 
     def __init__(self, process: subprocess.Popen) -> None:
         self._process = process
+        self._win32 = None
+        self._job = None
+        if os.name == "nt":
+            self._contain()
+            return
         # start_new_session makes the child the leader of its own group, so the
         # group id is its pid and no getpgid call can lose it to a race.
         self._pgid = process.pid
 
+    def _contain(self) -> None:
+        """Job the suspended child and then let it go; a refusal halts the run.
+
+        The layer is imported here and reached as an attribute of the module,
+        which is what keeps the platform choice a decision made at run time on
+        the host that is actually running.
+        """
+        from eval_harness import win32
+        self._win32 = win32
+        try:
+            self._job = win32.create_job()
+            win32.assign_process(self._job, self._process.pid)
+        except win32.Win32Error as refusal:
+            # The child is suspended and now uncontainable, so it dies here:
+            # raising past it would leave it alive with nothing holding it.
+            self._process.kill()
+            self._process.wait()
+            raise JobAssignmentError("the host would not contain the child") from refusal
+        win32.resume_process(self._process.pid)
+
     def terminate(self, escalate_after_s: float) -> None:
-        """SIGTERM the group, then SIGKILL whatever the window leaves standing."""
+        """Kill the tree: the job in one call, or SIGTERM then SIGKILL on a group."""
+        if self._win32 is not None:
+            # The job ends every member at once, so there is no slow exit to
+            # give a window to and nothing harsher to escalate to.
+            self._win32.terminate_job(self._job)
+            self._process.wait()
+            return
         self._signal(signal.SIGTERM)
         if not self._emptied_within(escalate_after_s):
             self._signal(signal.SIGKILL)
         self._process.wait()
 
     def survivors(self) -> bool:
-        """Whether any member of the group is still there to be signalled.
+        """Whether any member of the tree is still there.
+
+        Windows answers from the job's own list of member pids, which holds the
+        members that are still running and nothing else.
 
         EPERM never means "nobody there": it means the group has a member this
         process may not signal. On macOS an exited direct child reads that way
@@ -108,6 +158,8 @@ class ProcessTree:
         code - so collect it and probe again. What answers EPERM the second
         time cannot be that zombie, so it is a member that really is there.
         """
+        if self._win32 is not None:
+            return bool(self._win32.job_process_ids(self._job))
         answer = self._probe()
         if answer is None:
             self._process.poll()
@@ -160,10 +212,16 @@ def _log_at(stdout_path: Path | None) -> Iterator[Path]:
 
 def _start(argv: Sequence[str], cwd: Path, env: dict[str, str] | None,
            log: Path) -> subprocess.Popen:
-    """Start the command in its own session, both of its streams landing in `log`."""
+    """Start the command inside a boundary of its own, both streams landing in `log`."""
+    held = {"start_new_session": True}
+    if os.name == "nt":
+        from eval_harness import win32
+        # Suspended rather than contained: the job assignment has to land before
+        # the child's first instruction, or a grandchild is born outside the job.
+        held = {"creationflags": win32.CREATE_SUSPENDED}
     with open(log, "wb") as sink:
         return subprocess.Popen(list(argv), cwd=str(cwd), env=env, stdin=subprocess.DEVNULL,
-                                stdout=sink, stderr=subprocess.STDOUT, start_new_session=True)
+                                stdout=sink, stderr=subprocess.STDOUT, **held)
 
 
 def _exit_within(process: subprocess.Popen, timeout_s: float) -> tuple[int | None, bool]:
