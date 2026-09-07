@@ -65,33 +65,22 @@ def isolate_home(monkeypatch):
     return isolate
 
 
-def _deny_by_wrapping(monkeypatch):
-    """Refuse the filesystem call vectors for armed paths, the Windows branch.
+def _normalise(path) -> str | None:
+    """Fold `path` into the absolute, case-normalised form the armed list holds."""
+    try:
+        raw = os.fspath(path)
+    except TypeError:
+        return None
+    if isinstance(raw, bytes):
+        raw = os.fsdecode(raw)
+    return os.path.normcase(os.path.abspath(raw))
 
-    Permission bits cannot revoke a read there, so the denial sits at the
-    Python call boundary and reaches this process only.
-    """
-    armed: list[str] = []
-    real_io_open = io.open
-    real_builtins_open = builtins.open
-    real_open = os.open
-    real_listdir = os.listdir
-    real_scandir = os.scandir
-    real_stat = os.stat
-    real_lstat = os.lstat
-    real_mkdir = os.mkdir
 
-    def normalise(path) -> str | None:
-        try:
-            raw = os.fspath(path)
-        except TypeError:
-            return None
-        if isinstance(raw, bytes):
-            raw = os.fsdecode(raw)
-        return os.path.normcase(os.path.abspath(raw))
+def _guard(real, armed: list[str], inside_only: bool = False):
+    """Wrap `real` so calls landing on an armed path raise instead of running."""
 
-    def refused(path, inside_only: bool) -> str | None:
-        target = normalise(path)
+    def refused(path) -> str | None:
+        target = _normalise(path)
         if target is None:
             return None
         for root in armed:
@@ -99,35 +88,49 @@ def _deny_by_wrapping(monkeypatch):
                 return target
         return None
 
-    def guard(real, inside_only: bool = False):
-        def wrapper(path=".", *args, **kwargs):
-            # Built from the normalised path, so the refusal text is identical
-            # whether the caller passed a `str` or a `Path`.
-            target = refused(path, inside_only)
-            if target is not None:
-                raise PermissionError(errno.EACCES, os.strerror(errno.EACCES), target)
-            return real(path, *args, **kwargs)
+    def wrapper(path=".", *args, **kwargs):
+        # Built from the normalised path, so the refusal text is identical
+        # whether the caller passed a `str` or a `Path`.
+        target = refused(path)
+        if target is not None:
+            raise PermissionError(errno.EACCES, os.strerror(errno.EACCES), target)
+        return real(path, *args, **kwargs)
 
-        return wrapper
+    return wrapper
 
-    # `io.open` is what `Path.open`, and so `Path.read_text`, resolves at call
-    # time; `builtins.open` is a separate binding for plain call sites; `os.open`
-    # is the descriptor-level call underneath both. `listdir` and `scandir` are
-    # both wrapped because which one `Path.iterdir` uses changed in 3.13, and
-    # both 3.10 and 3.13 are in the matrix. `stat` and `lstat` deny only paths
-    # strictly inside an armed directory, so a child's `is_file()` refuses while
-    # the armed path itself still reports that it exists.
-    monkeypatch.setattr(io, "open", guard(real_io_open))
-    monkeypatch.setattr(builtins, "open", guard(real_builtins_open))
-    monkeypatch.setattr(os, "open", guard(real_open))
-    monkeypatch.setattr(os, "listdir", guard(real_listdir))
-    monkeypatch.setattr(os, "scandir", guard(real_scandir))
-    monkeypatch.setattr(os, "stat", guard(real_stat, inside_only=True))
-    monkeypatch.setattr(os, "lstat", guard(real_lstat, inside_only=True))
-    monkeypatch.setattr(os, "mkdir", guard(real_mkdir))
+
+def _install_call_guards(monkeypatch, armed: list[str]) -> None:
+    """Wrap every filesystem call vector that can reach an armed path.
+
+    `io.open` is what `Path.open`, and so `Path.read_text`, resolves at call
+    time; `builtins.open` is a separate binding for plain call sites; `os.open`
+    is the descriptor-level call underneath both. `listdir` and `scandir` are
+    both wrapped because which one `Path.iterdir` uses changed in 3.13, and
+    both 3.10 and 3.13 are in the matrix. `stat` and `lstat` deny only paths
+    strictly inside an armed directory, so a child's `is_file()` refuses while
+    the armed path itself still reports that it exists.
+    """
+    monkeypatch.setattr(io, "open", _guard(io.open, armed))
+    monkeypatch.setattr(builtins, "open", _guard(builtins.open, armed))
+    monkeypatch.setattr(os, "open", _guard(os.open, armed))
+    monkeypatch.setattr(os, "listdir", _guard(os.listdir, armed))
+    monkeypatch.setattr(os, "scandir", _guard(os.scandir, armed))
+    monkeypatch.setattr(os, "stat", _guard(os.stat, armed, inside_only=True))
+    monkeypatch.setattr(os, "lstat", _guard(os.lstat, armed, inside_only=True))
+    monkeypatch.setattr(os, "mkdir", _guard(os.mkdir, armed))
+
+
+def _deny_by_wrapping(monkeypatch):
+    """Refuse the filesystem call vectors for armed paths, the Windows branch.
+
+    Permission bits cannot revoke a read there, so the denial sits at the
+    Python call boundary and reaches this process only.
+    """
+    armed: list[str] = []
+    _install_call_guards(monkeypatch, armed)
 
     def deny(path: Path):
-        root = normalise(path)
+        root = _normalise(path)
         armed.append(root)
         if os.path.isdir(root):
             # Fail here rather than let a test go green on the wrong branch.
