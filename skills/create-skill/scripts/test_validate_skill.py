@@ -1,10 +1,13 @@
 """Tests for validate_skill.py's live-profile bash lints (PRD 00083)."""
 
+import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from validate_skill import lint_bash_commands
+
+SCRIPT = Path(__file__).parent / "validate_skill.py"
 
 
 def block(*lines: str) -> str:
@@ -91,3 +94,33 @@ def test_all_personal_skills_pass():
         if lint_bash_commands(s.read_text())
     }
     assert offenders == {}, offenders
+
+
+def test_help_flag_exits_zero_with_usage_line():
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert result.stdout.splitlines()[0].startswith("usage: validate_skill.py")
+
+
+def test_valid_skill_path_exits_zero_and_prints_ok():
+    survey_skill = Path(__file__).resolve().parents[2] / "survey"
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), str(survey_skill)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "[OK] Skill is valid!" in result.stdout
+
+
+def test_missing_skill_path_argument_exits_two():
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
