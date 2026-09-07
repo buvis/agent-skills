@@ -189,6 +189,11 @@ def _is_test_path(path: str) -> bool:
     return any(fnmatch.fnmatchcase(segments[-1], glob) for glob in TEST_BASENAME_GLOBS)
 
 
+def _slash_sorted(paths: list[str]) -> list[str]:
+    """Slash-form is promised for both returned lists, overrides included."""
+    return sorted(path.replace("\\", "/") for path in paths)
+
+
 def classify_paths(changed: list[str], spec: Spec) -> tuple[list[str], list[str]]:
     """Split changed paths into (writable, oracle); either spec override wins wholesale."""
     writable, oracle = [], []
@@ -199,4 +204,4 @@ def classify_paths(changed: list[str], spec: Spec) -> tuple[list[str], list[str]
         writable = list(spec.writable)
     if spec.oracle is not None:
         oracle = list(spec.oracle)
-    return sorted(writable), sorted(oracle)
+    return _slash_sorted(writable), _slash_sorted(oracle)
