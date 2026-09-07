@@ -252,6 +252,113 @@ else
          "got exit code $RC"
 fi
 
+# ══ T10: -S UUID pins the session id in prompt mode ═════════════════════════
+# A caller that pins the session id can locate the transcript afterwards, so the
+# uuid it asked for must reach claude verbatim as a two-token argv pair.
+SESSION_UUID="11111111-2222-3333-4444-555555555555"
+run_sonnet t10 -S "$SESSION_UUID" -f "$PROMPT_FILE_T"
+
+# 14. -S: argv carries the pair --session-id <uuid> on the headless --print path.
+if [ "$RC" -eq 0 ] && argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$SESSION_UUID" && grep -qxF -- "--print" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+    PASS "-S UUID: prompt-mode argv carries --print and --session-id <uuid>"
+else
+    FAIL "-S UUID: prompt-mode argv carries --print and --session-id <uuid>" \
+         "rc=$RC; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+fi
+
+# ══ T10b: --session-id long form is equivalent ═══════════════════════════════
+run_sonnet t10b --session-id "$SESSION_UUID" -f "$PROMPT_FILE_T"
+
+# 15. Long spelling produces the same argv pair as the short one.
+if [ "$RC" -eq 0 ] && argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$SESSION_UUID" && grep -qxF -- "--print" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+    PASS "--session-id UUID: long form yields the same argv pair as -S"
+else
+    FAIL "--session-id UUID: long form yields the same argv pair as -S" \
+         "rc=$RC; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+fi
+
+# ══ T11: resume mode drops --session-id ══════════════════════════════════════
+# A resumed session already has an id; the pinned one must be suppressed rather
+# than forwarded when the caller also asks to resume.
+run_sonnet t11 -S "$SESSION_UUID" -r
+
+# 16. -r with -S: claude is dispatched with --resume and NO --session-id token.
+if grep -qxF -- "--resume" "$CLAUDE_ARGV_FILE" 2>/dev/null && ! grep -qxF -- "--session-id" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+    PASS "-r with -S: argv carries --resume and no --session-id token"
+else
+    FAIL "-r with -S: argv carries --resume and no --session-id token" \
+         "rc=$RC; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+fi
+
+# ══ T11b: interactive mode drops --session-id ════════════════════════════════
+run_sonnet t11b -S "$SESSION_UUID" -i -f "$PROMPT_FILE_T"
+
+# 17. -i with -S: the prompt still reaches claude, the session id does not.
+if grep -qxF -- "$SONNET_PROMPT" "$CLAUDE_ARGV_FILE" 2>/dev/null && ! grep -qxF -- "--session-id" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+    PASS "-i with -S: argv carries the prompt and no --session-id token"
+else
+    FAIL "-i with -S: argv carries the prompt and no --session-id token" \
+         "rc=$RC; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+fi
+
+# ══ T11c: continue mode drops --session-id ═══════════════════════════════════
+run_sonnet t11c -S "$SESSION_UUID" -c
+
+# 18. -c with -S: claude is dispatched with --continue and NO --session-id token.
+if grep -qxF -- "--continue" "$CLAUDE_ARGV_FILE" 2>/dev/null && ! grep -qxF -- "--session-id" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+    PASS "-c with -S: argv carries --continue and no --session-id token"
+else
+    FAIL "-c with -S: argv carries --continue and no --session-id token" \
+         "rc=$RC; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+fi
+
+# ══ T12: -S alongside -m and -d keeps every pair intact ═══════════════════
+# Three value-taking options in one command line: an option parser that consumes
+# the wrong argument would cross the values over and still dispatch.
+run_sonnet t12 -m opus -S "$SESSION_UUID" -d "$WORK" -f "$PROMPT_FILE_T"
+
+# 19. Each value-taking option keeps its own value.
+if argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$SESSION_UUID" \
+   && argv_has_pair "$CLAUDE_ARGV_FILE" "--model" "opus" \
+   && argv_has_pair "$CLAUDE_ARGV_FILE" "--add-dir" "$WORK"; then
+    PASS "-S with -m and -d: argv carries --session-id, --model and --add-dir with their own values"
+else
+    FAIL "-S with -m and -d: argv carries --session-id, --model and --add-dir with their own values" \
+         "rc=$RC; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+fi
+
+# ══ T13: hyphen-prefixed prompt keeps --session-id on argv ════════════
+# The stdin-routing branch (T1b) builds its own argv; the session id must
+# survive it instead of being dropped with the positional prompt.
+run_sonnet t13 -S "$SESSION_UUID" -f "$DASH_PROMPT_FILE_T"
+
+# 20. Hyphen-prefixed prompt with -S: content still goes via stdin, verbatim.
+if [ -f "$CLAUDE_STDIN_FILE" ] && [ "$(cat "$CLAUDE_STDIN_FILE")" = "- [ ] say hi" ]; then
+    PASS "hyphen-prefixed prompt with -S: content still reaches claude via stdin"
+else
+    FAIL "hyphen-prefixed prompt with -S: content still reaches claude via stdin" \
+         "rc=$RC; stdin capture: '$(cat "$CLAUDE_STDIN_FILE" 2>/dev/null || echo MISSING)'"
+fi
+
+# 21. Hyphen-prefixed prompt with -S: argv carries the pair, not the prompt.
+if argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$SESSION_UUID" && ! grep -qF -- "- [ ] say hi" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+    PASS "hyphen-prefixed prompt with -S: argv carries --session-id <uuid> and not the prompt"
+else
+    FAIL "hyphen-prefixed prompt with -S: argv carries --session-id <uuid> and not the prompt" \
+         "rc=$RC; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+fi
+
+# ══ T14: -h usage mentions -S/--session-id ═══════════════════════════
+run_sonnet t14 -h
+
+# 22. Help text documents both spellings of the new option.
+if [ "$RC" -eq 0 ] && grep -qF -- "--session-id" "$STDOUT_F" 2>/dev/null && grep -qF -- "-S" "$STDOUT_F" 2>/dev/null; then
+    PASS "-h: usage text documents -S/--session-id"
+else
+    FAIL "-h: usage text documents -S/--session-id" \
+         "rc=$RC; stdout: $(cat "$STDOUT_F" 2>/dev/null || echo '<empty>')"
+fi
+
 # ══ summary ═══════════════════════════════════════════════════════════════════
 echo ""
 echo "SUMMARY: $PASS_COUNT passed, $FAIL_COUNT failed"
