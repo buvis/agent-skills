@@ -62,7 +62,6 @@ MESSAGES = {
 
 
 def _beat(heartbeat: Path) -> None:
-    """Append to the heartbeat file every 100 ms, then sleep out the bound."""
     deadline = time.monotonic() + BEAT_SECONDS
     while time.monotonic() < deadline:
         with heartbeat.open("a", encoding="utf-8") as beats:
@@ -77,7 +76,7 @@ def _spawn_heartbeat() -> None:
     group kill still contains it.
     """
     subprocess.Popen(
-        [sys.executable, __file__, "heartbeat", *sys.argv[2:]],
+        [sys.executable, __file__, "heartbeat"],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -99,7 +98,6 @@ def _edit_working_tree(mode: str) -> None:
 
 
 def _write_session(prompt: str, text: str, stop_reason: str) -> None:
-    """Write the transcript: what was asked, then one terminal assistant event."""
     stamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     events = [
         {

@@ -77,7 +77,6 @@ def build_fixture_repo(root: Path, *, change_test: bool = False) -> dict:
     With `change_test` the task commit also widens the oracle, which is what
     makes a pre-task tree and a sealed tree distinguishable.
     """
-    root = Path(root)
     impl, oracle = root / IMPL_NAME, root / TEST_NAME
     _git(root, *IDENTITY, "init")
 
@@ -150,9 +149,7 @@ def write_argv_recording_stub(
         stub = Path(directory) / name
         stub.write_text("\n".join(lines) + "\n", encoding="utf-8")
         stub.chmod(0o755)
-    resolved = shutil.which(name, path=str(directory))
-    assert resolved is not None, f"nothing named {name!r} resolves inside {directory}"
-    return Path(resolved)
+    return Path(shutil.which(name, path=str(directory)))
 
 
 def fake_engine_command(mode: str) -> str:
