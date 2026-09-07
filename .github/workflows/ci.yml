@@ -72,7 +72,20 @@ jobs:
       # directory is never added to it.
       - name: Install the sweep-fix tool chain
         run: |
-          Invoke-WebRequest -Uri https://mise.jdx.dev/mise-latest-windows-x64.zip -OutFile "$env:RUNNER_TEMP\mise.zip"
+          # Pinned, not `mise-latest-windows-x64.zip`: this step runs what it
+          # downloads inside a job that carries repository credentials, so the
+          # artifact has to be one a checksum can vouch for. The hash below is
+          # the `-windows-x64.zip` line of that release's published
+          # SHASUMS256.txt. To bump: pick a newer tag from
+          # https://github.com/jdx/mise/releases and change the URL and the
+          # hash together, taking the hash from that release's SHASUMS256.txt.
+          $zipSha256 = "9556296db217774e7dae8fc241542d6bbc2351122ba93c8df2a65d3b921d7a28"
+          Invoke-WebRequest -Uri https://mise.jdx.dev/v2026.9.1/mise-v2026.9.1-windows-x64.zip -OutFile "$env:RUNNER_TEMP\mise.zip"
+          $downloaded = (Get-FileHash -Algorithm SHA256 -Path "$env:RUNNER_TEMP\mise.zip").Hash.ToLower()
+          if ($downloaded -ne $zipSha256) {
+            Write-Host "::error::mise download does not match its published checksum: expected $zipSha256, got $downloaded"
+            exit 1
+          }
           Expand-Archive -Path "$env:RUNNER_TEMP\mise.zip" -DestinationPath "$env:USERPROFILE"
           "$env:USERPROFILE\mise\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
           & "$env:USERPROFILE\mise\bin\mise.exe" use -g -y ast-grep@latest ripgrep@latest
