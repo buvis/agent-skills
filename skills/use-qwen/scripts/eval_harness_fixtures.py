@@ -116,6 +116,61 @@ def _cmd_echo_arg(text: str) -> str:
     return escaped
 
 
+def _cmd_stub_lines(
+    argv_file: Path,
+    exit_code: int,
+    stdout: str,
+    stderr: str,
+    cwd_file: Path | None,
+) -> list[str]:
+    """Build the `.cmd` body of an argv-recording stub.
+
+    The shift loop keeps one argument per line; `for %%A in (%*)` would split
+    "value with space" into three. Redirections lead the command so an argument
+    ending in a digit is not read as a stream handle.
+    """
+    lines = [
+        "@echo off",
+        f'>"{argv_file}" type nul',
+        ":loop",
+        'if "%~1"=="" goto done',
+        f'>>"{argv_file}" echo %~1',
+        "shift",
+        "goto loop",
+        ":done",
+    ]
+    if cwd_file is not None:
+        lines.append(f'>"{cwd_file}" echo %CD%')
+    if stdout:
+        lines.append(f"echo {_cmd_echo_arg(stdout)}")
+    if stderr:
+        lines.append(f"1>&2 echo {_cmd_echo_arg(stderr)}")
+    lines.append(f"exit /b {exit_code}")
+    return lines
+
+
+def _sh_stub_lines(
+    argv_file: Path,
+    exit_code: int,
+    stdout: str,
+    stderr: str,
+    cwd_file: Path | None,
+) -> list[str]:
+    """Build the `/bin/sh` body of an argv-recording stub."""
+    target = shlex.quote(str(argv_file))
+    lines = ["#!/bin/sh", f"printf '%s\\n' \"$@\" > {target}"]
+    if cwd_file is not None:
+        # `-P` prints the directory the kernel says the stub is in, not the
+        # inherited PWD a symlinked temporary directory would spell.
+        lines.append(f"pwd -P > {shlex.quote(str(cwd_file))}")
+    if stdout:
+        lines.append(f"printf '%s\\n' {shlex.quote(stdout)}")
+    if stderr:
+        lines.append(f"printf '%s\\n' {shlex.quote(stderr)} >&2")
+    lines.append(f"exit {exit_code}")
+    return lines
+
+
 def write_argv_recording_stub(
     directory: Path,
     name: str,
@@ -137,40 +192,11 @@ def write_argv_recording_stub(
     rather than by passing a path.
     """
     if IS_WINDOWS:
-        # The shift loop keeps one argument per line; `for %%A in (%*)` would
-        # split "value with space" into three. Redirections lead the command so
-        # an argument ending in a digit is not read as a stream handle.
-        lines = [
-            "@echo off",
-            f'>"{argv_file}" type nul',
-            ":loop",
-            'if "%~1"=="" goto done',
-            f'>>"{argv_file}" echo %~1',
-            "shift",
-            "goto loop",
-            ":done",
-        ]
-        if cwd_file is not None:
-            lines.append(f'>"{cwd_file}" echo %CD%')
-        if stdout:
-            lines.append(f"echo {_cmd_echo_arg(stdout)}")
-        if stderr:
-            lines.append(f"1>&2 echo {_cmd_echo_arg(stderr)}")
-        lines.append(f"exit /b {exit_code}")
+        lines = _cmd_stub_lines(argv_file, exit_code, stdout, stderr, cwd_file)
         stub = Path(directory) / f"{name}.cmd"
         stub.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8", newline="")
     else:
-        target = shlex.quote(str(argv_file))
-        lines = ["#!/bin/sh", f"printf '%s\\n' \"$@\" > {target}"]
-        if cwd_file is not None:
-            # `-P` prints the directory the kernel says the stub is in, not the
-            # inherited PWD a symlinked temporary directory would spell.
-            lines.append(f"pwd -P > {shlex.quote(str(cwd_file))}")
-        if stdout:
-            lines.append(f"printf '%s\\n' {shlex.quote(stdout)}")
-        if stderr:
-            lines.append(f"printf '%s\\n' {shlex.quote(stderr)} >&2")
-        lines.append(f"exit {exit_code}")
+        lines = _sh_stub_lines(argv_file, exit_code, stdout, stderr, cwd_file)
         stub = Path(directory) / name
         stub.write_text("\n".join(lines) + "\n", encoding="utf-8")
         stub.chmod(0o755)
