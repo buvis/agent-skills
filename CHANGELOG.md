@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **braid**: `braid --help` now describes `--policy`, `--agents-root`,
   `--claude-root`, `--config-root` and `--no-claude`, each of which previously
-  printed a blank description — the working `--policy` flag was reachable only
+  printed a blank description - the working `--policy` flag was reachable only
   by reading the source. The three root overrides also name the environment
   variable they take precedence over.
 - **braid**: the README documents both backup destinations as the code builds
