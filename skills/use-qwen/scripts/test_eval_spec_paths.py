@@ -258,3 +258,29 @@ def test_overrides_are_returned_sorted(tmp_path):
 
     assert writable == ["src/a.py", "src/z.py"]
     assert oracle == ["t/a.txt", "t/z.txt"]
+
+
+def test_overrides_are_returned_in_slash_form(tmp_path):
+    # Slash-form is promised for BOTH returned lists unconditionally, so an
+    # override carrying backslashes is normalised exactly like a derived path.
+    body = _payload(
+        writable=[r"pkg\core\widget.py", r"pkg\a.py"],
+        oracle=[r"t\golden\z.txt", r"t\a.txt"],
+    )
+    loaded = _load(tmp_path, body)
+
+    writable, oracle = spec.classify_paths(["unrelated/file.py"], loaded)
+
+    assert writable == ["pkg/a.py", "pkg/core/widget.py"]
+    assert oracle == ["t/a.txt", "t/golden/z.txt"]
+    assert all("\\" not in path for path in writable + oracle)
+
+
+def test_overrides_are_sorted_after_normalisation_not_before(tmp_path):
+    # "\" (0x5C) and "/" (0x2F) sort on opposite sides of "0" (0x30), so these
+    # two entries come back in the other order if the sort runs on raw text.
+    loaded = _load(tmp_path, _payload(writable=[r"pkg\a.py", "pkg0.py"]))
+
+    writable, _ = spec.classify_paths(["unrelated/file.py"], loaded)
+
+    assert writable == ["pkg/a.py", "pkg0.py"]
