@@ -289,7 +289,7 @@ def derive_validity(record: dict) -> str:
 
 def _verdict(result: dict | None) -> bool | None:
     """True when the command passed, False when tests failed, None when unusable."""
-    if result is None or result["timed_out"]:
+    if result is None:
         return None
     if result["rc"] == 0:
         return True
