@@ -239,9 +239,17 @@ def write_proposals(
 
     `out_dir` is reserved with an exclusive mkdir, so a second run landing on
     the same name fails with EEXIST rather than overwriting it. The run's files
-    are built in an `<out_dir>.partial-<pid>` sibling and moved onto the
-    reservation by a single `os.replace`, so a reader never sees a half-filled
-    directory. Any failure rolls the whole run back: no sibling, no directory.
+    are built in an `<out_dir>.partial-<pid>` sibling and moved onto the name in
+    a single step, so a reader never sees a half-filled directory. Any failure
+    rolls the whole run back: no sibling, no directory.
+
+    On POSIX that step is one `os.replace` onto the standing reservation, which
+    is held right through it. On Windows a rename cannot land on an existing
+    directory, so the reservation is released first and the name is free for
+    that instant: a competing run can take it there. Nothing is lost when one
+    does - this run's rename fails against the directory now standing there, and
+    the rollback leaves a name this run no longer owns alone - but the
+    reservation is exclusive only up to the release on that host.
     """
     out_dir.mkdir(parents=True)
     staging = out_dir.parent / f"{out_dir.name}.partial-{os.getpid()}"
@@ -251,6 +259,7 @@ def write_proposals(
         out_dir.rmdir()
         raise
 
+    reserved = True
     try:
         records = _write_proposal_files(proposals, staging)
         (staging / "proposals.json").write_text(json.dumps(records, indent=2))
@@ -267,10 +276,22 @@ def write_proposals(
                 indent=2,
             )
         )
-        os.replace(staging, out_dir)
+        if os.name == "nt":
+            # MoveFileEx(REPLACE_EXISTING) does not accept a directory
+            # destination, so os.replace onto the reservation fails there.
+            # Release the reservation, then rename: a competitor that claims the
+            # name in between makes THIS rename fail, which is the right outcome
+            # - one winner, and the loser touches nothing it lost.
+            out_dir.rmdir()
+            reserved = False
+            os.rename(staging, out_dir)
+        else:
+            os.replace(staging, out_dir)
+            reserved = False
     except Exception:
         shutil.rmtree(staging)
-        out_dir.rmdir()
+        if reserved:
+            out_dir.rmdir()
         raise
 
     return out_dir

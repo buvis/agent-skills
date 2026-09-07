@@ -48,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **distil-memory**: a run that loses the race for its output directory on
+  Windows now leaves the winning run's published proposals alone instead of
+  deleting the directory it failed to claim.
 - **braid**: `braid --help` now describes `--policy`, `--agents-root`,
   `--claude-root`, `--config-root` and `--no-claude`, each of which previously
   printed a blank description - the working `--policy` flag was reachable only
