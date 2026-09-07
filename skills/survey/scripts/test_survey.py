@@ -897,7 +897,7 @@ def test_extension_points_uses_file_path_not_layer_name(
     section = _section_body(run._survey(repo), "Extension points")
 
     # The FULL nested path + line must be a single contiguous substring.
-    full_path_ref = f"{subdir}/{filename}:{class_line}"
+    full_path_ref = f"{Path(subdir) / filename}:{class_line}"
     assert full_path_ref in section, (
         f"extension points must contain the full nested path reference "
         f"'{full_path_ref}' as a contiguous substring. A layer/filename impl that "
@@ -939,7 +939,7 @@ def test_implementations_index_file_path_includes_relative_directory(tmp_path):
     # substring. Asserting directory and filename separately would allow an impl that
     # drops the intermediate 'domain/' segment (e.g. emitting core/aggregate_root.py)
     # to pass this test.
-    full_path_ref = f"core/domain/aggregate_root.py:{sym_line}"
+    full_path_ref = f"{Path(subdir) / filename}:{sym_line}"
     assert full_path_ref in section, (
         f"the implementations index must contain the full path reference "
         f"'{full_path_ref}' as a contiguous substring. Asserting directory and filename "

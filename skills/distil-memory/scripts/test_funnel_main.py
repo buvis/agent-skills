@@ -376,7 +376,7 @@ def test_main_reports_persistence_failure_to_stderr_and_returns_nonzero_when_wri
 
     captured = capsys.readouterr()
     assert expected_report in captured.out
-    assert "dev/local/audit-results" in captured.err
+    assert str(Path("dev/local/audit-results")) in captured.err
 
 
 def test_main_writes_report_under_the_repository_root_and_prints_its_absolute_path_when_run_from_a_deeply_nested_cwd(

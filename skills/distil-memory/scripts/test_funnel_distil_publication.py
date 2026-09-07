@@ -4,6 +4,7 @@ stamp, the report names the directory the run actually published, and a failed
 publication leaves neither behind."""
 
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,7 +51,7 @@ def _how_to_proceed(report: str) -> str:
 def _proposals_paths_named(line: str) -> list[str]:
     """Every path-shaped token in a "How to proceed:" line that claims to be a
     proposals directory."""
-    tokens = {token.strip(".,;:()'\"") for token in line.split() if "/" in token}
+    tokens = {token.strip(".,;:()'\"") for token in line.split() if os.sep in token}
     return sorted(token for token in tokens if "proposal" in token.lower())
 
 
