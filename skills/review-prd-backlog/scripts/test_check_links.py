@@ -4,7 +4,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 import check_links
+
+
+@pytest.fixture(autouse=True)
+def _clear_resolve_path_cache():
+    check_links.resolve_path.cache_clear()
 
 
 def make_tree(root: Path) -> Path:
@@ -122,3 +129,32 @@ def test_cli_exit_codes_and_json(tmp_path):
     payload = json.loads(dirty.stdout)
     assert payload["findings"][0]["target"] == "dev/local/notes/ghost.md"
     assert payload["findings"][0]["citing_line"] == "dev/local/notes/ghost.md"
+
+
+def test_resolve_path_reuses_cached_result_after_filesystem_change(tmp_path):
+    ref = "dev/local/notes/late.md"
+    assert check_links.resolve_path(ref, tmp_path) is False
+    (tmp_path / "dev/local/notes").mkdir(parents=True)
+    (tmp_path / "dev/local/notes/late.md").write_text("x\n")
+    # same (ref, root) pair: cached miss, not a fresh stat
+    assert check_links.resolve_path(ref, tmp_path) is False
+
+
+def test_resolve_path_cache_clear_forces_a_fresh_stat(tmp_path):
+    ref = "dev/local/notes/late.md"
+    (tmp_path / "dev/local/notes").mkdir(parents=True)
+    assert check_links.resolve_path(ref, tmp_path) is False
+    (tmp_path / "dev/local/notes/late.md").write_text("x\n")
+    check_links.resolve_path.cache_clear()
+    assert check_links.resolve_path(ref, tmp_path) is True
+
+
+def test_resolve_path_call_adds_one_cache_entry(tmp_path):
+    check_links.resolve_path("dev/local/notes/marker.md", tmp_path)
+    assert check_links.resolve_path.cache_info().currsize == 1
+
+
+def test_autouse_fixture_clears_cache_before_each_test_starts():
+    # the previous test left an entry in the cache; the autouse fixture
+    # must have cleared it before this test began
+    assert check_links.resolve_path.cache_info().currsize == 0
