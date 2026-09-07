@@ -16,10 +16,11 @@ import datetime
 import fnmatch
 import json
 import os
+import posixpath
 import shutil
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 PROTECT_SUFFIXES = (".md", ".rst", ".txt", ".adoc")
 PROTECT_PREFIXES = ("docs/", "doc/", "dev/local/", ".git/")
@@ -49,18 +50,36 @@ def newest_mtime(p: Path) -> float:
     return max(times, default=p.stat().st_mtime)
 
 
+def as_git_rel(root: Path, path: Path) -> str:
+    """`path` relative to `root` in Git's slash-form representation.
+
+    On Windows a native separator becomes "/", matching `git ls-files` and the
+    "docs/", "dev/local/", ".git/" prefixes. On POSIX the components are
+    returned untouched, so a backslash that is an ordinary filename character
+    stays one.
+    """
+    return path.relative_to(root).as_posix()
+
+
+def normalise_rel(rel: str) -> str:
+    """`rel` collapsed to slash form with "." and ".." segments resolved."""
+    text = rel.replace("\\", "/") if os.name == "nt" else rel
+    return posixpath.normpath(text)
+
+
 def veto_reason(rel: str, p: Path, tracked: set[str],
                 min_age_days: int) -> str | None:
-    rel = os.path.normpath(rel)
+    rel = normalise_rel(rel)
     if not p.exists():
         return "missing"
     if rel in tracked or any(t.startswith(rel + "/") for t in tracked):
         return "tracked (use git rm via a reviewed commit instead)"
     if rel.startswith(PROTECT_PREFIXES):
         return "protected path (dev/local, docs, .git)"
-    if Path(rel).suffix in PROTECT_SUFFIXES:
+    if PurePosixPath(rel).suffix in PROTECT_SUFFIXES:
         return "documentation suffix - never auto-trashed"
-    if any(fnmatch.fnmatch(Path(rel).name.lower(), g) for g in PROTECT_GLOBS):
+    if any(fnmatch.fnmatch(PurePosixPath(rel).name.lower(), g)
+           for g in PROTECT_GLOBS):
         return "protected name"
     age = (datetime.datetime.now().timestamp() - newest_mtime(p)) / 86400
     if age < min_age_days:
@@ -75,7 +94,7 @@ def relocate(root: Path, rel: str, date: str) -> str:
         ts = int(datetime.datetime.now().timestamp())
         dest = dest.with_name(f"{dest.name}.dup{ts}")
     shutil.move(str(root / rel), str(dest))
-    return str(dest.relative_to(root))
+    return dest.relative_to(root).as_posix()
 
 
 def note_manifest(root: Path, date: str, rule: str, rel: str,
@@ -94,17 +113,18 @@ def main() -> int:
     ap.add_argument("paths", nargs="+", help="repo-relative paths to trash")
     args = ap.parse_args()
 
-    root = repo_root(Path(args.repo).resolve())
+    # Untested: root's .resolve() matches p's, for Windows 8.3 short names.
+    root = repo_root(Path(args.repo).resolve()).resolve()
     tracked = load_tracked(root)
     date = datetime.date.today().isoformat()
     moved, refused = [], []
     for raw in args.paths:
-        raw = raw.strip("/")
+        raw = raw.strip("/\\" if os.name == "nt" else "/")
         p = (root / raw).resolve()
         if not p.is_relative_to(root):
             refused.append({"path": raw, "reason": "outside repo"})
             continue
-        rel = os.path.relpath(p, root)
+        rel = as_git_rel(root, p)
         reason = veto_reason(rel, p, tracked, args.min_age_days)
         if reason:
             refused.append({"path": rel, "reason": reason})

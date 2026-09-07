@@ -122,6 +122,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same `protected path` refusal (and the same tracked-file protection) as
   the plain spelling, instead of bypassing containment and landing on a
   protected file.
+- **brush**: on Windows, `trash_untracked.py` again refuses tracked files and
+  anything under `dev/local`, `docs` or `.git`. It compared a backslash path
+  against git's slash-separated names, so every one of those refusals silently
+  passed and the file was trashed.
 - **brief-portfolio**: escape every `<` in the collected JSON payload instead
   of only `</`, so a repo title or issue title containing `<!--<script>` can no
   longer move the HTML tokenizer into script-data-double-escaped state and
