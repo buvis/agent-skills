@@ -64,7 +64,7 @@ def resolvable_numbers(root: Path) -> set[str]:
     return nums
 
 
-@functools.lru_cache
+@functools.cache
 def resolve_path(token: str, root: Path) -> bool:
     if token.startswith("dev/local/"):
         p = root / token
