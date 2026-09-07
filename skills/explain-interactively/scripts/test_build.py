@@ -12,7 +12,11 @@ BUILD = Path(__file__).resolve().parents[1] / "references" / "build.sh"
 
 
 def run(*args, cwd):
-    return subprocess.run(["bash", str(BUILD), *args], cwd=cwd, capture_output=True, text=True)
+    # Slash form: Git Bash accepts "C:/..." on Windows, and on POSIX it is
+    # byte-identical to str(BUILD).
+    return subprocess.run(
+        ["bash", BUILD.as_posix(), *args], cwd=cwd, capture_output=True, text=True
+    )
 
 
 def make_course(root: Path) -> Path:

@@ -160,7 +160,9 @@ def test_scan_records_repo_as_failed_when_search_tool_is_unresolvable(
     # resolve_ast_grep() raises RuntimeError when neither ast-grep nor mise
     # is on PATH. scan() must catch that and record the repo as failed
     # instead of letting the failure escape.
-    monkeypatch.setenv("PATH", "/usr/bin:/bin")  # neither ast-grep nor mise here
+    empty_path_dir = tmp_path / "empty_path"
+    empty_path_dir.mkdir()
+    monkeypatch.setenv("PATH", str(empty_path_dir))  # neither ast-grep nor mise here
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "sample.py").write_text("print(1)\n")
@@ -176,7 +178,7 @@ def test_scan_records_repo_as_failed_when_search_tool_is_unresolvable(
 
 
 def test_scan_reports_a_hung_search_as_a_failed_repo_without_blocking(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, write_executable_stub
 ):
     # Shape assumed for the failure channel, consistent with the tests
     # above: scan() returns a 3-tuple (hits, suppressed, failed), and a
@@ -186,10 +188,28 @@ def test_scan_reports_a_hung_search_as_a_failed_repo_without_blocking(
     # `timeout` keyword (seconds), mirroring the existing `cap` keyword, so
     # this test can use a small budget instead of waiting on whatever
     # production-sized default the fix picks.
-    hung_rg = tmp_path / "rg"
-    hung_rg.write_text("#!/bin/sh\nsleep 5\n")
-    hung_rg.chmod(0o755)
+    write_executable_stub(tmp_path, "rg", "hung; sleep 5")
     monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ['PATH']}")
+
+    if os.name == "nt":
+        # The one simulated leg in this suite. Windows has no compiler-free
+        # way to build an arg-agnostic sleeping executable: `executable=`
+        # refuses a .cmd, and a copied python.exe exits on the leading
+        # `--json` before it can sleep. So the hang is denied at the call
+        # boundary instead of inside a child. The wrapper reads its behaviour
+        # off the `timeout` kwarg it receives -- sleeping the full 5s and
+        # raising nothing when there is none -- because scan() catches bare
+        # Exception, so an unconditional raise would keep this leg green even
+        # after `timeout=` was deleted from _run_rg.
+        real_run = subprocess.run
+
+        def hung_run(*args, timeout=None, **kwargs):
+            time.sleep(5 if timeout is None else timeout)
+            if timeout is None:
+                return real_run(*args, **kwargs)
+            raise subprocess.TimeoutExpired(args[0], timeout)
+
+        monkeypatch.setattr(subprocess, "run", hung_run)
 
     hung_repo = tmp_path / "hung_repo"
     hung_repo.mkdir()

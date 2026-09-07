@@ -44,10 +44,10 @@ def test_run_rg_never_invokes_a_bare_rg_binary_by_name():
     assert "executable" in {kw.arg for kw in call.keywords}
 
 
-def test_resolve_rg_finds_a_real_rg_binary_on_path(tmp_path, monkeypatch):
-    fake_rg = tmp_path / "rg"
-    fake_rg.write_text("#!/bin/sh\necho fake-rg\n")
-    fake_rg.chmod(0o755)
+def test_resolve_rg_finds_a_real_rg_binary_on_path(
+    tmp_path, monkeypatch, write_executable_stub
+):
+    fake_rg = write_executable_stub(tmp_path, "rg", "fake-rg")
     monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ['PATH']}")
 
     result = sweep.resolve_rg()
@@ -55,11 +55,11 @@ def test_resolve_rg_finds_a_real_rg_binary_on_path(tmp_path, monkeypatch):
     assert result == str(fake_rg)
 
 
-def test_resolve_rg_result_is_cached_across_calls(tmp_path, monkeypatch):
+def test_resolve_rg_result_is_cached_across_calls(
+    tmp_path, monkeypatch, write_executable_stub
+):
     original_path = os.environ["PATH"]
-    fake_rg = tmp_path / "rg"
-    fake_rg.write_text("#!/bin/sh\necho fake-rg\n")
-    fake_rg.chmod(0o755)
+    fake_rg = write_executable_stub(tmp_path, "rg", "fake-rg")
     monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{original_path}")
 
     first = sweep.resolve_rg()
@@ -73,7 +73,9 @@ def test_resolve_rg_result_is_cached_across_calls(tmp_path, monkeypatch):
     assert second == first
 
 
-def test_resolve_rg_returns_a_working_path_when_absent_from_path(tmp_path, monkeypatch):
+def test_resolve_rg_returns_a_working_path_when_absent_from_path(
+    tmp_path, monkeypatch, write_executable_stub, run_resolved_tool
+):
     # Force the claude-binary fallback branch regardless of what the host
     # running the suite has on PATH: point PATH at a directory with no rg,
     # and CLAUDE_CODE_EXECPATH at a fixture executable that behaves like the
@@ -82,29 +84,27 @@ def test_resolve_rg_returns_a_working_path_when_absent_from_path(tmp_path, monke
     empty_path_dir.mkdir()
     monkeypatch.setenv("PATH", str(empty_path_dir))
 
-    fake_claude = tmp_path / "claude"
-    fake_claude.write_text("#!/bin/sh\necho ripgrep 14.0.0\n")
-    fake_claude.chmod(0o755)
+    fake_claude = write_executable_stub(tmp_path, "claude", "ripgrep 14.0.0")
     monkeypatch.setenv("CLAUDE_CODE_EXECPATH", str(fake_claude))
 
     path = sweep.resolve_rg()
 
     assert path == str(fake_claude)
 
-    result = subprocess.run(
-        ["rg", "--version"], executable=path, capture_output=True, text=True
-    )
+    result = run_resolved_tool(Path(path), ["rg", "--version"])
 
     assert result.returncode == 0
     assert "ripgrep" in result.stdout.lower()
 
 
 def test_resolve_rg_exits_naming_both_candidates_when_neither_resolves(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, isolate_home
 ):
-    monkeypatch.setenv("PATH", "/usr/bin:/bin")  # no rg here
+    empty_path_dir = tmp_path / "empty_path"
+    empty_path_dir.mkdir()
+    monkeypatch.setenv("PATH", str(empty_path_dir))  # no rg here
     monkeypatch.delenv("CLAUDE_CODE_EXECPATH", raising=False)
-    monkeypatch.setenv("HOME", str(tmp_path))  # no ~/.local/bin/claude here
+    isolate_home(tmp_path)  # no ~/.local/bin/claude here
 
     with pytest.raises(RuntimeError) as exc_info:
         sweep.resolve_rg()
@@ -140,7 +140,7 @@ def test_resolve_ast_grep_falls_back_to_mise_when_absent_from_path(monkeypatch):
     assert result == expected
 
 
-def test_resolve_ast_grep_result_is_cached_across_calls(monkeypatch):
+def test_resolve_ast_grep_result_is_cached_across_calls(tmp_path, monkeypatch):
     mise_path = shutil.which("mise")
     assert mise_path is not None, "mise must be on PATH for this test to be meaningful"
     mise_dir = os.path.dirname(mise_path)
@@ -150,16 +150,20 @@ def test_resolve_ast_grep_result_is_cached_across_calls(monkeypatch):
 
     # A PATH with neither ast-grep nor mise reachable; an uncached call
     # would now raise SystemExit instead of matching `first`.
-    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    empty_path_dir = tmp_path / "empty_path"
+    empty_path_dir.mkdir()
+    monkeypatch.setenv("PATH", str(empty_path_dir))
     second = sweep.resolve_ast_grep()
 
     assert second == first
 
 
 def test_resolve_ast_grep_exits_naming_both_attempts_when_neither_resolves(
-    monkeypatch,
+    tmp_path, monkeypatch
 ):
-    monkeypatch.setenv("PATH", "/usr/bin:/bin")  # neither ast-grep nor mise here
+    empty_path_dir = tmp_path / "empty_path"
+    empty_path_dir.mkdir()
+    monkeypatch.setenv("PATH", str(empty_path_dir))  # neither ast-grep nor mise here
 
     with pytest.raises(RuntimeError) as exc_info:
         sweep.resolve_ast_grep()
