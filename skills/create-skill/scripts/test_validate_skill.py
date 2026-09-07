@@ -106,6 +106,16 @@ def test_help_flag_exits_zero_with_usage_line():
     assert result.stdout.splitlines()[0].startswith("usage: validate_skill.py")
 
 
+def test_help_flag_prints_usage_and_exits_zero():
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert result.stdout.startswith("usage: validate_skill.py")
+
+
 def test_valid_skill_path_exits_zero_and_prints_ok():
     survey_skill = Path(__file__).resolve().parents[2] / "survey"
     result = subprocess.run(
