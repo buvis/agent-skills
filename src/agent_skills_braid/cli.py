@@ -420,15 +420,20 @@ def _parser() -> argparse.ArgumentParser:
         help="additional .braidignore file to load (repeatable)",
     )
     parser.add_argument(
-        "--agents-root", type=Path, help="override the ~/.agents directory"
+        "--agents-root",
+        type=Path,
+        help="override the ~/.agents union root, ahead of AGENTS_ROOT",
     )
     parser.add_argument(
-        "--claude-root", type=Path, help="override the ~/.claude directory"
+        "--claude-root",
+        type=Path,
+        help="override the ~/.claude root, ahead of CLAUDE_ROOT",
     )
     parser.add_argument(
         "--config-root",
         type=Path,
-        help="override the ~/.config/agent-skills directory",
+        help="override the ~/.config/agent-skills directory holding sources.d, "
+        "ahead of AGENT_SKILLS_CONFIG",
     )
     parser.add_argument(
         "--no-claude", action="store_true", help="skip projecting skills into claude-root"

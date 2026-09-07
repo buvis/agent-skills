@@ -48,6 +48,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **braid**: `braid --help` now describes `--policy`, `--agents-root`,
+  `--claude-root`, `--config-root` and `--no-claude`, each of which previously
+  printed a blank description — the working `--policy` flag was reachable only
+  by reading the source. The three root overrides also name the environment
+  variable they take precedence over.
+- **braid**: the README documents both backup destinations as the code builds
+  them, `~/.claude/skills-backup/<timestamp>-<pid>/project/` and
+  `<agents-root>/backups/<timestamp>-<pid>/compose/`. The documented path
+  previously omitted the category level and the union destination entirely, so
+  an operator hunting a displaced skill found an empty directory. The flag
+  prose is now a `| Flag | Effect |` table.
 - **distil-memory**: a typing call that times out now records a fixed message
   naming only the timeout, instead of one carrying the whole `claude` command
   line - which held the proposal's text and up to five shortlisted memory
