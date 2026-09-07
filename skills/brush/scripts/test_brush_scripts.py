@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import posixpath
 import subprocess
 import time
 from pathlib import Path
@@ -205,3 +206,281 @@ def test_manifest_row_names_the_file_that_was_moved(
     row = (repo / "dev/local/.trash/manifest.tsv").read_text().strip().split("\t")
     assert row[2] == "old_junk.log"
     assert (repo / row[3]).is_file()
+
+
+def test_a_tracked_nested_file_is_refused_by_its_slash_form_name(
+        repo: Path) -> None:
+    """`git ls-files` spells a nested entry with slashes on every host."""
+    p = repo / "charts" / "sub" / "kept.log"
+    p.parent.mkdir(parents=True)
+    p.write_text("x")
+    _git(repo, "add", "charts/sub/kept.log")
+    _git(repo, "commit", "-qm", "nested")
+    os.utime(p, (OLD, OLD))
+
+    rel = tu.as_git_rel(repo, p)
+
+    assert rel == "charts/sub/kept.log"
+    assert "tracked" in _veto(repo, rel)
+
+
+def test_an_untracked_nested_file_of_the_same_shape_is_permitted(
+        repo: Path) -> None:
+    p = repo / "charts" / "sub" / "old_junk.log"
+    p.parent.mkdir(parents=True)
+    p.write_text("j")
+    os.utime(p, (OLD, OLD))
+
+    rel = tu.as_git_rel(repo, p)
+
+    assert rel == "charts/sub/old_junk.log"
+    assert _veto(repo, rel) is None
+
+
+@pytest.mark.parametrize("parts", [
+    ("dev", "local", "keep.bin"),
+    ("docs", "keep.bin"),
+    (".git", "keep.bin"),
+    ("dev", "local", "old_junk.log"),
+    ("docs", "old_junk.log"),
+])
+def test_veto_refuses_each_protected_prefix_by_slash_form_identity(
+        repo: Path, parts: tuple[str, ...]) -> None:
+    p = repo.joinpath(*parts)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text("k")
+    os.utime(p, (OLD, OLD))
+
+    rel = tu.as_git_rel(repo, p)
+
+    assert rel == "/".join(parts)
+    assert "protected path" in _veto(repo, rel)
+
+
+@pytest.mark.parametrize("parts", [
+    ("dev", "tools", "old_junk.log"),
+    ("guides", "old_junk.log"),
+    ("dev", "tools", "keep.bin"),
+    ("guides", "keep.bin"),
+])
+def test_veto_permits_a_sibling_directory_of_a_protected_prefix(
+        repo: Path, parts: tuple[str, ...]) -> None:
+    p = repo.joinpath(*parts)
+    p.parent.mkdir(parents=True)
+    p.write_text("j")
+    os.utime(p, (OLD, OLD))
+
+    rel = tu.as_git_rel(repo, p)
+
+    assert rel == "/".join(parts)
+    assert _veto(repo, rel) is None
+
+
+def test_normalise_rel_reads_a_backslash_as_a_separator_only_on_nt(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Windows spells a separator there; POSIX spells a name character."""
+    monkeypatch.setattr(tu.os, "name", "nt")
+
+    assert tu.normalise_rel(r"dev\local\keep.bin") == "dev/local/keep.bin"
+    assert tu.normalise_rel(r"sub\..\old_junk.log") == "old_junk.log"
+
+    monkeypatch.setattr(tu.os, "name", "posix")
+
+    assert tu.normalise_rel(r"dev\local\keep.bin") == r"dev\local\keep.bin"
+    assert tu.normalise_rel(r"sub/../a\b.log") == r"a\b.log"
+
+
+def test_normalise_rel_resolves_dot_and_dotdot_to_the_plain_name() -> None:
+    assert tu.normalise_rel(
+        "sub/../dev/local/keep.bin") == "dev/local/keep.bin"
+    assert tu.normalise_rel("./sub/./../old_junk.log") == "old_junk.log"
+
+
+def test_main_refuses_a_protected_path_that_contains_spaces(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = repo / "dev" / "local" / "keep me" / "notes copy.bin"
+    p.parent.mkdir(parents=True)
+    p.write_text("k")
+    os.utime(p, (OLD, OLD))
+    spelled = str(Path("dev") / "local" / "keep me" / "notes copy.bin")
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["trash_untracked.py", "--repo", str(repo), spelled])
+    tu.main()
+    out = json.loads(capsys.readouterr().out)
+
+    assert out["moved"] == []
+    assert out["refused"] == [{
+        "path": "dev/local/keep me/notes copy.bin",
+        "reason": "protected path (dev/local, docs, .git)",
+    }]
+    assert p.exists()
+
+
+def test_main_reports_one_identity_for_a_moved_path_with_spaces(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """The report and the manifest name that file with one string."""
+    p = repo / "old logs" / "run one.log"
+    p.parent.mkdir(parents=True)
+    p.write_text("j")
+    os.utime(p, (OLD, OLD))
+    (repo / "sub").mkdir()
+    spelled = str(Path("sub") / ".." / "old logs" / "run one.log")
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["trash_untracked.py", "--repo", str(repo), spelled])
+    tu.main()
+    out = json.loads(capsys.readouterr().out)
+
+    row = (repo / "dev/local/.trash/manifest.tsv").read_text().strip().split("\t")
+    assert out["refused"] == []
+    assert out["moved"] == [{"path": "old logs/run one.log",
+                             "trash": row[3]}]
+    assert row[2] == "old logs/run one.log"
+    assert row[3].startswith("dev/local/.trash/")
+    assert (repo / row[3]).is_file()
+    assert not p.exists()
+
+
+def test_load_tracked_reads_the_index_in_slash_form(repo: Path) -> None:
+    """The tracked set is git's spelling, nested entries included."""
+    assert tu.load_tracked(repo) == {"tracked.log"}
+
+    p = repo / "charts" / "sub" / "kept.log"
+    p.parent.mkdir(parents=True)
+    p.write_text("x")
+    _git(repo, "add", "charts/sub/kept.log")
+    _git(repo, "commit", "-qm", "nested")
+
+    assert tu.load_tracked(repo) == {"tracked.log", "charts/sub/kept.log"}
+
+
+def test_a_junk_named_file_that_git_tracks_is_still_refused(
+        repo: Path) -> None:
+    """The index decides, not the filename."""
+    p = repo / "charts" / "sub" / "old_junk.log"
+    p.parent.mkdir(parents=True)
+    p.write_text("j")
+    _git(repo, "add", "charts/sub/old_junk.log")
+    _git(repo, "commit", "-qm", "junk-shaped")
+    os.utime(p, (OLD, OLD))
+
+    rel = tu.as_git_rel(repo, p)
+
+    assert rel == "charts/sub/old_junk.log"
+    assert "tracked" in _veto(repo, rel)
+
+
+def test_an_untracked_file_named_like_a_tracked_one_is_permitted(
+        repo: Path) -> None:
+    p = repo / "charts" / "sub" / "kept.log"
+    p.parent.mkdir(parents=True)
+    p.write_text("j")
+    os.utime(p, (OLD, OLD))
+
+    rel = tu.as_git_rel(repo, p)
+
+    assert rel == "charts/sub/kept.log"
+    assert _veto(repo, rel) is None
+
+
+def test_as_git_rel_spells_a_deep_path_under_a_root_of_any_name(
+        tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    p = root / "charts" / "deep" / "nested" / "old logs" / "run one.log"
+    p.parent.mkdir(parents=True)
+    p.write_text("j")
+
+    assert tu.as_git_rel(root, p) == (
+        "charts/deep/nested/old logs/run one.log")
+
+
+def test_as_git_rel_spells_a_path_the_way_git_ls_files_prints_it(
+        tmp_path: Path) -> None:
+    """Git's representation is pinned to git, not to a literal."""
+    root = tmp_path / "workspace"
+    root.mkdir()
+    _git(root, "init", "-q", "-b", "master")
+    _git(root, "config", "user.email", "t@t")
+    _git(root, "config", "user.name", "t")
+    p = root / "charts" / "deep" / "nested" / "kept.log"
+    p.parent.mkdir(parents=True)
+    p.write_text("x")
+    _git(root, "add", "charts/deep/nested/kept.log")
+
+    printed = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "-z"],
+        capture_output=True, text=True, check=True).stdout.split("\0")
+
+    assert tu.as_git_rel(root, p) == printed[0]
+    assert printed[0] == "charts/deep/nested/kept.log"
+
+
+@pytest.mark.parametrize("os_name", ["nt", "posix"])
+@pytest.mark.parametrize("rel", [
+    "dev/local/",
+    ".",
+    "../old_junk.log",
+    "sub/../../old_junk.log",
+    "a//b/c",
+    "a/b/../../c",
+    "./sub/./../old_junk.log",
+])
+def test_normalise_rel_resolves_slash_input_like_posix_normpath(
+        rel: str, os_name: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Same segment arithmetic on every host, slash form out."""
+    monkeypatch.setattr(tu.os, "name", os_name)
+
+    assert tu.normalise_rel(rel) == posixpath.normpath(rel)
+
+
+@pytest.mark.parametrize("rel", [
+    r"dev\local\keep.bin",
+    r"sub\..\old_junk.log",
+    r"a\\b\c",
+    r"a\b\..\..\c",
+    r"..\old_junk.log",
+    r"charts\sub\.",
+])
+def test_normalise_rel_reads_a_backslash_as_a_separator_on_nt(
+        rel: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tu.os, "name", "nt")
+
+    assert tu.normalise_rel(rel) == posixpath.normpath(rel.replace("\\", "/"))
+
+
+@pytest.mark.parametrize("rel", [
+    r"dev\local\keep.bin",
+    r"sub/../a\b.log",
+    r"a\b\..\..\c",
+    r"charts/sub/a\b/",
+])
+def test_normalise_rel_reads_a_backslash_as_a_name_character_on_posix(
+        rel: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(tu.os, "name", "posix")
+
+    assert tu.normalise_rel(rel) == posixpath.normpath(rel)
+
+
+def test_main_refuses_a_path_that_climbs_out_of_the_repository(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """A `..` that escapes the root is refused, and the file survives."""
+    outside = repo.parent / "old_junk.log"
+    outside.write_text("j")
+    os.utime(outside, (OLD, OLD))
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["trash_untracked.py", "--repo", str(repo), "../old_junk.log"])
+    tu.main()
+    out = json.loads(capsys.readouterr().out)
+
+    assert out["moved"] == []
+    assert len(out["refused"]) == 1
+    assert "outside repo" in out["refused"][0]["reason"]
+    assert outside.is_file()
