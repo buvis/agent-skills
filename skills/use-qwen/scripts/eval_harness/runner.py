@@ -1,0 +1,246 @@
+"""The bounded command runner of the qwen evaluation harness: trees, reaping, the gate.
+
+Every command a gate or an engine runs goes through this module, so nothing the
+harness starts outlives the command that started it: the child leads its own
+process group, both of its streams land in one log, and the group is killed and
+counted on every path. POSIX only; the Windows job object branch is its own
+module.
+"""
+import os
+import signal
+import subprocess
+import tempfile
+import time
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+# Markers a line carries, never whole lines: a run names other projects' tests,
+# other missing modules and other tools, and the marker is what the class reads.
+TOOL_MARKERS = ("command not found", "No such file or directory", "ModuleNotFoundError",
+                "ImportError", "ERROR collecting", "INTERNALERROR", "error: could not",
+                "is not recognized as an internal or external command")
+TEST_MARKERS = ("FAILED ", "AssertionError", "assert ", "=== FAILURES ===",
+                "test result: FAILED", "--- FAIL:", "not ok ")
+GATE_MARKER = ".gate-in-flight"
+
+_FALLBACK_LINES = 40
+_POLL_S = 0.02
+
+
+class OrphanError(RuntimeError):
+    """Raised when a command's process tree still has members after cleanup."""
+
+
+class GateConcurrencyError(RuntimeError):
+    """Raised when a gate starts while another gate's marker is still in flight."""
+
+
+@dataclass(frozen=True)
+class CommandResult:
+    """One command's outcome, in the shape a stored record may carry."""
+    rc: int | None
+    timed_out: bool
+    first_failure: str | None
+    failure_kind: str | None
+    wall_s: float | None
+
+    def as_json(self) -> dict:
+        """Exactly the record contract's command_result keys, in its order."""
+        return asdict(self)
+
+
+def classify_failure(text: str) -> str:
+    """Read output as a tool error, a test failure, or neither.
+
+    Tool markers are tested first, over the whole text: a run that prints a
+    failing test and a collection error is the harness's own environment
+    breaking, whichever of the two the run happened to print first.
+    """
+    if any(marker in text for marker in TOOL_MARKERS):
+        return "tool"
+    if any(marker in text for marker in TEST_MARKERS):
+        return "test"
+    return "unknown"
+
+
+def _first_failure(text: str) -> str | None:
+    """The first marked line, or the first non-blank line of the last forty."""
+    lines = text.splitlines()
+    for line in lines:
+        if classify_failure(line) != "unknown":
+            return line
+    for line in lines[-_FALLBACK_LINES:]:
+        if line.strip():
+            return line
+    return None
+
+
+class ProcessTree:
+    """Opaque handle to a child and every process it spawns.
+
+    POSIX: the session the child leads, so a grandchild whose parent has already
+    exited still carries the group id and is still reachable. A descendant that
+    calls setsid of its own accord leaves the group and is out of reach: the
+    handle answers for the group, not for every process the command ever begat.
+    """
+
+    def __init__(self, process: subprocess.Popen) -> None:
+        self._process = process
+        # start_new_session makes the child the leader of its own group, so the
+        # group id is its pid and no getpgid call can lose it to a race.
+        self._pgid = process.pid
+
+    def terminate(self, escalate_after_s: float) -> None:
+        """SIGTERM the group, then SIGKILL whatever the window leaves standing."""
+        self._signal(signal.SIGTERM)
+        if not self._emptied_within(escalate_after_s):
+            self._signal(signal.SIGKILL)
+        self._process.wait()
+
+    def survivors(self) -> bool:
+        """Whether any member of the group is still there to be signalled."""
+        try:
+            os.killpg(self._pgid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:
+            # macOS answers EPERM for a group whose last member is a zombie its
+            # parent has not collected yet. It holds no port and runs no code.
+            return False
+        return True
+
+    def _signal(self, number: int) -> None:
+        """Signal the whole group; an empty group is the outcome that was wanted."""
+        try:
+            os.killpg(self._pgid, number)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+    def _emptied_within(self, seconds: float) -> bool:
+        """Poll until the group empties, so a prompt exit waits no longer than it took."""
+        deadline = time.monotonic() + seconds
+        while True:
+            # Collect the direct child before asking: an unreaped zombie is
+            # still a member, and the answer for it is EPERM, not "nobody here".
+            self._process.poll()
+            if not self.survivors():
+                return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(_POLL_S)
+
+
+@contextmanager
+def _log_at(stdout_path: Path | None) -> Iterator[Path]:
+    """The file both streams are written to: the caller's, or a scratch one."""
+    if stdout_path is not None:
+        yield stdout_path
+        return
+    with tempfile.TemporaryDirectory() as scratch:
+        yield Path(scratch) / "output.txt"
+
+
+def _start(argv: Sequence[str], cwd: Path, env: dict[str, str] | None,
+           log: Path) -> subprocess.Popen:
+    """Start the command in its own session, both of its streams landing in `log`."""
+    with open(log, "wb") as sink:
+        return subprocess.Popen(list(argv), cwd=str(cwd), env=env, stdin=subprocess.DEVNULL,
+                                stdout=sink, stderr=subprocess.STDOUT, start_new_session=True)
+
+
+def _exit_within(process: subprocess.Popen, timeout_s: float) -> tuple[int | None, bool]:
+    """The child's exit code, or no code and a timeout when the bound ran out first."""
+    try:
+        return process.wait(timeout=timeout_s), False
+    except subprocess.TimeoutExpired:
+        return None, True
+
+
+def run_bounded(argv: Sequence[str], cwd: Path, timeout_s: float, *,
+                env: dict[str, str] | None = None,
+                stdout_path: Path | None = None,
+                escalate_after_s: float = 60.0,
+                settle_s: float = 5.0) -> tuple[CommandResult, ProcessTree]:
+    """Run one command under a bound, then reap its whole process group.
+
+    The bound measures the direct child: a command that exits while a descendant
+    lingers has finished, and the descendant is the reap's question rather than
+    the bound's. The tree is returned instead of a pid, which stops answering
+    the orphan question the moment the direct child exits.
+    """
+    with _log_at(stdout_path) as log:
+        started = time.monotonic()
+        process = _start(argv, cwd, env, log)
+        tree = ProcessTree(process)
+        rc, timed_out = _exit_within(process, timeout_s)
+        wall_s = time.monotonic() - started
+        reap(tree, escalate_after_s=escalate_after_s, settle_s=settle_s)
+        text = log.read_text(encoding="utf-8", errors="replace")
+        result = CommandResult(rc=rc, timed_out=timed_out, first_failure=_first_failure(text),
+                               failure_kind=classify_failure(text), wall_s=wall_s)
+    return result, tree
+
+
+def reap(tree: ProcessTree, *, escalate_after_s: float = 60.0,
+         settle_s: float = 5.0) -> bool:
+    """Kill the tree and answer whether the group emptied inside the settle window."""
+    tree.terminate(escalate_after_s)
+    deadline = time.monotonic() + settle_s
+    while tree.survivors():
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(_POLL_S)
+    return True
+
+
+def run_segments(segments: Sequence[str], cwd: Path, deadline_s: float, *,
+                 env: dict[str, str] | None = None) -> CommandResult | None:
+    """Run each segment as `bash -lc`, one deadline over the whole list.
+
+    Each segment travels as one argv element, so no segment's text is ever read
+    by this process's own shell. The list stops at the first segment that fails
+    or runs out of time and answers with that segment's result; nothing to run
+    is None, never a zero exit.
+    """
+    started = time.monotonic()
+    result = None
+    for segment in segments:
+        remaining = deadline_s - (time.monotonic() - started)
+        result, tree = run_bounded(["bash", "-lc", segment], cwd, remaining, env=env)
+        if tree.survivors():
+            raise OrphanError("%s: the process group still has members" % segment)
+        if result.rc != 0:
+            return result
+    return result
+
+
+def _label_in_flight(marker: Path) -> str:
+    """The label a marker carries; one released mid-read still refuses the gate."""
+    try:
+        return marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        return "unknown"
+
+
+@contextmanager
+def gate_lock(run_dir: Path, label: str) -> Iterator[None]:
+    """Hold the run's one gate marker for the length of one gate.
+
+    The marker is taken with an exclusive create, so two gates racing from
+    separate processes cannot both read an absent marker and both walk in.
+    """
+    marker = run_dir / GATE_MARKER
+    try:
+        held = os.open(marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        raise GateConcurrencyError("gate in flight: %s" % _label_in_flight(marker)) from None
+    try:
+        os.write(held, ("%s\n" % label).encode("utf-8"))
+    finally:
+        os.close(held)
+    try:
+        yield
+    finally:
+        os.unlink(marker)
