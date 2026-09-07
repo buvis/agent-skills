@@ -146,9 +146,10 @@ roots.
 For each non-ignored canonical skill, `braid` creates an absolute symlink at
 `~/.claude/skills/<name>`. If that name is already a real directory or points
 somewhere else, it is moved first to
-`~/.claude/skills-backup/<timestamp>-<pid>/`. Claude-only destination entries
-are untouched. Restart the assistant after changing skills if its current
-session does not notice the update.
+`~/.claude/skills-backup/<timestamp>-<pid>/project/`. The union side backs up
+the same way to `<agents-root>/backups/<timestamp>-<pid>/compose/`. Claude-only
+destination entries are untouched. Restart the assistant after changing
+skills if its current session does not notice the update.
 
 On Windows, Braid tries directory symlinks first and falls back to NTFS
 junctions if Developer Mode or elevated symlink privileges are unavailable.
