@@ -320,10 +320,10 @@ def _judge_evidence(record: dict) -> tuple[str, str | None] | None:
 def _judge_gates(record: dict) -> tuple[str, str | None]:
     gates = record["gates"]
     verdicts = {name: _verdict(gates[name]) for name in REQUIRED_GATES[record["shape"]]}
-    if any(verdict is None for verdict in verdicts.values()):
-        return ("SUSPECT", None)
     if verdicts.get("ablate") is True:
         return ("FAIL", "vacuous-tests")
+    if any(verdict is None for verdict in verdicts.values()):
+        return ("SUSPECT", None)
     if all(verdicts[name] is _EXPECTED_GATE[name] for name in verdicts):
         return ("PASS", None)
     return ("FAIL", "logic-error")
