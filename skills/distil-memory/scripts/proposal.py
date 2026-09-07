@@ -232,6 +232,27 @@ class PublishedDiscard(Protocol):
     reason: str
 
 
+def _stage_run(
+    proposals: list[Proposal], discards: list[PublishedDiscard], staging: Path
+) -> None:
+    """Write the run's markdown files and both manifests into `staging`."""
+    records = _write_proposal_files(proposals, staging)
+    (staging / "proposals.json").write_text(json.dumps(records, indent=2))
+    (staging / "discards.json").write_text(
+        json.dumps(
+            [
+                {
+                    "transcript": str(discard.transcript),
+                    "line_no": discard.line_no,
+                    "reason": discard.reason,
+                }
+                for discard in discards
+            ],
+            indent=2,
+        )
+    )
+
+
 def write_proposals(
     proposals: list[Proposal], discards: list[PublishedDiscard], out_dir: Path
 ) -> Path:
@@ -261,21 +282,7 @@ def write_proposals(
 
     reserved = True
     try:
-        records = _write_proposal_files(proposals, staging)
-        (staging / "proposals.json").write_text(json.dumps(records, indent=2))
-        (staging / "discards.json").write_text(
-            json.dumps(
-                [
-                    {
-                        "transcript": str(discard.transcript),
-                        "line_no": discard.line_no,
-                        "reason": discard.reason,
-                    }
-                    for discard in discards
-                ],
-                indent=2,
-            )
-        )
+        _stage_run(proposals, discards, staging)
         if os.name == "nt":
             # MoveFileEx(REPLACE_EXISTING) does not accept a directory
             # destination, so os.replace onto the reservation fails there.
