@@ -9,6 +9,7 @@ Usage:
     validate_skill.py <path/to/skill-folder>
 """
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -361,11 +362,13 @@ def validate_skill(skill_path: Path) -> tuple[list[str], list[str]]:
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        print("Usage: validate_skill.py <path/to/skill-folder>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Validate a Claude Code skill directory."
+    )
+    parser.add_argument("skill_path", help="path to the skill folder")
+    args = parser.parse_args()
 
-    skill_path = Path(sys.argv[1]).resolve()
+    skill_path = Path(args.skill_path).resolve()
 
     if not skill_path.exists():
         print(f"[ERROR] Path not found: {skill_path}")
