@@ -27,6 +27,13 @@ argv_has_pair() {
     return 1
 }
 
+# Echoes how many argv tokens in FILE are exactly NEEDLE (0 when none, empty
+# when FILE is absent). Lets a case demand that an option appears ONCE, not
+# merely somewhere - a duplicate the child CLI would resolve last-one-wins.
+argv_count() {
+    grep -cxF -- "$2" "$1" 2>/dev/null || true
+}
+
 # ── cleanup registry ──────────────────────────────────────────────────────────
 _DIRS=()
 cleanup() {
@@ -59,9 +66,50 @@ chmod +x "$STUBDIR/claude"
 # branch inert, so lookup always resolves to our stub.
 RUN_PATH="$STUBDIR:/usr/bin:/bin"
 
-SONNET_PROMPT="say hi from sonnet"
-PROMPT_FILE_T="$WORK/prompt.txt"
-printf '%s' "$SONNET_PROMPT" > "$PROMPT_FILE_T"
+# ── per-case fixtures ─────────────────────────────────────────────────────────
+# Nothing prompt- or session-shaped is shared between cases: every case gets its
+# own prompt text and its own uuid, so an implementation carrying baked-in
+# literals cannot satisfy the assertions below - it has to forward the value it
+# was handed. Prompt files are named neutrally and identically in shape
+# (p1.txt, p2.txt, ...) so only a file's CONTENT can drive routing decisions.
+PROMPT_SEQ=0
+UUID_SEQ=0
+MODEL_SEQ=0
+
+# make_prompt <case> [leading-text] — writes a prompt unique to <case> and sets
+# PROMPT_TEXT (the exact bytes) and PROMPT_F (the fixture path) for it.
+make_prompt() {
+    PROMPT_SEQ=$((PROMPT_SEQ + 1))
+    PROMPT_TEXT="${2:-}say hi from sonnet, case $1"
+    PROMPT_F="$WORK/p$PROMPT_SEQ.txt"
+    printf '%s' "$PROMPT_TEXT" > "$PROMPT_F"
+}
+
+# new_uuid — echoes a fresh session id: uuidgen when the runner has it, a
+# generated value otherwise.
+new_uuid() {
+    if command -v uuidgen > /dev/null 2>&1; then
+        uuidgen | tr '[:upper:]' '[:lower:]'
+        return 0
+    fi
+    UUID_SEQ=$((UUID_SEQ + 1))
+    printf '%08x-%04x-4%03x-8%03x-%012x\n' \
+        $((RANDOM * 32768 + RANDOM)) "$RANDOM" $((RANDOM % 4096)) $((RANDOM % 4096)) \
+        $((RANDOM * 1073741824 + RANDOM * 32768 + RANDOM + UUID_SEQ))
+}
+
+# new_model — echoes a fresh model id, unique per case. No case passes a model
+# name the wrapper could know in advance, so a value on argv can only have come
+# from reading the one handed to -m.
+new_model() {
+    MODEL_SEQ=$((MODEL_SEQ + 1))
+    printf 'nonce-model-%s-%s\n' "$MODEL_SEQ" "$RANDOM"
+}
+
+# A directory unrelated to any prompt file: -d must be read as its own option
+# value, never derived from the prompt path.
+ADD_DIR="$WORK/adddir"
+mkdir -p "$ADD_DIR"
 
 # run_sonnet <name> [args...] — runs sonnet-run.sh with SENTINEL data on the
 # wrapper's own stdin; sets RC, STDOUT_F, STDERR_F, and per-test capture paths.
@@ -78,7 +126,8 @@ run_sonnet() {
 }
 
 # ══ T1: plain -f run (headless claude --print) ════════════════════════════════
-run_sonnet t1 -f "$PROMPT_FILE_T"
+make_prompt t1
+run_sonnet t1 -f "$PROMPT_F"
 
 # 1. Child stdin must be redirected to /dev/null. Without the guard the child
 #    inherits the wrapper's stdin and reads SENTINEL_STDIN_DATA (the PRD 00040
@@ -93,7 +142,7 @@ fi
 # 2. Argv regression lock for the plain -f run (adding the stdin guard must
 #    not perturb argv): claude --print --model sonnet <PROMPT>.
 EXPECTED_ARGV_FILE="$WORK/t1.expected"
-printf '%s\n' "--print" "--model" "sonnet" "$SONNET_PROMPT" > "$EXPECTED_ARGV_FILE"
+printf '%s\n' "--print" "--model" "sonnet" "$PROMPT_TEXT" > "$EXPECTED_ARGV_FILE"
 if diff -q "$EXPECTED_ARGV_FILE" "$CLAUDE_ARGV_FILE" >/dev/null 2>&1; then
     PASS "plain -f argv is exactly: --print --model sonnet <PROMPT>"
 else
@@ -113,66 +162,87 @@ fi
 # claude's own CLI rejects a positional prompt starting with "-" as an unknown
 # option ("error: unknown option '- [ ] ...'"); a prompt sourced from a ledger
 # checklist line hits this on every dispatch (2026-09-02, multi-file eval).
-DASH_PROMPT_FILE_T="$WORK/dash-prompt.txt"
-printf -- '- [ ] say hi\n' > "$DASH_PROMPT_FILE_T"
-run_sonnet t1b -f "$DASH_PROMPT_FILE_T"
+make_prompt t1b '- [ ] '
+run_sonnet t1b -f "$PROMPT_F"
 if [ "$RC" -eq 0 ]; then
     PASS "hyphen-prefixed prompt: dispatch exits 0"
 else
     FAIL "hyphen-prefixed prompt: dispatch exits 0" "rc=$RC; stderr: $(cat "$STDERR_F")"
 fi
-if [ -f "$CLAUDE_ARGV_FILE" ] && ! grep -qF -- "- [ ] say hi" "$CLAUDE_ARGV_FILE"; then
+if [ -f "$CLAUDE_ARGV_FILE" ] && ! grep -qF -- "$PROMPT_TEXT" "$CLAUDE_ARGV_FILE"; then
     PASS "hyphen-prefixed prompt: content is NOT on claude's argv"
 else
     FAIL "hyphen-prefixed prompt: content is NOT on claude's argv" \
          "argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
 fi
-if [ -f "$CLAUDE_STDIN_FILE" ] && [ "$(cat "$CLAUDE_STDIN_FILE")" = "- [ ] say hi" ]; then
+if [ -f "$CLAUDE_STDIN_FILE" ] && [ "$(cat "$CLAUDE_STDIN_FILE")" = "$PROMPT_TEXT" ]; then
     PASS "hyphen-prefixed prompt: content reaches claude via stdin, byte-verbatim"
 else
     FAIL "hyphen-prefixed prompt: content reaches claude via stdin, byte-verbatim" \
          "stdin capture: '$(cat "$CLAUDE_STDIN_FILE" 2>/dev/null || echo MISSING)'"
 fi
 
-# ══ T2: -m opus overrides the model ═══════════════════════════════════════════
-run_sonnet t2 -m opus -f "$PROMPT_FILE_T"
+# ══ T2: -m MODEL overrides the model ══════════════════════════════════════════
+# The model is a value the caller chooses, so the case asks for one nothing
+# could have baked in: a wrapper that emits a fixed model name on the mere
+# presence of -m never carries this value through.
+T2_MODEL=$(new_model)
+make_prompt t2
+run_sonnet t2 -m "$T2_MODEL" -f "$PROMPT_F"
 
-# 4. -m: argv carries --model opus (and stays on the headless --print path).
-if argv_has_pair "$CLAUDE_ARGV_FILE" "--model" "opus" && grep -qxF -- "--print" "$CLAUDE_ARGV_FILE"; then
-    PASS "-m opus: argv carries --print and --model opus"
+# 4. -m: argv carries --model <the requested model> (and stays on the headless
+# --print path).
+if argv_has_pair "$CLAUDE_ARGV_FILE" "--model" "$T2_MODEL" && grep -qxF -- "--print" "$CLAUDE_ARGV_FILE"; then
+    PASS "-m MODEL: argv carries --print and --model with the requested model"
 else
-    FAIL "-m opus: argv carries --print and --model opus" \
-         "argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+    FAIL "-m MODEL: argv carries --print and --model with the requested model" \
+         "asked for model '$T2_MODEL'; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
 fi
 
 # ══ T3: -a maps to --permission-mode acceptEdits (NOT bypass) ═════════════════
-run_sonnet t3 -a -f "$PROMPT_FILE_T"
+make_prompt t3
+run_sonnet t3 -a -f "$PROMPT_F"
 
-# 5. -a: argv carries the two-token pair --permission-mode acceptEdits. The old
-# mapping sent bypassPermissions, making the documented weaker flag a silent -y.
-if argv_has_pair "$CLAUDE_ARGV_FILE" "--permission-mode" "acceptEdits"; then
-    PASS "-a: argv carries --permission-mode acceptEdits"
+# 5. -a: argv grants acceptEdits and NOTHING WIDER. The old mapping sent
+# bypassPermissions, making the documented weaker flag a silent -y. Handing the
+# child both modes is the same grant by another route - claude honours the last
+# --permission-mode it is given - so the case demands exactly one such token,
+# paired with acceptEdits, and no trace of bypassPermissions anywhere on argv.
+T3_PERM_COUNT=$(argv_count "$CLAUDE_ARGV_FILE" "--permission-mode")
+if [ "$T3_PERM_COUNT" = "1" ] \
+   && argv_has_pair "$CLAUDE_ARGV_FILE" "--permission-mode" "acceptEdits" \
+   && ! grep -qF -- "bypassPermissions" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+    PASS "-a: argv grants acceptEdits only - one --permission-mode, no bypassPermissions"
 else
-    FAIL "-a: argv carries --permission-mode acceptEdits" \
-         "argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+    FAIL "-a: argv grants acceptEdits only - one --permission-mode, no bypassPermissions" \
+         "--permission-mode token count=${T3_PERM_COUNT:-<no claude invocation>}; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
 fi
 
 # ══ T3b: -y maps to --permission-mode bypassPermissions ═══════════════════════
-run_sonnet t3b -y -f "$PROMPT_FILE_T"
+make_prompt t3b
+run_sonnet t3b -y -f "$PROMPT_F"
 
-# 5b. -y: argv carries the two-token pair --permission-mode bypassPermissions.
-if argv_has_pair "$CLAUDE_ARGV_FILE" "--permission-mode" "bypassPermissions"; then
-    PASS "-y: argv carries --permission-mode bypassPermissions"
+# 5b. -y: the mirror image of T3 - exactly one --permission-mode token, and the
+# mode it carries is bypassPermissions. One token means the grant the child acts
+# on is the one this flag asked for, not whatever a second copy would override
+# it with.
+T3B_PERM_COUNT=$(argv_count "$CLAUDE_ARGV_FILE" "--permission-mode")
+if [ "$T3B_PERM_COUNT" = "1" ] \
+   && argv_has_pair "$CLAUDE_ARGV_FILE" "--permission-mode" "bypassPermissions"; then
+    PASS "-y: argv carries exactly one --permission-mode, and it is bypassPermissions"
 else
-    FAIL "-y: argv carries --permission-mode bypassPermissions" \
-         "argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+    FAIL "-y: argv carries exactly one --permission-mode, and it is bypassPermissions" \
+         "--permission-mode token count=${T3B_PERM_COUNT:-<no claude invocation>}; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
 fi
 
 # ══ T4: -d DIR maps to --add-dir DIR ══════════════════════════════════════════
-run_sonnet t4 -d "$WORK" -f "$PROMPT_FILE_T"
+# The directory is unrelated to the prompt file's location, so the value can
+# only come from reading the -d option itself.
+make_prompt t4
+run_sonnet t4 -d "$ADD_DIR" -f "$PROMPT_F"
 
 # 6. -d: argv carries the pair --add-dir <DIR>.
-if argv_has_pair "$CLAUDE_ARGV_FILE" "--add-dir" "$WORK"; then
+if argv_has_pair "$CLAUDE_ARGV_FILE" "--add-dir" "$ADD_DIR"; then
     PASS "-d DIR: argv carries --add-dir DIR"
 else
     FAIL "-d DIR: argv carries --add-dir DIR" \
@@ -181,7 +251,8 @@ fi
 
 # ══ T5: -o tees output to the file ════════════════════════════════════════════
 T5_OUT="$WORK/t5.out"
-run_sonnet t5 -f "$PROMPT_FILE_T" -o "$T5_OUT"
+make_prompt t5
+run_sonnet t5 -f "$PROMPT_F" -o "$T5_OUT"
 
 # 7. -o: output file receives the backend output.
 if grep -qF "stub-claude-ran" "$T5_OUT" 2>/dev/null; then
@@ -192,7 +263,8 @@ else
 fi
 
 # ══ T6: -s/--silent is accepted as a no-op ════════════════════════════════════
-run_sonnet t6 -s -f "$PROMPT_FILE_T"
+make_prompt t6
+run_sonnet t6 -s -f "$PROMPT_F"
 
 # 8. -s: run succeeds and no -s token leaks into claude's argv.
 if [ "$RC" -eq 0 ] && ! grep -qxF -- "-s" "$CLAUDE_ARGV_FILE" 2>/dev/null && grep -qxF -- "--print" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
@@ -240,8 +312,9 @@ else
 fi
 
 # ══ T9: child exit code propagates ════════════════════════════════════════════
+make_prompt t9
 export STUB_EXIT_CODE=7
-run_sonnet t9 -f "$PROMPT_FILE_T"
+run_sonnet t9 -f "$PROMPT_F"
 unset STUB_EXIT_CODE
 
 # 13. Exit-code propagation: the wrapper's exit code equals the child's.
@@ -255,11 +328,12 @@ fi
 # ══ T10: -S UUID pins the session id in prompt mode ═════════════════════════
 # A caller that pins the session id can locate the transcript afterwards, so the
 # uuid it asked for must reach claude verbatim as a two-token argv pair.
-SESSION_UUID="11111111-2222-3333-4444-555555555555"
-run_sonnet t10 -S "$SESSION_UUID" -f "$PROMPT_FILE_T"
+T10_UUID=$(new_uuid)
+make_prompt t10
+run_sonnet t10 -S "$T10_UUID" -f "$PROMPT_F"
 
 # 14. -S: argv carries the pair --session-id <uuid> on the headless --print path.
-if [ "$RC" -eq 0 ] && argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$SESSION_UUID" && grep -qxF -- "--print" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+if [ "$RC" -eq 0 ] && argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$T10_UUID" && grep -qxF -- "--print" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
     PASS "-S UUID: prompt-mode argv carries --print and --session-id <uuid>"
 else
     FAIL "-S UUID: prompt-mode argv carries --print and --session-id <uuid>" \
@@ -267,10 +341,12 @@ else
 fi
 
 # ══ T10b: --session-id long form is equivalent ═══════════════════════════════
-run_sonnet t10b --session-id "$SESSION_UUID" -f "$PROMPT_FILE_T"
+T10B_UUID=$(new_uuid)
+make_prompt t10b
+run_sonnet t10b --session-id "$T10B_UUID" -f "$PROMPT_F"
 
 # 15. Long spelling produces the same argv pair as the short one.
-if [ "$RC" -eq 0 ] && argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$SESSION_UUID" && grep -qxF -- "--print" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+if [ "$RC" -eq 0 ] && argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$T10B_UUID" && grep -qxF -- "--print" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
     PASS "--session-id UUID: long form yields the same argv pair as -S"
 else
     FAIL "--session-id UUID: long form yields the same argv pair as -S" \
@@ -280,7 +356,7 @@ fi
 # ══ T11: resume mode drops --session-id ══════════════════════════════════════
 # A resumed session already has an id; the pinned one must be suppressed rather
 # than forwarded when the caller also asks to resume.
-run_sonnet t11 -S "$SESSION_UUID" -r
+run_sonnet t11 -S "$(new_uuid)" -r
 
 # 16. -r with -S: claude is dispatched with --resume and NO --session-id token.
 if grep -qxF -- "--resume" "$CLAUDE_ARGV_FILE" 2>/dev/null && ! grep -qxF -- "--session-id" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
@@ -291,10 +367,11 @@ else
 fi
 
 # ══ T11b: interactive mode drops --session-id ════════════════════════════════
-run_sonnet t11b -S "$SESSION_UUID" -i -f "$PROMPT_FILE_T"
+make_prompt t11b
+run_sonnet t11b -S "$(new_uuid)" -i -f "$PROMPT_F"
 
 # 17. -i with -S: the prompt still reaches claude, the session id does not.
-if grep -qxF -- "$SONNET_PROMPT" "$CLAUDE_ARGV_FILE" 2>/dev/null && ! grep -qxF -- "--session-id" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+if grep -qxF -- "$PROMPT_TEXT" "$CLAUDE_ARGV_FILE" 2>/dev/null && ! grep -qxF -- "--session-id" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
     PASS "-i with -S: argv carries the prompt and no --session-id token"
 else
     FAIL "-i with -S: argv carries the prompt and no --session-id token" \
@@ -302,7 +379,7 @@ else
 fi
 
 # ══ T11c: continue mode drops --session-id ═══════════════════════════════════
-run_sonnet t11c -S "$SESSION_UUID" -c
+run_sonnet t11c -S "$(new_uuid)" -c
 
 # 18. -c with -S: claude is dispatched with --continue and NO --session-id token.
 if grep -qxF -- "--continue" "$CLAUDE_ARGV_FILE" 2>/dev/null && ! grep -qxF -- "--session-id" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
@@ -314,26 +391,45 @@ fi
 
 # ══ T12: -S alongside -m and -d keeps every pair intact ═══════════════════
 # Three value-taking options in one command line: an option parser that consumes
-# the wrong argument would cross the values over and still dispatch.
-run_sonnet t12 -m opus -S "$SESSION_UUID" -d "$WORK" -f "$PROMPT_FILE_T"
+# the wrong argument would cross the values over and still dispatch. Two DECOYS
+# make the crossing visible, both sitting AFTER -S on the command line so the
+# session id is not the last uuid-looking thing a caller could scavenge:
+#   - the model value is itself a uuid, so it is indistinguishable from a
+#     session id by shape alone;
+#   - the -d directory carries a third uuid inside its path, for the same reason
+#     at a looser resolution.
+# Only reading the value that follows -S yields the uuid the caller pinned.
+T12_UUID=$(new_uuid)
+T12_MODEL=$(new_uuid)
+T12_DECOY_UUID=$(new_uuid)
+T12_ADD_DIR="$WORK/adddir-$T12_DECOY_UUID"
+mkdir -p "$T12_ADD_DIR"
+make_prompt t12
+run_sonnet t12 -S "$T12_UUID" -m "$T12_MODEL" -d "$T12_ADD_DIR" -f "$PROMPT_F"
 
-# 19. Each value-taking option keeps its own value.
-if argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$SESSION_UUID" \
-   && argv_has_pair "$CLAUDE_ARGV_FILE" "--model" "opus" \
-   && argv_has_pair "$CLAUDE_ARGV_FILE" "--add-dir" "$WORK"; then
+# 19. Each value-taking option keeps its own value: one --session-id, carrying
+# the uuid that followed -S rather than the decoy, while the decoy travels on
+# --add-dir where it was sent and the model is the one that was asked for.
+T12_SID_COUNT=$(argv_count "$CLAUDE_ARGV_FILE" "--session-id")
+if [ "$T12_SID_COUNT" = "1" ] \
+   && argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$T12_UUID" \
+   && argv_has_pair "$CLAUDE_ARGV_FILE" "--model" "$T12_MODEL" \
+   && argv_has_pair "$CLAUDE_ARGV_FILE" "--add-dir" "$T12_ADD_DIR"; then
     PASS "-S with -m and -d: argv carries --session-id, --model and --add-dir with their own values"
 else
     FAIL "-S with -m and -d: argv carries --session-id, --model and --add-dir with their own values" \
-         "rc=$RC; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
+         "rc=$RC; asked for session id '$T12_UUID' (decoy uuid '$T12_DECOY_UUID' belongs to --add-dir) and model '$T12_MODEL'; --session-id token count=${T12_SID_COUNT:-<no claude invocation>}; argv: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
 fi
 
 # ══ T13: hyphen-prefixed prompt keeps --session-id on argv ════════════
 # The stdin-routing branch (T1b) builds its own argv; the session id must
 # survive it instead of being dropped with the positional prompt.
-run_sonnet t13 -S "$SESSION_UUID" -f "$DASH_PROMPT_FILE_T"
+T13_UUID=$(new_uuid)
+make_prompt t13 '- [ ] '
+run_sonnet t13 -S "$T13_UUID" -f "$PROMPT_F"
 
 # 20. Hyphen-prefixed prompt with -S: content still goes via stdin, verbatim.
-if [ -f "$CLAUDE_STDIN_FILE" ] && [ "$(cat "$CLAUDE_STDIN_FILE")" = "- [ ] say hi" ]; then
+if [ -f "$CLAUDE_STDIN_FILE" ] && [ "$(cat "$CLAUDE_STDIN_FILE")" = "$PROMPT_TEXT" ]; then
     PASS "hyphen-prefixed prompt with -S: content still reaches claude via stdin"
 else
     FAIL "hyphen-prefixed prompt with -S: content still reaches claude via stdin" \
@@ -341,7 +437,7 @@ else
 fi
 
 # 21. Hyphen-prefixed prompt with -S: argv carries the pair, not the prompt.
-if argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$SESSION_UUID" && ! grep -qF -- "- [ ] say hi" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
+if argv_has_pair "$CLAUDE_ARGV_FILE" "--session-id" "$T13_UUID" && ! grep -qF -- "$PROMPT_TEXT" "$CLAUDE_ARGV_FILE" 2>/dev/null; then
     PASS "hyphen-prefixed prompt with -S: argv carries --session-id <uuid> and not the prompt"
 else
     FAIL "hyphen-prefixed prompt with -S: argv carries --session-id <uuid> and not the prompt" \
@@ -351,8 +447,10 @@ fi
 # ══ T14: -h usage mentions -S/--session-id ═══════════════════════════
 run_sonnet t14 -h
 
-# 22. Help text documents both spellings of the new option.
-if [ "$RC" -eq 0 ] && grep -qF -- "--session-id" "$STDOUT_F" 2>/dev/null && grep -qF -- "-S" "$STDOUT_F" 2>/dev/null; then
+# 22. Help text documents both spellings on one option line of the usage block.
+# Anchored to the start of a line so an unrelated "-Something" elsewhere in the
+# help cannot stand in for the documented option.
+if [ "$RC" -eq 0 ] && grep -qE '^[[:space:]]*-S[,[:space:]].*--session-id' "$STDOUT_F" 2>/dev/null; then
     PASS "-h: usage text documents -S/--session-id"
 else
     FAIL "-h: usage text documents -S/--session-id" \
