@@ -100,15 +100,31 @@ class ProcessTree:
         self._process.wait()
 
     def survivors(self) -> bool:
-        """Whether any member of the group is still there to be signalled."""
+        """Whether any member of the group is still there to be signalled.
+
+        EPERM never means "nobody there": it means the group has a member this
+        process may not signal. On macOS an exited direct child reads that way
+        until its parent collects it, and that zombie holds no port and runs no
+        code - so collect it and probe again. What answers EPERM the second
+        time cannot be that zombie, so it is a member that really is there.
+        """
+        answer = self._probe()
+        if answer is None:
+            self._process.poll()
+            answer = self._probe()
+        # None here is the unsignalable member - a descendant that changed uid,
+        # say. Reading it as an empty group would suppress the orphan halt this
+        # module exists to raise, so it counts as a survivor.
+        return answer is not False
+
+    def _probe(self) -> bool | None:
+        """Signal zero to the group: there, gone, or EPERM and unanswered."""
         try:
             os.killpg(self._pgid, 0)
         except ProcessLookupError:
             return False
         except PermissionError:
-            # macOS answers EPERM for a group whose last member is a zombie its
-            # parent has not collected yet. It holds no port and runs no code.
-            return False
+            return None
         return True
 
     def _signal(self, number: int) -> None:
