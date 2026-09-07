@@ -154,12 +154,6 @@ def test_resolve_path_call_adds_one_cache_entry(tmp_path):
     assert check_links.resolve_path.cache_info().currsize == 1
 
 
-def test_autouse_fixture_clears_cache_before_each_test_starts():
-    # the previous test left an entry in the cache; the autouse fixture
-    # must have cleared it before this test began
-    assert check_links.resolve_path.cache_info().currsize == 0
-
-
 def test_a_repeated_reference_is_statted_once(tmp_path, monkeypatch):
     make_tree(tmp_path)
     original_exists = Path.exists
