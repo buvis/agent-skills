@@ -620,6 +620,17 @@ def test_derive_validity_is_total_over_the_permitted_domains():
     (attempt(dropped=["src/b.py"]), ("FAIL", "dropped-a-file")),
     (description_attempt(gates={"gate": command_result(rc=0), "own": command_result(rc=0),
                                 "ablate": command_result(rc=0)}), ("FAIL", "vacuous-tests")),
+    # a decided vacuous-tests violation outranks a required gate that never ran, whichever
+    # of the rung-6 gates is the missing one
+    (description_attempt(gates={"gate": command_result(rc=0), "own": None,
+                                "ablate": command_result(rc=0)}), ("FAIL", "vacuous-tests")),
+    (description_attempt(gates={"gate": None, "own": command_result(rc=0),
+                                "ablate": command_result(rc=0)}), ("FAIL", "vacuous-tests")),
+    (description_attempt(gates={"gate": None, "own": None,
+                                "ablate": command_result(rc=0)}), ("FAIL", "vacuous-tests")),
+    # a passing ablation is no violation in tdd shape, where ablate is not asked for
+    (attempt(gates={"gate": command_result(rc=0), "own": None,
+                    "ablate": command_result(rc=0)}), ("PASS", None)),
     # 6: a required gate never produced a usable test verdict
     (description_attempt(gates={"gate": command_result(rc=0), "own": None,
                                 "ablate": failing_tests()}), ("SUSPECT", None)),
