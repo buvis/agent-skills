@@ -412,11 +412,27 @@ def _parser() -> argparse.ArgumentParser:
         default=[],
         help="additional repository root or skills directory (repeatable)",
     )
-    parser.add_argument("--policy", action="append", type=Path, default=[])
-    parser.add_argument("--agents-root", type=Path)
-    parser.add_argument("--claude-root", type=Path)
-    parser.add_argument("--config-root", type=Path)
-    parser.add_argument("--no-claude", action="store_true")
+    parser.add_argument(
+        "--policy",
+        action="append",
+        type=Path,
+        default=[],
+        help="additional .braidignore file to load (repeatable)",
+    )
+    parser.add_argument(
+        "--agents-root", type=Path, help="override the ~/.agents directory"
+    )
+    parser.add_argument(
+        "--claude-root", type=Path, help="override the ~/.claude directory"
+    )
+    parser.add_argument(
+        "--config-root",
+        type=Path,
+        help="override the ~/.config/agent-skills directory",
+    )
+    parser.add_argument(
+        "--no-claude", action="store_true", help="skip projecting skills into claude-root"
+    )
     parser.add_argument("--version", action="version", version=__version__)
     return parser
 
