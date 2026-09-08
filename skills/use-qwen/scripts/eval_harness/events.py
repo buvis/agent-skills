@@ -31,7 +31,13 @@ def read_events(session_path: Path | None, out_path: Path) -> dict:
     if transcript is None:
         # No transcript to read: the capture is all there is, and wrapper
         # diagnostics are not a final message, so this cannot read as success.
-        return {"completion": "unknown", "final_message_bytes": len(out_path.read_bytes()),
+        # A helper that never launched writes no capture either, and that run
+        # is still scored rather than crashed on.
+        try:
+            captured = len(out_path.read_bytes())
+        except OSError:
+            captured = None
+        return {"completion": "unknown", "final_message_bytes": captured,
                 "first_edit_s": None, "usage": dict.fromkeys(USAGE_KEYS)}
     events, malformed = transcript
     message, shape = _terminal_message(events)
@@ -60,6 +66,9 @@ def _read_transcript(session_path: Path) -> tuple[list, bool] | None:
             continue
         if isinstance(event, dict):
             events.append(event)
+        else:
+            # Parsed, but carries no event: the stream was observed broken.
+            malformed = True
     return events, malformed
 
 
