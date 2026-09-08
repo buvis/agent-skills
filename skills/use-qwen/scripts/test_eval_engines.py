@@ -440,6 +440,21 @@ def test_reads_a_malformed_transcript_as_incomplete_not_unknown(tmp_path, build,
     assert result["completion"] == "incomplete"
 
 
+@pytest.mark.parametrize("bad_line", ["42", '"end_turn"', "[1, 2]"],
+                         ids=["number", "string", "list"])
+def test_reads_a_valid_json_line_that_is_not_an_event_as_incomplete(tmp_path, bad_line):
+    # The corrupt line parses as JSON but is not an object, so it carries no
+    # event at all: the stream was observed and it was broken, exactly as for a
+    # line that does not parse. The run answered afterwards with a well-formed
+    # end_turn message, so a reader that quietly drops the line reads this as
+    # complete.
+    session = _session(tmp_path, _broken_in_the_middle(bad_line))
+
+    result = events.read_events(session, _out(tmp_path))
+
+    assert result["completion"] == "incomplete"
+
+
 def test_reads_a_transcript_with_no_assistant_message_as_unknown(tmp_path):
     # Nothing here is broken: every line parses. But no assistant message ever
     # arrived, so nothing at all was observed about completion.
@@ -475,6 +490,25 @@ def test_survives_a_session_path_that_cannot_be_read(tmp_path, name, make_dir):
         session.mkdir()
 
     result = events.read_events(session, _out(tmp_path))
+
+    assert set(result) == {"completion", "final_message_bytes", "first_edit_s", "usage"}
+    assert result["completion"] != "complete"
+    assert result["first_edit_s"] is None
+    assert result["usage"] == dict.fromkeys(records.USAGE_KEYS)
+
+
+@pytest.mark.parametrize("name, make_dir", [("gone.txt", False), ("out.txt", True)],
+                         ids=["missing", "unreadable"])
+def test_survives_a_capture_path_that_cannot_be_read(tmp_path, name, make_dir):
+    # A helper that never launched writes no out.txt at all, and that run still
+    # has to be scored rather than crashed on. Nothing was observed here, so
+    # nothing may read as success - but the answer has to be a verdict, not an
+    # OSError escaping the reader.
+    out_path = tmp_path / name
+    if make_dir:
+        out_path.mkdir()
+
+    result = events.read_events(None, out_path)
 
     assert set(result) == {"completion", "final_message_bytes", "first_edit_s", "usage"}
     assert result["completion"] != "complete"
