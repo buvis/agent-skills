@@ -41,6 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **use-sonnet**: `sonnet-run.sh` takes `-S/--session-id UUID`, pinning the
   Claude session id in print mode so a caller can find the transcript
   afterwards. Interactive, resume and continue runs are unaffected.
+- **use-qwen**: `run_eval_harness.py` runs a whole comparison round unattended
+  with one command, where every step was run by hand before, and every attempt
+  record is produced by code. `vet` seals and qualifies every task under
+  `tasks/` in an evidence directory (pre-task tree, oracle tests, prompt,
+  baseline, canonical and necessity checks, `ready` marker); `run` takes every
+  ready task through one or two engines, `--shape description|tdd`, under one
+  `--bound` and one `--gate-bound`, and writes a sealed `attempt.json` per
+  attempt whose outcome and class are derived by code; `verify` re-checks an
+  evidence directory's records.
 
 ### Changed
 
@@ -51,6 +60,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **use-qwen**: an eval-harness attempt whose usage-limit check could not run
+  (`usage_limit: unchecked`, e.g. no checker configured) is now recorded as
+  unchecked and still counts as a valid attempt, instead of being discarded as
+  if the limit had been hit.
 - **review-prd-backlog**: `check_links` now stats each distinct `(token, root)`
   pair at most once per process instead of once per reference - 1,216 stat calls
   dropped to 150 on the real backlog (87.7% were repeats of a path already
