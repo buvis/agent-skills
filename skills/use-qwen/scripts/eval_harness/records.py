@@ -52,6 +52,8 @@ _EXPECTED_GATE = {"gate": True, "own": True, "ablate": False}
 _STAMP_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
 _STATUS_RE = re.compile(r"[ACDMTUXB]|[RC][0-9]{0,3}")
 _PATH_RE = re.compile(r"[^/\\][^\\]*")
+# POSIX `/...`, a Windows drive `X:\...` or `X:/...`, or UNC `\\server\share...`
+_NATIVE_ABSOLUTE_RE = re.compile(r"/.*|[A-Za-z]:[\\/].*|\\\\[^\\]+\\[^\\]+.*")
 _EXIT_RE = re.compile(r"exit--?[0-9]+")
 
 
@@ -87,6 +89,11 @@ def _is_path(value: object) -> bool:
 
 def _is_path_list(value: object) -> bool:
     return isinstance(value, list) and all(_is_path(p) for p in value) and value == sorted(value)
+
+
+def _is_native_absolute(value: object) -> bool:
+    """A path whose shape is absolute on some host, whatever host reads the record."""
+    return isinstance(value, str) and bool(_NATIVE_ABSOLUTE_RE.fullmatch(value))
 
 
 def _is_stamp(value: object) -> bool:
@@ -203,8 +210,7 @@ def _check_attempt(record: dict) -> None:
     _require(_is_int(record["attempt"]) and record["attempt"] in _ATTEMPTS, "attempt.attempt",
              record["attempt"])
     _require(record["shape"] in _SHAPES, "attempt.shape", record["shape"])
-    _require(isinstance(record["clone"], str) and record["clone"].startswith("/"),
-             "attempt.clone", record["clone"])
+    _require(_is_native_absolute(record["clone"]), "attempt.clone", record["clone"])
     _check_prep(record["prep"])
     if record["baseline"] is not None:
         _check_command_result(record["baseline"], "attempt.baseline")
@@ -248,13 +254,13 @@ _CHECKS = {"attempt": _check_attempt, "vetting": _check_vetting, "engine_run": _
 
 def validate_record(kind: str, record: dict) -> None:
     """Raise RecordError unless the record is a well-formed record of this kind."""
+    from eval_harness import records_domains  # lazy: the sibling imports the helpers above
     _require(kind in RECORD_KINDS, "record kind", kind)
     _check_keys(record, _KEYS[kind], kind)
     for key, value in record.items():
         _require(_is_jsonable(value), "%s.%s" % (kind, key), value)
-    check = _CHECKS.get(kind)
-    if check:
-        check(record)
+    check = _CHECKS.get(kind) or records_domains.CHECKS[kind]
+    check(record)
 
 
 def _ran_to_completion(run: dict) -> bool:

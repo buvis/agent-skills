@@ -78,6 +78,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Windows containment refusal after creation records `launch: started` with
   the engine's argv; and a `cmd:` engine's stdout now lands in `out.txt` with
   its stderr alone in `wrapper.txt`.
+- **use-qwen**: the eval-harness record contract now accepts a native Windows
+  clone or repo path (`C:\...`, `C:/...`, `\\server\share\...`) alongside a
+  POSIX one, so a Windows attempt publishes instead of failing validation,
+  and it validates the field domains of `run.json`, `pretask.json`,
+  `sealed.json` and the `server` block (an all-null run record is rejected
+  naming the field) instead of checking their key sets alone.
 - **review-prd-backlog**: `check_links` now stats each distinct `(token, root)`
   pair at most once per process instead of once per reference - 1,216 stat calls
   dropped to 150 on the real backlog (87.7% were repeats of a path already
