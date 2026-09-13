@@ -13,6 +13,18 @@ MODE_FILE = sys.argv[2]
 # reproduces the original single-id behavior byte-for-byte.
 MODEL_IDS = sys.argv[3:]
 
+# A sanitized real-shape llama-server /props payload: the fields the eval
+# harness records, and no credential, hostname or personal path.
+PROPS = {
+    "default_generation_settings": {
+        "n_ctx": 131072,
+        "params": {"temperature": 0.7, "top_k": 20, "top_p": 0.8, "min_p": 0.0},
+    },
+    "model_alias": "mock-candidate",
+    "build_info": "mock-b0000",
+    "chat_template_caps": {"supports_reasoning_effort": True},
+}
+
 
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a):
@@ -30,6 +42,8 @@ class H(http.server.BaseHTTPRequestHandler):
             data = [{"id": m, "object": "model"} for m in MODEL_IDS]
             body = json.dumps({"object": "list", "data": data}).encode()
             self._send(200, body)
+        elif self.path.rstrip('/') == '/props':
+            self._send(200, json.dumps(PROPS).encode())
         else:
             self._send(404, b'{}')
 
