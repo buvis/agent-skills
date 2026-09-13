@@ -64,6 +64,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`usage_limit: unchecked`, e.g. no checker configured) is now recorded as
   unchecked and still counts as a valid attempt, instead of being discarded as
   if the limit had been hit.
+- **use-qwen**: on Windows the eval harness now halts the run with
+  `job_assignment_failed` when the host refuses to resume a contained child
+  (the child is killed, not left suspended), releases every job handle once
+  the attempt's tree is reaped instead of at harness exit, and keeps the gate
+  lock marker when a gate's descendants survive the reap.
 - **review-prd-backlog**: `check_links` now stats each distinct `(token, root)`
   pair at most once per process instead of once per reference - 1,216 stat calls
   dropped to 150 on the real backlog (87.7% were repeats of a path already

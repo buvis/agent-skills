@@ -98,14 +98,17 @@ class ProcessTree:
 
     Windows: a job object the child joins while it is still suspended, so no
     descendant of it can be born outside the boundary. The job handle is held
-    here for the tree's whole life - the job kills what is left in it as soon as
-    its last handle closes, so a collected handle would kill the tree early.
+    here until the tree has been reaped - the job kills what is left in it as
+    soon as its last handle closes, so a handle let go early would kill the tree
+    early, and one held past the reap would backstop the whole session rather
+    than this one command.
     """
 
     def __init__(self, process: subprocess.Popen) -> None:
         self._process = process
         self._win32 = None
         self._job = None
+        self._last_seen = True
         if os.name == "nt":
             self._contain()
             return
@@ -125,20 +128,36 @@ class ProcessTree:
         try:
             self._job = win32.create_job()
             win32.assign_process(self._job, self._process.pid)
+            win32.resume_process(self._process.pid)
         except win32.Win32Error as refusal:
-            # The child is suspended and now uncontainable, so it dies here:
-            # raising past it would leave it alive with nothing holding it.
+            # The child is suspended and now uncontainable - never in the job,
+            # or in it and not to be let go - so it dies here: raising past it
+            # would leave it alive with nothing holding it.
             self._process.kill()
             self._process.wait()
+            self.release()
             raise JobAssignmentError("the host would not contain the child") from refusal
-        win32.resume_process(self._process.pid)
+
+    def release(self) -> None:
+        """Let the job handle go, once: what the reap left in the job dies with it.
+
+        Nothing is asked of the job after this. `survivors` keeps answering, from
+        what the reap last saw, because the orphan question is asked once the
+        tree is back in the caller's hands.
+        """
+        if self._job is None:
+            return
+        job, self._job = self._job, None
+        self._win32.close_job(job)
 
     def terminate(self, escalate_after_s: float) -> None:
         """Kill the tree: the job in one call, or SIGTERM then SIGKILL on a group."""
         if self._win32 is not None:
             # The job ends every member at once, so there is no slow exit to
-            # give a window to and nothing harsher to escalate to.
-            self._win32.terminate_job(self._job)
+            # give a window to and nothing harsher to escalate to. A released
+            # job has ended what was left in it, and is not asked again.
+            if self._job is not None:
+                self._win32.terminate_job(self._job)
             self._process.wait()
             return
         self._signal(signal.SIGTERM)
@@ -150,7 +169,8 @@ class ProcessTree:
         """Whether any member of the tree is still there.
 
         Windows answers from the job's own list of member pids, which holds the
-        members that are still running and nothing else.
+        members that are still running and nothing else; a released job is not
+        asked again, so the answer is the last one the reap saw.
 
         EPERM never means "nobody there": it means the group has a member this
         process may not signal. On macOS an exited direct child reads that way
@@ -159,7 +179,9 @@ class ProcessTree:
         time cannot be that zombie, so it is a member that really is there.
         """
         if self._win32 is not None:
-            return bool(self._win32.job_process_ids(self._job))
+            if self._job is not None:
+                self._last_seen = bool(self._win32.job_process_ids(self._job))
+            return self._last_seen
         answer = self._probe()
         if answer is None:
             self._process.poll()
@@ -259,14 +281,22 @@ def run_bounded(argv: Sequence[str], cwd: Path, timeout_s: float, *,
 
 def reap(tree: ProcessTree, *, escalate_after_s: float = 60.0,
          settle_s: float = 5.0) -> bool:
-    """Kill the tree and answer whether the group emptied inside the settle window."""
-    tree.terminate(escalate_after_s)
-    deadline = time.monotonic() + settle_s
-    while tree.survivors():
-        if time.monotonic() >= deadline:
-            return False
-        time.sleep(_POLL_S)
-    return True
+    """Kill the tree and answer whether the group emptied inside the settle window.
+
+    The job handle goes once the answer is in, on every way out: a member the
+    settle window did not see leave dies with the handle, and a tree reaped a
+    second time has nothing left to release.
+    """
+    try:
+        tree.terminate(escalate_after_s)
+        deadline = time.monotonic() + settle_s
+        while tree.survivors():
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(_POLL_S)
+        return True
+    finally:
+        tree.release()
 
 
 def run_segments(segments: Sequence[str], cwd: Path, deadline_s: float, *,
@@ -303,7 +333,9 @@ def gate_lock(run_dir: Path, label: str) -> Iterator[None]:
     """Hold the run's one gate marker for the length of one gate.
 
     The marker is taken with an exclusive create, so two gates racing from
-    separate processes cannot both read an absent marker and both walk in.
+    separate processes cannot both read an absent marker and both walk in. It
+    is left in place when the gate's descendants outlive it: they are what the
+    next gate must not start beside.
     """
     marker = run_dir / GATE_MARKER
     try:
@@ -314,7 +346,14 @@ def gate_lock(run_dir: Path, label: str) -> Iterator[None]:
         os.write(held, ("%s\n" % label).encode("utf-8"))
     finally:
         os.close(held)
+    survived = False
     try:
         yield
+    except OrphanError:
+        # Only this exit reports members still running; every other one, clean
+        # or not, leaves nothing behind for the marker to guard.
+        survived = True
+        raise
     finally:
-        os.unlink(marker)
+        if not survived:
+            os.unlink(marker)

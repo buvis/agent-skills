@@ -197,6 +197,12 @@ def job_process_ids(job) -> list:
     return list(listing.ProcessIdList[:listing.NumberOfProcessIdsInList])
 
 
+def close_job(job) -> None:
+    """Let the job handle go: with no handle left, the job ends what it still holds."""
+    if not _kernel32.CloseHandle(job):
+        raise Win32Error("CloseHandle", ctypes.get_last_error())
+
+
 def resume_process(pid: int) -> None:
     """Let a suspended child go: `Popen` hands back no handle to its initial thread.
 
