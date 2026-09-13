@@ -431,6 +431,12 @@ def test_scores_a_fake_engine_run_from_the_evidence_it_wrote(tmp_path, monkeypat
     # The edit landed in the clone, which is the directory the engine ran in.
     assert (result["clone"] / "calc.py").read_text(
         encoding="utf-8") == eval_harness_fixtures.FIXED_IMPL
+    # The fake's final text went to stdout and its announcement to stderr, and
+    # each landed in its own capture: the message never reaches wrapper.txt.
+    assert (result["attempt"] / "out.txt").read_text(encoding="utf-8").splitlines() == [
+        "Fixed add() so the oracle test passes."]
+    assert (result["attempt"] / "wrapper.txt").read_text(encoding="utf-8").splitlines() == [
+        FAKE_IDENTITY]
 
 
 def test_reports_no_identity_and_an_incomplete_stream_for_a_silent_fake_run(
@@ -446,6 +452,32 @@ def test_reports_no_identity_and_an_incomplete_stream_for_a_silent_fake_run(
     assert run["exit"] == 0
     assert run["identity"] is None
     assert run["completion"] == "incomplete"
+
+
+def test_splits_cmd_captures_by_stream_not_by_line_shape(tmp_path, monkeypatch):
+    # The child prints an announcement-shaped line on STDOUT and a warning on
+    # STDERR. Each capture holds what its stream carried: the look-alike stays
+    # in out.txt, the warning in wrapper.txt, and no identity was announced
+    # where one is looked for - a splitter sorting lines by what they look
+    # like would swap the two and report an identity never given on stderr.
+    script = tmp_path / "noisy.py"
+    script.write_text(
+        "import sys\n"
+        "print(\"Using engine 'cmd:noisy'\")\n"
+        "print('warning: slow', file=sys.stderr)\n",
+        encoding="utf-8",
+    )
+
+    result = _dispatch_cmd(tmp_path, monkeypatch, "cmd:" + str(script))
+    run = result["run"]
+
+    records.validate_record("engine_run", run)
+    assert run["exit"] == 0
+    assert (result["attempt"] / "out.txt").read_text(encoding="utf-8").splitlines() == [
+        "Using engine 'cmd:noisy'"]
+    assert (result["attempt"] / "wrapper.txt").read_text(encoding="utf-8").splitlines() == [
+        "warning: slow"]
+    assert run["identity"] is None
 
 
 def test_stops_a_hung_fake_run_at_the_bound_and_reaps_what_it_spawned(tmp_path, monkeypatch):
@@ -531,6 +563,8 @@ def test_records_a_no_launch_attempt_whole_with_null_measurements(tmp_path, monk
     assert run["first_edit_s"] is None
     assert run["usage"] == dict.fromkeys(records.USAGE_KEYS)
     assert run["usage_limit"] == "unchecked"
+    # No child, no stdout: a refused launch leaves no capture behind.
+    assert not (result["attempt"] / "out.txt").exists()
 
 
 def test_records_a_created_process_as_started_even_when_the_engine_never_ran(
