@@ -512,7 +512,9 @@ def test_is_valid_baseline(baseline, expected):
     (attempt(engine_run=engine_run(usage_limit="hit")), "DISCARDED:usage-limit"),
     (attempt(engine_run=engine_run(usage_limit="hit", exit=2, identity=None)),
      "DISCARDED:usage-limit"),
-    (attempt(engine_run=engine_run(usage_limit="unchecked")), "DISCARDED:incomplete"),
+    # unchecked usage detection stays recorded as unchecked; only a hit discards (PRD: VALID
+    # requires usage_limit != hit, and a cmd: engine with no checker is unchecked by contract)
+    (attempt(engine_run=engine_run(usage_limit="unchecked")), "VALID"),
     (attempt(engine_run=engine_run(exit=1)), "DISCARDED:exit-1"),
     (attempt(engine_run=engine_run(exit=137, identity=None)), "DISCARDED:exit-137"),
     (attempt(engine_run=engine_run(identity=None)), "DISCARDED:identity"),
@@ -554,7 +556,7 @@ def test_derive_validity_is_total_over_the_permitted_domains():
         if result == "VALID":
             assert launch == "started" and completion == "complete", combo
             assert isinstance(message_bytes, int) and message_bytes > 0, combo
-            assert exit_code == 0 and usage_limit == "clear", combo
+            assert exit_code == 0 and usage_limit != "hit", combo
         if launch == "not-started":
             assert result == "DISCARDED:harness", combo
         elif usage_limit == "hit":
@@ -563,7 +565,7 @@ def test_derive_validity_is_total_over_the_permitted_domains():
             assert result == "DISCARDED:exit-%d" % exit_code, combo
         elif identity is None:
             assert result == "DISCARDED:identity", combo
-        elif exit_code is None or usage_limit == "unchecked":
+        elif exit_code is None:
             assert result == "DISCARDED:incomplete", combo
         else:
             expected = "VALID" if (
@@ -571,7 +573,7 @@ def test_derive_validity_is_total_over_the_permitted_domains():
                 and completion == "complete"
                 and isinstance(message_bytes, int) and message_bytes > 0
                 and exit_code == 0
-                and usage_limit == "clear"
+                and usage_limit != "hit"
             ) else "DISCARDED:incomplete"
             assert result == expected, combo
 

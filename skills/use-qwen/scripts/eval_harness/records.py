@@ -262,7 +262,7 @@ def _ran_to_completion(run: dict) -> bool:
             and run["completion"] == "complete"
             and _is_int(run["final_message_bytes"]) and run["final_message_bytes"] > 0
             and run["exit"] == 0
-            and run["usage_limit"] == "clear")
+            and run["usage_limit"] != "hit")
 
 
 def derive_validity(record: dict) -> str:
