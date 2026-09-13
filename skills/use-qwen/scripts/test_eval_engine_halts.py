@@ -192,6 +192,21 @@ def test_runner_names_a_launch_error_for_a_file_the_host_will_not_execute(tmp_pa
     assert not log.exists()
 
 
+def test_runner_names_a_launch_error_when_the_capture_cannot_be_opened(tmp_path):
+    # The capture is opened before the child is created, so a capture the host
+    # will not open is a failure from before there was a process, too: the
+    # launch never started, and it must not read as a started run that lost
+    # its output.
+    log = tmp_path / "no-such-dir" / "log.txt"
+
+    with pytest.raises(runner.LaunchError) as caught:
+        runner.run_bounded([sys.executable, "-c", "print('ran')"], tmp_path, 5.0,
+                           stdout_path=log)
+
+    assert isinstance(caught.value.__cause__, OSError)
+    assert not log.exists()
+
+
 def test_runner_lets_a_failure_after_the_child_ran_out_as_itself(tmp_path, monkeypatch):
     # The child was created and ran to its exit; what failed came after, in the
     # reap. That is not the launch's failure and must not wear its name, and
