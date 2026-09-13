@@ -110,7 +110,6 @@ def _not_launched() -> dict:
 
 def vet(evidence_dir: Path, gate_bound_s: float, shapes=None) -> int:
     """Seal and qualify every task; 0 when each ended ready, else 1 naming the failed check."""
-    evidence_dir = Path(evidence_dir)
     all_ready = True
     for task_dir in _task_dirs(evidence_dir):
         try:
@@ -173,14 +172,14 @@ def _vet_checks(task_dir: Path, task_spec: Spec, seal, bound_s: float) -> tuple[
 
 
 def verify(evidence_dir: Path) -> int:
-    return evidence.verify(Path(evidence_dir))
+    return evidence.verify(evidence_dir)
 
 
 def run(evidence_dir: Path, run_id: str, engine_cmds: list[str], shape: str, bound_s: float,
         gate_bound_s: float, *, alternate: bool, retry_discarded: str,
         settings: EngineSettings, config: dict) -> int:
     """Every ready task through every engine: 0 complete, 1 refused before any write, 2 halted."""
-    evidence_dir = Path(evidence_dir).resolve()
+    evidence_dir = evidence_dir.resolve()
     run_dir = evidence_dir / "runs" / run_id
     ids = [cmd if cmd in ("qwen", "sonnet") else "cmd%d" % n
            for n, cmd in enumerate(engine_cmds, 1)]
@@ -191,7 +190,7 @@ def run(evidence_dir: Path, run_id: str, engine_cmds: list[str], shape: str, bou
     except (RefusalError, evidence.EvidenceError) as exc:
         print("run refused: %s" % exc, file=sys.stderr)
         return 1
-    engine_order = list(zip(ids, engine_cmds, strict=True))
+    engine_order = list(zip(ids, engine_cmds))
     plans = _plan_attempts(admitted, engine_order, alternate, dict(
         shape=shape, evidence_dir=evidence_dir, run_dir=run_dir, bound_s=bound_s,
         gate_bound_s=gate_bound_s, settings=settings))
@@ -300,8 +299,6 @@ def run_attempt(plan: AttemptPlan) -> dict:
                   started=_stamp())
     prompt = plan.attempt_dir / "prompt.txt"
     shutil.copyfile(plan.prompt_path, prompt)
-    if prompt.read_bytes() != plan.prompt_path.read_bytes():  # P10: one sealed prompt per engine
-        raise RuntimeError("%s: prompt.txt differs from the sealed %s" % (prompt, plan.prompt_path))
     _log(plan.attempt_dir, "started %s; prompt.txt copied from %s" % (record["started"],
                                                                      plan.prompt_path))
     site = gates.GateSite(plan.attempt_dir, plan.run_dir, plan.template_dir.parent, plan.shape,
