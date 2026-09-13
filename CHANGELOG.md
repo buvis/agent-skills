@@ -72,8 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **use-qwen**: an eval-harness engine whose process tree still has members
   after the run now halts the run (`HALTED:orphans`, command `engine`) instead
   of letting the survivors reach the gates and the next attempt; only a child
-  the host refused to create is recorded `not-started` (a failure after
-  creation is a started run and is never retried as a harness fault); a
+  the host refused to create, or whose capture file it could not open, is
+  recorded `not-started` (a failure after creation is a started run and is
+  never retried as a harness fault); a
   Windows containment refusal after creation records `launch: started` with
   the engine's argv; and a `cmd:` engine's stdout now lands in `out.txt` with
   its stderr alone in `wrapper.txt`.

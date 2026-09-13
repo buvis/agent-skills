@@ -257,8 +257,9 @@ def _start(argv: Sequence[str], cwd: Path, env: dict[str, str] | None, log: Path
     """Start the command inside a boundary of its own, its streams landing in `log`.
 
     stderr joins stdout there unless `stderr_log` names a sink of its own. A
-    child the host would not create is a LaunchError chained to the refusal,
-    and leaves no capture behind: a file nothing wrote to is not evidence.
+    child the host would not create, or a sink it could not open for one, is a
+    LaunchError chained to the refusal, and leaves no capture behind: a file
+    nothing wrote to is not evidence.
     """
     boundary_kwargs = {"start_new_session": True}
     if os.name == "nt":
@@ -267,11 +268,11 @@ def _start(argv: Sequence[str], cwd: Path, env: dict[str, str] | None, log: Path
         # the child's first instruction, or a grandchild is born outside the job.
         boundary_kwargs = {"creationflags": win32.CREATE_SUSPENDED}
     with ExitStack() as opened:
-        stdout = opened.enter_context(open(log, "wb"))
-        stderr = subprocess.STDOUT
-        if stderr_log is not None:
-            stderr = opened.enter_context(open(stderr_log, "wb"))
         try:
+            stdout = opened.enter_context(open(log, "wb"))
+            stderr = subprocess.STDOUT
+            if stderr_log is not None:
+                stderr = opened.enter_context(open(stderr_log, "wb"))
             return subprocess.Popen(list(argv), cwd=str(cwd), env=env, stdin=subprocess.DEVNULL,
                                     stdout=stdout, stderr=stderr, **boundary_kwargs)
         except OSError as refusal:
