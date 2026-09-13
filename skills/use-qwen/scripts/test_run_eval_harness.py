@@ -220,12 +220,15 @@ def test_vet_judges_the_template_by_the_sealed_oracle_not_by_its_own_tests(scrat
     assert (task / "template" / "test_calc.py").read_text(encoding="utf-8") == AGREEABLE_TEST
     assert (task / "oracle" / "test_calc.py").read_text(encoding="utf-8") == WIDENED_ORACLE
     assert (rc, (task / "ready").exists(), record["ready"]) == (0, True, True)
+    # a vet that skipped the overlay would see the template's green test (rc 0) and refuse;
+    # the runner reports pytest's FAILURES banner as first_failure, so the line is checked
+    # for its test marker, not for the oracle's test name
     assert records.is_valid_baseline(record["baseline"])
-    oracle_test = "::test_add_returns_the_sum_of_its_arguments"
-    assert record["baseline"]["first_failure"].endswith(oracle_test)  # a name only the oracle has
+    assert runner.classify_failure(record["baseline"]["first_failure"]) == "test"
     assert (record["canonical"]["rc"], record["canonical"]["timed_out"]) == (0, False)
     assert record["necessity"]["calc.py"]["holds"] is True
-    assert record["necessity"]["calc.py"]["result"]["first_failure"].endswith(oracle_test)
+    necessity = record["necessity"]["calc.py"]["result"]
+    assert runner.classify_failure(necessity["first_failure"]) == "test"
 
 
 # -- run: the CLI round (description, pass + noop) ---------------------------
