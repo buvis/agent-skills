@@ -58,9 +58,9 @@ class RefusalError(RuntimeError):
 class RunHalted(RuntimeError):
     """Raised once the in-flight attempt is recorded, naming the command that leaked a tree."""
 
-    def __init__(self, reason: str, plan: AttemptPlan, command: str):
+    def __init__(self, reason: str, plan: AttemptPlan, command: str, observed: dict | None = None):
         super().__init__("%s %s %s" % (reason, plan.attempt_dir, command))
-        self.reason, self.plan, self.command = reason, plan, command
+        self.reason, self.plan, self.command, self.observed = reason, plan, command, observed
 
 
 def _stamp() -> str:
@@ -305,7 +305,9 @@ def run_attempt(plan: AttemptPlan) -> dict:
                           plan.writable, plan.oracle, plan.spec.raw_test_cmd, plan.gate_bound_s)
     try:
         _steps(plan, site, record)
-    except RunHalted:
+    except RunHalted as halt:
+        if halt.observed is not None:
+            record["engine_run"] = halt.observed
         _write_records(plan, record)
         raise
     return _write_records(plan, record)
@@ -340,9 +342,9 @@ def _command(plan: AttemptPlan, label: str, command, *args):
     try:
         return command(*args)
     except runner.OrphanError as exc:
-        raise RunHalted("HALTED:orphans", plan, label) from exc
+        raise RunHalted("HALTED:orphans", plan, label, exc.observed) from exc
     except runner.JobAssignmentError as exc:
-        raise RunHalted("HALTED:%s" % exc.reason, plan, label) from exc
+        raise RunHalted("HALTED:%s" % exc.reason, plan, label, exc.observed) from exc
 
 
 def _prepare_clone(plan: AttemptPlan) -> dict:

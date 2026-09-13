@@ -22,7 +22,13 @@ from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 from eval_harness.events import read_events
-from eval_harness.runner import CommandResult, run_bounded
+from eval_harness.runner import (
+    CommandResult,
+    JobAssignmentError,
+    LaunchError,
+    OrphanError,
+    run_bounded,
+)
 
 # Both wrappers are reached through the `~/.agents` link farm, the one
 # discovery path every host shares; the transcript root is Claude's own.
@@ -75,22 +81,51 @@ def _command_tokens(command: str) -> list[str]:
 def dispatch(engine_id: str, command: str, prompt_file: Path, clone: Path,
              attempt_dir: Path, settings: EngineSettings,
              bound_s: float) -> dict:
-    """Run one attempt and report its engine_run block, launched or not."""
+    """Run one attempt and report its engine_run block, launched or not.
+
+    Only a child the host refused to create is "not-started": the runner says
+    so structurally, and every failure after creation is a started run. A halt
+    raised past this point - the tree still has members, or the host would not
+    contain the child - carries the block measured so far as its `observed`.
+    """
     session_uuid = str(uuid.uuid4())
     out_file, wrapper = attempt_dir / "out.txt", attempt_dir / "wrapper.txt"
     argv = build_argv(engine_id, command, prompt_file, clone, out_file, settings, session_uuid)
     env = None
     if command == "qwen":
         env = dict(os.environ, **{SESSION_DIR_ENV: str(attempt_dir / "pi-sessions")})
+    # The wrappers fill out.txt themselves through `-o`, so both their streams
+    # go to wrapper.txt; a cmd engine's stdout is its out.txt, its stderr the wrapper.
+    sinks = {"stdout_path": wrapper}
+    if command.startswith("cmd:"):
+        sinks = {"stdout_path": out_file, "stderr_path": wrapper}
     try:
-        result, _tree = run_bounded(argv, clone, bound_s, env=env, stdout_path=wrapper)
-    except (FileNotFoundError, PermissionError):
-        return _engine_run(argv, "not-started", None, None, read_events(None, out_file),
-                           "unchecked")
+        result, tree = run_bounded(argv, clone, bound_s, env=env, **sinks)
+    except LaunchError:
+        return _unmeasured(argv, "not-started", out_file)
+    except JobAssignmentError as halt:
+        halt.observed = _unmeasured(argv, "started", out_file)
+        raise
+    except OSError as error:
+        # The child was created; what failed came after it. This line is the
+        # failure's whole record: the block says only that the run started.
+        with (attempt_dir / "progress.log").open("a", encoding="utf-8") as log:
+            log.write("engine: %s: %s\n" % (type(error).__name__, error))
+        return _unmeasured(argv, "started", out_file)
     session = _collect_transcript(command, attempt_dir, session_uuid)
-    return _engine_run(argv, "started", result, _identity(command, wrapper, settings),
-                       read_events(session, out_file),
-                       _usage_limit(settings.usage_limit_cmd, out_file))
+    run = _engine_run(argv, "started", result, _identity(command, wrapper, settings),
+                      read_events(session, out_file),
+                      _usage_limit(settings.usage_limit_cmd, out_file))
+    if tree.survivors():
+        halt = OrphanError("%s: the process group still has members" % engine_id)
+        halt.observed = run
+        raise halt
+    return run
+
+
+def _unmeasured(argv: list[str], launch: str, out_file: Path) -> dict:
+    """The block of a run nothing was measured of: null fields around the launch state."""
+    return _engine_run(argv, launch, None, None, read_events(None, out_file), "unchecked")
 
 
 def _engine_run(argv: list[str], launch: str, result: CommandResult | None,

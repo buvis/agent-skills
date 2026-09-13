@@ -2,9 +2,10 @@
 
 Every command a gate or an engine runs goes through this module, so nothing the
 harness starts outlives the command that started it: the child is held inside a
-boundary of its own, both of its streams land in one log, and the tree is killed
-and counted on every path. The boundary is a process group on POSIX and a job
-object on Windows, whose kernel32 half lives in its own module.
+boundary of its own, its streams land in one log (or stderr in a second one the
+caller names), and the tree is killed and counted on every path. The boundary is
+a process group on POSIX and a job object on Windows, whose kernel32 half lives
+in its own module.
 """
 import os
 import signal
@@ -12,7 +13,7 @@ import subprocess
 import tempfile
 import time
 from collections.abc import Iterator, Sequence
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -30,7 +31,14 @@ _POLL_S = 0.02
 
 
 class OrphanError(RuntimeError):
-    """Raised when a command's process tree still has members after cleanup."""
+    """Raised when a command's process tree still has members after cleanup.
+
+    `observed` is the engine_run block the engine dispatch had measured when it
+    found the survivors, so the halted attempt still says what ran; a halt a
+    gate or the baseline raised observed no block and leaves it None.
+    """
+
+    observed = None
 
 
 class GateConcurrencyError(RuntimeError):
@@ -43,9 +51,21 @@ class JobAssignmentError(RuntimeError):
     Never an attempt-level discard: the process was created, so its launch is
     "started", and only "not-started" may be blamed on the harness and retried.
     A host that could not contain this child cannot contain the next one either.
+    `observed` is the started block the engine dispatch attaches on the way up,
+    and None from anywhere else.
     """
 
     reason = "job_assignment_failed"
+    observed = None
+
+
+class LaunchError(RuntimeError):
+    """Raised when the host would not create the child: Popen itself refused, as the cause.
+
+    The one failure from before there was a process, so the one that reads as
+    a launch that never started; whatever fails after creation - the wait, the
+    reap, the read - is its own error and leaves the runner as itself.
+    """
 
 
 @dataclass(frozen=True)
@@ -224,7 +244,7 @@ class ProcessTree:
 
 @contextmanager
 def _log_at(stdout_path: Path | None) -> Iterator[Path]:
-    """The file both streams are written to: the caller's, or a scratch one."""
+    """The file the command's output is written to: the caller's, or a scratch one."""
     if stdout_path is not None:
         yield stdout_path
         return
@@ -232,18 +252,35 @@ def _log_at(stdout_path: Path | None) -> Iterator[Path]:
         yield Path(scratch) / "output.txt"
 
 
-def _start(argv: Sequence[str], cwd: Path, env: dict[str, str] | None,
-           log: Path) -> subprocess.Popen:
-    """Start the command inside a boundary of its own, both streams landing in `log`."""
+def _start(argv: Sequence[str], cwd: Path, env: dict[str, str] | None, log: Path,
+           stderr_log: Path | None) -> subprocess.Popen:
+    """Start the command inside a boundary of its own, its streams landing in `log`.
+
+    stderr joins stdout there unless `stderr_log` names a sink of its own. A
+    child the host would not create is a LaunchError chained to the refusal,
+    and leaves no capture behind: a file nothing wrote to is not evidence.
+    """
     boundary_kwargs = {"start_new_session": True}
     if os.name == "nt":
         from eval_harness import win32
         # Suspended rather than contained: the job assignment has to land before
         # the child's first instruction, or a grandchild is born outside the job.
         boundary_kwargs = {"creationflags": win32.CREATE_SUSPENDED}
-    with open(log, "wb") as sink:
-        return subprocess.Popen(list(argv), cwd=str(cwd), env=env, stdin=subprocess.DEVNULL,
-                                stdout=sink, stderr=subprocess.STDOUT, **boundary_kwargs)
+    with ExitStack() as opened:
+        stdout = opened.enter_context(open(log, "wb"))
+        stderr = subprocess.STDOUT
+        if stderr_log is not None:
+            stderr = opened.enter_context(open(stderr_log, "wb"))
+        try:
+            return subprocess.Popen(list(argv), cwd=str(cwd), env=env, stdin=subprocess.DEVNULL,
+                                    stdout=stdout, stderr=stderr, **boundary_kwargs)
+        except OSError as refusal:
+            # Closed before unlinked: Windows will not delete a file still open.
+            opened.close()
+            log.unlink(missing_ok=True)
+            if stderr_log is not None:
+                stderr_log.unlink(missing_ok=True)
+            raise LaunchError("the host would not create the child: %s" % refusal) from refusal
 
 
 def _exit_within(process: subprocess.Popen, timeout_s: float) -> tuple[int | None, bool]:
@@ -257,6 +294,7 @@ def _exit_within(process: subprocess.Popen, timeout_s: float) -> tuple[int | Non
 def run_bounded(argv: Sequence[str], cwd: Path, timeout_s: float, *,
                 env: dict[str, str] | None = None,
                 stdout_path: Path | None = None,
+                stderr_path: Path | None = None,
                 escalate_after_s: float = 60.0,
                 settle_s: float = 5.0) -> tuple[CommandResult, ProcessTree]:
     """Run one command under a bound, then reap its whole process group.
@@ -264,11 +302,13 @@ def run_bounded(argv: Sequence[str], cwd: Path, timeout_s: float, *,
     The bound measures the direct child: a command that exits while a descendant
     lingers has finished, and the descendant is the reap's question rather than
     the bound's. The tree is returned instead of a pid, which stops answering
-    the orphan question the moment the direct child exits.
+    the orphan question the moment the direct child exits. Both streams land in
+    the stdout log unless `stderr_path` gives stderr its own; the result's
+    failure fields read the stdout log either way.
     """
     with _log_at(stdout_path) as log:
         started = time.monotonic()
-        process = _start(argv, cwd, env, log)
+        process = _start(argv, cwd, env, log, stderr_path)
         tree = ProcessTree(process)
         rc, timed_out = _exit_within(process, timeout_s)
         wall_s = time.monotonic() - started

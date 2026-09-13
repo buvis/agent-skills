@@ -69,6 +69,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (the child is killed, not left suspended), releases every job handle once
   the attempt's tree is reaped instead of at harness exit, and keeps the gate
   lock marker when a gate's descendants survive the reap.
+- **use-qwen**: an eval-harness engine whose process tree still has members
+  after the run now halts the run (`HALTED:orphans`, command `engine`) instead
+  of letting the survivors reach the gates and the next attempt; only a child
+  the host refused to create is recorded `not-started` (a failure after
+  creation is a started run and is never retried as a harness fault); a
+  Windows containment refusal after creation records `launch: started` with
+  the engine's argv; and a `cmd:` engine's stdout now lands in `out.txt` with
+  its stderr alone in `wrapper.txt`.
 - **review-prd-backlog**: `check_links` now stats each distinct `(token, root)`
   pair at most once per process instead of once per reference - 1,216 stat calls
   dropped to 150 on the real backlog (87.7% were repeats of a path already
