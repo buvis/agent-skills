@@ -123,7 +123,7 @@ WAITS_FOR_RESUME = (
 )
 
 # Every name the containment path reaches for on the Windows side: the flag the
-# child is created with, the four job calls, the resume, and the failure they
+# child is created with, the five job calls, the resume, and the failure they
 # raise.
 WIN32_SURFACE = (
     "CREATE_SUSPENDED",
@@ -132,6 +132,7 @@ WIN32_SURFACE = (
     "assign_process",
     "terminate_job",
     "job_process_ids",
+    "close_job",
     "resume_process",
 )
 
@@ -214,6 +215,9 @@ class _RecordingWin32:
     def job_process_ids(self, *args):
         self.calls.append("job_process_ids")
         return [4242] if self.live else []
+
+    def close_job(self, *args):
+        self.calls.append("close_job")
 
 
 class _ModuleWithOverrides:
@@ -398,11 +402,10 @@ def test_the_windows_branch_puts_the_child_in_a_job_before_it_can_execute(
         "the child was not created suspended"
     )
     assert "terminate_job" in fake.calls, "the tree was killed some other way"
-    # The handle answers from the job's pid list and from nothing else: the real
-    # process group is empty by now, so a group probe would say False twice.
-    fake.live = True
-    assert tree.survivors() is True
-    fake.live = False
+    # The handle is released once the reap has answered, so what survivors()
+    # says afterwards is the reap's own verdict; the live pid-list reading is
+    # pinned in test_eval_runner_containment.py, where the fake refuses any
+    # call against a released job.
     assert tree.survivors() is False
 
 
