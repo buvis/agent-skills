@@ -22,7 +22,6 @@ from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 from eval_harness.events import read_events
-from eval_harness.records import USAGE_KEYS
 from eval_harness.runner import CommandResult, run_bounded
 
 # Both wrappers are reached through the `~/.agents` link farm, the one
@@ -86,7 +85,8 @@ def dispatch(engine_id: str, command: str, prompt_file: Path, clone: Path,
     try:
         result, _tree = run_bounded(argv, clone, bound_s, env=env, stdout_path=wrapper)
     except (FileNotFoundError, PermissionError):
-        return _engine_run(argv, "not-started", None, None, _no_evidence(), "unchecked")
+        return _engine_run(argv, "not-started", None, None, read_events(None, out_file),
+                           "unchecked")
     session = _collect_transcript(command, attempt_dir, session_uuid)
     return _engine_run(argv, "started", result, _identity(command, wrapper, settings),
                        read_events(session, out_file),
@@ -107,12 +107,6 @@ def _engine_run(argv: list[str], launch: str, result: CommandResult | None,
             "usage_limit": usage_limit,
             "first_edit_s": evidence["first_edit_s"],
             "usage": evidence["usage"]}
-
-
-def _no_evidence() -> dict:
-    """What a run that never launched measured: nothing."""
-    return {"completion": "unknown", "final_message_bytes": None, "first_edit_s": None,
-            "usage": dict.fromkeys(USAGE_KEYS)}
 
 
 def _collect_transcript(command: str, attempt_dir: Path, session_uuid: str) -> Path | None:
