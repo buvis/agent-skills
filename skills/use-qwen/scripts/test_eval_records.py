@@ -1,13 +1,14 @@
 """Tests for eval_harness/records.py (the record contract)."""
 import itertools
-import os
 import re
 
 import pytest
 
 from eval_harness import records
 
-CLONE = os.path.abspath("/tmp/eval-harness/clone-3")
+from eval_harness_record_helpers import pretask_record, run_record, sealed_record, server_record
+
+CLONE = "/tmp/eval-harness/clone-3"
 REASONS = {"prep", "baseline", "harness", "timeout", "usage-limit", "identity", "incomplete"}
 EXIT_REASON = re.compile(r"^exit--?[0-9]+$")
 ENGINES = ("qwen", "sonnet", "cmd1", "cmd2")
@@ -115,7 +116,9 @@ def sample(kind):
         vetting["baseline"] = failing_tests()
         vetting["necessity"] = {"src/a.py": {"result": failing_tests(), "holds": True}}
         return vetting
-    return dict.fromkeys(KEYS[kind])
+    builders = {"run": run_record, "pretask": pretask_record, "sealed": sealed_record,
+                "server": server_record}
+    return builders[kind]()
 
 
 def vetting(**over):

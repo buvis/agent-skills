@@ -17,13 +17,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from eval_harness import evidence, records
+from eval_harness import evidence
 
 import eval_harness_fixtures
 
 # `bare_ci` is a fixture: pytest resolves it from this module's own namespace,
 # so it has to be imported even though nothing here calls it.
 from eval_harness_fixture_helpers import _git, bare_ci
+from eval_harness_record_helpers import run_record
 from test_eval_records import attempt, vetting
 
 DESCRIPTION_LABELS = {
@@ -162,7 +163,7 @@ def _build_run(bundle, seal, ids=("1-cmd1-a1",), *, marker="complete") -> Path:
     """What the run driver would leave behind for a run that ran `ids`."""
     run = bundle.root / "runs" / "r1"
     run.mkdir(parents=True)
-    _write_json(run / "run.json", dict.fromkeys(records.RUN_KEYS))
+    _write_json(run / "run.json", run_record(run_id=run.name))
     _write_json(run / "sealed-inputs.json", {"1-calc": seal.inputs_sha256})
     for attempt_id in ids:
         _write_attempt(run, attempt_id)
