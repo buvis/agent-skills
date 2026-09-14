@@ -543,9 +543,30 @@ def test_commit_all_commits_every_change_and_returns_the_new_head(tmp_path, buil
     assert SHA1.fullmatch(sha), sha
     assert sha != sealed
     assert trees.head_sha(clone) == sha
+    # Exactly one commit on the sealed head: no phantom commit slipped in ahead of it.
+    assert _git(clone, "rev-parse", "HEAD^") == sealed
     # Edited, added and deleted alike: nothing is left uncommitted.
     assert _git(clone, "status", "--porcelain", "--untracked-files=all") == ""
     assert _git(clone, "log", "-1", "--format=%s") == "what the candidate left behind"
+
+
+def test_commit_all_lands_an_empty_commit_on_an_unchanged_tree(tmp_path, built_repo):
+    template = _sealed_template(tmp_path, built_repo)
+    clone = Path(trees.fresh_clone(template, tmp_path / "clone"))
+    sealed = trees.head_sha(clone)
+
+    sha = trees.commit_all(clone, "empty overlay")
+
+    # An oracle overlay that rewrites nothing still has to land as a commit: the
+    # attempt's sealed head is the one the gate rebuilds against.
+    assert SHA1.fullmatch(sha), sha
+    assert sha != sealed
+    assert trees.head_sha(clone) == sha
+    assert _git(clone, "rev-parse", "HEAD^") == sealed
+    # Same tree as its parent: an empty commit, not one that smuggled a change in.
+    assert _git(clone, "rev-parse", "HEAD^{tree}") == _git(clone, "rev-parse", "HEAD^^{tree}")
+    assert _git(clone, "log", "-1", "--format=%s") == "empty overlay"
+    assert _git(clone, "status", "--porcelain", "--untracked-files=all") == ""
 
 
 # -- mise_trust ------------------------------------------------------------
