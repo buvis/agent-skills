@@ -358,6 +358,26 @@ def _stub_dispatch(patch) -> list:
     return calls
 
 
+def _map_provider(patch, directory: Path, name: str, url: str) -> None:
+    """Point `$PI_CODING_AGENT_DIR` at `directory`, whose models.json maps `name` to `url`.
+
+    A provider is a NAME (what qwen-run.sh -P takes); this is the file that names its URL.
+    """
+    directory.mkdir(parents=True, exist_ok=True)
+    _write_json(directory / "models.json", {
+        "providers": {name: {"baseUrl": url, "api": "openai-completions", "apiKey": "none"}},
+    })
+    patch.setenv("PI_CODING_AGENT_DIR", str(directory))
+
+
+def _expected_versions(versions: dict, shape: str) -> dict:
+    """The run.json versions map for `shape`: the probes' answer, plus the sealed dispatch
+    references' versions when the shape's prompt carries them (tdd only)."""
+    if shape != "tdd":
+        return dict(versions)
+    return dict(versions, **{reference["name"]: reference["version"] for reference in REFERENCES})
+
+
 # -- assertion helpers shared by every completed round --------------------------
 
 

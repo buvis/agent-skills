@@ -15,9 +15,20 @@ from urllib.parse import urlsplit
 import pytest
 
 import eval_harness_fixtures
+import run_eval_harness
 from eval_harness import engines
 from eval_harness import records
 from eval_harness_engine_helpers import QWEN_MODEL, QWEN_PROVIDER, SONNET_MODEL, _settings
+
+# `scratch` and `vetted` are fixtures the one run-driver case below resolves by name.
+from eval_harness_run_helpers import (
+    _copy,
+    _map_provider,
+    _run_argv,
+    _stub_dispatch,
+    scratch,
+    vetted,
+)
 
 # What the two version probes answer. Neither string can reach a record unless
 # that probe was actually run.
@@ -29,6 +40,9 @@ MUST_NOT_LEAK = "hunter2-never-in-a-record"
 
 # The sampling block the mock's sanitized /props payload reports.
 MOCK_SAMPLING = {"temperature": 0.7, "top_k": 20, "top_p": 0.8, "min_p": 0.0}
+
+# One provider entry as pi's models.json spells it; its baseUrl is what a probe must use.
+PROVIDER_ENTRY = {"baseUrl": "http://127.0.0.1:9/v1", "api": "openai-completions", "apiKey": "none"}
 
 # The three provider URL shapes a /props fetch has to reduce to one root.
 PROVIDER_SUFFIXES = pytest.mark.parametrize("suffix", ["/v1", "/v1/", ""],
@@ -247,6 +261,64 @@ def test_strips_exactly_one_trailing_v1_from_a_provider_url(provider_url, expect
     assert engines.server_root(provider_url) == expected
 
 
+# -- resolve_provider_url --------------------------------------------------
+
+
+def _write_models(path, doc):
+    """`doc` as `path`: a JSON document, or a raw string for a file that is not one."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = doc if isinstance(doc, str) else json.dumps(doc)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_resolves_a_provider_name_to_the_base_url_configured_under_the_agent_dir(
+        tmp_path, monkeypatch):
+    # The name is what qwen-run.sh -P takes; the URL behind it lives in the
+    # models.json of the directory $PI_CODING_AGENT_DIR names.
+    _write_models(tmp_path / "agent" / "models.json",
+                  {"providers": {"qwen-eval-provider": PROVIDER_ENTRY}})
+    monkeypatch.setenv("PI_CODING_AGENT_DIR", str(tmp_path / "agent"))
+
+    assert engines.resolve_provider_url("qwen-eval-provider") == "http://127.0.0.1:9/v1"
+
+
+def test_resolves_a_provider_name_from_the_home_agent_dir_when_none_is_set(
+        tmp_path, monkeypatch, isolate_home):
+    # Without the variable the file is ~/.pi/agent/models.json, under this
+    # test's home - never the developer's.
+    isolate_home(tmp_path)
+    monkeypatch.delenv("PI_CODING_AGENT_DIR", raising=False)
+    _write_models(tmp_path / ".pi" / "agent" / "models.json",
+                  {"providers": {"qwen-eval-provider": PROVIDER_ENTRY}})
+
+    assert engines.resolve_provider_url("qwen-eval-provider") == "http://127.0.0.1:9/v1"
+
+
+@pytest.mark.parametrize("models", [
+    None,
+    "{not json",
+    "[]",
+    {"providers": []},
+    {"providers": {"some-other-provider": PROVIDER_ENTRY}},
+    {"providers": {"qwen-eval-provider": "http://127.0.0.1:9/v1"}},
+    {"providers": {"qwen-eval-provider": None}},
+    {"providers": {"qwen-eval-provider": dict(PROVIDER_ENTRY, baseUrl="")}},
+    {"providers": {"qwen-eval-provider": dict(PROVIDER_ENTRY, baseUrl=42)}},
+], ids=["missing-file", "malformed-json", "document-not-an-object", "providers-not-an-object",
+        "provider-absent", "provider-entry-a-string", "provider-entry-null", "base-url-empty",
+        "base-url-not-a-string"])
+def test_answers_none_instead_of_raising_when_no_base_url_is_configured(
+        tmp_path, monkeypatch, models):
+    # A run with an unresolved provider still has to be recorded, so the
+    # resolver reports nothing rather than failing the run over its config.
+    (tmp_path / "agent").mkdir()
+    monkeypatch.setenv("PI_CODING_AGENT_DIR", str(tmp_path / "agent"))
+    if models is not None:
+        _write_models(tmp_path / "agent" / "models.json", models)
+
+    assert engines.resolve_provider_url("qwen-eval-provider") is None
+
+
 # -- fetch_server_props ----------------------------------------------------
 
 
@@ -321,3 +393,35 @@ def test_keeps_a_credential_out_of_the_server_record(owned_props_server, tail, s
         assert isinstance(record["metadata_error"], str) and record["metadata_error"]
         assert [record[key] for key in records.SERVER_KEYS[:5]] == [None] * 5
     assert MUST_NOT_LEAK not in json.dumps(record)
+
+
+# -- the run driver: a named provider reaches its configured server ---------
+
+
+def test_a_qwen_run_reads_props_from_the_url_its_provider_name_resolves_to(
+        tmp_path, monkeypatch, props_server, connections, vetted):
+    # The run is given a provider NAME, and the mock listens on a port only
+    # models.json knows: the block run.json records can only be the mock's if
+    # the probe went to the URL configured for that name. The version probes
+    # are stubbed out and the engine never launched, so the fetch is the one
+    # thing here that opens a connection.
+    root = _copy(vetted.root, tmp_path.resolve() / "bundle")
+    _map_provider(monkeypatch, tmp_path / "agent", "qwen-eval-provider", props_server + "/v1")
+    monkeypatch.setattr(engines, "record_versions",
+                        lambda ids, settings: {"pi": None, "claude": None})
+    _stub_dispatch(monkeypatch)
+
+    rc = run_eval_harness.main(_run_argv(
+        root, "props", ["qwen"], "description", "--qwen-provider", "qwen-eval-provider",
+        "--qwen-model", "m",
+    ))
+
+    run = json.loads((root / "runs" / "props" / "run.json").read_text(encoding="utf-8"))
+    assert rc == 0
+    assert _reached(connections, props_server)
+    records.validate_record("run", run)
+    assert run["server"] == {"n_ctx": 131072, "model_alias": "mock-candidate",
+                             "build_info": "mock-b0000", "sampling": MOCK_SAMPLING,
+                             "supports_reasoning_effort": True, "declared_effort": None,
+                             "metadata_error": None}
+    assert run["config"]["qwen_provider"] == "qwen-eval-provider"

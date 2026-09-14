@@ -40,9 +40,11 @@ from eval_harness_run_helpers import (
     _cwds,
     _engine,
     _epoch,
+    _expected_versions,
     _gate,
     _ids,
     _logged_cwds,
+    _map_provider,
     _marker,
     _new_bundle,
     _paths,
@@ -302,7 +304,7 @@ def test_run_json_records_the_resolved_config_engines_and_tasks(rounds, vetted, 
     assert task["prompt_sha256"] == hashlib.sha256(prompt.read_bytes()).hexdigest()
     # versions come from one `engines.record_versions` probe of the engines that run
     assert round_.probes.version_calls == [["cmd1", "cmd2"]]
-    assert run["versions"] == round_.probes.versions
+    assert run["versions"] == _expected_versions(round_.probes.versions, "description")
     assert set(run["server"]) == set(records.SERVER_KEYS)
     # no qwen among the engines: nothing fetched, only the declared label carried over
     assert round_.probes.server_calls == []
@@ -393,10 +395,10 @@ def test_every_stamp_of_a_completed_round_is_a_live_clock_reading(rounds, run_id
 @pytest.mark.parametrize("run_id", list(ROUNDS))
 def test_every_round_probes_versions_once_and_never_the_server_without_qwen(rounds, run_id):
     round_ = rounds(run_id)
+    versions = _read_json(round_.run / "run.json")["versions"]
 
-    assert round_.probes.version_calls == [round_.engine_ids]
-    assert _read_json(round_.run / "run.json")["versions"] == round_.probes.versions
-    assert round_.probes.server_calls == []
+    assert (round_.probes.version_calls, round_.probes.server_calls) == ([round_.engine_ids], [])
+    assert versions == _expected_versions(round_.probes.versions, ROUNDS[run_id][2])
 
 
 # -- run: outcomes per mode --------------------------------------------------
@@ -662,29 +664,27 @@ def test_a_qwen_run_probes_the_server_for_the_given_provider_and_effort(
 ):
     root = _copy(vetted.root, tmp_path.resolve() / "bundle")
     run_dir = root / "runs" / "qwen"
-    provider = "http://127.0.0.1:9/v1"
+    _map_provider(monkeypatch, tmp_path / "agent", "qwen-eval-provider", "http://127.0.0.1:9/v1")
     probes = _spy_engine_probes(monkeypatch, "qwen")
     dispatches = _stub_dispatch(monkeypatch)  # nothing listens on port 9: launch nothing
 
     rc = run_eval_harness.main(_run_argv(
-        root, "qwen", ["qwen"], "description", "--qwen-provider", provider, "--qwen-model", "m",
-        "--server-reasoning-effort", "medium",
+        root, "qwen", ["qwen"], "description", "--qwen-provider", "qwen-eval-provider",
+        "--qwen-model", "m", "--server-reasoning-effort", "medium",
     ))
 
     run = _read_json(run_dir / "run.json")
     record = _read_json(run_dir / "1-qwen-a1" / "attempt.json")
     assert (rc, _marker(run_dir / "complete.txt")[1], len(dispatches)) == (0, ["1-qwen-a1"], 1)
     records.validate_record("run", run)
-    # P6: with qwen among the engines the server block is the probe's answer for exactly
-    # this provider and label; versions are still probed once, for the engine that ran
-    assert probes.server_calls == [[provider, "medium"]]
-    assert run["server"] == probes.server
-    assert run["server"]["declared_effort"] == "medium"
+    # P6: the provider is a NAME; /props goes to the URL models.json maps it to; config keeps it
+    assert probes.server_calls == [["http://127.0.0.1:9/v1", "medium"]]
+    assert (run["server"], run["server"]["declared_effort"]) == (probes.server, "medium")
     assert (probes.version_calls, run["versions"]) == ([["qwen"]], probes.versions)
     assert run["engines"] == [{"id": "qwen", "command": "qwen"}]
     config = run["config"]
     assert (config["engines"], config["shape"]) == (["qwen"], "description")
-    assert (config["qwen_provider"], config["qwen_model"]) == (provider, "m")
+    assert (config["qwen_provider"], config["qwen_model"]) == ("qwen-eval-provider", "m")
     assert (config["server_reasoning_effort"], config["sonnet_model"]) == ("medium", None)
     records.validate_record("attempt", record)
     assert (record["engine"], record["engine_run"]["launch"]) == ("qwen", "started")
