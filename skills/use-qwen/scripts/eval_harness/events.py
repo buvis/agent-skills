@@ -41,11 +41,11 @@ def read_events(session_path: Path | None, out_path: Path) -> dict:
                 "first_edit_s": None, "usage": dict.fromkeys(USAGE_KEYS)}
     events, malformed = transcript
     message, shape = _terminal_message(events)
-    text = _final_text(message)
-    return {"completion": _completion(message, shape, text, malformed),
+    text, unreadable = _final_text(message)
+    return {"completion": _completion(message, shape, text, malformed or unreadable),
             "final_message_bytes": len(text.encode("utf-8")) if message else None,
             "first_edit_s": _first_edit_s(events),
-            "usage": _usage(message, shape)}
+            "usage": _usage(events)}
 
 
 def _read_transcript(session_path: Path) -> tuple[list, bool] | None:
@@ -72,27 +72,47 @@ def _read_transcript(session_path: Path) -> tuple[list, bool] | None:
     return events, malformed
 
 
+def _assistant_shape(event: dict) -> str | None:
+    """The shape whose assistant message this event carries, or None when it
+    carries none: a streaming delta is not an assistant message."""
+    message = event.get("message")
+    if not isinstance(message, dict):
+        return None
+    if event.get("type") == "assistant":
+        return "claude"
+    if event.get("type") == "message" and message.get("role") == "assistant":
+        return "pi"
+    return None
+
+
 def _terminal_message(events: list) -> tuple[dict | None, str | None]:
     """The last assistant message and the shape it arrived in, found by
     scanning: events keep arriving after a run has answered."""
     for event in reversed(events):
-        message = event.get("message")
-        if not isinstance(message, dict):
-            continue
-        if event.get("type") == "assistant":
-            return message, "claude"
-        if event.get("type") == "message" and message.get("role") == "assistant":
-            return message, "pi"
+        shape = _assistant_shape(event)
+        if shape is not None:
+            return event["message"], shape
     return None, None
 
 
-def _final_text(message: dict | None) -> str:
-    """The message's text blocks joined; a thinking block is never the answer."""
-    content = message.get("content") if isinstance(message, dict) else None
+def _final_text(message: dict | None) -> tuple[str, bool]:
+    """The message's well-formed text blocks joined, and whether any of its
+    content was unreadable; a thinking block is never the answer."""
+    if message is None:
+        return "", False
+    content = message.get("content")
     if not isinstance(content, list):
-        return ""
-    return "".join(block.get("text") or "" for block in content
-                   if isinstance(block, dict) and block.get("type") == "text")
+        return "", True
+    texts, unreadable = [], False
+    for block in content:
+        if not isinstance(block, dict):
+            unreadable = True
+        elif block.get("type") == "text":
+            if isinstance(block.get("text"), str):
+                texts.append(block["text"])
+            else:
+                unreadable = True
+    return "".join(texts), unreadable
 
 
 def _completion(message: dict | None, shape: str | None, text: str, malformed: bool) -> str:
@@ -106,21 +126,37 @@ def _completion(message: dict | None, shape: str | None, text: str, malformed: b
     return "incomplete"
 
 
-def _usage(message: dict | None, shape: str | None) -> dict:
-    """The terminal message's usage and nothing else: streaming deltas and
-    earlier messages report their own, and none of it counts."""
+def _usage(events: list) -> dict:
+    """Every assistant message's usage summed once; streaming deltas never
+    count. Claude Code writes one assistant line per content block of an API
+    message, each carrying its id and usage, so lines sharing an id are one
+    message. A field is the sum over the messages that report it as a number
+    and stays None when none does."""
     usage = dict.fromkeys(USAGE_KEYS)
-    reported = message.get("usage") if isinstance(message, dict) else None
-    if not isinstance(reported, dict):
-        return usage
-    for key, name in _TOKEN_NAMES[shape].items():
-        usage[key] = reported.get(name)
-    if shape == "pi":
-        cost = reported.get("cost")
-        total = cost.get("total") if isinstance(cost, dict) else None
-        # A locally served model bills zero for every field, which is money
-        # that was never reported rather than money measured as nothing.
-        usage["cost_usd"] = total or None
+    seen: set = set()
+    for event in events:
+        shape = _assistant_shape(event)
+        if shape is None:
+            continue
+        message = event["message"]
+        message_id = message.get("id")
+        if message_id is not None:
+            if message_id in seen:
+                continue
+            seen.add(message_id)
+        reported = message.get("usage")
+        if not isinstance(reported, dict):
+            continue
+        values = {key: reported.get(name) for key, name in _TOKEN_NAMES[shape].items()}
+        if shape == "pi":
+            cost = reported.get("cost")
+            values["cost_usd"] = cost.get("total") if isinstance(cost, dict) else None
+        for key, value in values.items():
+            if isinstance(value, (int, float)):
+                usage[key] = (usage[key] or 0) + value
+    # A locally served model bills zero for every field, which is money that
+    # was never reported rather than money measured as nothing.
+    usage["cost_usd"] = usage["cost_usd"] or None
     return usage
 
 
@@ -162,7 +198,7 @@ def _carries_claude_edit(message: dict, called: dict) -> bool:
             continue
         if block.get("type") == "tool_use":
             called[block.get("id")] = block.get("name")
-        elif (block.get("type") == "tool_result" and "is_error" not in block
+        elif (block.get("type") == "tool_result" and not block.get("is_error")
                 and called.get(block.get("tool_use_id")) in _EDIT_TOOLS["claude"]):
             return True
     return False
