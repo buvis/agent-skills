@@ -7,17 +7,15 @@ on; a process tree that outlives its command halts the run once the in-flight
 record is on disk. Git, subprocesses and hashing all live in sibling modules.
 """
 import dataclasses
-import itertools
 import json
 import os
 import shutil
 import sys
-import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
-from eval_harness import admission, engines, evidence, gates, records, runner, trees
+from eval_harness import admission, engines, evidence, gates, records, runner, trees, vetting
 from eval_harness import spec as spec_mod
 from eval_harness.engines import EngineSettings
 from eval_harness.spec import Spec
@@ -110,17 +108,23 @@ def _not_launched() -> dict:
 
 def vet(evidence_dir: Path, gate_bound_s: float, shapes=None) -> int:
     """Seal and qualify every task; 0 when each ended ready, else 1 naming the failed check."""
+    if (evidence_dir / "runs").exists():
+        print("runs/ already exists in %s: a run consumed the current seal, so seal into a fresh "
+              "evidence directory" % evidence_dir, file=sys.stderr)
+        return 1
     all_ready = True
     for task_dir in _task_dirs(evidence_dir):
+        # A refused seal must leave no stale marker behind: readiness goes before the seal.
+        (task_dir / "ready").unlink(missing_ok=True)
         try:
             seal = evidence.seal_inputs(evidence_dir, task_dir,
                                         shapes or evidence.default_shapes(task_dir))
         except evidence.EvidenceError as exc:
             print("%s: %s" % (task_dir.name, exc), file=sys.stderr)
             return 1
-        (task_dir / "ready").unlink(missing_ok=True)
-        checks, failed = _vet_checks(task_dir, spec_mod.load_spec(task_dir, "description"), seal,
-                                     gate_bound_s)
+        checks, failed = vetting.run_checks(evidence_dir, task_dir,
+                                            spec_mod.load_spec(task_dir, "description"), seal,
+                                            gate_bound_s)
         record = dict(template_sha=seal.template_sha, gate_bound_s=gate_bound_s, **checks,
                       inputs_sha256=seal.inputs_sha256, shapes=list(seal.shapes),
                       ready=failed is None)
@@ -133,42 +137,6 @@ def vet(evidence_dir: Path, gate_bound_s: float, shapes=None) -> int:
                   file=sys.stderr)
             all_ready = False
     return 0 if all_ready else 1
-
-
-def _vet_checks(task_dir: Path, task_spec: Spec, seal, bound_s: float) -> tuple[dict, str | None]:
-    """Warmup, baseline, canonical, then necessity per path; the check that failed, or None."""
-    checks = {"warmup": [], "baseline": None, "canonical": None, "necessity": {}}
-    with tempfile.TemporaryDirectory() as scratch:
-        clones = itertools.count()
-
-        def measure(segments, *, overlay=True, exclude=None) -> dict:
-            """The segments on a fresh clone: canonical minus `exclude`, then the oracle, on top."""
-            clone = trees.fresh_clone(task_dir / "template", Path(scratch) / str(next(clones)))
-            trees.mise_trust(clone)
-            if exclude is not None:
-                applied = trees.apply_patch(clone, task_dir / "canonical.patch", exclude=exclude)
-                if applied.rc != 0:
-                    return applied.as_json()
-            if overlay:
-                trees.overlay_oracle(task_dir, clone, seal.oracle)
-            return runner.run_segments(segments, clone, bound_s).as_json()
-
-        for segment in task_spec.warmup:
-            checks["warmup"].append(measure([segment], overlay=False))
-            if checks["warmup"][-1]["rc"] != 0:
-                return checks, "warmup"
-        checks["baseline"] = measure(task_spec.raw_test_cmd)
-        if not records.is_valid_baseline(checks["baseline"]):
-            return checks, "baseline"
-        checks["canonical"] = measure(task_spec.raw_test_cmd, exclude=())
-        if checks["canonical"]["rc"] != 0:
-            return checks, "canonical"
-        for path in seal.writable:
-            if path not in seal.oracle:
-                result = measure(task_spec.raw_test_cmd, exclude=(path,))
-                checks["necessity"][path] = {"result": result,
-                                             "holds": records.is_valid_baseline(result)}
-    return checks, None
 
 
 def verify(evidence_dir: Path) -> int:
@@ -365,6 +333,10 @@ def _seal_clone(plan: AttemptPlan) -> tuple[dict, dict]:
         trees.commit_all(clone, ORACLE_COMMIT)
         vetted = trees.build_manifest(task_dir / "oracle")
         expected.update((path, vetted[path]) for path in plan.oracle)
+        # The directories an oracle path lives in, derived from the sealed path rather than
+        # read off the clone: a template that lacks them still expects exactly those.
+        parents = {str(parent) for path in plan.oracle for parent in PurePosixPath(path).parents}
+        expected.update((path, vetted[path]) for path in parents - {"."} - set(expected))
     sealed = {"head_sha": trees.head_sha(clone), "writable": trees.hash_paths(clone, plan.writable),
               "oracle": trees.hash_paths(clone, plan.oracle)}
     records.validate_record("sealed", sealed)

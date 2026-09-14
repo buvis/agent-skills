@@ -240,9 +240,13 @@ def overlay_oracle(evidence_dir: Path, clone: Path, oracle: Sequence[str]) -> No
 
 
 def commit_all(clone: Path, message: str) -> str:
-    """Commit everything the tree carries, edits, additions and deletions alike."""
+    """Commit everything the tree carries, edits, additions and deletions alike.
+
+    An unchanged tree still lands a commit: an oracle overlay that rewrites
+    nothing needs a sealed head of its own for the gate to rebuild against.
+    """
     _git(clone, "add", "-A")
-    _git(clone, *IDENTITY, "commit", "-m", message)
+    _git(clone, *IDENTITY, "commit", "--allow-empty", "-m", message)
     return head_sha(clone)
 
 
