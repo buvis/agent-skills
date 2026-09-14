@@ -15,7 +15,6 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from eval_harness.records import GATE_KEYS, REQUIRED_GATES
 from eval_harness.runner import CommandResult, OrphanError, gate_lock, run_bounded
 from eval_harness.trees import (
     apply_patch,
@@ -142,15 +141,3 @@ def run_ablate(site: GateSite) -> CommandResult:
         clone = _clone(site, "ablate-clone")
         _replay(site, "ablate", clone, site.writable)
         return _run(site, "ablate", clone)
-
-
-_GATES = {"gate": run_gate, "own": run_own, "ablate": run_ablate}
-
-
-def run_gates(site: GateSite) -> dict:
-    """Every gate the shape requires, in the contract's order; the rest None."""
-    required = REQUIRED_GATES[site.shape]
-    return {
-        name: _GATES[name](site).as_json() if name in required else None
-        for name in GATE_KEYS
-    }

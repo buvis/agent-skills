@@ -5,6 +5,7 @@ Every flag resolves here and travels to eval_harness.attempt as a value, so a
 caller of the package sees the same run a shell caller does.
 """
 import argparse
+import math
 import sys
 from pathlib import Path
 
@@ -15,9 +16,12 @@ SHAPES = ("description", "tdd")
 
 
 def _positive(text: str) -> float:
-    value = float(text)
-    if value <= 0:
-        raise argparse.ArgumentTypeError("%r is not a positive number of seconds" % text)
+    try:
+        value = float(text)
+    except ValueError:
+        value = math.nan
+    if not math.isfinite(value) or value <= 0:
+        raise argparse.ArgumentTypeError("%r is not a finite positive number of seconds" % text)
     return value
 
 
