@@ -9,13 +9,12 @@ versions carry the sealed dispatch references. Nothing here imports attempt.
 """
 import hashlib
 import json
-import os
 import shutil
 from pathlib import Path
 
 from eval_harness import engines, prompts, records
 
-_SEPARATORS = ("/", "\\", os.sep, "\0")
+_SEPARATORS = ("/", "\\", "\0")
 
 
 def check_run_id(run_id: str) -> str | None:
