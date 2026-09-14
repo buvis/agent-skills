@@ -384,31 +384,6 @@ def test_the_fallback_takes_the_whole_output_when_it_is_shorter_than_forty_lines
 
 
 @POSIX_ONLY
-def test_the_hang_fixture_under_a_two_second_bound_times_out_and_its_heartbeat_stops(
-    tmp_path,
-):
-    heartbeat = tmp_path / "beats" / "hb.log"
-    heartbeat.parent.mkdir(parents=True)
-    argv = _engine_argv("hang", _prompt_in(tmp_path / "prompt"))
-
-    result, tree = runner.run_bounded(
-        argv,
-        tmp_path,
-        2.0,
-        env=_engine_env("hang", tmp_path / "attempt", heartbeat),
-        escalate_after_s=0.25,
-        settle_s=1.0,
-    )
-
-    assert result.timed_out is True
-    assert result.wall_s is not None and result.wall_s >= 1.9
-    assert heartbeat.stat().st_size > 0, "the heartbeat child never started"
-    assert _stopped_growing(heartbeat), "the grandchild outlived the bound"
-    assert tree.survivors() is False
-    assert runner.reap(tree, escalate_after_s=0.25, settle_s=1.0) is True
-
-
-@POSIX_ONLY
 def test_the_group_kill_is_what_stops_the_heartbeat_a_parent_only_kill_does_not(tmp_path):
     loose = tmp_path / "loose" / "hb.log"
     loose.parent.mkdir(parents=True)
@@ -548,7 +523,8 @@ def test_run_bounded_leaves_both_of_the_command_s_streams_at_the_path_it_was_giv
     assert result.failure_kind == "tool"
     assert result.first_failure.strip() == "bash: pytest: command not found"
     # A command that took well under a second cannot report the bound it ran
-    # under: this one is the far side of the hang fixture's `wall_s >= 1.9`.
+    # under: this one is the far side of the hang fixture's `wall_s >= 1.9`
+    # in test_eval_tree_containment.py.
     assert result.wall_s is not None and result.wall_s < 5.0, result.wall_s
     assert tree.survivors() is False
 

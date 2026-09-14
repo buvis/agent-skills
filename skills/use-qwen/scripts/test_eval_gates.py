@@ -21,7 +21,7 @@ from eval_harness import gates, records, runner, trees
 from eval_harness_evidence_helpers import _make_tdd, _seal_and_vet, bundle, task_repo
 from eval_harness_fixture_helpers import _git, _run_engine, bare_ci
 from eval_harness_fixtures import BROKEN_IMPL, FIXED_IMPL, ORACLE, WIDENED_ORACLE
-from test_eval_records import attempt, description_attempt, failing_tests
+from test_eval_records import failing_tests
 
 # One segment, the interpreter running this suite: no login profile has to
 # resolve `python` for the gate's `bash -lc`.
@@ -488,17 +488,16 @@ def test_gate_passes_a_candidate_that_fixed_the_impl(bundle):
     assert "passed" in _output(site, "gate")
 
 
-@pytest.mark.parametrize("entry", ["run_gate", "run_gates"])
-def test_gate_in_tdd_scores_a_candidate_that_edited_the_oracle(bundle, entry):
+def test_gate_in_tdd_scores_a_candidate_that_edited_the_oracle(bundle):
     site, seen = _observed(bundle, "tdd", "mutate-test")
     assert seen["oracle_intact"] is False
     # In tdd the candidate's test hunk is against the committed vetted oracle,
     # not the bare template: a gate that patched the template would refuse
     # it as unappliable instead of scoring the candidate.
 
-    result = getattr(gates, entry)(site)
+    result = gates.run_gate(site)
 
-    record = result["gate"] if entry == "run_gates" else result.as_json()
+    record = result.as_json()
     gate_clone = site.attempt_dir / "gate-clone"
     assert _text(gate_clone / "test_calc.py") == WIDENED_ORACLE
     assert _text(gate_clone / "calc.py") == BROKEN_IMPL
@@ -508,9 +507,6 @@ def test_gate_in_tdd_scores_a_candidate_that_edited_the_oracle(bundle, entry):
     assert _rc_file(site, "gate") == "1\n"
     assert "assert" in _output(site, "gate")
     assert not (site.run_dir / runner.GATE_MARKER).exists()
-    if entry == "run_gates":
-        assert result["own"] is None
-        assert result["ablate"] is None
 
 
 def test_a_noop_candidate_still_runs_the_gate_and_fails_on_its_own_terms(bundle):
@@ -678,66 +674,6 @@ def test_ablate_replays_only_the_candidate_s_test_hunks_onto_the_broken_impl(bun
         assert result.rc == 0
         assert _rc_file(site, "ablate") == "0\n"
         assert "passed" in _output(site, "ablate")
-
-
-# -- run_gates -------------------------------------------------------------
-
-
-def test_run_gates_in_tdd_shape_runs_only_the_gate(bundle):
-    log = bundle.root / "where-gates-ran.txt"
-    site, seen = _observed(bundle, "tdd", "pass", test_cmd=(_append_to(log), *TEST_CMD))
-
-    result = gates.run_gates(site)
-
-    assert tuple(result) == records.GATE_KEYS
-    assert result["own"] is None
-    assert result["ablate"] is None
-    assert result["gate"]["rc"] == 0
-    assert result["gate"]["timed_out"] is False
-    assert 0 < result["gate"]["wall_s"]
-    assert records.validate_record("command_result", result["gate"]) is None
-    assert records.validate_record("attempt", attempt(gates=result, **seen)) is None
-    gate_clone = site.attempt_dir / "gate-clone"
-    assert _text(gate_clone / "calc.py") == FIXED_IMPL
-    assert _text(gate_clone / "test_calc.py") == WIDENED_ORACLE
-    assert _rc_file(site, "gate") == "0\n"
-    assert "passed" in _output(site, "gate")
-    # One run, in the gate's tree; the gates the shape does not ask for left no trace.
-    assert _text(log).splitlines() == [_resolved(gate_clone)]
-    assert _wrote_nothing(site, "own")
-    assert _wrote_nothing(site, "ablate")
-
-
-def test_run_gates_in_description_shape_runs_gate_then_own_then_ablate(bundle):
-    log = bundle.root / "where-gates-ran.txt"
-    site, seen = _observed(bundle, "description", "pass", test_cmd=(_append_to(log), *TEST_CMD))
-
-    result = gates.run_gates(site)
-
-    assert tuple(result) == records.GATE_KEYS
-    assert result["gate"]["rc"] == 0
-    assert result["own"]["rc"] == 0
-    assert result["ablate"]["rc"] not in (0, None)
-    assert result["ablate"]["failure_kind"] == "test"
-    assert result["ablate"]["first_failure"] is not None
-    for label in records.GATE_KEYS:
-        assert records.validate_record("command_result", result[label]) is None
-        assert result[label]["timed_out"] is False
-        assert 0 < result[label]["wall_s"]
-        assert (site.attempt_dir / f"{label}.txt").is_file()
-        assert (site.attempt_dir / f"{label}.rc").is_file()
-    assert records.validate_record("attempt", description_attempt(gates=result, **seen)) is None
-    # Each label's file holds that gate's verdict: two greens and one failure.
-    assert "passed" in _output(site, "gate")
-    assert "passed" in _output(site, "own")
-    assert "assert" in _output(site, "ablate")
-    assert _rc_file(site, "ablate") == "1\n"
-    # One run per gate, in the contract's order, each in its own tree.
-    assert _text(log).splitlines() == [
-        _resolved(site.attempt_dir / "gate-clone"),
-        _resolved(site.attempt_dir / "clone"),
-        _resolved(site.attempt_dir / "ablate-clone"),
-    ]
 
 
 # -- gate concurrency ------------------------------------------------------

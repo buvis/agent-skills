@@ -292,6 +292,8 @@ def test_a_child_that_outlives_the_bound_is_killed_with_the_tree_on_every_platfo
     )
 
     assert result.timed_out is True
+    # The bound held: the runner waited the whole two seconds, not less.
+    assert result.wall_s is not None and result.wall_s >= 1.9
     assert heartbeat.stat().st_size > 0, "the beating grandchild never started"
     assert _stopped_growing(heartbeat), "the grandchild outlived the terminated tree"
     # The handle and the witness have to agree: a `survivors()` that answers
