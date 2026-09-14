@@ -51,22 +51,31 @@ def _fail(key: str, value: object) -> None:
 # -- rendering -------------------------------------------------------------
 
 
-def _rendered_texts(spec: Spec, shape: str) -> dict[str, tuple[str, ...]]:
-    """Every spec text this shape puts in front of the candidate, by key."""
-    if shape == "description":
-        return {"task_text": (spec.task_text,), "pins": tuple(spec.pins)}
+def _context_texts(spec: Spec) -> dict[str, tuple[str, ...]]:
+    """The tdd context the harness author writes, by key: the architecture and the anchors.
+
+    The task text, the pins and the invariants are the operator's verbatim
+    material (the task text carries its acceptance bullets by contract), so
+    they render as given and are not listed here.
+    """
     return {"architecture": (spec.architecture,),
-            "invariants": tuple(spec.invariants),
             "read_anchors": tuple(field for anchor in spec.read_anchors
                                   for field in (anchor.path, anchor.symbol))}
 
 
-def _refuse_leaks(spec: Spec, shape: str) -> None:
-    """Refuse a spec whose rendered text carries a patch hunk or an acceptance criterion."""
-    for key, texts in _rendered_texts(spec, shape).items():
+def _refuse_leaks(spec: Spec) -> None:
+    """Refuse a tdd context that carries a patch hunk or an acceptance criterion."""
+    for key, texts in _context_texts(spec).items():
         for text in texts:
             if any(line.startswith(_LEAK_MARKERS) for line in text.split("\n")):
                 _fail(key, text)
+
+
+def _refuse_listed_anchors(spec: Spec, writable: list[str], oracle: list[str]) -> None:
+    """Refuse an anchor on a path the candidate edits or a test it must not touch."""
+    for anchor in spec.read_anchors:
+        if anchor.path in writable or anchor.path in oracle:
+            _fail("read_anchors", anchor)
 
 
 def _anchor_line(anchor: ReadAnchor) -> str:
@@ -99,9 +108,10 @@ def render_prompt(spec: Spec, shape: str, writable: list[str], oracle: list[str]
     """Render one candidate prompt; the description shape drops the references."""
     if shape not in SHAPES:
         _fail("shape", shape)
-    _refuse_leaks(spec, shape)
     if shape == "description":
         return "\n".join(_description_lines(spec, writable))
+    _refuse_leaks(spec)
+    _refuse_listed_anchors(spec, writable, oracle)
     return "\n".join(_tdd_lines(spec, writable, oracle, references))
 
 
@@ -116,7 +126,7 @@ def _vendored(evidence_dir: Path, shape: str) -> list:
             raise SpecError("%s: missing" % _REFERENCES_FILE)
         return []
     try:
-        value = json.loads(path.read_text())
+        value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise SpecError("%s: %s" % (_REFERENCES_FILE, exc)) from exc
     if not isinstance(value, list):

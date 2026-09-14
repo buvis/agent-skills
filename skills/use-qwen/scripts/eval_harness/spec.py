@@ -7,7 +7,7 @@ key and nothing else, so a caller learns which field to fix.
 import fnmatch
 import json
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 # Transcribed from the router these rules come from, never imported, so a drift
 # between the two copies surfaces as a failing case instead of silent agreement.
@@ -57,6 +57,9 @@ class Spec:
     invariants: tuple[str, ...]
     read_anchors: tuple[ReadAnchor, ...]
     reading_budget_tokens: int
+    # The kind spec.json declared, if any: `kind` alone cannot tell a declared
+    # multi-file from the one derived for a spec that declared none.
+    declared_kind: str | None = None
 
 
 def _fail(key: str, value: object) -> None:
@@ -73,7 +76,7 @@ def _is_int(value: object) -> bool:
 
 def _read(spec_dir: Path) -> dict:
     try:
-        body = json.loads((spec_dir / "spec.json").read_text())
+        body = json.loads((spec_dir / "spec.json").read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise SpecError("spec.json: %s" % exc) from exc
     if not isinstance(body, dict):
@@ -114,11 +117,28 @@ def _command(body: dict, key: str) -> tuple[str, ...]:
     return tuple(value)
 
 
+def _repo(body: dict) -> Path:
+    """An absolute root in either host's spelling: a check on the string, not a lookup."""
+    value = _text(body, "repo")
+    if not (PurePosixPath(value).is_absolute() or PureWindowsPath(value).is_absolute()):
+        _fail("repo", value)
+    return Path(value)
+
+
+def _is_repo_relative(path: str) -> bool:
+    """Slash-form and inside the repo: no root, no drive, no backslash, no `..` segment."""
+    if path.startswith("/") or "\\" in path or PureWindowsPath(path).drive:
+        return False
+    return ".." not in path.split("/")
+
+
 def _anchor(entry: object) -> ReadAnchor:
     if not isinstance(entry, dict) or set(entry) != set(_ANCHOR_KEYS):
         _fail("read_anchors", entry)
     start, end = entry["start_line"], entry["end_line"]
     if not _is_text(entry["path"]) or not _is_text(entry["symbol"]):
+        _fail("read_anchors", entry)
+    if not _is_repo_relative(entry["path"]):
         _fail("read_anchors", entry)
     if not _is_int(start) or not _is_int(end) or start < 1 or end < start:
         _fail("read_anchors", entry)
@@ -155,16 +175,29 @@ def derive_kind(writable: list[str]) -> str:
     return "single-file" if len(writable) == 1 else "multi-file"
 
 
+def parse_task_dir(spec_dir: Path) -> tuple[int, str]:
+    """The (task_id, slug) of a task directory named <task_id>-<slug>.
+
+    The prefix is ASCII digits and nothing else: `int()` alone would forgive a
+    sign, a leading space or an underscore, and a name with no hyphen has no
+    prefix at all.
+    """
+    prefix, hyphen, slug = spec_dir.name.partition("-")
+    if not hyphen or not (prefix.isascii() and prefix.isdigit()):
+        raise SpecError("%s: not a <task_id>-<slug> task directory" % spec_dir.name)
+    return int(prefix), slug
+
+
 def load_spec(spec_dir: Path, shape: str) -> Spec:
     """Load and validate the spec.json of a task directory named <task_id>-<slug>."""
     body = _read(spec_dir)
     _require_present(body, _REQUIRED_KEYS + (_TDD_KEYS if shape == "tdd" else ()))
-    task_id, slug = spec_dir.name.split("-", 1)
+    task_id, slug = parse_task_dir(spec_dir)
     writable = _text_tuple(body, "writable")
     return Spec(
-        task_id=int(task_id),
+        task_id=task_id,
         slug=slug,
-        repo=Path(_text(body, "repo")),
+        repo=_repo(body),
         first=_text(body, "first"),
         last=_text(body, "last"),
         raw_test_cmd=_command(body, "raw_test_cmd"),
@@ -178,6 +211,7 @@ def load_spec(spec_dir: Path, shape: str) -> Spec:
         invariants=_text_tuple(body, "invariants") if shape == "tdd" else (),
         read_anchors=_anchors(body) if shape == "tdd" else (),
         reading_budget_tokens=_budget(body),
+        declared_kind=body.get("kind"),
     )
 
 
@@ -195,7 +229,11 @@ def _slash_sorted(paths: list[str]) -> list[str]:
 
 
 def classify_paths(changed: list[str], spec: Spec) -> tuple[list[str], list[str]]:
-    """Split changed paths into (writable, oracle); either spec override wins wholesale."""
+    """Split changed paths into (writable, oracle); either spec override wins wholesale.
+
+    A kind the spec declared has to agree with the final writable list, the one
+    the candidate is handed; a spec that declared none is never checked here.
+    """
     writable, oracle = [], []
     for raw in changed:
         path = raw.replace("\\", "/")
@@ -204,4 +242,6 @@ def classify_paths(changed: list[str], spec: Spec) -> tuple[list[str], list[str]
         writable = list(spec.writable)
     if spec.oracle is not None:
         oracle = list(spec.oracle)
+    if spec.declared_kind is not None and spec.declared_kind != derive_kind(writable):
+        _fail("kind", spec.declared_kind)
     return _slash_sorted(writable), _slash_sorted(oracle)

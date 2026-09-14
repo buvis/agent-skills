@@ -93,9 +93,9 @@ def _log(where: Path, line: str) -> None:
 
 
 def _task_dirs(evidence_dir: Path) -> list[Path]:
-    """Every task under tasks/, in numeric-prefix order."""
+    """Every task under tasks/, in numeric-prefix order; a badly named one is a SpecError."""
     tasks = [path for path in (evidence_dir / "tasks").iterdir() if path.is_dir()]
-    return sorted(tasks, key=lambda path: int(path.name.split("-", 1)[0]))
+    return sorted(tasks, key=lambda path: spec_mod.parse_task_dir(path)[0])
 
 
 def _not_launched() -> dict:
