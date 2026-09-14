@@ -17,13 +17,15 @@ RENAMED_KEY = "nombre"
 
 # One task, rendered in both shapes. The anchors are deliberately NOT in path
 # order and the second one starts above the first, so a render that sorts them
-# fails the byte-exact case instead of passing by accident.
+# fails the byte-exact case instead of passing by accident. Every anchor sits
+# outside the writable and oracle lists: an anchor is read-only context, and
+# one naming an editable or test path is refused (see the anchor section).
 TASK_TEXT = "Fix the parser so it accepts trailing commas."
 ARCHITECTURE = "The parser is a recursive descent over a token stream."
 INVARIANTS = ("Tokens are never mutated.", "Errors carry the offending line.")
 ANCHORS = (
-    spec.ReadAnchor("src/tokens.py", "tokenize", 10, 42),
-    spec.ReadAnchor("src/parser.py", "Parser", 5, 9),
+    spec.ReadAnchor("src/lexer.py", "tokenize", 10, 42),
+    spec.ReadAnchor("src/ast.py", "Node", 5, 9),
 )
 PINS = ("pkg==2.0", "tool>=3.0")
 WRITABLE = ["src/parser.py", "src/tokens.py"]
@@ -38,7 +40,7 @@ OTHER_TASK_TEXT = "Teach the loader to accept a missing manifest."
 OTHER_ARCHITECTURE = "The loader reads a manifest, then builds an index in one pass."
 OTHER_INVARIANTS = ("The manifest is parsed once.",)
 OTHER_ANCHORS = (
-    spec.ReadAnchor("src/loader.py", "load", 3, 3),
+    spec.ReadAnchor("src/manifest.py", "load", 3, 3),
     spec.ReadAnchor("src/index.py", "Index", 200, 204),
 )
 OTHER_PINS = ("lib==1.1",)
@@ -123,8 +125,8 @@ TDD_BODY = "\n".join(
         "src/parser.py",
         "src/tokens.py",
         "Read-only anchors:",
-        "src/tokens.py:tokenize lines 10-42",
-        "src/parser.py:Parser lines 5-9",
+        "src/lexer.py:tokenize lines 10-42",
+        "src/ast.py:Node lines 5-9",
         "Reading budget: 8000 input tokens.",
         CLOSING_LINE,
     ]
@@ -148,7 +150,7 @@ OTHER_TDD_BODY = "\n".join(
         "Relevant files:",
         "src/loader.py",
         "Read-only anchors:",
-        "src/loader.py:load lines 3-3",
+        "src/manifest.py:load lines 3-3",
         "src/index.py:Index lines 200-204",
         "Reading budget: 500 input tokens.",
         CLOSING_LINE,
@@ -193,21 +195,44 @@ NOVEL_LEAKED_LINES = [
     "Acceptance criteria: the other suite stays green.",
 ]
 
-# Every field that can carry text into a prompt, paired with the shape that
-# renders it: a leak reaches the model through any of them, not just through
-# the architecture text and an anchor symbol.
+# The tdd context fields the harness author writes, paired with the key a
+# refusal names: a leak reaches the model through the architecture text or
+# either half of an anchor. The task text, the pins and the invariants are the
+# operator's verbatim material and render as given, markers included. The
+# anchor planted here sits outside the writable and oracle lists, so the only
+# reason to refuse it is the leak. The leak sits at every position a reader
+# could skip: the first, a middle or the last line of the architecture, and
+# the first, a middle or the last anchor.
 LEAK_CARRIERS = {
-    "architecture": ("tdd", lambda leak: {"architecture": "%s\n%s" % (ARCHITECTURE, leak)}),
-    "invariant": ("tdd", lambda leak: {"invariants": INVARIANTS + (leak,)}),
-    "anchor-symbol": (
-        "tdd",
-        lambda leak: {"read_anchors": ANCHORS + (spec.ReadAnchor("src/parser.py", leak, 1, 2),)},
+    "architecture-last-line": (
+        "architecture",
+        lambda leak: {"architecture": "%s\n%s" % (ARCHITECTURE, leak)},
     ),
-    "anchor-path": (
-        "tdd",
+    "architecture-first-line": (
+        "architecture",
+        lambda leak: {"architecture": "%s\n%s" % (leak, ARCHITECTURE)},
+    ),
+    "architecture-middle-line": (
+        "architecture",
+        lambda leak: {"architecture": "%s\n%s\nThe tokens are immutable." % (ARCHITECTURE, leak)},
+    ),
+    "anchor-symbol-last": (
+        "read_anchors",
+        lambda leak: {"read_anchors": ANCHORS + (spec.ReadAnchor("src/errors.py", leak, 1, 2),)},
+    ),
+    "anchor-symbol-first": (
+        "read_anchors",
+        lambda leak: {"read_anchors": (spec.ReadAnchor("src/errors.py", leak, 1, 2),) + ANCHORS},
+    ),
+    "anchor-path-last": (
+        "read_anchors",
         lambda leak: {"read_anchors": ANCHORS + (spec.ReadAnchor(leak, "run", 1, 2),)},
     ),
-    "task-text": ("description", lambda leak: {"task_text": "%s\n%s" % (TASK_TEXT, leak)}),
+    "anchor-path-middle": (
+        "read_anchors",
+        lambda leak: {"read_anchors": ANCHORS[:1] + (spec.ReadAnchor(leak, "run", 1, 2),)
+                      + ANCHORS[1:]},
+    ),
 }
 
 # Text that names a marker without leaking anything: markers buried mid-line,
@@ -389,15 +414,17 @@ def test_tdd_shape_renders_the_paths_it_was_given_and_no_others():
         references=(IVAN, SUBAGENT),
         writable_paths=["a.py"],
         oracle_paths=["t/x.py"],
-        read_anchors=(spec.ReadAnchor("a.py", "run", 1, 2),),
+        read_anchors=(spec.ReadAnchor("b.py", "run", 1, 2),),
     )
 
     assert "a.py" in rendered
     assert "t/x.py" in rendered
+    assert "b.py:run lines 1-2" in rendered
     # The paths of some other task must not survive into this prompt.
     assert "src/parser.py" not in rendered
     assert "src/tokens.py" not in rendered
     assert "tests/test_parser.py" not in rendered
+    assert "src/lexer.py" not in rendered
 
 
 def test_states_the_reading_budget_the_spec_carries():
@@ -473,33 +500,54 @@ def test_refuses_a_shape_that_is_neither_description_nor_tdd():
 
 
 @pytest.mark.parametrize("carrier", sorted(LEAK_CARRIERS))
-@pytest.mark.parametrize("leaked", LEAKED_LINES)
-def test_refuses_leaked_solution_text_whichever_field_carries_it(carrier, leaked):
-    # The architecture text, an invariant, either half of an anchor and the
-    # task text all reach the model, so a leak in any of them is refused in
-    # whichever shape renders that field.
-    shape, plant = LEAK_CARRIERS[carrier]
+@pytest.mark.parametrize("leaked", LEAKED_LINES + NOVEL_LEAKED_LINES)
+def test_refuses_leaked_solution_text_in_the_architecture_or_an_anchor(carrier, leaked):
+    # The architecture text and either half of an anchor are the harness
+    # author's context, so a leak in any of them is refused, and the refusal
+    # names the key it travelled in and not the other one. The novel lines put
+    # unknown-to-the-test content behind each marker in every carrier: the rule
+    # reads the start of each line, it does not recognise a fixed list of
+    # strings.
+    key, plant = LEAK_CARRIERS[carrier]
+    other = "read_anchors" if key == "architecture" else "architecture"
 
-    with pytest.raises(spec.SpecError):
-        _render(shape, references=(IVAN, SUBAGENT), **plant(leaked))
+    with pytest.raises(spec.SpecError) as raised:
+        _render("tdd", references=(IVAN, SUBAGENT), **plant(leaked))
 
-
-@pytest.mark.parametrize("leaked", NOVEL_LEAKED_LINES)
-def test_refuses_any_line_opening_with_a_patch_or_acceptance_marker(leaked):
-    # Unknown-to-the-test content behind a known marker: the rule reads the
-    # start of each line, it does not recognise a fixed list of strings.
-    architecture = "%s\n%s" % (ARCHITECTURE, leaked)
-
-    with pytest.raises(spec.SpecError):
-        _render("tdd", references=(IVAN, SUBAGENT), architecture=architecture)
+    message = str(raised.value)
+    assert key in message
+    assert other not in message
 
 
-@pytest.mark.parametrize("leaked", LEAKED_LINES)
-def test_refuses_leaked_solution_text_planted_in_a_pin(leaked):
-    # The pins reach the model through the description shape, so a patch hunk
-    # or an acceptance line hidden among them is refused like any other leak.
-    with pytest.raises(spec.SpecError):
-        _render("description", pins=PINS + (leaked,))
+@pytest.mark.parametrize("leaked", LEAKED_LINES + NOVEL_LEAKED_LINES)
+def test_renders_the_task_text_as_given_leak_markers_included(leaked):
+    # The task text is the verbatim ledger line plus its acceptance bullets, so
+    # a description spec whose task text opens a line with `Acceptance:` (or a
+    # patch marker) renders, and that line reaches the model byte for byte.
+    task_text = "%s\n%s" % (TASK_TEXT, leaked)
+
+    rendered = _render("description", task_text=task_text)
+
+    assert rendered == DESCRIPTION_EXPECTED.replace(TASK_TEXT, task_text, 1)
+
+
+@pytest.mark.parametrize("leaked", LEAKED_LINES + NOVEL_LEAKED_LINES)
+def test_renders_a_pin_as_given_leak_markers_included(leaked):
+    # The pins are the operator's material, not the harness author's context,
+    # so a marker among them is rendered in place, not refused.
+    rendered = _render("description", pins=PINS + (leaked,))
+
+    assert rendered == DESCRIPTION_EXPECTED.replace(PINS[-1], "%s\n%s" % (PINS[-1], leaked), 1)
+
+
+@pytest.mark.parametrize("leaked", LEAKED_LINES + NOVEL_LEAKED_LINES)
+def test_renders_an_invariant_as_given_leak_markers_included(leaked):
+    # Same for the invariants in the tdd shape: the extra invariant lands right
+    # after the last one, marker and all.
+    rendered = _render("tdd", references=(IVAN, SUBAGENT), invariants=INVARIANTS + (leaked,))
+
+    body = TDD_BODY.replace(INVARIANTS[-1], "%s\n%s" % (INVARIANTS[-1], leaked), 1)
+    assert rendered == _expected_tdd(body, (IVAN, SUBAGENT))
 
 
 @pytest.mark.parametrize("architecture", BARE_MARKER_ARCHITECTURES)
@@ -520,6 +568,79 @@ def test_allows_prose_that_names_a_marker_without_leaking(architecture):
     rendered = _render("tdd", references=(IVAN, SUBAGENT), architecture=architecture)
 
     assert architecture in rendered
+
+
+# -- refusing an anchor on an editable or test path ------------------------
+
+
+# Where the offending anchor sits among the sound ones: every anchor is
+# checked, not the last one alone.
+ANCHOR_POSITIONS = [
+    pytest.param(lambda bad: (bad,) + ANCHORS, id="first"),
+    pytest.param(lambda bad: ANCHORS[:1] + (bad,) + ANCHORS[1:], id="middle"),
+    pytest.param(lambda bad: ANCHORS + (bad,), id="last"),
+]
+
+# (anchor path, writable list handed in): each anchor shares a stem, a proper
+# prefix or a whole name with a writable path without being one of them, in
+# both directions. Membership is whole-path equality, so every row renders.
+RESEMBLING_ANCHORS = [
+    pytest.param("src/parser_types.py", WRITABLE, id="shared-stem"),
+    pytest.param("src/parser", WRITABLE, id="anchor-is-a-bare-prefix"),
+    pytest.param("src/parser.pyi", WRITABLE, id="writable-is-a-prefix"),
+    pytest.param("src/parser.py", ["src/parser.pyi"], id="anchor-is-a-prefix"),
+]
+
+
+@pytest.mark.parametrize("place", ANCHOR_POSITIONS)
+@pytest.mark.parametrize(
+    ("anchor_path", "oracle_paths"),
+    [
+        pytest.param(WRITABLE[0], ORACLE, id="writable-path"),
+        pytest.param(ORACLE[0], ORACLE, id="oracle-path"),
+        pytest.param("golden/expected.txt", ["golden/expected.txt"], id="overridden-oracle-path"),
+    ],
+)
+def test_refuses_an_anchor_on_a_writable_or_oracle_path_it_was_handed(
+        anchor_path, oracle_paths, place):
+    # An anchor is read-only context outside the files the model edits and the
+    # tests it must not touch, so one naming a path from either classified list
+    # is refused by name. The lists are the ones handed in: this Spec carries no
+    # writable or oracle override of its own, and `golden/expected.txt` is an
+    # oracle only because the handed list says so (no test-path rule names it).
+    anchors = place(spec.ReadAnchor(anchor_path, "run", 1, 2))
+
+    with pytest.raises(spec.SpecError) as raised:
+        _render("tdd", references=(IVAN, SUBAGENT), oracle_paths=oracle_paths,
+                read_anchors=anchors)
+
+    message = str(raised.value)
+    assert "read_anchors" in message
+    assert "architecture" not in message
+
+
+def test_renders_an_anchor_that_looks_like_a_test_path_but_is_in_neither_list():
+    # Membership is against the handed lists, not the test-path heuristic: a
+    # file named like a test that the classifier never listed is fair context.
+    anchor = spec.ReadAnchor("src/x_test.py", "Token", 1, 4)
+
+    rendered = _render("tdd", references=(IVAN, SUBAGENT), read_anchors=ANCHORS + (anchor,))
+
+    assert "src/x_test.py:Token lines 1-4" in rendered
+
+
+@pytest.mark.parametrize(("anchor_path", "writable_paths"), RESEMBLING_ANCHORS)
+def test_renders_an_anchor_that_merely_resembles_a_writable_path(anchor_path, writable_paths):
+    anchor = spec.ReadAnchor(anchor_path, "Token", 1, 4)
+
+    rendered = _render(
+        "tdd",
+        references=(IVAN, SUBAGENT),
+        writable_paths=writable_paths,
+        read_anchors=ANCHORS + (anchor,),
+    )
+
+    assert "%s:Token lines 1-4" % anchor_path in rendered
 
 
 # -- loading the operator-vendored references ------------------------------
