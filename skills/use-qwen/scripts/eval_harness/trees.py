@@ -246,13 +246,18 @@ def commit_all(clone: Path, message: str) -> str:
     return head_sha(clone)
 
 
-def _change(line: str) -> dict:
-    """One `git diff --name-status` line as a record, its status left as git wrote it."""
-    fields = line.split("\t")
-    if fields[0][0] in "RC":
-        # Filed under the name the tree holds now, remembering the one it lost.
-        return {"status": fields[0], "path": fields[2], "old_path": fields[1]}
-    return {"status": fields[0], "path": fields[1], "old_path": None}
+def _changes(tokens: Iterator[str]) -> Iterator[dict]:
+    """The records in a `git diff --name-status -z` stream, each status as git wrote it.
+
+    An edit, addition or deletion is `<status> <path>`; a rename or copy is
+    `<status> <old> <new>`, filed under the name the tree holds now.
+    """
+    for status in tokens:
+        if status[0] in "RC":
+            old_path = next(tokens)
+            yield {"status": status, "path": next(tokens), "old_path": old_path}
+        else:
+            yield {"status": status, "path": next(tokens), "old_path": None}
 
 
 def snapshot(clone: Path, sealed_sha: str) -> tuple[list[dict], str]:
@@ -262,16 +267,20 @@ def snapshot(clone: Path, sealed_sha: str) -> tuple[list[dict], str]:
     reset takes it back off, so reading the tree is not a change to it, even
     when a read in between fails. The patch is decoded with surrogateescape so
     that encoding it back the same way gives git's bytes exactly: a candidate's
-    non-UTF-8 edit is still an observation, not an error.
+    non-UTF-8 edit is still an observation, not an error. The change listing is
+    read NUL-delimited and decoded the same way: git's text form quotes and
+    escapes any name outside plain ASCII, and a path read from that form names
+    nothing in the tree.
     """
     _git(clone, "add", "-N", ".")
     try:
-        listing = _git(clone, "diff", "--name-status", sealed_sha)
+        listing = _git_bytes(clone, "diff", "--name-status", "-z", sealed_sha)
         patch = _git_bytes(clone, "diff", "--binary", sealed_sha)
     finally:
         _git(clone, "reset", "-q")
     diff_text = patch.decode("utf-8", "surrogateescape")
-    return [_change(line) for line in listing.splitlines() if line.strip()], diff_text
+    tokens = (token.decode("utf-8", "surrogateescape") for token in listing.split(b"\0")[:-1])
+    return list(_changes(tokens)), diff_text
 
 
 def mise_trust(root: Path) -> None:

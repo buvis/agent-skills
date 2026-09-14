@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **use-qwen**: the eval harness now seals and rechecks `pretask.json` with the other inputs, `verify` reports a completed attempt's missing stage artifacts (prompt, status, baseline output, sealed record, patch, gate outputs), and filenames with non-ASCII, quote or tab characters survive sealing and snapshotting under their real names.
 - **use-qwen**: the eval harness now judges a tree's symlinks by where they
   resolve, hop by hop, so a chain of links that lands outside the tree (or a
   link cycle) is refused before sealing, cloning or hashing, and a candidate's

@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 
+from eval_harness.evidence_verify import check_artifacts
 from eval_harness.prompts import SHAPES, load_dispatch_references, render_prompt
 from eval_harness.records import RecordError, validate_record
 from eval_harness.spec import Spec, classify_paths, load_spec
@@ -87,8 +88,9 @@ def seal_inputs(evidence_dir: Path, task_dir: Path, shapes: Sequence[str]) -> Se
         specs["tdd"] = load_spec(task_dir, "tdd")
     spec = specs["description"]
     base = "%s^" % spec.first
-    changed = _git_bytes(spec.repo, "diff", "--name-only", base, spec.last).decode("utf-8")
-    writable, oracle = classify_paths(changed.splitlines(), spec)
+    listed = _git_bytes(spec.repo, "diff", "--name-only", "-z", base, spec.last).split(b"\0")
+    changed = [path.decode("utf-8", "surrogateescape") for path in listed[:-1]]
+    writable, oracle = classify_paths(changed, spec)
     if not writable:
         raise EvidenceError("writable: no non-test path changes between %s and %s; set "
                             "`writable` in spec.json" % (base, spec.last))
@@ -141,7 +143,8 @@ def _write_seal(task_dir: Path, spec: Spec, writable: list[str], oracle: list[st
 
 def _input_files(shapes: Sequence[str]) -> dict[str, str]:
     """The sealed file behind each required label, as a task-relative slash path."""
-    files = {"spec": "spec.json", "canonical_patch": "canonical.patch", "manifest": "manifest.json"}
+    files = {"spec": "spec.json", "pretask": "pretask.json", "canonical_patch": "canonical.patch",
+             "manifest": "manifest.json"}
     for shape in shapes:
         files["prompt:%s" % shape] = "prompts/%s.txt" % shape
     return files
@@ -322,7 +325,7 @@ def _read_marker(lines: list[str], path: Path, where: str) -> list[str] | None:
 
 
 def _check_attempt(lines: list[str], where: Path, prefix: str) -> None:
-    """One attempt directory: its record, its agreement with its name, its seal."""
+    """One attempt directory: its record, its agreement with its name, its artifacts."""
     if not (where / "attempt.json").is_file():
         _note(lines, prefix, "missing")
         return
@@ -336,9 +339,7 @@ def _check_attempt(lines: list[str], where: Path, prefix: str) -> None:
         if record[field] != value:
             _note(lines, prefix + "/attempt.json", "mismatch", field)
             break
-    if (where / "sealed.json").exists():
-        _load(lines, where / "sealed.json", prefix + "/sealed.json",
-              partial(validate_record, "sealed"))
+    check_artifacts(lines, where, prefix, record, _note)
 
 
 def _check_attempts(lines: list[str], run: Path, prefix: str) -> None:
