@@ -613,10 +613,12 @@ def test_counts_usage_once_and_ignores_the_streaming_deltas(tmp_path, tokens):
     assert result["completion"] == "complete"
 
 
-def test_leaves_usage_null_when_only_a_message_that_is_not_the_final_one_reports_it(tmp_path):
-    # Usage is aggregated once per final message event. This run reported its
-    # tokens on an earlier message and none on the terminal one, so there is no
-    # usage to report: every field stays null, and none of them becomes 0.
+def test_keeps_usage_reported_on_an_earlier_message_when_the_final_one_reports_none(tmp_path):
+    # Usage is summed once over every finalized assistant message, not read
+    # off the terminal one alone. This run reported its tokens on the message
+    # that called a tool and none on the terminal message, so the earlier
+    # message's numbers are the run's usage: a reader that only looks at the
+    # last assistant message leaves every field null here.
     session = _session(
         tmp_path,
         [_user("fix the parser"),
@@ -628,7 +630,8 @@ def test_leaves_usage_null_when_only_a_message_that_is_not_the_final_one_reports
 
     result = events.read_events(session, _out(tmp_path))
 
-    assert result["usage"] == dict.fromkeys(records.USAGE_KEYS)
+    assert result["usage"] == _expected_usage(input_tokens=810, output_tokens=64,
+                                              cache_read_tokens=200, cache_write_tokens=90)
     records.validate_record("usage", result["usage"])
 
 
