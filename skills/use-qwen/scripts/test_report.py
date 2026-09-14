@@ -156,16 +156,20 @@ def test_a_missing_attempt_json_renders_an_incomplete_block_and_becomes_the_effe
     last = cmd1_ids[-1]
     stem, last_no = last.rsplit("-a", 1)
     incomplete_id = "%s-a%d" % (stem, int(last_no) + 1)
-    (round_.run / incomplete_id).mkdir()
+    incomplete_dir = round_.run / incomplete_id
+    incomplete_dir.mkdir()
 
-    evidence, report_md, _ = _render(round_)
+    try:
+        evidence, report_md, _ = _render(round_)
 
-    block = _block(evidence, [*attempts, incomplete_id], incomplete_id)
-    assert "INCOMPLETE" in block
-    assert "n/a" in block
-    # never falls back to the older, real attempt's PASS/FAIL verdict for this engine
-    assert stem in report_md
-    assert "INCOMPLETE" in report_md
+        block = _block(evidence, [*attempts, incomplete_id], incomplete_id)
+        assert "INCOMPLETE" in block
+        assert "n/a" in block
+        # never falls back to the older, real attempt's PASS/FAIL verdict for this engine
+        assert stem in report_md
+        assert "INCOMPLETE" in report_md
+    finally:
+        incomplete_dir.rmdir()
 
 
 # -- report.md: section order, counts, not-started pairs ----------------------
@@ -212,17 +216,21 @@ def test_report_md_counts_match_an_independent_recount_of_the_attempt_records(ro
 def test_a_planned_engine_with_no_attempt_directory_is_not_started_and_not_an_attempt(rounds):
     round_ = rounds("r1")
     run_path = round_.run / "run.json"
-    run = json.loads(run_path.read_text(encoding="utf-8"))
+    original = run_path.read_text(encoding="utf-8")
+    run = json.loads(original)
     run["engines"] = [*run["engines"], {"id": "cmd3", "command": "cmd:/nonexistent/engine"}]
     run_path.write_text(json.dumps(run), encoding="utf-8")
 
-    _, report_md, _ = _render(round_)
+    try:
+        _, report_md, _ = _render(round_)
 
-    assert "NOT_STARTED" in report_md
-    counts_section = report_md.split("## Counts", 1)[1].split("## Classification", 1)[0]
-    assert re.search(r"cmd3[\s\S]{0,200}?\bnot_started\b", counts_section) or re.search(
-        r"not_started[\s\S]{0,200}?\bcmd3\b", counts_section
-    ), counts_section
+        assert "NOT_STARTED" in report_md
+        counts_section = report_md.split("## Counts", 1)[1].split("## Classification", 1)[0]
+        assert re.search(r"cmd3[\s\S]{0,200}?\bnot_started\b", counts_section) or re.search(
+            r"not_started[\s\S]{0,200}?\bcmd3\b", counts_section
+        ), counts_section
+    finally:
+        run_path.write_text(original, encoding="utf-8")
 
 
 # -- the f (flagged-audit) field -----------------------------------------------
@@ -294,15 +302,19 @@ def test_f_is_zero_with_no_audit_file_when_there_are_zero_valid_attempts(rounds)
 def test_render_rejects_a_malformed_audit_line_naming_it_and_leaves_output_unchanged(rounds):
     round_ = rounds("r1")
     before = _render(round_)
-    (round_.run / "audit.jsonl").write_text(
+    audit_path = round_.run / "audit.jsonl"
+    audit_path.write_text(
         '{"attempt_dir": SENTINEL_BROKEN_JSON\n', encoding="utf-8"
     )
 
-    with pytest.raises(Exception) as failure:
-        report.render(round_.root, round_.run.name)
+    try:
+        with pytest.raises(Exception) as failure:
+            report.render(round_.root, round_.run.name)
 
-    assert "SENTINEL_BROKEN_JSON" in str(failure.value)
-    assert _files(round_) == before
+        assert "SENTINEL_BROKEN_JSON" in str(failure.value)
+        assert _files(round_) == before
+    finally:
+        audit_path.unlink()
 
 
 def test_render_rejects_a_duplicate_attempt_dir_in_audit_jsonl_naming_it(rounds):
@@ -314,10 +326,13 @@ def test_render_rejects_a_duplicate_attempt_dir_in_audit_jsonl_naming_it(rounds)
         [_audit_row(valid_ids[0]), _audit_row(valid_ids[0], verdict="unverifiable")],
     )
 
-    with pytest.raises(Exception) as failure:
-        report.render(round_.root, round_.run.name)
+    try:
+        with pytest.raises(Exception) as failure:
+            report.render(round_.root, round_.run.name)
 
-    assert valid_ids[0] in str(failure.value)
+        assert valid_ids[0] in str(failure.value)
+    finally:
+        (round_.run / "audit.jsonl").unlink()
 
 
 def test_render_rejects_a_contradictory_stored_outcome_via_classify_rederivation(rounds):
@@ -325,14 +340,18 @@ def test_render_rejects_a_contradictory_stored_outcome_via_classify_rederivation
     attempts = _attempts(round_)
     fail_id = next(aid for aid, r in attempts.items() if r["outcome"] == "FAIL")
     record_path = round_.run / fail_id / "attempt.json"
-    record = json.loads(record_path.read_text(encoding="utf-8"))
+    original = record_path.read_text(encoding="utf-8")
+    record = json.loads(original)
     record["outcome"], record["class"] = "PASS", None
     record_path.write_text(json.dumps(record), encoding="utf-8")
 
-    with pytest.raises(Exception) as failure:
-        report.render(round_.root, round_.run.name)
+    try:
+        with pytest.raises(Exception) as failure:
+            report.render(round_.root, round_.run.name)
 
-    assert fail_id in str(failure.value)
+        assert fail_id in str(failure.value)
+    finally:
+        record_path.write_text(original, encoding="utf-8")
 
 
 # -- audit-queue.md --------------------------------------------------------------
