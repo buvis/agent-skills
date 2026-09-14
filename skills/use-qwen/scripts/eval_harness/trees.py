@@ -86,7 +86,7 @@ def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()
     """
     landing = ""
     for name in Path(path).as_posix().split("/"):
-        if name in ("", "."):
+        if name == ".":
             continue
         if name == "..":
             if not landing:
