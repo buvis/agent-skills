@@ -24,6 +24,15 @@ from test_eval_tree_state import _candidate_changes, _sealed_template
 
 STATUS_LETTERS = re.compile(r"[ACDMRTUXB][0-9]{0,3}")
 
+# Text a candidate may well leave behind, and not UTF-8: a Latin-1 comment and
+# two bytes no UTF-8 sequence can start with, beside a comment that IS valid
+# UTF-8 (`na\xc3\xafve` is "naïve"). No NUL, so git still diffs it as text and
+# the raw bytes land in the patch as they are.
+LATIN1_IMPL = (
+    b"# na\xc3\xafve caf\xe9 \xff\xfe not utf-8\n"
+    b"def add(left, right):\n    return left + right\n"
+)
+
 
 def _git_rc(repo: Path, *args: str) -> int:
     """Git's exit code for a command that is allowed to fail."""
@@ -57,6 +66,24 @@ def _bytes_at(root: Path, relpath: str):
     """The bytes `root` holds at `relpath`, or None when it holds nothing there."""
     target = root / relpath
     return target.read_bytes() if target.is_file() else None
+
+
+def _git_s_own_patch(clone: Path, sealed: str) -> bytes:
+    """The bytes git itself cuts for the clone's work, index left as found.
+
+    Untracked files are staged intent-to-add for the read, the way the snapshot
+    does it, so the two patches cover the same changes.
+    """
+    _git(clone, "add", "-N", ".")
+    try:
+        return subprocess.run(
+            ["git", "-C", str(clone), "diff", "--binary", sealed],
+            capture_output=True,
+            check=True,
+            timeout=60,
+        ).stdout
+    finally:
+        _git(clone, "reset", "-q")
 
 
 @pytest.fixture
@@ -145,6 +172,72 @@ def test_snapshot_reads_the_sealed_sha_it_was_given_not_the_clone_s_head(
     by_path = {record["path"]: record["status"] for record in changed}
     assert by_path == {impl: "M", "helper.py": "A", oracle: "D"}
     assert f"a/{impl}" in diff_text
+
+
+def test_snapshot_keeps_a_non_utf8_edit_s_patch_byte_for_byte(candidate):
+    impl = candidate.info["impl"]
+    (candidate.clone / impl).write_bytes(LATIN1_IMPL)
+    expected = _git_s_own_patch(candidate.clone, candidate.sealed)
+    assert b"caf\xe9 \xff\xfe" in expected, "git did not diff the file as text"
+
+    # No UnicodeDecodeError: a candidate's bytes are the candidate's bytes, and
+    # a snapshot that cannot read them is an observation that never happens.
+    changed, diff_text = trees.snapshot(candidate.clone, candidate.sealed)
+
+    assert isinstance(diff_text, str)
+    # Lossless, and lossless in one particular way: the text encodes back to
+    # git's bytes exactly. A replacement character, a dropped byte or a Latin-1
+    # decode all read fine and all cut a patch git will not apply.
+    assert diff_text.encode("utf-8", "surrogateescape") == expected
+    assert b"caf\xe9 \xff\xfe" in diff_text.encode("utf-8", "surrogateescape")
+    # The valid UTF-8 beside the stray bytes is read as the text it is: a
+    # narrower codec with the same escape hatch round-trips the bytes too, and
+    # turns every character a candidate wrote into surrogates on the way.
+    assert "naïve" in diff_text
+    by_path = {record["path"]: record["status"] for record in changed}
+    assert by_path[impl] == "M"
+    assert _git(candidate.clone, "diff", "--cached", "--name-only") == ""
+
+
+@pytest.mark.parametrize(
+    "step, failure",
+    [
+        ("the-change-listing", subprocess.CalledProcessError(128, ["git"])),
+        ("the-binary-diff", subprocess.CalledProcessError(128, ["git"])),
+        # Not git's own refusal but the run itself giving up: a cleanup that
+        # catches one exception type and re-raises leaves the index dirty here.
+        ("the-binary-diff", subprocess.TimeoutExpired(["git"], 1)),
+    ],
+    ids=["the-change-listing", "the-binary-diff", "the-binary-diff-timing-out"],
+)
+def test_snapshot_resets_the_index_even_when_the_diff_step_raises(
+    candidate, monkeypatch, step, failure
+):
+    real_git = trees._git
+
+    def refuse(*args, **kwargs):
+        raise failure
+
+    def refuse_the_listing(root, *args):
+        # Only the `--name-status` read fails; the intent-to-add pass and the
+        # reset still reach git, so what is left in the index is the snapshot's
+        # own doing.
+        if "--name-status" in args:
+            raise failure
+        return real_git(root, *args)
+
+    if step == "the-change-listing":
+        monkeypatch.setattr(trees, "_git", refuse_the_listing)
+    else:
+        monkeypatch.setattr(trees, "_git_bytes", refuse)
+
+    with pytest.raises(type(failure)):
+        trees.snapshot(candidate.clone, candidate.sealed)
+
+    # The intent-to-add entries were a means of reading the tree. Whichever of
+    # the two reads fails must not leave them behind: the next command in this
+    # clone would find files staged that no one staged.
+    assert _git(candidate.clone, "diff", "--cached", "--name-only") == ""
 
 
 # -- apply_patch -----------------------------------------------------------
