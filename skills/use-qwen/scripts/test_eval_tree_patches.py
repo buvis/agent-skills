@@ -212,35 +212,43 @@ def test_snapshot_keeps_a_non_utf8_edit_s_patch_byte_for_byte(candidate):
     assert _git(candidate.clone, "diff", "--cached", "--name-only") == ""
 
 
-@pytest.mark.skipif(os.name == "nt", reason="a TAB in a filename is not legal on Windows")
-def test_snapshot_lists_every_change_to_a_file_git_would_quote_under_its_real_name(
-    tmp_path, built_repo, monkeypatch
-):
+def _clone_with_quoted_names(tmp_path, built_repo) -> tuple:
+    """A clone whose sealed tree holds three quoted names under `lib/` and
+    whose candidate added the four top-level ones; answers (clone, sealed).
+
+    Each file's body is its own, so no deletion pairs with an addition as a
+    rename git found on its own. The control at the end: git's default
+    listing does quote every one of these, so a snapshot that takes that
+    listing literally files them as `"caf\\303\\251.py"`, `"tab\\there.py"`
+    and the like, names nothing in the tree answers to.
+    """
     template = _sealed_template(tmp_path, built_repo)
     clone = Path(trees.fresh_clone(template, tmp_path / "clone"))
-    # The sealed tree holds three of the names under `lib/`, so the candidate
-    # has one to edit, one to delete and one to move; it adds the four
-    # top-level ones. Each file's body is its own, so no deletion pairs with
-    # an addition as a rename git found on its own.
-    edited, deleted, moved, target = (f"lib/{name}" for name in QUOTED_NAMES)
     (clone / "lib").mkdir()
-    for name in (edited, deleted, moved):
+    sealed_names = [f"lib/{name}" for name in QUOTED_NAMES[:3]]
+    for name in sealed_names:
         (clone / name).write_text(f"# {name}\n", encoding="utf-8")
-    _git(clone, "add", "--", *_literal((edited, deleted, moved)))
+    _git(clone, "add", "--", *_literal(sealed_names))
     _git(clone, *eval_harness_fixtures.IDENTITY, "commit", "-q", "-m", "seal: add quoted names")
     sealed = trees.head_sha(clone)
     for name in QUOTED_NAMES:
         (clone / name).write_text(f"# {name}\n", encoding="utf-8")
-    # The control: git's default listing does quote every one of these, so a
-    # snapshot that takes that listing literally files them as
-    # `"caf\303\251.py"`, `"tab\there.py"` and the like, names nothing in the
-    # tree answers to.
     _git(clone, "add", "-N", "--", *_literal(QUOTED_NAMES))
     try:
         listed = _git(clone, "diff", "--name-only", "--", *_literal(QUOTED_NAMES))
     finally:
         _git(clone, "reset", "-q")
     assert listed == QUOTED_LISTING.rstrip("\n")
+    return clone, sealed
+
+
+@pytest.mark.skipif(os.name == "nt", reason="a TAB in a filename is not legal on Windows")
+def test_snapshot_lists_every_change_to_a_file_git_would_quote_under_its_real_name(
+    tmp_path, built_repo, monkeypatch
+):
+    clone, sealed = _clone_with_quoted_names(tmp_path, built_repo)
+    # One sealed name to edit, one to delete and one to move to a fourth.
+    edited, deleted, moved, target = (f"lib/{name}" for name in QUOTED_NAMES)
     (clone / edited).write_text("# edited\n", encoding="utf-8")
     (clone / deleted).unlink()
     _git(clone, "mv", "--", moved, target)
