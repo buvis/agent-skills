@@ -60,6 +60,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **use-qwen**: the eval harness now judges a tree's symlinks by where they
+  resolve, hop by hop, so a chain of links that lands outside the tree (or a
+  link cycle) is refused before sealing, cloning or hashing, and a candidate's
+  non-UTF-8 edit no longer aborts observation or leaves the clone's index dirty.
 - **use-qwen**: an eval-harness attempt whose usage-limit check could not run
   (`usage_limit: unchecked`, e.g. no checker configured) is now recorded as
   unchecked and still counts as a valid attempt, instead of being discarded as

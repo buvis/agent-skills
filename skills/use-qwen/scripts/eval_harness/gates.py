@@ -52,7 +52,7 @@ def observe(site: GateSite, sealed: dict, necessity: dict) -> dict:
     """
     clone = site.attempt_dir / "clone"
     changed, diff_text = snapshot(clone, sealed["head_sha"])
-    (site.attempt_dir / "diff.patch").write_bytes(diff_text.encode("utf-8"))
+    (site.attempt_dir / "diff.patch").write_bytes(diff_text.encode("utf-8", "surrogateescape"))
     touched = {record["path"] for record in changed}
     touched |= {record["old_path"] for record in changed if record["old_path"]}
     allowed = set(site.writable) | set(site.oracle)

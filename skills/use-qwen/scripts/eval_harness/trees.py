@@ -75,14 +75,36 @@ def _walk(root: Path) -> Iterator[tuple[str, Path]]:
             yield path.relative_to(root).as_posix(), path
 
 
-def _escapes(relpath: str, target: str) -> bool:
-    """Whether a symlink at `relpath` pointing at `target` lands outside the tree."""
-    if os.path.isabs(target):
-        return True
-    landing = posixpath.normpath(
-        posixpath.join(posixpath.dirname(relpath), Path(target).as_posix())
-    )
-    return landing == ".." or landing.startswith("../")
+def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()) -> str:
+    """Where `path` lands in a tree whose symlinks are `links` (relpath -> text).
+
+    Followed hop by hop, each link from its own directory, the way the OS would
+    walk it: a chain is judged by where it ends, not by how its text reads. A
+    `..` past the root is an escape and a link met again while it is still
+    being followed is a cycle; both are refused as a TreeError, and the walk
+    goes no deeper than the tree has distinct links.
+    """
+    landing = ""
+    for name in Path(path).as_posix().split("/"):
+        if name in ("", "."):
+            continue
+        if name == "..":
+            if not landing:
+                raise TreeError("%s leaves the tree" % path)
+            landing = posixpath.dirname(landing)
+            continue
+        landing = posixpath.join(landing, name)
+        if landing not in links:
+            continue
+        if landing in active:
+            raise TreeError("%s is a link cycle" % landing)
+        target = links[landing]
+        if os.path.isabs(target):
+            raise TreeError("%s leaves the tree: %s" % (landing, target))
+        landing = _land(
+            links, posixpath.join(posixpath.dirname(landing), target), active | {landing}
+        )
+    return landing
 
 
 def _refuse_escaping_links(root: Path) -> None:
@@ -91,9 +113,9 @@ def _refuse_escaping_links(root: Path) -> None:
     `copytree(symlinks=True)` reproduces such a link faithfully, and a later
     write through it would reach the operator's own repository.
     """
-    for relpath, path in _walk(root):
-        if path.is_symlink() and _escapes(relpath, os.readlink(path)):
-            raise TreeError("%s leaves the tree: %s" % (relpath, os.readlink(path)))
+    links = {relpath: os.readlink(path) for relpath, path in _walk(root) if path.is_symlink()}
+    for relpath in links:
+        _land(links, relpath)
 
 
 def build_template(repo: Path, first: str, dest: Path) -> str:
@@ -106,12 +128,12 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
     with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
-        for member in archive.getmembers():
-            # Read off the archive rather than off an extracted tree: a host that
-            # cannot create a symlink at all still has to refuse one that escapes,
-            # and refusing here leaves no half-built template behind.
-            if member.issym() and _escapes(member.name, member.linkname):
-                raise TreeError("%s leaves the tree: %s" % (member.name, member.linkname))
+        # Read off the archive rather than off an extracted tree: a host that
+        # cannot create a symlink at all still has to refuse one that escapes,
+        # and refusing here leaves no half-built template behind.
+        links = {member.name: member.linkname for member in archive.getmembers() if member.issym()}
+        for name in links:
+            _land(links, name)
         archive.extractall(dest)
     _git(dest, *IDENTITY, "init")
     _git(dest, "add", "-A")
@@ -138,9 +160,13 @@ def _digest(path: Path) -> str:
 
 
 def hash_paths(root: Path, paths: Sequence[str]) -> dict[str, str]:
-    """Hash each of `paths` under `root`, keyed in slash form."""
+    """Hash each of `paths` under `root`, keyed in slash form.
+
+    Each path is contained before it is read: a link that resolves outside the
+    tree is refused, never dereferenced, so no outside bytes reach a digest.
+    """
     root = Path(root)
-    return {Path(relpath).as_posix(): _digest(root / relpath) for relpath in paths}
+    return {Path(relpath).as_posix(): _digest(contained(root, relpath)) for relpath in paths}
 
 
 def _entry(path: Path) -> dict:
@@ -233,12 +259,18 @@ def snapshot(clone: Path, sealed_sha: str) -> tuple[list[dict], str]:
     """Read the work in `clone` back out as a change list and a git patch.
 
     The intent-to-add pass is what puts an untracked file in a diff at all; the
-    reset takes it back off, so reading the tree is not a change to it.
+    reset takes it back off, so reading the tree is not a change to it, even
+    when a read in between fails. The patch is decoded with surrogateescape so
+    that encoding it back the same way gives git's bytes exactly: a candidate's
+    non-UTF-8 edit is still an observation, not an error.
     """
     _git(clone, "add", "-N", ".")
-    listing = _git(clone, "diff", "--name-status", sealed_sha)
-    diff_text = _git_bytes(clone, "diff", "--binary", sealed_sha).decode("utf-8")
-    _git(clone, "reset", "-q")
+    try:
+        listing = _git(clone, "diff", "--name-status", sealed_sha)
+        patch = _git_bytes(clone, "diff", "--binary", sealed_sha)
+    finally:
+        _git(clone, "reset", "-q")
+    diff_text = patch.decode("utf-8", "surrogateescape")
     return [_change(line) for line in listing.splitlines() if line.strip()], diff_text
 
 
