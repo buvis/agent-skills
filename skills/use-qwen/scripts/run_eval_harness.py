@@ -47,6 +47,10 @@ def _parser() -> argparse.ArgumentParser:
     vet.add_argument("--shapes", type=_csv, default=None, metavar="description[,tdd]")
     verify = commands.add_parser("verify", help="check an evidence directory's records")
     verify.add_argument("evidence_dir", type=Path)
+    render = commands.add_parser(
+        "render", help="render evidence.md, report.md and audit-queue.md for a run")
+    render.add_argument("evidence_dir", type=Path)
+    render.add_argument("--run-id", required=True)
     run = commands.add_parser("run", help="run every ready task through the given engines")
     run.add_argument("evidence_dir", type=Path)
     run.add_argument("--run-id", type=_run_id, required=True)
@@ -72,6 +76,11 @@ def main(argv: list[str]) -> int:
         return attempt.vet(args.evidence_dir, args.gate_bound, shapes=args.shapes)
     if args.command == "verify":
         return attempt.verify(args.evidence_dir)
+    if args.command == "render":
+        from eval_harness import report
+
+        report.render(args.evidence_dir, args.run_id)
+        return 0
     settings = engines.EngineSettings(
         qwen_provider=args.qwen_provider, qwen_model=args.qwen_model,
         sonnet_model=args.sonnet_model, usage_limit_cmd=args.usage_limit_cmd,
