@@ -156,13 +156,6 @@ def _audit_queue_md(valid_ids: list, audit_rows: dict) -> str:
 
 
 def render(root: Path, run_id: str) -> None:
-    """Write evidence.md, report.md and audit-queue.md under runs/<run_id>/.
-
-    Every input is read and validated before anything is written, so a
-    refused render (malformed audit.jsonl, a duplicate attempt_dir, or a
-    stored outcome that contradicts records.classify) leaves prior output
-    untouched.
-    """
     run_dir = Path(root) / "runs" / run_id
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     engine_order = [engine["id"] for engine in run["engines"]]
