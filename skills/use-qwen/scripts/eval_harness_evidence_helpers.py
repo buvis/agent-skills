@@ -52,10 +52,12 @@ REFERENCES = [
     },
 ]
 
+# The anchor names a path in neither list: an anchor on the writable `calc.py`
+# or the oracle `test_calc.py` is refused at render time (task 23).
 TDD_FIELDS = {
     "architecture": "one module, one function",
     "invariants": ["add(a, b) == add(b, a)"],
-    "read_anchors": [{"path": "calc.py", "symbol": "add", "start_line": 1, "end_line": 5}],
+    "read_anchors": [{"path": "README.md", "symbol": "usage", "start_line": 1, "end_line": 5}],
 }
 
 # Names git quotes in its default path output, one per escape class: a
