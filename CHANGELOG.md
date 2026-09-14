@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **use-qwen**: an eval-harness run now writes one run-level prompt per task and halts before dispatching an attempt whose prompt copy no longer matches the recorded SHA256, refuses a run id that is not one directory name and an engine roster that is empty, longer than two or names an engine twice before writing anything, probes `/props` at the `baseUrl` models.json configures for the provider name (a null block naming the provider and file when it resolves to none), and records the sealed dispatch-reference versions (`ivan`, `subagent-dispatch`) beside the CLI versions in a tdd run's `run.json`.
 - **use-qwen**: the eval harness now seals and rechecks `pretask.json` with the other inputs, `verify` reports a completed attempt's missing stage artifacts (prompt, status, baseline output, sealed record, patch, gate outputs), and filenames with non-ASCII, quote or tab characters survive sealing and snapshotting under their real names.
 - **use-qwen**: the eval harness now judges a tree's symlinks by where they
   resolve, hop by hop, so a chain of links that lands outside the tree (or a

@@ -25,6 +25,15 @@ def _csv(text: str) -> list[str]:
     return [item for item in text.split(",") if item]
 
 
+def _run_id(text: str) -> str:
+    from eval_harness import admission
+
+    problem = admission.check_run_id(text)
+    if problem is not None:
+        raise argparse.ArgumentTypeError(problem)
+    return text
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="run_eval_harness.py")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -36,7 +45,7 @@ def _parser() -> argparse.ArgumentParser:
     verify.add_argument("evidence_dir", type=Path)
     run = commands.add_parser("run", help="run every ready task through the given engines")
     run.add_argument("evidence_dir", type=Path)
-    run.add_argument("--run-id", required=True)
+    run.add_argument("--run-id", type=_run_id, required=True)
     run.add_argument("--engines", type=_csv, required=True, metavar="a[,b]")
     run.add_argument("--shape", choices=SHAPES, required=True)
     run.add_argument("--bound", type=_positive, required=True, metavar="SECONDS")

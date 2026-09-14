@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from eval_harness import engines, evidence, gates, records, runner, trees
+from eval_harness import admission, engines, evidence, gates, records, runner, trees
 from eval_harness import spec as spec_mod
 from eval_harness.engines import EngineSettings
 from eval_harness.spec import Spec
@@ -184,6 +184,9 @@ def run(evidence_dir: Path, run_id: str, engine_cmds: list[str], shape: str, bou
     ids = [cmd if cmd in ("qwen", "sonnet") else "cmd%d" % n
            for n, cmd in enumerate(engine_cmds, 1)]
     try:
+        problem = admission.check_run_id(run_id) or admission.check_engines(ids)
+        if problem is not None:
+            raise RefusalError(problem)
         if run_dir.exists():
             raise RefusalError("%s already exists; choose a new --run-id" % run_dir)
         admitted = _admit(evidence_dir, shape, gate_bound_s, engine_cmds, settings)
@@ -191,12 +194,13 @@ def run(evidence_dir: Path, run_id: str, engine_cmds: list[str], shape: str, bou
         print("run refused: %s" % exc, file=sys.stderr)
         return 1
     engine_order = list(zip(ids, engine_cmds))
-    plans = _plan_attempts(admitted, engine_order, alternate, dict(
-        shape=shape, evidence_dir=evidence_dir, run_dir=run_dir, bound_s=bound_s,
-        gate_bound_s=gate_bound_s, settings=settings))
+    common = dict(shape=shape, evidence_dir=evidence_dir, run_dir=run_dir, bound_s=bound_s,
+                  gate_bound_s=gate_bound_s, settings=settings)
+    plans = _plan_attempts(admitted, engine_order, alternate, common)
     run_dir.mkdir(parents=True)
+    admission.copy_run_prompts([task_dir for task_dir, _, _ in admitted], shape, run_dir)
     _write_json(run_dir / "sealed-inputs.json", {task.name: found for task, _, found in admitted})
-    _write_json(run_dir / "run.json", _run_record(run_id, config, engine_order, plans, settings))
+    _write_json(run_dir / "run.json", _run_record(run_id, config, engine_order, plans, common))
     _log(run_dir, "run %s: %d attempt(s) planned" % (run_id, len(plans)))
     done = []
     try:
@@ -259,32 +263,25 @@ def _plan_attempts(admitted: list, engine_order: list[tuple[str, str]], alternat
                 engine_id=engine_id, engine_command=command, attempt_no=1,
                 attempt_dir=common["run_dir"] / ("%d-%s-a1" % (task_spec.task_id, engine_id)),
                 template_dir=task_dir / "template", template_sha=vetting["template_sha"],
-                prompt_path=task_dir / "prompts" / ("%s.txt" % common["shape"]),
+                prompt_path=common["run_dir"] / ("%s.prompt.txt" % task_dir.name),
                 writable=tuple(pretask["writable"]), oracle=tuple(pretask["oracle"]),
                 pretask=pretask, necessity=vetting["necessity"], **common))
     return plans
 
 
 def _run_record(run_id: str, config: dict, engine_order: list[tuple[str, str]],
-                plans: list[AttemptPlan], settings: EngineSettings) -> dict:
+                plans: list[AttemptPlan], common: dict) -> dict:
     """run.json: the resolved config, the engines, the tasks and the two probes (P6, R9)."""
     ids = [engine_id for engine_id, _command in engine_order]
-    if "qwen" in ids:
-        server = engines.fetch_server_props(settings.qwen_provider,
-                                            settings.server_reasoning_effort)
-    else:
-        server = dict(dict.fromkeys(records.SERVER_KEYS),
-                      declared_effort=settings.server_reasoning_effort)
     tasks = [{"id": plan.task_id, "slug": plan.slug, "repo": str(plan.spec.repo),
               "kind": spec_mod.derive_kind(list(plan.writable)), "writable": list(plan.writable),
-              "oracle": list(plan.oracle),
-              "prompt_sha256": trees.hash_paths(plan.prompt_path.parent,
-                                                [plan.prompt_path.name])[plan.prompt_path.name]}
+              "oracle": list(plan.oracle), "prompt_sha256": admission.hash_file(plan.prompt_path)}
              for plan in {plan.task_id: plan for plan in plans}.values()]
     record = {"schema_version": 1, "run_id": run_id, "started": _stamp(), "config": config,
-              "engines": [{"id": i, "command": c} for i, c in engine_order],
-              "tasks": tasks, "versions": engines.record_versions(ids, settings),
-              "server": server}
+              "engines": [{"id": i, "command": c} for i, c in engine_order], "tasks": tasks,
+              "versions": admission.merge_versions(ids, common["settings"], common["shape"],
+                                                   common["evidence_dir"]),
+              "server": admission.build_server_block(ids, common["settings"])}
     records.validate_record("run", record)
     return record
 
@@ -324,6 +321,8 @@ def _steps(plan: AttemptPlan, site: gates.GateSite, record: dict) -> None:
     record["prep"], sealed = _seal_clone(plan)
     if record["prep"]["status"] != "ok":
         return
+    if admission.prompt_moved(plan.attempt_dir, plan.run_dir, plan.task_id):
+        raise RunHalted("HALTED:prompt", plan, "engine")
     record["engine_run"] = _command(
         plan, "engine", engines.dispatch, plan.engine_id, plan.engine_command,
         plan.attempt_dir / "prompt.txt", plan.attempt_dir / "clone", plan.attempt_dir,

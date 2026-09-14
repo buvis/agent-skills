@@ -215,6 +215,22 @@ def _version(cli: str) -> str | None:
     return probe.stdout.strip() or None
 
 
+def models_json_path() -> Path:
+    """pi's models.json: under $PI_CODING_AGENT_DIR, else ~/.pi/agent, as qwen-run.sh reads it."""
+    agent_dir = os.environ.get("PI_CODING_AGENT_DIR") or str(Path.home() / ".pi" / "agent")
+    return Path(agent_dir) / "models.json"
+
+
+def resolve_provider_url(provider: str) -> str | None:
+    """The baseUrl models.json configures for `provider`, or None when it names no usable one."""
+    try:
+        doc = json.loads(models_json_path().read_text(encoding="utf-8"))
+        url = doc["providers"][provider]["baseUrl"]
+    except (OSError, ValueError, TypeError, KeyError):
+        return None
+    return url if isinstance(url, str) and url else None
+
+
 def server_root(provider_url: str) -> str:
     """The URL one component above a trailing /v1, or the URL less its trailing slash."""
     root = provider_url.rstrip("/")
