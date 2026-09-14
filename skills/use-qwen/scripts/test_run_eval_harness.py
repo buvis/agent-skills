@@ -793,6 +793,27 @@ def test_parser_refuses_a_non_positive_bound(tmp_path, vetted, argv):
     assert not (root / "runs").exists()
 
 
+# -- render -------------------------------------------------------------------
+
+
+def test_render_without_a_run_id_is_refused_by_argparse(tmp_path):
+    with pytest.raises(SystemExit) as stop:
+        run_eval_harness.main(["render", str(tmp_path)])
+
+    assert stop.value.code == 2
+
+
+def test_render_returns_zero_and_writes_the_three_files_on_a_completed_round(rounds):
+    round_ = rounds("r1")
+
+    rc = run_eval_harness.main(["render", str(round_.root), "--run-id", round_.run.name])
+
+    assert rc == 0
+    assert (round_.run / "evidence.md").is_file()
+    assert (round_.run / "report.md").is_file()
+    assert (round_.run / "audit-queue.md").is_file()
+
+
 # -- budget (P13): keep this the last test in the module ---------------------
 
 
