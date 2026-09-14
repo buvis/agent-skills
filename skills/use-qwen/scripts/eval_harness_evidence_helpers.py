@@ -24,7 +24,7 @@ import eval_harness_fixtures
 # `bare_ci` is a fixture: pytest resolves it from this module's own namespace,
 # so it has to be imported even though nothing here calls it.
 from eval_harness_fixture_helpers import _git, bare_ci
-from eval_harness_record_helpers import run_record
+from eval_harness_record_helpers import run_record, sealed_record
 from test_eval_records import attempt, vetting
 
 DESCRIPTION_LABELS = {
@@ -33,6 +33,7 @@ DESCRIPTION_LABELS = {
     "canonical_patch",
     "manifest",
     "oracle",
+    "pretask",
     "prompt:description",
 }
 
@@ -57,6 +58,22 @@ TDD_FIELDS = {
     "read_anchors": [{"path": "calc.py", "symbol": "add", "start_line": 1, "end_line": 5}],
 }
 
+# Names git quotes in its default path output, one per escape class: a
+# non-ASCII letter (octal escapes), a double quote (`\"`), a real TAB (`\t`),
+# and a second non-ASCII spelling with other octal escapes. Undoing one class
+# by hand leaves the others quoted. No backslash in any name: the record
+# contract keeps paths in slash form and refuses one. Byte order, which is
+# both git's and Python's order for these four.
+QUOTED_NAMES = ("café.py", 'say "hi".py', "tab\there.py", "Ærø.py")
+
+# The same four, one per line, as git's default listing spells them.
+QUOTED_LISTING = (
+    '"caf\\303\\251.py"\n'
+    '"say \\"hi\\".py"\n'
+    '"tab\\there.py"\n'
+    '"\\303\\206r\\303\\270.py"\n'
+)
+
 
 # -- helpers ---------------------------------------------------------------
 
@@ -78,6 +95,47 @@ def _git_bytes(repo: Path, *args: str) -> bytes:
     return subprocess.run(
         ["git", "-C", str(repo), *args], capture_output=True, check=True, timeout=60
     ).stdout
+
+
+def _literal(names) -> list:
+    """The names as pathspecs git takes literally: a plain pathspec reads glob
+    and escape characters, and these names are file names, not patterns."""
+    return [f":(literal){name}" for name in names]
+
+
+def _record_git_argv(monkeypatch) -> list:
+    """Every argv `subprocess.run` is handed from here on, each call still made.
+
+    Whichever helper a module runs git through, the command ends here. A
+    reader that parses git's quoted text form has no reason to pass `-z`, so
+    the argv is where that mechanism shows.
+    """
+    real_run = subprocess.run
+    recorded = []
+
+    def run(*popenargs, **kwargs):
+        recorded.append(list(popenargs[0] if popenargs else kwargs["args"]))
+        return real_run(*popenargs, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    return recorded
+
+
+# Every way git is asked to print paths as a listing rather than as a patch. A
+# reader that parses the quoted text form can reach for any of them; the
+# `-z` pin has to cover the whole set or a decoy `-z` call beside a text one
+# passes it.
+_PATH_LISTING_FLAGS = ("--name-only", "--name-status", "--raw", "--numstat", "--stat",
+                       "--summary", "--dirstat")
+_PATH_LISTING_COMMANDS = ("ls-files", "ls-tree", "status", "diff-tree", "diff-index",
+                          "diff-files")
+
+
+def _path_listings(recorded: list) -> list:
+    """The recorded commands that asked git to print paths as a listing."""
+    return [argv for argv in recorded
+            if any(flag in argv for flag in _PATH_LISTING_FLAGS)
+            or any(command in argv for command in _PATH_LISTING_COMMANDS)]
 
 
 def _snapshot(root: Path) -> dict:
@@ -145,7 +203,32 @@ def _seal_and_vet(bundle, shapes=("description",)):
     return seal
 
 
-def _write_attempt(run: Path, attempt_id: str) -> Path:
+def _write_artifacts(where: Path, record: dict) -> None:
+    """Every durable artifact `record` proves its attempt produced.
+
+    The prompt and status land for every attempt; the rest follow the stages
+    the record says ran: a baseline leaves its output, exit code and the
+    sealed record it was measured against, a change leaves its patch, and each
+    gate that ran leaves its output and exit code. Clone directories are
+    reconstructible, so a bundle never has to carry them.
+    """
+    (where / "prompt.txt").write_bytes(b"ok\n")
+    (where / "status.txt").write_bytes(b"ok\n")
+    if record["baseline"] is not None:
+        (where / "baseline.txt").write_bytes(b"ok\n")
+        (where / "baseline.rc").write_bytes(b"1\n")
+        _write_json(where / "sealed.json", sealed_record())
+    if record["changed"] is not None:
+        (where / "diff.patch").write_bytes(b"")
+    for label, result in record["gates"].items():
+        if result is not None:
+            (where / f"{label}.txt").write_bytes(b"ok\n")
+            (where / f"{label}.rc").write_bytes(b"0\n")
+
+
+def _write_attempt(run: Path, attempt_id: str, **over) -> Path:
+    """What the run driver leaves behind for one attempt: its record and the
+    artifacts that record implies. `over` reaches the `attempt()` builder."""
     number, engine, ordinal = attempt_id.split("-")
     where = run / attempt_id
     where.mkdir()
@@ -153,9 +236,10 @@ def _write_attempt(run: Path, attempt_id: str) -> Path:
         task=int(number),
         engine=engine,
         clone=str(where / "clone"),
-        **{"attempt": int(ordinal[1:])},
+        **{"attempt": int(ordinal[1:]), **over},
     )
     _write_json(where / "attempt.json", record)
+    _write_artifacts(where, record)
     return where
 
 
@@ -214,6 +298,17 @@ MUTATIONS = {
     ),
     "edit-canonical-patch": ("canonical_patch", lambda b: _append(b.task / "canonical.patch")),
     "reindent-manifest": ("manifest", lambda b: _touch_json(b.task / "manifest.json")),
+    # An empty writable map, the other keys kept: the record still validates,
+    # so only a seal over the file's bytes tells it from the vetted one.
+    "edit-pretask": (
+        "pretask",
+        lambda b: _write_json(
+            b.task / "pretask.json", dict(_read_json(b.task / "pretask.json"), writable={})
+        ),
+    ),
+    # The same record in different bytes: a seal over a re-dump of the parsed
+    # document would not move, the way the manifest's does not.
+    "reindent-pretask": ("pretask", lambda b: _touch_json(b.task / "pretask.json")),
     "replace-oracle-file": (
         "oracle",
         lambda b: (b.task / "oracle" / "test_calc.py").write_text(
@@ -240,6 +335,8 @@ RECHECK_CASES = [
     "replace-oracle-file",
     "add-oracle-file",
     "edit-canonical-patch",
+    "edit-pretask",
+    "reindent-pretask",
 ]
 
 

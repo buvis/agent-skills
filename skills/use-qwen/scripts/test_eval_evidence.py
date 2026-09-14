@@ -13,6 +13,7 @@ changed set carries one test path for `classify_paths` to file as oracle. One
 test grows the task by a third commit, so `first` and `last` stop coinciding.
 """
 import dataclasses
+import os
 import shutil
 
 import pytest
@@ -27,13 +28,18 @@ import eval_harness_fixtures
 from eval_harness_evidence_helpers import (
     DESCRIPTION_LABELS,
     MUTATIONS,
+    QUOTED_LISTING,
+    QUOTED_NAMES,
     RECHECK_CASES,
     REFERENCES,
     TDD_FIELDS,
     _files_under,
     _git_bytes,
+    _literal,
     _make_tdd,
+    _path_listings,
     _read_json,
+    _record_git_argv,
     _seal_and_vet,
     _sha256,
     _snapshot,
@@ -44,6 +50,20 @@ from eval_harness_evidence_helpers import (
     bundle,
     task_repo,
 )
+from eval_harness_fixture_helpers import _git
+
+
+def _commit_quoted_names(info: dict) -> str:
+    """Grow the fixture task by two commits over the quoted names: one that
+    adds every file, one that edits them. Sealing the second alone puts each
+    in the template (a real digest, not "absent") and in the changed set."""
+    repo = info["repo"]
+    for body in ("def before():\n    return 1\n", "def after():\n    return 2\n"):
+        for name in QUOTED_NAMES:
+            (repo / name).write_text(body, encoding="utf-8")
+        _git(repo, "add", "--", *_literal(QUOTED_NAMES))
+        _git(repo, *eval_harness_fixtures.IDENTITY, "commit", "-m", "task: touch quoted names")
+    return _git(repo, "rev-parse", "HEAD")
 
 
 # -- default_shapes --------------------------------------------------------
@@ -244,6 +264,51 @@ def test_seal_spans_the_whole_task_range_from_before_first_to_last(bundle):
     assert copied == _git_bytes(repo, "show", f"{third}:test_calc.py")
 
 
+@pytest.mark.skipif(os.name == "nt", reason="a TAB in a filename is not legal on Windows")
+def test_seal_keeps_a_filename_git_would_quote_in_its_real_spelling(bundle, monkeypatch):
+    info = bundle.info
+    repo = info["repo"]
+    task_commit = _commit_quoted_names(info)
+    _write_json(
+        bundle.task / "spec.json", dict(_spec_doc(info), first=task_commit, last=task_commit)
+    )
+    # The control: git's default path output does quote every one of the
+    # names, so a sealer that reads that output as literal paths goes looking
+    # for files called `"caf\303\251.py"`, `"tab\there.py"` and the like.
+    listed = _git_bytes(repo, "diff", "--name-only", f"{task_commit}^", task_commit)
+    assert listed == QUOTED_LISTING.encode("utf-8")
+    recorded = _record_git_argv(monkeypatch)
+
+    seal = evidence.seal_inputs(bundle.root, bundle.task, ("description",))
+
+    # The path bytes, not the quoted text: the listing the seal asks git for
+    # is NUL-delimited, the one form that carries a name as it is. Unquoting
+    # the text by hand covers the escapes its author thought of and no more.
+    listings = _path_listings(recorded)
+    assert listings, "the seal never asked git for the changed paths"
+    for argv in listings:
+        assert "-z" in argv, argv
+    # The names the repository holds: decoded from the path bytes, never the
+    # octal escapes, the backslash escapes, or the surrounding quotes.
+    assert seal.writable == QUOTED_NAMES
+    assert seal.oracle == ()
+    template = bundle.task / "template"
+    pretask = _read_json(bundle.task / "pretask.json")
+    assert set(pretask["writable"]) == set(QUOTED_NAMES)
+    for name in QUOTED_NAMES:
+        assert (template / name).is_file(), name
+        assert pretask["writable"][name] == _sha256((template / name).read_bytes())
+        assert pretask["writable"][name] == _sha256(b"def before():\n    return 1\n")
+    patch = (bundle.task / "canonical.patch").read_bytes()
+    # Every file's hunks, and nothing else: a path git cannot resolve diffs to
+    # nothing, so a patch cut over the quoted spellings is empty.
+    assert patch.startswith(b"diff --git ")
+    assert patch.count(b"diff --git ") == len(QUOTED_NAMES)
+    assert patch.count(b"\n-def before():") == len(QUOTED_NAMES)
+    assert patch.count(b"\n+def after():") == len(QUOTED_NAMES)
+    assert b"calc.py" not in patch
+
+
 def test_seal_writes_the_rendered_prompt_byte_for_byte(bundle):
     seal = evidence.seal_inputs(bundle.root, bundle.task, ("description",))
 
@@ -389,6 +454,7 @@ def test_inputs_sha256_signs_each_input_by_its_bytes(bundle):
         "canonical_patch": _sha256((task / "canonical.patch").read_bytes()),
         "manifest": _sha256((task / "manifest.json").read_bytes()),
         "oracle": _sha256(f"test_calc.py\0{oracle_digest}\n".encode()),
+        "pretask": _sha256((task / "pretask.json").read_bytes()),
         "prompt:description": _sha256((task / "prompts" / "description.txt").read_bytes()),
         "prompt:tdd": _sha256((task / "prompts" / "tdd.txt").read_bytes()),
     }
@@ -434,6 +500,9 @@ def test_editing_one_input_moves_exactly_its_label(bundle, name):
     [
         ("canonical.patch", "canonical_patch"),
         ("manifest.json", "manifest"),
+        # A lost pretask.json is an error like any other lost input, never a
+        # label signed "absent" the way an optional file is.
+        ("pretask.json", "pretask"),
         ("prompts/description.txt", "prompt:description"),
         ("prompts/tdd.txt", "prompt:tdd"),
     ],
@@ -476,6 +545,25 @@ def test_recheck_names_the_moved_label_and_sends_the_task_back_to_vet(bundle, na
     assert "re-run vet" in str(caught.value)
 
 
+def test_recheck_refuses_a_pretask_rewritten_after_vet(bundle):
+    seal = _seal_and_vet(bundle)
+    assert "pretask" in seal.inputs_sha256
+    MUTATIONS["edit-pretask"][1](bundle)
+    # Still a pretask record the contract accepts, with the head it was sealed
+    # at: emptying the writable map is what changes every later overlay and
+    # observation, and only the seal over the file's bytes can refuse it.
+    rewritten = _read_json(bundle.task / "pretask.json")
+    assert records.validate_record("pretask", rewritten) is None
+    assert rewritten["writable"] == {}
+    assert rewritten["head_sha"] == seal.template_sha
+
+    with pytest.raises(evidence.EvidenceError) as caught:
+        evidence.recheck_inputs(bundle.root, bundle.task)
+
+    assert str(caught.value).startswith("pretask")
+    assert "re-run vet" in str(caught.value)
+
+
 def test_recheck_names_the_first_moved_label_in_sorted_order(bundle):
     _seal_and_vet(bundle)
     MUTATIONS["edit-spec"][1](bundle)
@@ -489,7 +577,14 @@ def test_recheck_names_the_first_moved_label_in_sorted_order(bundle):
 
 
 @pytest.mark.parametrize(
-    "side, label", [("vetting-only", "aaa-unknown"), ("disk-only", "canonical_patch")]
+    "side, label",
+    [
+        ("vetting-only", "aaa-unknown"),
+        ("disk-only", "canonical_patch"),
+        # A vetting record from before the label existed is not grandfathered:
+        # the disk signs pretask, the record does not, and that is a difference.
+        ("disk-only", "pretask"),
+    ],
 )
 def test_recheck_reads_a_label_on_one_side_only_as_a_difference(bundle, side, label):
     _seal_and_vet(bundle)

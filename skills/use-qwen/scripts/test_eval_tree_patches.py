@@ -6,6 +6,7 @@ already fill to this project's cap on the size of one test file. The sealed
 template and the candidate's edits are spelled there, and imported here, so
 there is one spelling of each.
 """
+import os
 import re
 import subprocess
 import time
@@ -15,6 +16,18 @@ from types import SimpleNamespace
 import pytest
 
 from eval_harness import trees
+
+import eval_harness_fixtures
+
+# The quoted-name spellings and the git argv recorder are shared with the
+# evidence tests, which pin the same reading of git's path output for the seal.
+from eval_harness_evidence_helpers import (
+    QUOTED_LISTING,
+    QUOTED_NAMES,
+    _literal,
+    _path_listings,
+    _record_git_argv,
+)
 
 # `bare_ci` and `built_repo` are fixtures: pytest resolves them from this
 # module's own namespace, so they have to be imported even though nothing here
@@ -199,6 +212,68 @@ def test_snapshot_keeps_a_non_utf8_edit_s_patch_byte_for_byte(candidate):
     assert _git(candidate.clone, "diff", "--cached", "--name-only") == ""
 
 
+@pytest.mark.skipif(os.name == "nt", reason="a TAB in a filename is not legal on Windows")
+def test_snapshot_lists_every_change_to_a_file_git_would_quote_under_its_real_name(
+    tmp_path, built_repo, monkeypatch
+):
+    template = _sealed_template(tmp_path, built_repo)
+    clone = Path(trees.fresh_clone(template, tmp_path / "clone"))
+    # The sealed tree holds three of the names under `lib/`, so the candidate
+    # has one to edit, one to delete and one to move; it adds the four
+    # top-level ones. Each file's body is its own, so no deletion pairs with
+    # an addition as a rename git found on its own.
+    edited, deleted, moved, target = (f"lib/{name}" for name in QUOTED_NAMES)
+    (clone / "lib").mkdir()
+    for name in (edited, deleted, moved):
+        (clone / name).write_text(f"# {name}\n", encoding="utf-8")
+    _git(clone, "add", "--", *_literal((edited, deleted, moved)))
+    _git(clone, *eval_harness_fixtures.IDENTITY, "commit", "-q", "-m", "seal: add quoted names")
+    sealed = trees.head_sha(clone)
+    for name in QUOTED_NAMES:
+        (clone / name).write_text(f"# {name}\n", encoding="utf-8")
+    # The control: git's default listing does quote every one of these, so a
+    # snapshot that takes that listing literally files them as
+    # `"caf\303\251.py"`, `"tab\there.py"` and the like, names nothing in the
+    # tree answers to.
+    _git(clone, "add", "-N", "--", *_literal(QUOTED_NAMES))
+    try:
+        listed = _git(clone, "diff", "--name-only", "--", *_literal(QUOTED_NAMES))
+    finally:
+        _git(clone, "reset", "-q")
+    assert listed == QUOTED_LISTING.rstrip("\n")
+    (clone / edited).write_text("# edited\n", encoding="utf-8")
+    (clone / deleted).unlink()
+    _git(clone, "mv", "--", moved, target)
+    recorded = _record_git_argv(monkeypatch)
+
+    changed, _ = trees.snapshot(clone, sealed)
+
+    # The path bytes, not the quoted text: the listing the snapshot asks git
+    # for is NUL-delimited, the one form that carries a name as it is.
+    # Unquoting the text by hand covers the escapes its author thought of.
+    listings = _path_listings(recorded)
+    assert listings, "the snapshot never asked git for the changed paths"
+    for argv in listings:
+        assert "-z" in argv, argv
+    by_path = {record["path"]: record for record in changed}
+    assert len(changed) == len(by_path), changed
+    # Every status, not only an addition: the edit, the deletion and both ends
+    # of the rename are filed under the names the tree holds.
+    rename = by_path.pop(target)
+    assert rename["status"].startswith("R"), rename
+    assert STATUS_LETTERS.fullmatch(rename["status"]), rename
+    assert rename == {"status": rename["status"], "path": target, "old_path": moved}
+    assert by_path == {
+        **{name: {"status": "A", "path": name, "old_path": None} for name in QUOTED_NAMES},
+        edited: {"status": "M", "path": edited, "old_path": None},
+        deleted: {"status": "D", "path": deleted, "old_path": None},
+    }
+    for name in (*QUOTED_NAMES, edited, target):
+        assert (clone / name).is_file(), name
+    assert not (clone / deleted).exists()
+    assert not (clone / moved).exists()
+
+
 @pytest.mark.parametrize(
     "step, failure",
     [
@@ -213,21 +288,26 @@ def test_snapshot_keeps_a_non_utf8_edit_s_patch_byte_for_byte(candidate):
 def test_snapshot_resets_the_index_even_when_the_diff_step_raises(
     candidate, monkeypatch, step, failure
 ):
-    real_git = trees._git
+    real_git, real_git_bytes = trees._git, trees._git_bytes
 
     def refuse(*args, **kwargs):
         raise failure
 
-    def refuse_the_listing(root, *args):
-        # Only the `--name-status` read fails; the intent-to-add pass and the
-        # reset still reach git, so what is left in the index is the snapshot's
-        # own doing.
-        if "--name-status" in args:
-            raise failure
-        return real_git(root, *args)
+    def refusing(real):
+        def wrapper(root, *args):
+            # Only the `--name-status` read fails; the intent-to-add pass and
+            # the reset still reach git, so what is left in the index is the
+            # snapshot's own doing. Both helpers are wrapped: which one cuts
+            # the listing is the snapshot's business, not this case's.
+            if "--name-status" in args:
+                raise failure
+            return real(root, *args)
+
+        return wrapper
 
     if step == "the-change-listing":
-        monkeypatch.setattr(trees, "_git", refuse_the_listing)
+        monkeypatch.setattr(trees, "_git", refusing(real_git))
+        monkeypatch.setattr(trees, "_git_bytes", refusing(real_git_bytes))
     else:
         monkeypatch.setattr(trees, "_git_bytes", refuse)
 

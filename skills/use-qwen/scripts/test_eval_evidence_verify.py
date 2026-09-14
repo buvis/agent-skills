@@ -19,6 +19,7 @@ from eval_harness_evidence_helpers import (
     MUTATIONS,
     _build_run,
     _completed_bundle,
+    _files_under,
     _make_tdd,
     _read_json,
     _seal_and_vet,
@@ -31,7 +32,48 @@ from eval_harness_evidence_helpers import (
     bundle,
     task_repo,
 )
-from test_eval_records import attempt
+from test_eval_records import attempt, command_result, failing_tests
+
+# What a tdd attempt with a baseline, a change and a passing gate leaves behind
+# beside its record, and what the run driver's own clone directories are not.
+STAGE_ARTIFACTS = [
+    "prompt.txt",
+    "status.txt",
+    "baseline.txt",
+    "baseline.rc",
+    "sealed.json",
+    "diff.patch",
+    "gate.txt",
+    "gate.rc",
+]
+CLONE_DIRS = ["clone", "baseline-clone", "gate-clone", "ablate-clone"]
+NO_STAGES = {
+    "baseline": None,
+    "changed": None,
+    "gates": {"gate": None, "own": None, "ablate": None},
+}
+# An attempt that stopped after its baseline: no change, no gate.
+BASELINE_ONLY = {
+    "changed": None,
+    "gates": {"gate": None, "own": None, "ablate": None},
+}
+# A description attempt: the own and ablation gates ran too.
+ALL_GATES = {
+    "shape": "description",
+    "oracle_intact": None,
+    "gates": {
+        "gate": command_result(rc=0),
+        "own": command_result(rc=0),
+        "ablate": failing_tests(),
+    },
+}
+# The gates a shape usually runs are not the gates an attempt ran: a
+# description attempt whose own gate never ran, and a tdd attempt whose own
+# gate did.
+WITHOUT_OWN = dict(ALL_GATES, gates=dict(ALL_GATES["gates"], own=None))
+TDD_WITH_OWN = {
+    "gates": {"gate": command_result(rc=0), "own": command_result(rc=0), "ablate": None},
+}
 
 
 # -- verify ----------------------------------------------------------------
@@ -280,6 +322,62 @@ def test_verify_reports_a_mutated_spec_against_the_task_and_the_run(bundle, caps
     )
 
 
+def test_verify_reports_a_rewritten_pretask_against_the_task_and_the_run(bundle, capsys):
+    _completed_bundle(bundle)
+    MUTATIONS["edit-pretask"][1](bundle)
+    # The file is still there and still a pretask record; what moved is the
+    # writable map every overlay and observation is read through.
+    assert records.validate_record("pretask", _read_json(bundle.task / "pretask.json")) is None
+
+    assert _verify(bundle.root, capsys) == (
+        1,
+        [
+            "tasks/1-calc/vetting.json: mismatch pretask",
+            "runs/r1/sealed-inputs.json: mismatch 1-calc pretask",
+        ],
+    )
+
+
+@pytest.mark.parametrize("side", ["vetting", "sealed-inputs"])
+def test_verify_reads_a_record_that_predates_the_pretask_label_as_a_mismatch(
+    bundle, capsys, side
+):
+    if side == "vetting":
+        _seal_and_vet(bundle)
+        path, key = bundle.task / "vetting.json", "inputs_sha256"
+        line = "tasks/1-calc/vetting.json: mismatch pretask"
+    else:
+        path, key = _completed_bundle(bundle) / "sealed-inputs.json", "1-calc"
+        line = "runs/r1/sealed-inputs.json: mismatch 1-calc pretask"
+    doc = _read_json(path)
+    del doc[key]["pretask"]
+    _write_json(path, doc)
+
+    # A record signed before the label existed is not grandfathered: the disk
+    # signs pretask and the record does not, and that is a difference, the
+    # same one a stale digest would be.
+    assert _verify(bundle.root, capsys) == (1, [line])
+
+
+@pytest.mark.parametrize("side", ["vetting", "sealed-inputs"])
+def test_verify_reads_a_label_the_record_alone_carries_as_a_mismatch(bundle, capsys, side):
+    if side == "vetting":
+        _seal_and_vet(bundle)
+        path, key = bundle.task / "vetting.json", "inputs_sha256"
+        line = "tasks/1-calc/vetting.json: mismatch aaa-unknown"
+    else:
+        path, key = _completed_bundle(bundle) / "sealed-inputs.json", "1-calc"
+        line = "runs/r1/sealed-inputs.json: mismatch 1-calc aaa-unknown"
+    doc = _read_json(path)
+    doc[key]["aaa-unknown"] = "0" * 64
+    _write_json(path, doc)
+
+    # The other side of the same rule: a label the disk cannot recompute is a
+    # difference too, so a drift check that walks only what the disk signs
+    # reads a record with an extra digest as clean.
+    assert _verify(bundle.root, capsys) == (1, [line])
+
+
 def test_verify_reports_a_template_that_drifted_from_its_manifest(bundle, capsys):
     _completed_bundle(bundle)
     (bundle.task / "template" / "calc.py").write_text(
@@ -323,7 +421,7 @@ def test_verify_rejects_a_marker_whose_count_disagrees_with_its_inventory(
 
 def test_verify_never_reads_a_clone_directory(bundle, capsys):
     run = _completed_bundle(bundle)
-    clones = [run / "1-cmd1-a1" / name for name in ("clone", "baseline-clone", "gate-clone")]
+    clones = [run / "1-cmd1-a1" / name for name in CLONE_DIRS]
     for clone in clones:
         (clone / ".git").mkdir(parents=True)
         (clone / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
@@ -335,6 +433,140 @@ def test_verify_never_reads_a_clone_directory(bundle, capsys):
     assert _verify(bundle.root, capsys) == (0, [])
     assert _snapshot(bundle.root) == before
 
+    # Reconstructible, so a bundle that dropped them is still whole: not one
+    # `missing` line for any of the four.
     for clone in clones:
         shutil.rmtree(clone)
     assert _verify(bundle.root, capsys) == (0, [])
+
+
+# -- verify: the per-stage artifacts ---------------------------------------
+
+
+def test_verify_passes_a_completed_attempt_that_carries_every_stage_artifact(bundle, capsys):
+    run = _completed_bundle(bundle)
+
+    # The fixture is the contract's own inventory: the record says a baseline
+    # ran, a change landed and the gate ran, and each stage left its files.
+    assert _files_under(run / "1-cmd1-a1") == sorted(["attempt.json", *STAGE_ARTIFACTS])
+    assert _verify(bundle.root, capsys) == (0, [])
+
+
+@pytest.mark.parametrize("name", STAGE_ARTIFACTS)
+def test_verify_reports_a_completed_attempt_stripped_of_one_stage_artifact_as_missing(
+    bundle, capsys, name
+):
+    run = _completed_bundle(bundle)
+    (run / "1-cmd1-a1" / name).unlink()
+
+    # attempt.json says the stage ran; the file it left behind is gone. One
+    # line, for that file, and nothing else about the attempt.
+    assert _verify(bundle.root, capsys) == (1, [f"runs/r1/1-cmd1-a1/{name}: missing"])
+
+
+@pytest.mark.parametrize("name", ["own.txt", "own.rc", "ablate.txt", "ablate.rc"])
+def test_verify_asks_for_every_gate_the_record_says_ran(bundle, capsys, name):
+    run = _completed_bundle(bundle)
+    shutil.rmtree(run / "1-cmd1-a1")
+    where = _write_attempt(run, "1-cmd1-a1", **ALL_GATES)
+    assert records.validate_record("attempt", _read_json(where / "attempt.json")) is None
+    assert _verify(bundle.root, capsys) == (0, [])
+    (where / name).unlink()
+
+    # The gate list comes from the record, not from a fixed `gate.*` pair: a
+    # description attempt's own and ablation gates leave files too.
+    assert _verify(bundle.root, capsys) == (1, [f"runs/r1/1-cmd1-a1/{name}: missing"])
+
+
+@pytest.mark.parametrize(
+    "over, skipped, ran",
+    [
+        (WITHOUT_OWN, ("own.txt", "own.rc"), "ablate.txt"),
+        (TDD_WITH_OWN, ("ablate.txt", "ablate.rc"), "own.txt"),
+    ],
+    ids=["description-without-own", "tdd-with-own"],
+)
+def test_verify_follows_each_gate_entry_not_the_shape_s_usual_gates(
+    bundle, capsys, over, skipped, ran
+):
+    run = _completed_bundle(bundle)
+    shutil.rmtree(run / "1-cmd1-a1")
+    where = _write_attempt(run, "1-cmd1-a1", **over)
+    record = _read_json(where / "attempt.json")
+    assert records.validate_record("attempt", record) is None
+    for name in skipped:
+        assert not (where / name).exists(), name
+
+    # A gate the record says never ran left nothing, whatever the shape
+    # usually runs...
+    assert _verify(bundle.root, capsys) == (0, [])
+
+    (where / ran).unlink()
+    # ...and one it says ran left its files, whatever the shape usually skips.
+    assert _verify(bundle.root, capsys) == (1, [f"runs/r1/1-cmd1-a1/{ran}: missing"])
+
+
+def test_verify_asks_a_record_that_stopped_after_its_baseline_for_the_baseline_files_only(
+    bundle, capsys
+):
+    run = _completed_bundle(bundle)
+    shutil.rmtree(run / "1-cmd1-a1")
+    where = _write_attempt(run, "1-cmd1-a1", **BASELINE_ONLY)
+    record = _read_json(where / "attempt.json")
+    assert records.validate_record("attempt", record) is None
+    assert record["baseline"] is not None
+    assert record["changed"] is None
+    assert set(record["gates"].values()) == {None}
+    # The baseline ran and nothing after it: its output, exit code and sealed
+    # record are there, and no patch or gate output ever was. Each stage
+    # answers for its own files; the baseline does not vouch for the rest.
+    assert _files_under(where) == [
+        "attempt.json",
+        "baseline.rc",
+        "baseline.txt",
+        "prompt.txt",
+        "sealed.json",
+        "status.txt",
+    ]
+
+    assert _verify(bundle.root, capsys) == (0, [])
+
+    (where / "baseline.rc").unlink()
+    assert _verify(bundle.root, capsys) == (1, ["runs/r1/1-cmd1-a1/baseline.rc: missing"])
+
+
+def test_verify_asks_an_attempt_that_changed_nothing_for_its_empty_patch(bundle, capsys):
+    run = _completed_bundle(bundle)
+    shutil.rmtree(run / "1-cmd1-a1")
+    where = _write_attempt(run, "1-cmd1-a1", changed=[])
+    record = _read_json(where / "attempt.json")
+    assert records.validate_record("attempt", record) is None
+    assert record["changed"] == []
+    assert (where / "diff.patch").stat().st_size == 0
+    assert _verify(bundle.root, capsys) == (0, [])
+
+    (where / "diff.patch").unlink()
+    # An observation that found no change still wrote its (empty) patch; an
+    # empty list is evidence the stage ran, not the absence of it.
+    assert _verify(bundle.root, capsys) == (1, ["runs/r1/1-cmd1-a1/diff.patch: missing"])
+
+
+def test_verify_asks_a_record_that_proves_no_stage_ran_for_only_its_prompt_and_status(
+    bundle, capsys
+):
+    run = _completed_bundle(bundle)
+    shutil.rmtree(run / "1-cmd1-a1")
+    where = _write_attempt(run, "1-cmd1-a1", **NO_STAGES)
+    record = _read_json(where / "attempt.json")
+    assert records.validate_record("attempt", record) is None
+    assert record["baseline"] is None
+    assert record["changed"] is None
+    assert set(record["gates"].values()) == {None}
+    # No baseline, no change, no gate: nothing but the prompt and the status
+    # was ever produced, so nothing else can be missing.
+    assert _files_under(where) == ["attempt.json", "prompt.txt", "status.txt"]
+
+    assert _verify(bundle.root, capsys) == (0, [])
+
+    (where / "status.txt").unlink()
+    assert _verify(bundle.root, capsys) == (1, ["runs/r1/1-cmd1-a1/status.txt: missing"])
