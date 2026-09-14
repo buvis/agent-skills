@@ -26,7 +26,7 @@ jobs:
 
       # enable-cache defaults to "auto", which caches on GitHub-hosted runners
       # for every event this workflow triggers on.
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
 
       # sweep-fix shells out to rg and ast-grep, and the hosted runner ships
       # neither, so 21 of its tests fail. Both come from mise, but they need
@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
 
       # The ubuntu `test` job's two OPPOSITE placement rules, in their Windows
       # spelling: `rg` is COPIED onto PATH (a symlink is the wrong tool on a
@@ -148,7 +148,7 @@ jobs:
 
       # enable-cache defaults to "auto", which caches on GitHub-hosted runners
       # for every event this workflow triggers on.
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
 
       - name: Lint braid
         run: uv run ruff check
