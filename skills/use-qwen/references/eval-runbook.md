@@ -95,6 +95,24 @@ cheap to detect after the fact.
 For a multi-file task, items 1 and 2 apply per touched file, and the
 pre-task state is the whole set reverted together.
 
+## 7. Harness rounds
+
+Use the harness, not `run-eval.sh`, for any round that is multi-file, TDD-shape, or compares two engines head-to-head. Single-file qualification stays on `run-eval.sh` (§ 1-5).
+
+Three commands, run in this order:
+
+```
+~/.agents/skills/use-qwen/scripts/run_eval_harness.py vet <evidence_dir>
+~/.agents/skills/use-qwen/scripts/run_eval_harness.py run <evidence_dir> --run-id <run-id> --engines a[,b] --shape {description,tdd} --bound SECONDS
+~/.agents/skills/use-qwen/scripts/run_eval_harness.py render <evidence_dir> --run-id <run-id>
+```
+
+`vet` seals and qualifies every task under `<evidence_dir>/tasks/`. `run` dispatches every ready task through the named engines and writes attempt records. `render` turns those records into `evidence.md`, `report.md` and `audit-queue.md` under `<evidence_dir>/runs/<run-id>/` - that is where the evidence lands.
+
+Tree reconstruction, fresh per-attempt baselines, serial gates, and process-tree bounds - the concerns behind the § 6 isolation-safety checklist above - are enforced by code in harness rounds, not by hand.
+
+Historical 00010 scores are invalid. 00010's reverse-patch and manual pre-task snapshot procedure (§ 1-6 above) does not govern harness rounds.
+
 ## Scope of approval
 
 Approval is per **exact model id**. A different quant (e.g. `Q5_K_M` vs `Q4_K_M`) or a different checkpoint of "the same" model is a different id and needs its own eval - never carry over a pass from one id to another.

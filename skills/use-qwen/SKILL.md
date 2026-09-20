@@ -91,6 +91,8 @@ Ask which provider/port if it isn't already clear from context - a provider must
 4. **Report the score and verdict to the user before appending to the registry**, unless they already said to run the whole pipeline autonomously. Appending changes what autopilot trusts unattended - this is the one checkpoint `eval-runbook.md` exists to enforce; do not silently skip it because the score looks good.
 5. If genuinely clean and the user confirms (or pre-authorized): re-run the same command with `--commit` added.
 
+- Multi-file, TDD-shape or two-engine rounds run through `~/.agents/skills/use-qwen/scripts/run_eval_harness.py` (`vet`, `run`, `render`; runbook § 7); qualification stays on `run-eval.sh`.
+
 **3. Promote to default - stop and check again, separately from step 2.**
 
 Only after phase 2's `--commit` actually landed the id in `scripts/approved-models.txt`. Confirm with the user before running - this changes the documented default for every manual/interactive session, not just autopilot, and is a separate decision from "is it qualified":
