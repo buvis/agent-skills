@@ -12,7 +12,18 @@ from pathlib import Path
 
 from eval_harness import records
 
-_TALLY_LABELS = ("PASS", "FAIL", "TIMEOUT", "SUSPECT", "DISCARDED")
+_FAIL_CLASSES = ("test-mutation", "stray-edit", "no-edit", "dropped-a-file", "vacuous-tests",
+                  "logic-error")
+# The record field whose value decided each FAIL class, traced from
+# records._judge_evidence/_judge_gates.
+_CLASS_FIELD = {
+    "test-mutation": "oracle_intact", "stray-edit": "stray", "no-edit": "changed",
+    "dropped-a-file": "dropped", "vacuous-tests": "gates.ablate", "logic-error": "gates",
+}
+# Sibling files inside an attempt directory, alongside attempt.json.
+_OUT_FILE = "out.txt"
+_GATE_OUT_FILE = "gate.txt"
+_SESSION_LOG_FILE = "session.jsonl"
 
 
 def _load_entries(run_dir: Path, engine_order: list) -> list:
@@ -59,59 +70,211 @@ def _load_audit(run_dir: Path) -> dict:
     return rows
 
 
-def _evidence_md(run: dict, entries: list) -> str:
-    lines = []
-    for task in run["tasks"]:
-        lines += ["## Setup", "task: %d" % task["id"], "slug: %s" % task["slug"], ""]
-    for entry in entries:
-        lines.append("### %s" % entry["id"])
-        record = entry["record"]
-        if record is None:
-            lines += ["INCOMPLETE", "outcome: n/a"]
-        else:
-            lines += [
-                "engine: %s" % record["engine"], "attempt: %d" % record["attempt"],
-                "outcome: %s" % record["outcome"], "class: %s" % record["class"],
-                "validity: %s" % records.derive_validity(record),
-            ]
-        lines.append("")
-    return "\n".join(lines) + "\n"
+def _load_vetting(root: Path, task: dict) -> dict | None:
+    path = root / "tasks" / ("%d-%s" % (task["id"], task["slug"])) / "vetting.json"
+    if not path.is_file():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _scores_section(entries: list) -> list:
-    lines = ["## Scores", ""]
-    last_key = None
+def _group_by_task_engine(entries: list) -> dict:
+    groups = {}
     for entry in entries:
-        key = (entry["task"], entry["engine"])
-        if key != last_key:
-            lines.append("%d-%s" % key)
-            last_key = key
-        outcome = entry["record"]["outcome"] if entry["record"] is not None else "INCOMPLETE"
-        lines.append("  %s: %s" % (entry["id"], outcome))
+        groups.setdefault((entry["task"], entry["engine"]), []).append(entry)
+    return groups
+
+
+def _effective(group: list) -> tuple:
+    """(outcome, class, attempts) for a task+engine's last numbered attempt."""
+    if not group:
+        return "NOT_STARTED", None, 0
+    last = max(group, key=lambda e: e["attempt"])
+    if last["record"] is None:
+        return "INCOMPLETE", None, len(group)
+    return last["record"]["outcome"], last["record"]["class"], len(group)
+
+
+def _or(value, fallback: str):
+    return fallback if value is None else value
+
+
+def _path_list(paths) -> str:
+    return ", ".join(paths) if paths else "none"
+
+
+def _read_sibling(attempt_dir: Path, name: str) -> str | None:
+    path = attempt_dir / name
+    if not path.is_file():
+        return None
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
+def _setup_block(vetting: dict | None) -> list:
+    lines = ["## Setup", ""]
+    if vetting is None:
+        return lines + ["vetting.json: unavailable", ""]
+    lines.append("template_sha: %s" % vetting["template_sha"])
+    for i, warmup in enumerate(vetting["warmup"], 1):
+        lines.append("warmup[%d] rc: %s" % (i, _or(warmup["rc"], "unavailable")))
+    baseline = vetting["baseline"]
+    lines.append("baseline rc: %s" % (_or(baseline["rc"], "unavailable") if baseline
+                                       else "unavailable"))
+    canonical = vetting["canonical"]
+    lines.append("canonical rc: %s" % (_or(canonical["rc"], "unavailable") if canonical
+                                        else "unavailable"))
+    for path, necessity in sorted(vetting["necessity"].items()):
+        lines.append("necessity %s: holds=%s" % (path, necessity["holds"]))
     lines.append("")
     return lines
 
 
-def _counts_section(engine_order: list, entries: list, valid_ids: list, audit_rows: dict) -> list:
+def _attempt_block(entry: dict, run_dir: Path) -> list:
+    record = entry["record"]
+    if record is None:
+        return [
+            "### %s attempt %d" % (entry["engine"], entry["attempt"]), "",
+            "Attempt: %s" % entry["id"],
+            "Tree: n/a", "Dispatch: n/a", "Engine identity: n/a",
+            "Captured output: n/a", "Dispatch exit code: n/a | Dispatch validity: n/a",
+            "Baseline exit code: n/a; first failure: n/a",
+            "Files changed: n/a | dropped: n/a | stray: n/a",
+            "Own/gate/ablation exit codes: n/a / n/a / n/a",
+            "Result: INCOMPLETE", "",
+        ]
+
+    attempt_dir = run_dir / entry["id"]
+    engine_run, baseline, gates = record["engine_run"], record["baseline"], record["gates"]
+    out_path = attempt_dir / _OUT_FILE
+    out_bytes = out_path.stat().st_size if out_path.is_file() else None
+    changed = [c["path"] for c in record["changed"]] if record["changed"] else []
+    result = record["outcome"] if record["class"] is None else "%s:%s" % (
+        record["outcome"], record["class"])
+
+    return [
+        "### %s attempt %d" % (record["engine"], record["attempt"]), "",
+        "Attempt: %s" % entry["id"],
+        "Tree: %s" % record["clone"],
+        "Dispatch: `%s`" % " ".join(engine_run["argv"]),
+        "Engine identity: `%s`" % _or(engine_run["identity"], "n/a"),
+        "Captured output: %s (%s bytes)" % (out_path, _or(out_bytes, "unavailable")),
+        "Dispatch exit code: %s | Dispatch validity: %s" % (
+            _or(engine_run["exit"], "n/a"), records.derive_validity(record)),
+        "Baseline exit code: %s; first failure: `%s`" % (
+            _or(baseline["rc"], "n/a") if baseline else "n/a",
+            _or(baseline["first_failure"], "n/a") if baseline else "n/a"),
+        "Files changed: %s | dropped: %s | stray: %s" % (
+            _path_list(changed), _path_list(record["dropped"]), _path_list(record["stray"])),
+        "Own/gate/ablation exit codes: %s / %s / %s" % (
+            _or(gates["own"]["rc"], "n/a") if gates["own"] else "n/a",
+            _or(gates["gate"]["rc"], "n/a") if gates["gate"] else "n/a",
+            _or(gates["ablate"]["rc"], "n/a") if gates["ablate"] else "n/a"),
+        "Result: %s" % result, "",
+        "<details><summary>engine output</summary>", "",
+        _or(_read_sibling(attempt_dir, _OUT_FILE), "unavailable"), "",
+        "</details>",
+        "<details><summary>gate output</summary>", "",
+        _or(_read_sibling(attempt_dir, _GATE_OUT_FILE), "unavailable"), "",
+        "</details>", "",
+    ]
+
+
+def _evidence_md(run: dict, entries: list, run_dir: Path, vetting_by_task: dict) -> str:
+    lines = ["run_id: %s" % run["run_id"], "started: %s" % run["started"]]
+    for key, value in sorted(run["config"].items()):
+        lines.append("config.%s: %s" % (key, value))
+    for key, value in sorted(run["versions"].items()):
+        lines.append("version.%s: %s" % (key, _or(value, "unavailable")))
+    lines.append("")
+
+    by_task = {}
+    for entry in entries:
+        by_task.setdefault(entry["task"], []).append(entry)
+
+    for task in run["tasks"]:
+        lines.append("## Task %d: %s" % (task["id"], task["slug"]))
+        lines.append("")
+        lines.append("Repo: %s | Kind: %s" % (task["repo"], task["kind"]))
+        lines.append("")
+        lines += _setup_block(vetting_by_task.get(task["id"]))
+        for entry in by_task.get(task["id"], []):
+            lines += _attempt_block(entry, run_dir)
+    return "\n".join(lines) + "\n"
+
+
+def _run_section(run: dict, engine_order: list) -> list:
+    lines = ["## Run", "", "run_id: %s" % run["run_id"], "started: %s" % run["started"],
+             "tasks: %d" % len(run["tasks"]), "engines: %s" % ", ".join(engine_order), ""]
+    lines.append("### Flags")
+    for key, value in sorted(run["config"].items()):
+        lines.append("%s: %s" % (key, value))
+    lines.append("")
+    lines.append("### Versions")
+    for key, value in sorted(run["versions"].items()):
+        lines.append("%s: %s" % (key, _or(value, "unavailable")))
+    lines.append("")
+    lines.append("### Server")
+    server = run["server"]
+    for key in records.SERVER_KEYS:
+        lines.append("%s: %s" % (key, _or(server[key], "unavailable")))
+    lines.append("")
+    return lines
+
+
+def _scores_section(run: dict, engine_order: list, groups: dict) -> list:
+    lines = ["## Scores", ""]
+    for task in run["tasks"]:
+        lines.append("Task %d: %s | kind: %s | repo: %s" %
+                      (task["id"], task["slug"], task["kind"], task["repo"]))
+        for engine in engine_order:
+            outcome, cls, attempts = _effective(groups.get((task["id"], engine), []))
+            label = outcome if cls is None else "%s:%s" % (outcome, cls)
+            lines.append("  %s: %s (attempts: %d)" % (engine, label, attempts))
+        lines.append("")
+    return lines
+
+
+def _counts_section(run: dict, engine_order: list, entries: list, groups: dict,
+                    valid_ids: list, audit_rows: dict) -> list:
     lines = ["## Counts", ""]
     for engine in engine_order:
         ents = [e for e in entries if e["engine"] == engine]
         if not ents:
             lines += ["%s: not_started (NOT_STARTED)" % engine, ""]
             continue
-        tallies = dict.fromkeys(_TALLY_LABELS, 0)
-        incomplete = 0
-        for entry in ents:
-            if entry["record"] is None:
-                incomplete += 1
-            else:
-                tallies[entry["record"]["outcome"]] += 1
+        recs = [e["record"] for e in ents if e["record"] is not None]
         lines.append(engine)
         lines.append("  attempts: %d" % len(ents))
-        for label in _TALLY_LABELS:
-            lines.append("  %s: %d" % (label, tallies[label]))
-        lines.append("  INCOMPLETE: %d" % incomplete)
+        lines.append("  PASS: %d" % sum(1 for r in recs if r["outcome"] == "PASS"))
+        lines.append("  FAIL: %d" % sum(1 for r in recs if r["outcome"] == "FAIL"))
+        for cls in _FAIL_CLASSES:
+            n = sum(1 for r in recs if r["outcome"] == "FAIL" and r["class"] == cls)
+            lines.append("  FAIL:%s: %d" % (cls, n))
+        for label in ("TIMEOUT", "SUSPECT", "DISCARDED"):
+            lines.append("  %s: %d" % (label, sum(1 for r in recs if r["outcome"] == label)))
+        lines.append("  INCOMPLETE: %d" % (len(ents) - len(recs)))
         lines.append("")
+
+    drops = sum(1 for e in entries if e["record"] is not None
+               and e["record"]["outcome"] == "FAIL" and e["record"]["class"] == "dropped-a-file")
+    lines.append("drops: %d" % drops)
+
+    scored = 0
+    not_started = 0
+    for task in run["tasks"]:
+        task_scored = True
+        for engine in engine_order:
+            group = groups.get((task["id"], engine), [])
+            if not group:
+                not_started += 1
+                task_scored = False
+                continue
+            record = max(group, key=lambda e: e["attempt"])["record"]
+            if record is None or record["engine_run"]["launch"] not in ("started", "unknown"):
+                task_scored = False
+        if task_scored:
+            scored += 1
+    lines.append("scored: %d" % scored)
+    lines.append("not_started: %d" % not_started)
 
     audited = sum(1 for aid in valid_ids if aid in audit_rows)
     n = len(valid_ids)
@@ -130,33 +293,97 @@ def _classification_section(entries: list) -> list:
     for entry in entries:
         record = entry["record"]
         if record is not None and record["outcome"] == "FAIL":
-            lines.append("%s: %s" % (entry["id"], record["class"]))
+            lines.append("engine: %s | task: %d | class: %s | field: %s" % (
+                record["engine"], record["task"], record["class"],
+                _CLASS_FIELD.get(record["class"], "class")))
     lines.append("")
     return lines
 
 
-def _report_md(run: dict, engine_order: list, entries: list, valid_ids: list,
-               audit_rows: dict) -> str:
-    lines = ["## Run", "", "run_id: %s" % run["run_id"], "tasks: %d" % len(run["tasks"]),
-             "engines: %s" % ", ".join(engine_order), ""]
-    lines += _scores_section(entries)
-    lines += _counts_section(engine_order, entries, valid_ids, audit_rows)
+def _vetting_section(run: dict, vetting_by_task: dict) -> list:
+    lines = ["## Vetting", ""]
+    for task in run["tasks"]:
+        vetting = vetting_by_task.get(task["id"])
+        lines.append("Task %d: %s" % (task["id"], task["slug"]))
+        if vetting is None:
+            lines.append("  vetting.json: unavailable")
+            lines.append("")
+            continue
+        baseline, canonical = vetting["baseline"], vetting["canonical"]
+        lines.append("  baseline rc: %s" % (_or(baseline["rc"], "unavailable") if baseline
+                                             else "unavailable"))
+        lines.append("  canonical rc: %s" % (_or(canonical["rc"], "unavailable") if canonical
+                                              else "unavailable"))
+        for path, necessity in sorted(vetting["necessity"].items()):
+            lines.append("  necessity %s: holds=%s" % (path, necessity["holds"]))
+        lines.append("")
+    return lines
+
+
+def _measurements_section(entries: list, audit_rows: dict) -> list:
+    lines = ["## Measurements", ""]
+    for entry in entries:
+        lines.append(entry["id"])
+        record = entry["record"]
+        if record is None:
+            lines.append("  wall_s: unavailable")
+            lines.append("  first_edit_s: unavailable")
+            for key in records.USAGE_KEYS:
+                lines.append("  %s: unavailable" % key)
+            lines.append("  review_effort_s: unavailable")
+            continue
+        engine_run = record["engine_run"]
+        lines.append("  wall_s: %s" % _or(engine_run["wall_s"], "unavailable"))
+        lines.append("  first_edit_s: %s" % _or(engine_run["first_edit_s"], "unavailable"))
+        usage = engine_run["usage"]
+        for key in records.USAGE_KEYS:
+            lines.append("  %s: %s" % (key, _or(usage[key], "unavailable")))
+        review_effort = audit_rows.get(entry["id"], {}).get("review_effort_s")
+        lines.append("  review_effort_s: %s" % _or(review_effort, "unavailable"))
+    lines.append("")
+    return lines
+
+
+def _report_md(run: dict, engine_order: list, entries: list, groups: dict, valid_ids: list,
+               audit_rows: dict, vetting_by_task: dict) -> str:
+    lines = _run_section(run, engine_order)
+    lines += _scores_section(run, engine_order, groups)
+    lines += _counts_section(run, engine_order, entries, groups, valid_ids, audit_rows)
     lines += _classification_section(entries)
-    lines += ["## Vetting", "", "## Measurements", ""]
+    lines += _vetting_section(run, vetting_by_task)
+    lines += _measurements_section(entries, audit_rows)
     return "\n".join(lines) + "\n"
 
 
-def _audit_queue_md(valid_ids: list, audit_rows: dict) -> str:
+def _audit_queue_md(run_dir: Path, entries: list, valid_ids: list, audit_rows: dict) -> str:
+    by_id = {entry["id"]: entry for entry in entries}
     lines = ["## Audit Queue", ""]
     for aid in valid_ids:
+        record = by_id[aid]["record"]
+        attempt_dir = run_dir / aid
+        out_path = attempt_dir / _OUT_FILE
+        session_log_path = attempt_dir / _SESSION_LOG_FILE
+        final_bytes = record["engine_run"]["final_message_bytes"]
+        gate = record["gates"]["gate"]
+        changed = [c["path"] for c in record["changed"]] if record["changed"] else []
         verdict = audit_rows[aid]["verdict"] if aid in audit_rows else "PENDING"
-        lines.append("%s: %s" % (aid, verdict))
-    lines.append("")
+
+        lines.append("### %s" % aid)
+        lines.append("final message: %s (%s bytes)" % (
+            out_path if out_path.is_file() else "unavailable",
+            _or(final_bytes, "unavailable")))
+        lines.append("session log: %s" % (
+            session_log_path if session_log_path.is_file() else "none"))
+        lines.append("gate exit code: %s" % (_or(gate["rc"], "n/a") if gate else "n/a"))
+        lines.append("changed files: %s" % _path_list(changed))
+        lines.append("verdict: %s" % verdict)
+        lines.append("")
     return "\n".join(lines) + "\n"
 
 
 def render(root: Path, run_id: str) -> None:
-    run_dir = Path(root) / "runs" / run_id
+    root = Path(root)
+    run_dir = root / "runs" / run_id
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     engine_order = [engine["id"] for engine in run["engines"]]
 
@@ -165,10 +392,13 @@ def render(root: Path, run_id: str) -> None:
     valid_ids = [entry["id"] for entry in entries
                  if entry["record"] is not None
                  and records.derive_validity(entry["record"]) == "VALID"]
+    vetting_by_task = {task["id"]: _load_vetting(root, task) for task in run["tasks"]}
+    groups = _group_by_task_engine(entries)
 
-    evidence_content = _evidence_md(run, entries)
-    report_content = _report_md(run, engine_order, entries, valid_ids, audit_rows)
-    audit_queue_content = _audit_queue_md(valid_ids, audit_rows)
+    evidence_content = _evidence_md(run, entries, run_dir, vetting_by_task)
+    report_content = _report_md(run, engine_order, entries, groups, valid_ids, audit_rows,
+                                vetting_by_task)
+    audit_queue_content = _audit_queue_md(run_dir, entries, valid_ids, audit_rows)
 
     (run_dir / "evidence.md").write_text(evidence_content, encoding="utf-8")
     (run_dir / "report.md").write_text(report_content, encoding="utf-8")
