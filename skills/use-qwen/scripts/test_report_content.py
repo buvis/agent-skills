@@ -9,6 +9,7 @@ looked at once. Rounds used: "r1" (description, two engines), "tdd" (tdd, one
 PASS and one FAIL:test-mutation engine), "stray" (single engine).
 """
 import re
+import shlex
 
 from eval_harness import records, report
 
@@ -73,6 +74,17 @@ def test_evidence_engine_identity_line_renders_the_records_identity(rounds):
 
     block = _block(evidence, list(attempts), aid)
     assert ("Engine identity: `%s`" % identity) in block.splitlines()
+
+
+def test_evidence_dispatch_line_renders_the_records_argv_shlex_joined(rounds):
+    round_ = rounds("r1")
+    attempts = _attempts(round_)
+    aid, record = next(iter(attempts.items()))
+
+    evidence, _, _ = _render(round_)
+
+    block = _block(evidence, list(attempts), aid)
+    assert ("Dispatch: `%s`" % shlex.join(record["engine_run"]["argv"])) in block.splitlines()
 
 
 def test_evidence_baseline_line_renders_baseline_rc_and_first_failure_from_the_record(rounds):
