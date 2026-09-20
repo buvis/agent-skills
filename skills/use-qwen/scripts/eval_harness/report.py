@@ -213,19 +213,23 @@ def _setup_block(vetting: dict | None) -> list:
     return lines
 
 
+def _incomplete_attempt_block(entry: dict) -> list:
+    return [
+        "### %s attempt %d" % (entry["engine"], entry["attempt"]), "",
+        "Attempt: %s" % entry["id"],
+        "Tree: n/a", "Dispatch: n/a", "Engine identity: n/a",
+        "Captured output: n/a", "Dispatch exit code: n/a | Dispatch validity: n/a",
+        "Baseline exit code: n/a; first failure: n/a",
+        "Files changed: n/a | dropped: n/a | stray: n/a",
+        "Own/gate/ablation exit codes: n/a / n/a / n/a",
+        "Result: INCOMPLETE", "",
+    ]
+
+
 def _attempt_block(entry: dict, run_dir: Path) -> list:
     record = entry["record"]
     if record is None:
-        return [
-            "### %s attempt %d" % (entry["engine"], entry["attempt"]), "",
-            "Attempt: %s" % entry["id"],
-            "Tree: n/a", "Dispatch: n/a", "Engine identity: n/a",
-            "Captured output: n/a", "Dispatch exit code: n/a | Dispatch validity: n/a",
-            "Baseline exit code: n/a; first failure: n/a",
-            "Files changed: n/a | dropped: n/a | stray: n/a",
-            "Own/gate/ablation exit codes: n/a / n/a / n/a",
-            "Result: INCOMPLETE", "",
-        ]
+        return _incomplete_attempt_block(entry)
 
     attempt_dir = run_dir / entry["id"]
     engine_run, baseline, gates = record["engine_run"], record["baseline"], record["gates"]
