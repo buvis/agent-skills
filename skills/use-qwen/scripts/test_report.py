@@ -8,6 +8,7 @@ own arithmetic. Only rounds "hang", "retry", "tdd" and "r1" are used, per the ta
 """
 import json
 import re
+import shlex
 from pathlib import Path
 
 import pytest
@@ -29,6 +30,26 @@ from eval_harness_run_helpers import (
 
 SECTIONS = ("## Run", "## Scores", "## Counts", "## Classification", "## Vetting",
             "## Measurements")
+
+# The exact per-engine ## Counts block for a planned engine with no attempt directory
+# (task item 5, pinned): every numeric field present and zero, no alternatives.
+CMD3_NOT_STARTED_BLOCK = (
+    "cmd3: not_started (NOT_STARTED)\n"
+    "  attempts: 0\n"
+    "  PASS: 0\n"
+    "  FAIL: 0\n"
+    "  FAIL:test-mutation: 0\n"
+    "  FAIL:stray-edit: 0\n"
+    "  FAIL:no-edit: 0\n"
+    "  FAIL:dropped-a-file: 0\n"
+    "  FAIL:vacuous-tests: 0\n"
+    "  FAIL:logic-error: 0\n"
+    "  TIMEOUT: 0\n"
+    "  SUSPECT: 0\n"
+    "  DISCARDED: 0\n"
+    "  INCOMPLETE: 0\n"
+    "\n"
+)
 
 
 def _run_json(round_) -> dict:
@@ -213,7 +234,7 @@ def test_report_md_counts_match_an_independent_recount_of_the_attempt_records(ro
             )
 
 
-def test_a_planned_engine_with_no_attempt_directory_is_not_started_and_not_an_attempt(rounds):
+def test_a_planned_engine_with_no_attempt_directory_renders_one_exact_not_started_block(rounds):
     round_ = rounds("r1")
     run_path = round_.run / "run.json"
     original = run_path.read_text(encoding="utf-8")
@@ -224,11 +245,11 @@ def test_a_planned_engine_with_no_attempt_directory_is_not_started_and_not_an_at
     try:
         _, report_md, _ = _render(round_)
 
-        assert "NOT_STARTED" in report_md
+        assert CMD3_NOT_STARTED_BLOCK in report_md
         counts_section = report_md.split("## Counts", 1)[1].split("## Classification", 1)[0]
-        assert re.search(r"cmd3[\s\S]{0,200}?\bnot_started\b", counts_section) or re.search(
-            r"not_started[\s\S]{0,200}?\bcmd3\b", counts_section
-        ), counts_section
+        assert "not_started: 1" in counts_section.splitlines()
+        scores_section = report_md.split("## Scores", 1)[1].split("## Counts", 1)[0]
+        assert "  cmd3: NOT_STARTED (attempts: 0)" in scores_section.splitlines()
     finally:
         run_path.write_text(original, encoding="utf-8")
 
@@ -380,3 +401,109 @@ def test_audit_queue_shows_the_stored_verdict_once_a_row_exists(rounds):
     block = _block(audit_queue, valid_ids, valid_ids[0])
     assert "unverifiable" in block
     assert "PENDING" not in block
+
+
+# -- report.py medium tail: named run.json errors, zero-padded ids, captured output ------------
+
+
+def test_render_names_the_run_id_and_run_json_when_the_run_dir_is_absent(rounds):
+    round_ = rounds("r1")
+
+    with pytest.raises(ValueError) as failure:
+        report.render(round_.root, "no-such-run")
+
+    message = str(failure.value)
+    assert "no-such-run" in message
+    assert "run.json" in message
+
+
+def test_render_names_the_run_id_and_run_json_when_run_json_is_missing(rounds):
+    round_ = rounds("tdd")
+    run_json_path = round_.run / "run.json"
+    renamed = round_.run / "run.json.bak"
+    run_json_path.rename(renamed)
+
+    try:
+        with pytest.raises(ValueError) as failure:
+            report.render(round_.root, round_.run.name)
+
+        message = str(failure.value)
+        assert round_.run.name in message
+        assert "run.json" in message
+    finally:
+        renamed.rename(run_json_path)
+
+
+def test_a_zero_padded_task_directory_still_yields_its_vetting_results(rounds):
+    round_ = rounds("r1")
+    task_dir = round_.root / "tasks" / "1-calc"
+    padded_dir = round_.root / "tasks" / "01-calc"
+    vetting = json.loads((task_dir / "vetting.json").read_text(encoding="utf-8"))
+    assert vetting["baseline"] is not None  # else the "unavailable" branch proves nothing
+    task_dir.rename(padded_dir)
+
+    try:
+        evidence, report_md, _ = _render(round_)
+
+        vetting_section = report_md.split("## Vetting", 1)[1].split("## Measurements", 1)[0]
+        assert ("  baseline rc: %d" % vetting["baseline"]["rc"]) in vetting_section.splitlines()
+        assert "vetting.json: unavailable" not in vetting_section
+
+        setup_block = evidence.split("## Setup", 1)[1].split("### ", 1)[0]
+        assert ("template_sha: %s" % vetting["template_sha"]) in setup_block
+    finally:
+        padded_dir.rename(task_dir)
+
+
+def test_captured_output_line_reports_real_byte_sizes_for_out_and_wrapper(rounds):
+    round_ = rounds("r1")
+    attempts = _attempts(round_)
+    attempt_id = sorted(attempts)[0]
+    attempt_dir = round_.run / attempt_id
+    out_size = (attempt_dir / "out.txt").stat().st_size
+    wrapper_size = (attempt_dir / "wrapper.txt").stat().st_size
+
+    evidence, _, _ = _render(round_)
+
+    block = _block(evidence, list(attempts), attempt_id)
+    expected = "Captured output: %s/out.txt (%d bytes), %s/wrapper.txt (%d bytes)" % (
+        attempt_dir, out_size, attempt_dir, wrapper_size,
+    )
+    assert expected in block.splitlines()
+
+
+def test_captured_output_line_reports_wrapper_unavailable_when_the_file_is_absent(rounds):
+    round_ = rounds("r1")
+    attempts = _attempts(round_)
+    attempt_id = sorted(attempts)[0]
+    attempt_dir = round_.run / attempt_id
+    wrapper_path = attempt_dir / "wrapper.txt"
+    renamed = attempt_dir / "wrapper.txt.bak"
+    wrapper_path.rename(renamed)
+
+    try:
+        evidence, _, _ = _render(round_)
+        block = _block(evidence, list(attempts), attempt_id)
+        assert ("%s/wrapper.txt (unavailable bytes)" % attempt_dir) in block
+    finally:
+        renamed.rename(wrapper_path)
+
+
+def test_dispatch_line_renders_argv_with_shlex_join(rounds):
+    round_ = rounds("r1")
+    attempts = _attempts(round_)
+    attempt_id = sorted(attempts)[0]
+    record_path = round_.run / attempt_id / "attempt.json"
+    original = record_path.read_text(encoding="utf-8")
+    record = json.loads(original)
+    argv = ["fake engine", "--flag=$HOME"]
+    record["engine_run"]["argv"] = argv
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+
+    try:
+        evidence, _, _ = _render(round_)
+        block = _block(evidence, list(attempts), attempt_id)
+        expected = "Dispatch: `%s`" % shlex.join(argv)
+        assert expected in block.splitlines()
+    finally:
+        record_path.write_text(original, encoding="utf-8")
