@@ -9,12 +9,11 @@ memory first, so a refused render never touches the three output files.
 """
 import json
 import math
+import shlex
 from pathlib import Path
 
-from eval_harness import admission, records
+from eval_harness import admission, records, spec
 
-_FAIL_CLASSES = ("test-mutation", "stray-edit", "no-edit", "dropped-a-file", "vacuous-tests",
-                  "logic-error")
 _AUDIT_ROW_KEYS = frozenset({"attempt_dir", "verdict", "claim", "evidence", "review_verdict",
                              "review_findings", "review_effort_s"})
 # The record field whose value decided each FAIL class, traced from
@@ -25,6 +24,7 @@ _CLASS_FIELD = {
 }
 # Sibling files inside an attempt directory, alongside attempt.json.
 _OUT_FILE = "out.txt"
+_WRAPPER_FILE = "wrapper.txt"
 _GATE_OUT_FILE = "gate.txt"
 _SESSION_LOG_FILE = "session.jsonl"
 
@@ -132,8 +132,27 @@ def load_audit(run_dir: Path, valid_ids: list) -> dict:
     return rows
 
 
+def _find_task_dir(root: Path, task: dict) -> Path | None:
+    tasks_dir = root / "tasks"
+    if not tasks_dir.is_dir():
+        return None
+    for child in sorted(tasks_dir.iterdir(), key=lambda p: p.name):
+        if not child.is_dir():
+            continue
+        try:
+            parsed = spec.parse_task_dir(child)
+        except spec.SpecError:
+            continue
+        if parsed == (task["id"], task["slug"]):
+            return child
+    return None
+
+
 def _load_vetting(root: Path, task: dict) -> dict | None:
-    path = root / "tasks" / ("%d-%s" % (task["id"], task["slug"])) / "vetting.json"
+    task_dir = _find_task_dir(root, task)
+    if task_dir is None:
+        return None
+    path = task_dir / "vetting.json"
     if not path.is_file():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
@@ -171,6 +190,17 @@ def _read_sibling(attempt_dir: Path, name: str) -> str | None:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
+def _vetting_lines(vetting: dict, indent: str) -> list:
+    baseline, canonical = vetting["baseline"], vetting["canonical"]
+    lines = ["%sbaseline rc: %s" % (indent, _or(baseline["rc"], "unavailable") if baseline
+                                     else "unavailable")]
+    lines.append("%scanonical rc: %s" % (indent, _or(canonical["rc"], "unavailable") if canonical
+                                          else "unavailable"))
+    for path, necessity in sorted(vetting["necessity"].items()):
+        lines.append("%snecessity %s: holds=%s" % (indent, path, necessity["holds"]))
+    return lines
+
+
 def _setup_block(vetting: dict | None) -> list:
     lines = ["## Setup", ""]
     if vetting is None:
@@ -178,14 +208,7 @@ def _setup_block(vetting: dict | None) -> list:
     lines.append("template_sha: %s" % vetting["template_sha"])
     for i, warmup in enumerate(vetting["warmup"], 1):
         lines.append("warmup[%d] rc: %s" % (i, _or(warmup["rc"], "unavailable")))
-    baseline = vetting["baseline"]
-    lines.append("baseline rc: %s" % (_or(baseline["rc"], "unavailable") if baseline
-                                       else "unavailable"))
-    canonical = vetting["canonical"]
-    lines.append("canonical rc: %s" % (_or(canonical["rc"], "unavailable") if canonical
-                                        else "unavailable"))
-    for path, necessity in sorted(vetting["necessity"].items()):
-        lines.append("necessity %s: holds=%s" % (path, necessity["holds"]))
+    lines += _vetting_lines(vetting, "")
     lines.append("")
     return lines
 
@@ -208,6 +231,8 @@ def _attempt_block(entry: dict, run_dir: Path) -> list:
     engine_run, baseline, gates = record["engine_run"], record["baseline"], record["gates"]
     out_path = attempt_dir / _OUT_FILE
     out_bytes = out_path.stat().st_size if out_path.is_file() else None
+    wrapper_path = attempt_dir / _WRAPPER_FILE
+    wrapper_bytes = wrapper_path.stat().st_size if wrapper_path.is_file() else None
     changed = [c["path"] for c in record["changed"]] if record["changed"] else []
     result = record["outcome"] if record["class"] is None else "%s:%s" % (
         record["outcome"], record["class"])
@@ -216,9 +241,11 @@ def _attempt_block(entry: dict, run_dir: Path) -> list:
         "### %s attempt %d" % (record["engine"], record["attempt"]), "",
         "Attempt: %s" % entry["id"],
         "Tree: %s" % record["clone"],
-        "Dispatch: `%s`" % " ".join(engine_run["argv"]),
+        "Dispatch: `%s`" % shlex.join(engine_run["argv"]),
         "Engine identity: `%s`" % _or(engine_run["identity"], "n/a"),
-        "Captured output: %s (%s bytes)" % (out_path, _or(out_bytes, "unavailable")),
+        "Captured output: %s (%s bytes), %s (%s bytes)" % (
+            out_path, _or(out_bytes, "unavailable"),
+            wrapper_path, _or(wrapper_bytes, "unavailable")),
         "Dispatch exit code: %s | Dispatch validity: %s" % (
             _or(engine_run["exit"], "n/a"), records.derive_validity(record)),
         "Baseline exit code: %s; first failure: `%s`" % (
@@ -308,7 +335,7 @@ def count(run: dict, engine_order: list, entries: list, groups: dict, valid_ids:
         tallies = {"not_started": not ents, "attempts": len(ents)}
         for label in ("PASS", "FAIL", "TIMEOUT", "SUSPECT", "DISCARDED"):
             tallies[label] = sum(1 for r in recs if r["outcome"] == label)
-        for cls in _FAIL_CLASSES:
+        for cls in _CLASS_FIELD:
             tallies["FAIL:%s" % cls] = sum(1 for r in recs
                                            if r["outcome"] == "FAIL" and r["class"] == cls)
         tallies["INCOMPLETE"] = len(ents) - len(recs)
@@ -348,12 +375,12 @@ def _counts_section(run: dict, engine_order: list, entries: list, groups: dict,
     lines = ["## Counts", ""]
     for engine, tallies in counts["engines"].items():
         if tallies["not_started"]:
-            lines += ["%s: not_started (NOT_STARTED)" % engine, ""]
-            continue
-        lines.append(engine)
+            lines.append("%s: not_started (NOT_STARTED)" % engine)
+        else:
+            lines.append(engine)
         for label in ("attempts", "PASS", "FAIL"):
             lines.append("  %s: %d" % (label, tallies[label]))
-        for cls in _FAIL_CLASSES:
+        for cls in _CLASS_FIELD:
             lines.append("  FAIL:%s: %d" % (cls, tallies["FAIL:%s" % cls]))
         for label in ("TIMEOUT", "SUSPECT", "DISCARDED", "INCOMPLETE"):
             lines.append("  %s: %d" % (label, tallies[label]))
@@ -392,13 +419,7 @@ def _vetting_section(run: dict, vetting_by_task: dict) -> list:
             lines.append("  vetting.json: unavailable")
             lines.append("")
             continue
-        baseline, canonical = vetting["baseline"], vetting["canonical"]
-        lines.append("  baseline rc: %s" % (_or(baseline["rc"], "unavailable") if baseline
-                                             else "unavailable"))
-        lines.append("  canonical rc: %s" % (_or(canonical["rc"], "unavailable") if canonical
-                                              else "unavailable"))
-        for path, necessity in sorted(vetting["necessity"].items()):
-            lines.append("  necessity %s: holds=%s" % (path, necessity["holds"]))
+        lines += _vetting_lines(vetting, "  ")
         lines.append("")
     return lines
 
@@ -470,7 +491,10 @@ def render(root: Path, run_id: str) -> None:
         raise ValueError("run id %r: %s" % (run_id, problem))
     root = Path(root)
     run_dir = root / "runs" / run_id
-    run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    run_json_path = run_dir / "run.json"
+    if not run_json_path.is_file():
+        raise ValueError("run %s: no run.json under %s" % (run_id, run_dir))
+    run = json.loads(run_json_path.read_text(encoding="utf-8"))
     engine_order = [engine["id"] for engine in run["engines"]]
 
     entries = _load_entries(run_dir, engine_order)
