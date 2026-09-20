@@ -308,7 +308,7 @@ def test_render_rejects_a_malformed_audit_line_naming_it_and_leaves_output_uncha
     )
 
     try:
-        with pytest.raises(Exception) as failure:
+        with pytest.raises(ValueError) as failure:
             report.render(round_.root, round_.run.name)
 
         assert "SENTINEL_BROKEN_JSON" in str(failure.value)
@@ -327,7 +327,7 @@ def test_render_rejects_a_duplicate_attempt_dir_in_audit_jsonl_naming_it(rounds)
     )
 
     try:
-        with pytest.raises(Exception) as failure:
+        with pytest.raises(ValueError) as failure:
             report.render(round_.root, round_.run.name)
 
         assert valid_ids[0] in str(failure.value)
@@ -346,7 +346,7 @@ def test_render_rejects_a_contradictory_stored_outcome_via_classify_rederivation
     record_path.write_text(json.dumps(record), encoding="utf-8")
 
     try:
-        with pytest.raises(Exception) as failure:
+        with pytest.raises(ValueError) as failure:
             report.render(round_.root, round_.run.name)
 
         assert fail_id in str(failure.value)

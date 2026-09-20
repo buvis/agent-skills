@@ -317,6 +317,18 @@ def test_parser_refuses_a_run_id_that_is_not_one_path_component(tmp_path, vetted
     assert [target for target in _escape_targets(root, tmp_path) if target.exists()] == []
 
 
+@pytest.mark.parametrize("case", list(BAD_RUN_IDS))
+def test_parser_refuses_a_render_run_id_that_is_not_one_path_component(tmp_path, vetted, case):
+    root = _copy(vetted.root, tmp_path.resolve() / "bundle")
+
+    with pytest.raises(SystemExit) as stop:
+        run_eval_harness.main(["render", str(root), "--run-id", _run_id(case, tmp_path)])
+
+    assert stop.value.code == 2
+    assert not (root / "runs").exists()
+    assert [target for target in _escape_targets(root, tmp_path) if target.exists()] == []
+
+
 def test_run_accepts_a_run_id_with_dots_inside_one_component(tmp_path, vetted, shim, monkeypatch):
     # `..` is refused as a whole id, not as a substring: `v1..2` is one directory name.
     root = _copy(vetted.root, tmp_path.resolve() / "bundle")
