@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from eval_harness import records, report
+from eval_harness import admission, records, report
 
 # The last six names are fixtures: pytest resolves them from this module's own
 # namespace, so they have to be imported even though nothing here calls them.
@@ -294,6 +294,20 @@ def test_render_accepts_a_fully_populated_flagged_and_blocking_row(rounds):
     assert ("pending (1 of %d audited)" % len(valid_ids)) in report_md
 
 
+def test_render_accepts_an_unverifiable_review_verdict(rounds):
+    round_ = rounds("r1")
+    valid_ids = _valid_ids(round_)
+    assert len(valid_ids) >= 2
+    _write_audit(round_, [_audit_row(valid_ids[0], review_verdict="unverifiable")])
+
+    try:
+        _, report_md, _ = _render(round_)
+    finally:
+        (round_.run / "audit.jsonl").unlink()
+
+    assert ("pending (1 of %d audited)" % len(valid_ids)) in report_md
+
+
 # -- load_audit() ------------------------------------------------------------------
 
 
@@ -349,16 +363,35 @@ def test_render_rejects_a_truncated_attempt_json_naming_the_attempt_directory(ro
     assert message.startswith("attempt %s: malformed attempt.json: " % aid)
 
 
-def test_render_rejects_an_attempt_json_with_a_key_mistyped_against_attempt_keys(rounds):
+def _validator_reason(record: dict) -> str:
+    """The text records.validate_record refuses `record` with; render() must relay it."""
+    with pytest.raises(records.RecordError) as failure:
+        records.validate_record("attempt", record)
+    return str(failure.value)
+
+
+@pytest.mark.parametrize("corrupt, marker", [
+    (lambda record: record.update(strated=record.pop("started")), "attempt keys"),
+    (lambda record: record.pop("gates"), "attempt keys"),
+    (lambda record: record.update(note="x"), "attempt keys"),
+    (lambda record: record.update(task="1"), "attempt.task: '1'"),
+    (lambda record: record.update(outcome="MAYBE"), "attempt.outcome: 'MAYBE'"),
+], ids=["renamed-key", "missing-key", "extra-key", "task-not-int", "outcome-out-of-domain"])
+def test_render_rejects_an_attempt_json_that_fails_the_record_schema_naming_the_problem(
+    rounds, corrupt, marker,
+):
     round_ = rounds("tdd")
     aid, record = next(iter(_attempts(round_).items()))
     record = dict(record)
-    record["strated"] = record.pop("started")
-    assert "strated" not in records.ATTEMPT_KEYS
+    corrupt(record)
+    text = json.dumps(record)
+    reason = _validator_reason(json.loads(text))
+    assert marker in reason
 
-    message = _record_refusal(round_, aid, json.dumps(record))
+    message = _record_refusal(round_, aid, text)
 
     assert message.startswith("attempt %s: " % aid)
+    assert message == "attempt %s: %s" % (aid, reason)
 
 
 @pytest.mark.parametrize("field, other", [
@@ -386,22 +419,27 @@ def test_render_rejects_an_attempt_json_whose_identity_disagrees_with_its_direct
 # -- the run id ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("run_id", ["/outside", ".."])
+@pytest.mark.parametrize(
+    "run_id", ["/outside", "..", "a/b", "a\\b", "", ".", "r/", "a\0b", "/tmp/x"],
+    ids=["absolute", "parent", "nested", "backslash", "empty", "dot", "trailing-slash", "nul",
+         "absolute-tmp"],
+)
 def test_render_refuses_a_run_id_that_is_not_one_directory_name_before_touching_disk(
     rounds, run_id,
 ):
     round_ = rounds("r1")
     _render(round_)
     before = _tree(round_.root)
+    problem = admission.check_run_id(run_id)
+    assert problem is not None
 
     with pytest.raises(ValueError) as failure:
         report.render(round_.root, run_id)
 
-    assert str(failure.value) == (
-        "run id %r: --run-id %r is not one directory name" % (run_id, run_id)
-    )
+    assert str(failure.value) == "run id %r: %s" % (run_id, problem)
     assert _tree(round_.root) == before
-    assert not Path("/outside").exists()
+    if run_id.startswith("/"):
+        assert not (Path(run_id) / "report.md").exists()
 
 
 # -- count() ------------------------------------------------------------------------
@@ -432,6 +470,30 @@ def _recount(round_) -> dict:
     return by_engine
 
 
+def _expected_drops(round_) -> int:
+    return sum(record["outcome"] == "FAIL" and record["class"] == "dropped-a-file"
+               for record in _attempts(round_).values())
+
+
+def _expected_scored(round_) -> int:
+    """Tasks whose every engine's highest-numbered attempt has a launched record."""
+    run = _run_json(round_)
+    attempts = _attempts(round_)
+    names = [path.name for path in round_.run.iterdir() if path.is_dir()]
+    scored = 0
+    for task in run["tasks"]:
+        launched = []
+        for engine in run["engines"]:
+            prefix = "%d-%s-a" % (task["id"], engine["id"])
+            numbers = [int(name[len(prefix):]) for name in names
+                       if name.startswith(prefix) and name[len(prefix):].isdigit()]
+            record = attempts.get("%s%d" % (prefix, max(numbers))) if numbers else None
+            launched.append(record is not None
+                            and record["engine_run"]["launch"] in ("started", "unknown"))
+        scored += all(launched)
+    return scored
+
+
 @pytest.mark.parametrize("run_id", ["hang", "retry", "tdd", "r1"])
 def test_count_tallies_every_engine_from_the_records_in_engine_order(rounds, run_id):
     round_ = rounds(run_id)
@@ -454,6 +516,8 @@ def test_count_tallies_every_engine_from_the_records_in_engine_order(rounds, run
     assert counts["not_started"] == 0
     for key in ("drops", "scored"):
         assert isinstance(counts[key], int) and not isinstance(counts[key], bool), key
+    assert counts["drops"] == _expected_drops(round_), run_id
+    assert counts["scored"] == _expected_scored(round_), run_id
 
 
 def test_count_reports_a_planned_engine_with_no_attempt_directory_as_not_started(rounds):
@@ -462,7 +526,10 @@ def test_count_reports_a_planned_engine_with_no_attempt_directory_as_not_started
     original = run_path.read_text(encoding="utf-8")
     run = json.loads(original)
     assert len(run["tasks"]) == 1
-    run["engines"] = [*run["engines"], {"id": "cmd3", "command": "cmd:/nonexistent/engine"}]
+    planned = [engine["id"] for engine in run["engines"]]
+    missing = ["sonnet", "gemini"]
+    run["engines"] = [*run["engines"],
+                      *({"id": eid, "command": "cmd:/nonexistent/engine"} for eid in missing)]
     run_path.write_text(json.dumps(run), encoding="utf-8")
 
     try:
@@ -470,11 +537,15 @@ def test_count_reports_a_planned_engine_with_no_attempt_directory_as_not_started
     finally:
         run_path.write_text(original, encoding="utf-8")
 
-    assert counts["engines"]["cmd3"]["not_started"] is True
-    assert counts["engines"]["cmd3"]["attempts"] == 0
-    assert counts["not_started"] == 1
-    assert [engine for engine in counts["engines"] if engine != "cmd3"
-            and counts["engines"][engine]["not_started"]] == []
+    assert list(counts["engines"]) == [*planned, *missing]
+    assert counts["not_started"] == 2
+    zeroed = dict.fromkeys((*TALLIES, *CLASS_KEYS), 0)
+    for eid in missing:
+        tallies = counts["engines"][eid]
+        assert tallies["not_started"] is True, eid
+        assert {key: tallies[key] for key in zeroed} == zeroed, eid
+        assert not any(isinstance(tallies[key], bool) for key in zeroed), eid
+    assert [eid for eid in planned if counts["engines"][eid]["not_started"]] == []
 
 
 def test_count_reports_f_pending_with_k_of_n_until_every_valid_attempt_is_audited(rounds):
