@@ -50,7 +50,7 @@ def _parser() -> argparse.ArgumentParser:
     render = commands.add_parser(
         "render", help="render evidence.md, report.md and audit-queue.md for a run")
     render.add_argument("evidence_dir", type=Path)
-    render.add_argument("--run-id", required=True)
+    render.add_argument("--run-id", type=_run_id, required=True)
     run = commands.add_parser("run", help="run every ready task through the given engines")
     run.add_argument("evidence_dir", type=Path)
     run.add_argument("--run-id", type=_run_id, required=True)

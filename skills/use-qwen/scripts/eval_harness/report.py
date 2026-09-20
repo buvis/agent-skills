@@ -8,12 +8,15 @@ the whole render rather than writing anything. Content is built fully in
 memory first, so a refused render never touches the three output files.
 """
 import json
+import math
 from pathlib import Path
 
-from eval_harness import records
+from eval_harness import admission, records
 
 _FAIL_CLASSES = ("test-mutation", "stray-edit", "no-edit", "dropped-a-file", "vacuous-tests",
                   "logic-error")
+_AUDIT_ROW_KEYS = frozenset({"attempt_dir", "verdict", "claim", "evidence", "review_verdict",
+                             "review_findings", "review_effort_s"})
 # The record field whose value decided each FAIL class, traced from
 # records._judge_evidence/_judge_gates.
 _CLASS_FIELD = {
@@ -36,7 +39,20 @@ def _load_entries(run_dir: Path, engine_order: list) -> list:
         record_path = child / "attempt.json"
         record = None
         if record_path.is_file():
-            record = json.loads(record_path.read_text(encoding="utf-8"))
+            try:
+                record = json.loads(record_path.read_text(encoding="utf-8"))
+            except ValueError as exc:
+                raise ValueError(
+                    "attempt %s: malformed attempt.json: %s" % (child.name, exc)) from exc
+            try:
+                records.validate_record("attempt", record)
+            except records.RecordError as exc:
+                raise ValueError("attempt %s: %s" % (child.name, exc)) from exc
+            identity = (record["task"], record["engine"], record["attempt"])
+            if identity != (int(task_str), engine, int(attempt_str)):
+                raise ValueError(
+                    "attempt %s: record identity (task=%r, engine=%r, attempt=%r) does not "
+                    "match its directory name" % (child.name, *identity))
             derived = records.classify(record)
             stored = (record["outcome"], record["class"])
             if derived != stored:
@@ -51,21 +67,67 @@ def _load_entries(run_dir: Path, engine_order: list) -> list:
     return entries
 
 
-def _load_audit(run_dir: Path) -> dict:
+def _reject_json_constant(name: str) -> None:
+    """json.loads otherwise accepts the non-JSON tokens NaN, Infinity and -Infinity."""
+    raise ValueError("nonstandard JSON constant %s" % name)
+
+
+def _audit_error(lineno: int, line: str, reason: str) -> ValueError:
+    return ValueError("audit.jsonl line %d: %s: %r" % (lineno, reason, line))
+
+
+def _check_audit_row(lineno: int, line: str, row: dict, valid_id_set: set) -> str:
+    """Refuse a row whose keys or values break the contract; returns its attempt_dir."""
+    if set(row) != _AUDIT_ROW_KEYS:
+        raise _audit_error(lineno, line, "missing/extra key (%s)"
+                           % sorted(row.keys() ^ _AUDIT_ROW_KEYS))
+    aid = row["attempt_dir"]
+    if not isinstance(aid, str):
+        raise _audit_error(lineno, line, "non-string attempt_dir")
+    if aid not in valid_id_set:
+        raise _audit_error(lineno, line, "audits unknown/non-VALID attempt %r" % aid)
+    if row["verdict"] not in ("clean", "flagged", "unverifiable"):
+        raise _audit_error(lineno, line, "invalid verdict %r" % row["verdict"])
+    if row["review_verdict"] not in ("clean", "blocking", "unverifiable"):
+        raise _audit_error(lineno, line, "invalid review_verdict %r" % row["review_verdict"])
+    claim, evidence = row["claim"], row["evidence"]
+    if not (isinstance(claim, str) and isinstance(evidence, str)):
+        raise _audit_error(lineno, line, "non-string claim/evidence")
+    if row["verdict"] == "flagged" and not (claim and evidence):
+        raise _audit_error(lineno, line, "flags without a claim/evidence")
+    findings = row["review_findings"]
+    if not (isinstance(findings, list) and all(isinstance(f, str) for f in findings)):
+        raise _audit_error(lineno, line, "non-string-list review_findings")
+    if row["review_verdict"] == "blocking" and not findings:
+        raise _audit_error(lineno, line, "blocking with no review_findings")
+    effort = row["review_effort_s"]
+    numeric = isinstance(effort, (int, float)) and not isinstance(effort, bool)
+    # An int is always finite; math.isfinite raises OverflowError on one of 2**1024 or more.
+    finite = isinstance(effort, int) or (numeric and math.isfinite(effort))
+    if effort is not None and not (numeric and effort >= 0 and finite):
+        raise _audit_error(lineno, line, "invalid review_effort_s")
+    return aid
+
+
+def load_audit(run_dir: Path, valid_ids: list) -> dict:
+    """audit.jsonl rows keyed by attempt_dir; every row is checked before any is trusted."""
     audit_path = run_dir / "audit.jsonl"
     rows = {}
     if not audit_path.is_file():
         return rows
-    for line in audit_path.read_text(encoding="utf-8").splitlines():
+    valid_id_set = set(valid_ids)
+    for lineno, line in enumerate(audit_path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         try:
-            row = json.loads(line)
-        except json.JSONDecodeError as exc:
-            raise ValueError("malformed audit.jsonl line: %r" % line) from exc
-        aid = row["attempt_dir"]
+            row = json.loads(line, parse_constant=_reject_json_constant)
+        except ValueError as exc:
+            raise _audit_error(lineno, line, "malformed JSON") from exc
+        if not isinstance(row, dict):
+            raise _audit_error(lineno, line, "not a JSON object")
+        aid = _check_audit_row(lineno, line, row, valid_id_set)
         if aid in rows:
-            raise ValueError("duplicate attempt_dir in audit.jsonl: %s" % aid)
+            raise _audit_error(lineno, line, "duplicate attempt_dir %s" % aid)
         rows[aid] = row
     return rows
 
@@ -233,30 +295,27 @@ def _scores_section(run: dict, engine_order: list, groups: dict) -> list:
     return lines
 
 
-def _counts_section(run: dict, engine_order: list, entries: list, groups: dict,
-                    valid_ids: list, audit_rows: dict) -> list:
-    lines = ["## Counts", ""]
+def count(run: dict, engine_order: list, entries: list, groups: dict, valid_ids: list,
+          audit_rows: dict) -> dict:
+    """Every number the Counts section reports, from the records alone: no I/O, no text.
+
+    `f` is None while any VALID attempt is still unaudited; `f_audited`/`f_total` are its k of n.
+    """
+    engines = {}
     for engine in engine_order:
         ents = [e for e in entries if e["engine"] == engine]
-        if not ents:
-            lines += ["%s: not_started (NOT_STARTED)" % engine, ""]
-            continue
         recs = [e["record"] for e in ents if e["record"] is not None]
-        lines.append(engine)
-        lines.append("  attempts: %d" % len(ents))
-        lines.append("  PASS: %d" % sum(1 for r in recs if r["outcome"] == "PASS"))
-        lines.append("  FAIL: %d" % sum(1 for r in recs if r["outcome"] == "FAIL"))
+        tallies = {"not_started": not ents, "attempts": len(ents)}
+        for label in ("PASS", "FAIL", "TIMEOUT", "SUSPECT", "DISCARDED"):
+            tallies[label] = sum(1 for r in recs if r["outcome"] == label)
         for cls in _FAIL_CLASSES:
-            n = sum(1 for r in recs if r["outcome"] == "FAIL" and r["class"] == cls)
-            lines.append("  FAIL:%s: %d" % (cls, n))
-        for label in ("TIMEOUT", "SUSPECT", "DISCARDED"):
-            lines.append("  %s: %d" % (label, sum(1 for r in recs if r["outcome"] == label)))
-        lines.append("  INCOMPLETE: %d" % (len(ents) - len(recs)))
-        lines.append("")
+            tallies["FAIL:%s" % cls] = sum(1 for r in recs
+                                           if r["outcome"] == "FAIL" and r["class"] == cls)
+        tallies["INCOMPLETE"] = len(ents) - len(recs)
+        engines[engine] = tallies
 
     drops = sum(1 for e in entries if e["record"] is not None
                and e["record"]["outcome"] == "FAIL" and e["record"]["class"] == "dropped-a-file")
-    lines.append("drops: %d" % drops)
 
     scored = 0
     not_started = 0
@@ -273,17 +332,41 @@ def _counts_section(run: dict, engine_order: list, entries: list, groups: dict,
                 task_scored = False
         if task_scored:
             scored += 1
-    lines.append("scored: %d" % scored)
-    lines.append("not_started: %d" % not_started)
 
     audited = sum(1 for aid in valid_ids if aid in audit_rows)
     n = len(valid_ids)
+    flagged = None
     if audited == n:
-        flagged = sum(1 for aid in valid_ids if audit_rows.get(aid, {}).get("verdict") == "flagged")
-        lines.append("f: %d" % flagged)
-    else:
-        lines.append("f: pending (%d of %d audited)" % (audited, n))
+        flagged = sum(1 for aid in valid_ids if audit_rows[aid]["verdict"] == "flagged")
+    return {"engines": engines, "drops": drops, "scored": scored, "not_started": not_started,
+            "f": flagged, "f_audited": audited, "f_total": n}
+
+
+def _counts_section(run: dict, engine_order: list, entries: list, groups: dict,
+                    valid_ids: list, audit_rows: dict) -> list:
+    counts = count(run, engine_order, entries, groups, valid_ids, audit_rows)
+    lines = ["## Counts", ""]
+    for engine, tallies in counts["engines"].items():
+        if tallies["not_started"]:
+            lines += ["%s: not_started (NOT_STARTED)" % engine, ""]
+            continue
+        lines.append(engine)
+        for label in ("attempts", "PASS", "FAIL"):
+            lines.append("  %s: %d" % (label, tallies[label]))
+        for cls in _FAIL_CLASSES:
+            lines.append("  FAIL:%s: %d" % (cls, tallies["FAIL:%s" % cls]))
+        for label in ("TIMEOUT", "SUSPECT", "DISCARDED", "INCOMPLETE"):
+            lines.append("  %s: %d" % (label, tallies[label]))
+        lines.append("")
+
+    lines.append("drops: %d" % counts["drops"])
+    lines.append("scored: %d" % counts["scored"])
+    lines.append("not_started: %d" % counts["not_started"])
+    if counts["f"] is None:
+        lines.append("f: pending (%d of %d audited)" % (counts["f_audited"], counts["f_total"]))
         lines.append("Audit incomplete: no decision rule may be applied to these counts.")
+    else:
+        lines.append("f: %d" % counts["f"])
     lines.append("")
     return lines
 
@@ -382,16 +465,19 @@ def _audit_queue_md(run_dir: Path, entries: list, valid_ids: list, audit_rows: d
 
 
 def render(root: Path, run_id: str) -> None:
+    problem = admission.check_run_id(run_id)
+    if problem is not None:
+        raise ValueError("run id %r: %s" % (run_id, problem))
     root = Path(root)
     run_dir = root / "runs" / run_id
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     engine_order = [engine["id"] for engine in run["engines"]]
 
     entries = _load_entries(run_dir, engine_order)
-    audit_rows = _load_audit(run_dir)
     valid_ids = [entry["id"] for entry in entries
                  if entry["record"] is not None
                  and records.derive_validity(entry["record"]) == "VALID"]
+    audit_rows = load_audit(run_dir, valid_ids)
     vetting_by_task = {task["id"]: _load_vetting(root, task) for task in run["tasks"]}
     groups = _group_by_task_engine(entries)
 
