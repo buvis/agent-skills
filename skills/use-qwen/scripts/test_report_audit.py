@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+import run_eval_harness
 from eval_harness import admission, records, report
 
 # The last six names are fixtures: pytest resolves them from this module's own
@@ -576,3 +577,95 @@ def test_count_reports_f_as_zero_of_zero_when_no_attempt_is_valid(rounds):
     counts = _count(round_)
 
     assert (counts["f"], counts["f_audited"], counts["f_total"]) == (0, 0, 0)
+
+
+# -- run.json / vetting.json / the CLI ---------------------------------------------
+
+
+def _run_json_refusal(round_, text: str) -> str:
+    """Render with `text` as this round's run.json: the ValueError's message."""
+    before = _render(round_)
+    run_path = round_.run / "run.json"
+    original = run_path.read_text(encoding="utf-8")
+    run_path.write_text(text, encoding="utf-8")
+    try:
+        with pytest.raises(ValueError) as failure:
+            report.render(round_.root, round_.run.name)
+        assert _files(round_) == before
+    finally:
+        run_path.write_text(original, encoding="utf-8")
+    return str(failure.value)
+
+
+def _vetting_refusal(round_, task_dir: Path, text: str) -> str:
+    """Render with `text` as `task_dir`'s vetting.json: the ValueError's message."""
+    before = _render(round_)
+    vetting_path = task_dir / "vetting.json"
+    original = vetting_path.read_text(encoding="utf-8")
+    vetting_path.write_text(text, encoding="utf-8")
+    try:
+        with pytest.raises(ValueError) as failure:
+            report.render(round_.root, round_.run.name)
+        assert _files(round_) == before
+    finally:
+        vetting_path.write_text(original, encoding="utf-8")
+    return str(failure.value)
+
+
+def test_render_rejects_a_malformed_run_json_naming_the_run_and_file(rounds):
+    round_ = rounds("r1")
+
+    message = _run_json_refusal(round_, "{not json")
+
+    assert round_.run.name in message
+    assert "run.json" in message
+    assert "malformed" in message
+
+
+def test_render_rejects_a_malformed_vetting_json_naming_the_task_directory(rounds):
+    round_ = rounds("r1")
+    task_dir = sorted((round_.root / "tasks").iterdir())[0]
+
+    message = _vetting_refusal(round_, task_dir, "{not json")
+
+    assert task_dir.name in message
+    assert "vetting.json" in message
+    assert "malformed" in message
+
+
+def test_main_render_returns_1_and_one_stderr_line_with_no_traceback_on_a_refusal(
+    rounds, capsys,
+):
+    round_ = rounds("r1")
+    before = _render(round_)
+    aid = _valid_ids(round_)[0]
+    _write_audit(round_, [_audit_row(aid, verdict="maybe")])
+
+    try:
+        exit_code = run_eval_harness.main(
+            ["render", str(round_.root), "--run-id", round_.run.name]
+        )
+        captured = capsys.readouterr()
+        assert _files(round_) == before
+    finally:
+        (round_.run / "audit.jsonl").unlink()
+
+    assert exit_code == 1
+    lines = captured.err.splitlines()
+    assert len(lines) == 1
+    assert lines[0].startswith("render refused: ")
+    assert "audit.jsonl line 1" in lines[0]
+    assert "invalid verdict 'maybe'" in lines[0]
+    assert "Traceback" not in captured.err
+
+
+def test_main_render_returns_0_with_empty_stderr_on_a_clean_round(rounds, capsys):
+    round_ = rounds("r1")
+    assert not (round_.run / "audit.jsonl").exists()
+
+    exit_code = run_eval_harness.main(
+        ["render", str(round_.root), "--run-id", round_.run.name]
+    )
+
+    assert exit_code == 0
+    assert capsys.readouterr().err == ""
