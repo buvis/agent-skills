@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "test": "node --test src/lib/derive.test.js smoke.test.js smoke.a11y.test.js",
+    "test": "node --test src/lib/derive.test.js smoke.harness.test.js smoke.brief.test.js smoke.repos.test.js smoke.work.test.js smoke.todos.test.js smoke.todos.status.test.js smoke.a11y.test.js",
     "test:browser": "playwright test"
   },
   "devDependencies": {
