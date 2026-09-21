@@ -91,6 +91,13 @@ def test_skill_adherence_ignores_non_string_timestamps(tmp_path):
                 {"skill": "work", "ts": "2026-01-01"},
                 {"skill": "work", "ts": "2026-01-01T00:00:00"},
                 {"skill": "work", "ts": valid_past},
+                {"skill": "work", "ts": "0001-01-01T00:00:00+01:00"},
+                {
+                    "skill": "work",
+                    "ts": (datetime.now(timezone.utc) - timedelta(days=2))
+                    .replace(tzinfo=None)
+                    .isoformat(),
+                },
             ]
         )
         + "\n",
@@ -237,14 +244,24 @@ def test_audit_cadence_ignores_unparseable_and_future_timestamps(tmp_path):
                 {"skill": skill, "ts": "2026-01-01"},
                 {"skill": skill, "ts": "2026-01-01T00:00:00"},
                 {"skill": skill, "ts": valid_past.isoformat()},
+                {"skill": skill, "ts": "0001-01-01T00:00:00+01:00"},
+                {"skill": "purge-devlocal", "ts": "2026-08-15T01:00:00+05:00"},
+                {
+                    "skill": "claude-checkup:audit-sessions",
+                    "ts": "2026-08-01T00:00:00+00:00",
+                },
+                {
+                    "skill": "claude-checkup:audit-sessions",
+                    "ts": "2026-09-01T00:00:00",
+                },
             ]
         )
         + "\n",
     )
     result = collect_audit_cadence(base=f)
     assert result[skill] == valid_past.date().isoformat()
-    assert result[skill] != "not-a-date"
-    assert result[skill] != "2099-01-01"
+    assert result["purge-devlocal"] == "2026-08-14"
+    assert result["claude-checkup:audit-sessions"] == "2026-08-01"
 
 
 def test_collect_purge_devlocal_returns_none_when_trash_dir_absent(tmp_path):

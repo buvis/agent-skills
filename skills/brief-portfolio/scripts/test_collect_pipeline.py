@@ -289,9 +289,6 @@ def test_a_raising_skill_adherence_reader_costs_one_metric_not_the_run(
     new_data = json.loads((out_dir / "data.json").read_text())
     assert len(new_data["repos"]) == 1
 
-    # Mirrors collect_external_section's degrade-and-warn shape: catch the
-    # exception, warn on stderr, and store None for data["skill_adherence"]
-    # instead of letting the exception propagate out of main().
     captured = capsys.readouterr()
     assert new_data["skill_adherence"] is None
     assert "WARN skill_adherence" in captured.err
