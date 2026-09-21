@@ -151,8 +151,10 @@ def collect_prs(owner, name):
 def collect_ci(owner, name, branch):
     try:
         runs = gh_json(f"repos/{owner}/{name}/actions/runs?branch={branch}&per_page=20")["workflow_runs"]
-    except RuntimeError:
-        return []  # Actions disabled
+    except RuntimeError as e:
+        if re.search(r"HTTP (403|404)", str(e)):
+            return []  # Actions disabled
+        raise
     latest = {}
     for r in runs:  # API returns newest first
         latest.setdefault(r["name"], {
