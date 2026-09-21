@@ -11,6 +11,19 @@ from collect import collect_repo, stub_from_path
 from collect_test_helpers import make_trash_dir
 
 
+def _run_answering_gh(outcome):
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:acme/widget.git\n"
+        if cmd[0] == "gh":
+            if isinstance(outcome, Exception):
+                raise outcome
+            return outcome
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    return fake_run
+
+
 def test_stub_from_path_builds_owner_name_org_and_reason_from_path():
     result = stub_from_path("/repos/acme/widget", "not a github remote: bad-url")
     assert result == {
@@ -88,14 +101,7 @@ def test_collect_repo_returns_skip_stub_when_git_binary_missing(monkeypatch):
 def test_collect_repo_records_meta_os_error_without_raising(monkeypatch):
     os_exc = OSError("too many open files")
 
-    def fake_run(cmd, cwd=None, timeout=120):
-        if cmd[0] == "git" and cmd[1] == "remote":
-            return "git@github.com:acme/widget.git\n"
-        if cmd[0] == "gh":
-            raise os_exc
-        raise AssertionError(f"unexpected command: {cmd}")
-
-    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "run", _run_answering_gh(os_exc))
     result = collect_repo("/repos/acme/widget", 60, False)
     assert result is not None
     assert "skipped" not in result
@@ -105,14 +111,7 @@ def test_collect_repo_records_meta_os_error_without_raising(monkeypatch):
 def test_collect_repo_records_meta_timeout_without_raising(monkeypatch):
     timeout_exc = subprocess.TimeoutExpired(["gh", "api", "repos/acme/widget"], 120)
 
-    def fake_run(cmd, cwd=None, timeout=120):
-        if cmd[0] == "git" and cmd[1] == "remote":
-            return "git@github.com:acme/widget.git\n"
-        if cmd[0] == "gh":
-            raise timeout_exc
-        raise AssertionError(f"unexpected command: {cmd}")
-
-    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "run", _run_answering_gh(timeout_exc))
     result = collect_repo("/repos/acme/widget", 60, False)
     assert result is not None
     assert "skipped" not in result
@@ -120,48 +119,29 @@ def test_collect_repo_records_meta_timeout_without_raising(monkeypatch):
 
 
 def test_a_non_json_metadata_body_lands_in_errors_and_the_run_continues(monkeypatch):
-    def fake_run(cmd, cwd=None, timeout=120):
-        if cmd[0] == "git" and cmd[1] == "remote":
-            return "git@github.com:acme/widget.git\n"
-        if cmd[0] == "gh":
-            return "<html>502</html>"
-        raise AssertionError(f"unexpected command: {cmd}")
-
-    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "run", _run_answering_gh("<html>502</html>"))
     result = collect_repo("/repos/acme/widget", 60, False)
     assert result is not None
     assert "skipped" not in result
     assert len(result["errors"]) == 1
     assert result["errors"][0].startswith("meta:")
+    assert "Expecting value" in result["errors"][0]
 
 
 def test_an_empty_metadata_body_lands_in_errors_and_the_run_continues(monkeypatch):
-    def fake_run(cmd, cwd=None, timeout=120):
-        if cmd[0] == "git" and cmd[1] == "remote":
-            return "git@github.com:acme/widget.git\n"
-        if cmd[0] == "gh":
-            return ""
-        raise AssertionError(f"unexpected command: {cmd}")
-
-    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "run", _run_answering_gh(""))
     result = collect_repo("/repos/acme/widget", 60, False)
     assert result is not None
     assert "skipped" not in result
     assert len(result["errors"]) == 1
     assert result["errors"][0].startswith("meta:")
+    assert "NoneType" in result["errors"][0]
 
 
 def test_collect_repo_records_meta_http_403_without_raising(monkeypatch):
     http_403_exc = RuntimeError("gh: HTTP 403: API rate limit exceeded")
 
-    def fake_run(cmd, cwd=None, timeout=120):
-        if cmd[0] == "git" and cmd[1] == "remote":
-            return "git@github.com:acme/widget.git\n"
-        if cmd[0] == "gh":
-            raise http_403_exc
-        raise AssertionError(f"unexpected command: {cmd}")
-
-    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "run", _run_answering_gh(http_403_exc))
     result = collect_repo("/repos/acme/widget", 60, False)
     assert result is not None
     assert "skipped" not in result
