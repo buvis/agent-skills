@@ -76,6 +76,29 @@ def test_skill_adherence_empty_when_all_stale(tmp_path):
     assert collect_claude_skill_adherence(f) == {"count": 0, "distinct": 0, "top": []}
 
 
+def test_skill_adherence_ignores_non_string_timestamps(tmp_path):
+    from datetime import timedelta
+
+    valid_past = (datetime.now(timezone.utc) - timedelta(days=5)).isoformat()
+    f = tmp_path / "skills.jsonl"
+    f.write_text(
+        "\n".join(
+            json.dumps(r)
+            for r in [
+                {"skill": "work", "ts": 12345},
+                {"skill": "work", "ts": "not-a-date"},
+                {"skill": "work", "ts": "2099-01-01T00:00:00+00:00"},
+                {"skill": "work", "ts": "2026-01-01"},
+                {"skill": "work", "ts": "2026-01-01T00:00:00"},
+                {"skill": "work", "ts": valid_past},
+            ]
+        )
+        + "\n",
+    )
+    got = collect_claude_skill_adherence(f)
+    assert got == {"count": 1, "distinct": 1, "top": [{"skill": "work", "n": 1}]}
+
+
 def test_machine_audit_skills_is_six_skills_in_order():
     assert MACHINE_AUDIT_SKILLS == [
         "claude-checkup:audit-filesystem",
@@ -196,6 +219,32 @@ def test_audit_cadence_returns_seeded_dict_when_read_raises_oserror(tmp_path, mo
     result = collect_audit_cadence(f)
 
     assert result == {skill: None for skill in MACHINE_AUDIT_SKILLS}
+
+
+def test_audit_cadence_ignores_unparseable_and_future_timestamps(tmp_path):
+    from datetime import timedelta
+
+    valid_past = datetime.now(timezone.utc) - timedelta(days=5)
+    skill = "claude-checkup:audit-config"
+    f = tmp_path / "skills.jsonl"
+    f.write_text(
+        "\n".join(
+            json.dumps(r)
+            for r in [
+                {"skill": skill, "ts": 12345},
+                {"skill": skill, "ts": "not-a-date"},
+                {"skill": skill, "ts": "2099-01-01T00:00:00+00:00"},
+                {"skill": skill, "ts": "2026-01-01"},
+                {"skill": skill, "ts": "2026-01-01T00:00:00"},
+                {"skill": skill, "ts": valid_past.isoformat()},
+            ]
+        )
+        + "\n",
+    )
+    result = collect_audit_cadence(base=f)
+    assert result[skill] == valid_past.date().isoformat()
+    assert result[skill] != "not-a-date"
+    assert result[skill] != "2099-01-01"
 
 
 def test_collect_purge_devlocal_returns_none_when_trash_dir_absent(tmp_path):
