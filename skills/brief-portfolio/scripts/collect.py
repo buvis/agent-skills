@@ -532,7 +532,11 @@ def main():
     data["skipped"] = skipped
     known = {f'{r["owner"]}/{r["name"]}' for r in collected}
     data["external"] = collect_external_section(known)
-    data["skill_adherence"] = collect_claude_skill_adherence()
+    try:
+        data["skill_adherence"] = collect_claude_skill_adherence()
+    except Exception as e:
+        print(f"WARN skill_adherence: {e}", file=sys.stderr)
+        data["skill_adherence"] = None
     write_snapshot(data, outdir)
     hist = {"at": data["generated_at"], "skipped": len(skipped),
             "repos": {f'{r["owner"]}/{r["name"]}': history_counts(r) for r in repos}}
