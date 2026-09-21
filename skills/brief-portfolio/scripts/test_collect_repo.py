@@ -197,6 +197,19 @@ def test_a_403_on_actions_runs_still_reads_as_actions_disabled(monkeypatch):
     assert not any(e.startswith("ci:") for e in result["errors"])
 
 
+def test_a_404_on_actions_runs_still_reads_as_actions_disabled(monkeypatch):
+    runs_exc = RuntimeError(
+        "gh: HTTP 404: Not Found (https://api.github.com/repos/demo/repo/actions/runs)"
+    )
+
+    monkeypatch.setattr(collect, "run", _run_answering_actions_runs(runs_exc))
+    result = collect_repo("/repos/demo/repo", 60, False)
+    assert result is not None
+    assert "skipped" not in result
+    assert result["ci"] == []
+    assert not any(e.startswith("ci:") for e in result["errors"])
+
+
 def test_collect_repo_purge_last_run_key_equals_collect_purge_devlocal_result(
     tmp_path,
     monkeypatch,
