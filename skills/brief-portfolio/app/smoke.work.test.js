@@ -1,3 +1,4 @@
+// The duplicate-rendering test below relies on the each_key_duplicate regression note atop smoke.repos.test.js.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { PAYLOAD, render } from './smoke.harness.js'

@@ -1,6 +1,3 @@
-// Renders the built single-file page in jsdom. Catches the runtime breakage a
-// successful `vite build` cannot: a missing field, a bad lookup, a dead tab.
-//
 // Regression: {#each} blocks keyed by a list item's own value (instead of a
 // stable id or index) throw `each_key_duplicate` when two items share that
 // value. On the default tab this blanks the whole page at mount; on other

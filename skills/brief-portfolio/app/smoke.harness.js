@@ -1,3 +1,7 @@
+// Renders the built single-file page in jsdom. Catches the runtime breakage a
+// successful `vite build` cannot: a missing field, a bad lookup, a dead tab.
+// Shared by every smoke.*.test.js file.
+
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { JSDOM, VirtualConsole } from 'jsdom'

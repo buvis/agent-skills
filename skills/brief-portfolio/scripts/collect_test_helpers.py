@@ -2,9 +2,8 @@
 
 `test_collect.py` was split into four per-concern modules, so they need the
 same fixture builders. They live here rather than in one of those modules
-because a test module is not a fixture library: importing one test module
-from another is the shape the funnel family removed when
-`funnel_test_helpers.py` was created.
+because a test module is not a fixture library. Same shape as
+skills/distil-memory/scripts/docket_test_helpers.py.
 """
 
 import json

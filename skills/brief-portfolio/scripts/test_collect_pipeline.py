@@ -1,5 +1,7 @@
 """Regression tests for collect.py's main() pipeline: the registry partition,
-recovery from an unusable data.json, and the audit-cadence call site.
+recovery from an unusable data.json, and the audit-cadence call site. Also
+hosts the two agoge 2026-09-05 strict xfails: a missing registry (main()) and
+a capped commit count (collect_repo, not main()).
 Run: python3 -m pytest test_collect_pipeline.py -q"""
 
 import json
