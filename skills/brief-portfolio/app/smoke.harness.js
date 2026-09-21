@@ -19,6 +19,22 @@ export const PAYLOAD = {
   epics: { summary: '', repos: {} }, prev: null, history: [],
 }
 
+export async function waitFor(predicate, { flush, timeout = 3000, interval = 25 } = {}) {
+  const deadline = Date.now() + timeout
+  const tick = flush ?? (() => new Promise((resolve) => setTimeout(resolve, 0)))
+  await tick()
+  while (true) {
+    if (Date.now() >= deadline) {
+      throw new Error(`waitFor: predicate did not become true within ${timeout}ms`)
+    }
+    if (predicate()) {
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, Math.min(interval, deadline - Date.now())))
+    await tick()
+  }
+}
+
 export function render(payload = PAYLOAD, options = {}) {
   const defaults = { url: 'https://example.org/' }
   const { url } = { ...defaults, ...options }

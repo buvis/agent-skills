@@ -8,23 +8,7 @@
 // way, duplicate-valued items should render twice, not crash.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { PAYLOAD, render } from './smoke.harness.js'
-
-async function waitFor(predicate, { flush, timeout = 3000, interval = 25 } = {}) {
-  const deadline = Date.now() + timeout
-  const tick = flush ?? (() => new Promise((resolve) => setTimeout(resolve, 0)))
-  await tick()
-  while (true) {
-    if (Date.now() >= deadline) {
-      throw new Error(`waitFor: predicate did not become true within ${timeout}ms`)
-    }
-    if (predicate()) {
-      return
-    }
-    await new Promise((resolve) => setTimeout(resolve, Math.min(interval, deadline - Date.now())))
-    await tick()
-  }
-}
+import { PAYLOAD, render, waitFor } from './smoke.harness.js'
 
 test('waitFor resolves once the predicate turns true', async () => {
   let ready = false
