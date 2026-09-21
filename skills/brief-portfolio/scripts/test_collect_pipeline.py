@@ -271,6 +271,32 @@ def test_main_writes_data_json_when_audit_cadence_raises_unexpected_exception(
     assert "WARN audit_cadence" in captured.err
 
 
+def test_a_raising_skill_adherence_reader_costs_one_metric_not_the_run(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    def raising_collect_claude_skill_adherence():
+        raise ValueError("unexpected: not an OSError")
+
+    monkeypatch.setattr(
+        collect, "collect_claude_skill_adherence", raising_collect_claude_skill_adherence
+    )
+
+    _, out_dir = run_collector(tmp_path, monkeypatch, ["alpha"], [])
+
+    assert (out_dir / "data.json").exists()
+    new_data = json.loads((out_dir / "data.json").read_text())
+    assert len(new_data["repos"]) == 1
+
+    # Mirrors collect_external_section's degrade-and-warn shape: catch the
+    # exception, warn on stderr, and store None for data["skill_adherence"]
+    # instead of letting the exception propagate out of main().
+    captured = capsys.readouterr()
+    assert new_data["skill_adherence"] is None
+    assert "WARN skill_adherence" in captured.err
+
+
 # Found by an agoge run on 2026-09-05. Each fails against the code as it stands,
 # so the strict xfail is the executable record of the defect: fix the defect and
 # the marker goes stale, turning the suite red to say "delete me".
