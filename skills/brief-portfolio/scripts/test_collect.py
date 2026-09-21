@@ -23,12 +23,16 @@ from collect import (
     should_rotate,
     stub_from_path,
 )
-
-
-def write_report(tmp_path: Path, body: str) -> None:
-    report = tmp_path / "dev/local/audit-results/brush-report.md"
-    report.parent.mkdir(parents=True)
-    report.write_text(body)
+from collect_test_helpers import (
+    make_fake_run,
+    make_git_repo,
+    make_registry,
+    make_trash_dir,
+    run_collector,
+    write_data_json_fixture,
+    write_registry_csv,
+    write_report,
+)
 
 
 def test_reads_generated_date_from_brush_report(tmp_path):
@@ -259,54 +263,6 @@ def test_collect_repo_records_fetch_timeout_without_raising(monkeypatch):
     assert f"fetch: {timeout_exc}" in result["errors"]
 
 
-def make_registry(tmp_path: Path, names) -> list:
-    """Create a fake gita registry: one directory with a .git marker per name."""
-    root = tmp_path / "repos"
-    paths = []
-    for name in names:
-        d = root / name
-        (d / ".git").mkdir(parents=True)
-        paths.append(str(d))
-    return paths
-
-
-def write_registry_csv(tmp_path: Path, paths) -> Path:
-    csv_path = tmp_path / "repos.csv"
-    csv_path.write_text("\n".join(paths) + "\n")
-    return csv_path
-
-
-def make_fake_run(skip_cwds):
-    """collect.run replacement: resolvable repos get a valid github remote,
-    skip_cwds fail repo_slug, and every gh call fails (unauthenticated)."""
-
-    def fake_run(cmd, cwd=None, timeout=120):
-        if cmd[0] == "git" and cmd[1] == "remote":
-            if str(cwd) in skip_cwds:
-                raise RuntimeError("not a github remote: bad-url")
-            return f"git@github.com:acme/{Path(cwd).name}.git\n"
-        if cmd[0] == "gh":
-            raise RuntimeError("gh: not authenticated")
-        raise AssertionError(f"unexpected command: {cmd}")
-
-    return fake_run
-
-
-def run_collector(tmp_path, monkeypatch, resolvable_names, skip_names):
-    paths = make_registry(tmp_path, resolvable_names + skip_names)
-    skip_paths = {str(tmp_path / "repos" / name) for name in skip_names}
-    monkeypatch.setattr(collect, "run", make_fake_run(skip_paths))
-    monkeypatch.setattr(collect, "GITA_CSV", write_registry_csv(tmp_path, paths))
-    out_dir = tmp_path / "out"
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["collect.py", "--no-git-fetch", "--out", str(out_dir)],
-    )
-    main()
-    return paths, out_dir
-
-
 def test_main_partition_invariant_covers_every_registry_path(tmp_path, monkeypatch):
     paths, out_dir = run_collector(tmp_path, monkeypatch, ["alpha", "beta"], ["broken"])
     data = json.loads((out_dir / "data.json").read_text())
@@ -380,14 +336,6 @@ def test_should_rotate_boundary_is_inclusive_at_exactly_four_hours():
     exactly = now - ROTATE_MIN_AGE
     assert should_rotate(just_under.isoformat(), now) is False
     assert should_rotate(exactly.isoformat(), now) is True
-
-
-def write_data_json_fixture(path: Path, generated_at: str, marker: str) -> str:
-    """Write a minimal data.json-shaped fixture and return its exact text,
-    so callers can assert byte-for-byte preservation later."""
-    content = json.dumps({"generated_at": generated_at, "marker": marker}, indent=1)
-    path.write_text(content)
-    return content
 
 
 def test_main_leaves_older_baseline_untouched_when_existing_snapshot_is_recent(
@@ -779,18 +727,6 @@ def test_main_completes_when_existing_generated_at_is_timezone_naive(
     assert not (out_dir / "data-prev.json").exists()
 
 
-def make_trash_dir(tmp_path: Path, *, dirs=(), files=()) -> Path:
-    """Build tmp_path/dev/local/.trash/ with the given subdirectory and file
-    names created directly inside it."""
-    trash = tmp_path / "dev/local/.trash"
-    trash.mkdir(parents=True)
-    for name in dirs:
-        (trash / name).mkdir()
-    for name in files:
-        (trash / name).write_text("")
-    return trash
-
-
 def test_collect_purge_devlocal_returns_none_when_trash_dir_absent(tmp_path):
     assert collect_purge_devlocal(tmp_path) is None
 
@@ -973,16 +909,6 @@ def test_missing_registry_file_exits_with_the_documented_message(tmp_path, monke
         main()
 
     assert "no repos found in gita registry" in str(exc.value)
-
-
-def make_git_repo(path: Path, commits: int) -> None:
-    """A real repository with `commits` empty commits and origin/master at HEAD."""
-    git = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com", "-C", str(path)]
-    path.mkdir()
-    subprocess.run(git + ["init", "-q", "-b", "master"], check=True)
-    for n in range(commits):
-        subprocess.run(git + ["commit", "-q", "--allow-empty", "-m", f"c{n}"], check=True)
-    subprocess.run(git + ["update-ref", "refs/remotes/origin/master", "HEAD"], check=True)
 
 
 @pytest.mark.xfail(
