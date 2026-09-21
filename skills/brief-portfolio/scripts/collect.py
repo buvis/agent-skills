@@ -403,7 +403,8 @@ def collect_repo(path, days, fetch):
                     default_branch=meta["default_branch"],
                     stars=meta.get("stargazers_count", 0),
                     pushed_at=iso_day(meta.get("pushed_at")))
-    except (RuntimeError, subprocess.SubprocessError, KeyError, OSError) as e:
+    except (RuntimeError, subprocess.SubprocessError, KeyError, OSError,
+            ValueError, AttributeError) as e:
         errors.append(f"meta: {e}")
         return repo
     branch = repo["default_branch"]
