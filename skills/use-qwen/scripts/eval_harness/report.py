@@ -2,10 +2,14 @@
 
 Pure filesystem + JSON in, three markdown files out. Every stored attempt
 record is rederived through records.derive_validity and records.classify
-before it is trusted: a mismatch between the stored and the rederived
-outcome, a malformed audit.jsonl line, or a duplicate attempt_dir refuses
-the whole render rather than writing anything. Content is built fully in
-memory first, so a refused render never touches the three output files.
+before it is trusted. Any of the following refuses the whole render rather
+than writing anything: a run id that is not one directory name; a missing
+or malformed run.json; a malformed vetting.json; an attempt.json that is
+malformed, fails the record schema, or whose identity disagrees with its
+directory; a stored outcome/class that disagrees with the rederived one; or
+any audit.jsonl row that breaks the row contract (line-numbered). Content
+is built fully in memory first, so a refused render never touches the three
+output files.
 """
 import json
 import math
@@ -155,7 +159,12 @@ def _load_vetting(root: Path, task: dict) -> dict | None:
     path = task_dir / "vetting.json"
     if not path.is_file():
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise ValueError(
+            "task %s: malformed vetting.json under %s: %s" % (task_dir.name, task_dir, exc)
+        ) from exc
 
 
 def _group_by_task_engine(entries: list) -> dict:
@@ -498,7 +507,11 @@ def render(root: Path, run_id: str) -> None:
     run_json_path = run_dir / "run.json"
     if not run_json_path.is_file():
         raise ValueError("run %s: no run.json under %s" % (run_id, run_dir))
-    run = json.loads(run_json_path.read_text(encoding="utf-8"))
+    try:
+        run = json.loads(run_json_path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise ValueError(
+            "run %s: malformed run.json under %s: %s" % (run_id, run_dir, exc)) from exc
     engine_order = [engine["id"] for engine in run["engines"]]
 
     entries = _load_entries(run_dir, engine_order)

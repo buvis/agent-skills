@@ -79,7 +79,11 @@ def main(argv: list[str]) -> int:
     if args.command == "render":
         from eval_harness import report
 
-        report.render(args.evidence_dir, args.run_id)
+        try:
+            report.render(args.evidence_dir, args.run_id)
+        except ValueError as exc:
+            print("render refused: %s" % exc, file=sys.stderr)
+            return 1
         return 0
     settings = engines.EngineSettings(
         qwen_provider=args.qwen_provider, qwen_model=args.qwen_model,

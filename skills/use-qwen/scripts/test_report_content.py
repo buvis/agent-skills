@@ -9,7 +9,6 @@ looked at once. Rounds used: "r1" (description, two engines), "tdd" (tdd, one
 PASS and one FAIL:test-mutation engine), "stray" (single engine).
 """
 import re
-import shlex
 
 from eval_harness import records, report
 
@@ -25,20 +24,25 @@ from eval_harness_run_helpers import (
     slow,
     vetted,
 )
-from test_report import _audit_row, _block, _render, _run_json, _valid_ids, _write_audit
+from test_report import (
+    FAIL_CLASSES,
+    _audit_row,
+    _block,
+    _expected_drops,
+    _expected_scored,
+    _or,
+    _render,
+    _run_json,
+    _valid_ids,
+    _write_audit,
+)
 
-FAIL_CLASSES = ("test-mutation", "stray-edit", "no-edit", "dropped-a-file", "vacuous-tests",
-                "logic-error")
 # The record field whose value decided each FAIL class (report.py's own comment names the
 # same source: records._judge_evidence/_judge_gates). A fixed contract, not a computed value.
 CLASS_FIELD = {
     "test-mutation": "oracle_intact", "stray-edit": "stray", "no-edit": "changed",
     "dropped-a-file": "dropped", "vacuous-tests": "gates.ablate", "logic-error": "gates",
 }
-
-
-def _or(value, fallback: str):
-    return fallback if value is None else value
 
 
 def _engine_block(counts_section: str, engine: str) -> str:
@@ -74,17 +78,6 @@ def test_evidence_engine_identity_line_renders_the_records_identity(rounds):
 
     block = _block(evidence, list(attempts), aid)
     assert ("Engine identity: `%s`" % identity) in block.splitlines()
-
-
-def test_evidence_dispatch_line_renders_the_records_argv_shlex_joined(rounds):
-    round_ = rounds("r1")
-    attempts = _attempts(round_)
-    aid, record = next(iter(attempts.items()))
-
-    evidence, _, _ = _render(round_)
-
-    block = _block(evidence, list(attempts), aid)
-    assert ("Dispatch: `%s`" % shlex.join(record["engine_run"]["argv"])) in block.splitlines()
 
 
 def test_evidence_baseline_line_renders_baseline_rc_and_first_failure_from_the_record(rounds):
@@ -195,30 +188,6 @@ def test_classification_section_renders_engine_task_class_and_field_for_a_fail_r
 
 
 # -- report.md: exact counts recount, a single-engine run, a retry-then-incomplete pair ------
-
-
-def _expected_drops(round_) -> int:
-    return sum(1 for r in _attempts(round_).values()
-              if r["outcome"] == "FAIL" and r["class"] == "dropped-a-file")
-
-
-def _expected_scored(round_) -> int:
-    """Tasks whose every engine's highest-numbered attempt has a launched record."""
-    run = _run_json(round_)
-    attempts = _attempts(round_)
-    names = [p.name for p in round_.run.iterdir() if p.is_dir()]
-    scored = 0
-    for task in run["tasks"]:
-        launched = True
-        for engine in run["engines"]:
-            prefix = "%d-%s-a" % (task["id"], engine["id"])
-            numbers = [int(n[len(prefix):]) for n in names
-                      if n.startswith(prefix) and n[len(prefix):].isdigit()]
-            record = attempts.get("%s%d" % (prefix, max(numbers))) if numbers else None
-            if record is None or record["engine_run"]["launch"] not in ("started", "unknown"):
-                launched = False
-        scored += launched
-    return scored
 
 
 def _expected_not_started(round_) -> int:

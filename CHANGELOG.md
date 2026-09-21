@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **use-qwen**: render eval rounds into evidence, scoreboard and audit queue from attempt records (`run_eval_harness.py render`)
+- **use-qwen**: render eval rounds into evidence, scoreboard and audit queue from attempt records (`run_eval_harness.py render`); a refused render exits 1 with one `render refused:` line naming the malformed `run.json`, `vetting.json`, `attempt.json` or `audit.jsonl` row instead of a traceback
 - **capture-experiment**: notes carry an `id` frontmatter field holding the
   same zettelkasten id as the filename, matching the `digest-github-repo`
   template, so vault-wide queries on `id` see experiment notes too.

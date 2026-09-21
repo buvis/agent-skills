@@ -27,11 +27,19 @@ from eval_harness_run_helpers import (
     slow,
     vetted,
 )
-from test_report import _audit_row, _files, _render, _run_json, _valid_ids, _write_audit
+from test_report import (
+    FAIL_CLASSES,
+    _audit_row,
+    _expected_drops,
+    _expected_scored,
+    _files,
+    _render,
+    _run_json,
+    _valid_ids,
+    _write_audit,
+)
 
 TALLIES = ("attempts", "PASS", "FAIL", "TIMEOUT", "SUSPECT", "DISCARDED", "INCOMPLETE")
-FAIL_CLASSES = ("test-mutation", "stray-edit", "no-edit", "dropped-a-file", "vacuous-tests",
-                "logic-error")
 CLASS_KEYS = tuple("FAIL:%s" % cls for cls in FAIL_CLASSES)
 COUNT_KEYS = {"engines", "drops", "scored", "not_started", "f", "f_audited", "f_total"}
 
@@ -469,30 +477,6 @@ def _recount(round_) -> dict:
         if record["outcome"] == "FAIL":
             tallies["FAIL:%s" % record["class"]] += 1
     return by_engine
-
-
-def _expected_drops(round_) -> int:
-    return sum(record["outcome"] == "FAIL" and record["class"] == "dropped-a-file"
-               for record in _attempts(round_).values())
-
-
-def _expected_scored(round_) -> int:
-    """Tasks whose every engine's highest-numbered attempt has a launched record."""
-    run = _run_json(round_)
-    attempts = _attempts(round_)
-    names = [path.name for path in round_.run.iterdir() if path.is_dir()]
-    scored = 0
-    for task in run["tasks"]:
-        launched = []
-        for engine in run["engines"]:
-            prefix = "%d-%s-a" % (task["id"], engine["id"])
-            numbers = [int(name[len(prefix):]) for name in names
-                       if name.startswith(prefix) and name[len(prefix):].isdigit()]
-            record = attempts.get("%s%d" % (prefix, max(numbers))) if numbers else None
-            launched.append(record is not None
-                            and record["engine_run"]["launch"] in ("started", "unknown"))
-        scored += all(launched)
-    return scored
 
 
 @pytest.mark.parametrize("run_id", ["hang", "retry", "tdd", "r1"])
