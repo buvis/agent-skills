@@ -119,6 +119,57 @@ def test_collect_repo_records_meta_timeout_without_raising(monkeypatch):
     assert any(str(timeout_exc) in e for e in result["errors"])
 
 
+def test_a_non_json_metadata_body_lands_in_errors_and_the_run_continues(monkeypatch):
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:acme/widget.git\n"
+        if cmd[0] == "gh":
+            return "<html>502</html>"
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(collect, "run", fake_run)
+    result = collect_repo("/repos/acme/widget", 60, False)
+    assert result is not None
+    assert "skipped" not in result
+    assert len(result["errors"]) == 1
+    assert result["errors"][0].startswith("meta:")
+
+
+def test_an_empty_metadata_body_lands_in_errors_and_the_run_continues(monkeypatch):
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:acme/widget.git\n"
+        if cmd[0] == "gh":
+            return ""
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(collect, "run", fake_run)
+    result = collect_repo("/repos/acme/widget", 60, False)
+    assert result is not None
+    assert "skipped" not in result
+    assert len(result["errors"]) == 1
+    assert result["errors"][0].startswith("meta:")
+
+
+def test_collect_repo_records_meta_http_403_without_raising(monkeypatch):
+    http_403_exc = RuntimeError("gh: HTTP 403: API rate limit exceeded")
+
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:acme/widget.git\n"
+        if cmd[0] == "gh":
+            raise http_403_exc
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(collect, "run", fake_run)
+    result = collect_repo("/repos/acme/widget", 60, False)
+    assert result is not None
+    assert "skipped" not in result
+    assert len(result["errors"]) == 1
+    assert result["errors"][0].startswith("meta:")
+    assert str(http_403_exc) in result["errors"][0]
+
+
 def test_collect_repo_purge_last_run_key_equals_collect_purge_devlocal_result(
     tmp_path,
     monkeypatch,
