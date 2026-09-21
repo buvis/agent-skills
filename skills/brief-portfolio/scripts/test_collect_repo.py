@@ -150,6 +150,53 @@ def test_collect_repo_records_meta_http_403_without_raising(monkeypatch):
     assert str(http_403_exc) in result["errors"][0]
 
 
+def _run_answering_actions_runs(runs_exc):
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:demo/repo.git\n"
+        if cmd[0] == "git":
+            return ""
+        if cmd[0] == "gh" and cmd[1] == "api":
+            path = cmd[2]
+            if "actions/runs" in path:
+                raise runs_exc
+            if path == "repos/demo/repo":
+                return '{"default_branch": "master"}'
+            return "[]"
+        if cmd[0] == "gh" and cmd[1] == "pr":
+            return "[]"
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    return fake_run
+
+
+def test_a_500_on_actions_runs_lands_in_errors_and_leaves_ci_absent(monkeypatch):
+    runs_exc = RuntimeError(
+        "gh: HTTP 500: Internal Server Error (https://api.github.com/repos/demo/repo/actions/runs)"
+    )
+
+    monkeypatch.setattr(collect, "run", _run_answering_actions_runs(runs_exc))
+    result = collect_repo("/repos/demo/repo", 60, False)
+    assert result is not None
+    assert "skipped" not in result
+    assert "ci" not in result
+    assert len(result["errors"]) == 1
+    assert result["errors"][0].startswith("ci:")
+
+
+def test_a_403_on_actions_runs_still_reads_as_actions_disabled(monkeypatch):
+    runs_exc = RuntimeError(
+        "gh: HTTP 403: Forbidden (https://api.github.com/repos/demo/repo/actions/runs)"
+    )
+
+    monkeypatch.setattr(collect, "run", _run_answering_actions_runs(runs_exc))
+    result = collect_repo("/repos/demo/repo", 60, False)
+    assert result is not None
+    assert "skipped" not in result
+    assert result["ci"] == []
+    assert not any(e.startswith("ci:") for e in result["errors"])
+
+
 def test_collect_repo_purge_last_run_key_equals_collect_purge_devlocal_result(
     tmp_path,
     monkeypatch,
