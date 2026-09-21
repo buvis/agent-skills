@@ -259,6 +259,20 @@ def collect_purge_devlocal(path):
     return max((e.name for e in trash.iterdir() if e.is_dir() and DATE_DIR_RE.match(e.name)), default=None)
 
 
+def parse_ts(ts, now):
+    """Parse a row's `ts` into a tz-aware datetime, or None when it's not a
+    string, doesn't parse, lacks a timezone, or lies in the future."""
+    if not isinstance(ts, str):
+        return None
+    try:
+        dt = datetime.fromisoformat(ts)
+    except ValueError:
+        return None
+    if dt.tzinfo is None or dt > now:
+        return None
+    return dt
+
+
 def collect_claude_skill_adherence(base=None):
     """Last-30-day skill-invocation summary from ~/.local/share/agents/metrics/skills.jsonl
     (PRD 00086 R2, numerator-only). Returns {count, distinct, top} or None when
@@ -266,7 +280,8 @@ def collect_claude_skill_adherence(base=None):
     f = Path(base) if base else Path.home() / ".local/share/agents/metrics/skills.jsonl"
     if not f.is_file():
         return None
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=30)
     per_skill = {}
     try:
         for line in f.read_text(errors="replace").splitlines():
@@ -277,7 +292,10 @@ def collect_claude_skill_adherence(base=None):
                 row = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if not isinstance(row, dict) or row.get("ts", "") < cutoff:
+            if not isinstance(row, dict):
+                continue
+            ts = parse_ts(row.get("ts"), now)
+            if ts is None or ts < cutoff:
                 continue
             skill = row.get("skill")
             if skill:
@@ -309,6 +327,7 @@ def collect_audit_cadence(base=None):
         lines = f.read_text(errors="replace").splitlines()
     except OSError:
         return result
+    now = datetime.now(timezone.utc)
     for line in lines:
         line = line.strip()
         if not line:
@@ -319,10 +338,11 @@ def collect_audit_cadence(base=None):
             continue
         if not isinstance(row, dict):
             continue
-        skill, ts = row.get("skill"), row.get("ts")
-        if not skill or not ts:
+        skill = row.get("skill")
+        dt = parse_ts(row.get("ts"), now)
+        if not skill or dt is None:
             continue
-        day = iso_day(ts)
+        day = dt.date().isoformat()
         if result.get(skill) is None or day > result[skill]:
             result[skill] = day
     return result
