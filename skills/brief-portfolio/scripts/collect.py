@@ -272,7 +272,10 @@ def _parse_ts(ts):
     now = datetime.now(timezone.utc)
     if dt.tzinfo is None or dt > now:
         return None
-    return dt.astimezone(timezone.utc)
+    try:
+        return dt.astimezone(timezone.utc)
+    except OverflowError:
+        return None
 
 
 def collect_claude_skill_adherence(base=None):
