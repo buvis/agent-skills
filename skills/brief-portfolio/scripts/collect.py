@@ -259,18 +259,20 @@ def collect_purge_devlocal(path):
     return max((e.name for e in trash.iterdir() if e.is_dir() and DATE_DIR_RE.match(e.name)), default=None)
 
 
-def parse_ts(ts, now):
-    """Parse a row's `ts` into a tz-aware datetime, or None when it's not a
-    string, doesn't parse, lacks a timezone, or lies in the future."""
+def _parse_ts(ts):
+    """Parse a row's `ts` into a tz-aware datetime normalized to UTC, or None
+    when it's not a string, doesn't parse, lacks a timezone, or lies in the
+    future."""
     if not isinstance(ts, str):
         return None
     try:
         dt = datetime.fromisoformat(ts)
     except ValueError:
         return None
+    now = datetime.now(timezone.utc)
     if dt.tzinfo is None or dt > now:
         return None
-    return dt
+    return dt.astimezone(timezone.utc)
 
 
 def collect_claude_skill_adherence(base=None):
@@ -294,7 +296,7 @@ def collect_claude_skill_adherence(base=None):
                 continue
             if not isinstance(row, dict):
                 continue
-            ts = parse_ts(row.get("ts"), now)
+            ts = _parse_ts(row.get("ts"))
             if ts is None or ts < cutoff:
                 continue
             skill = row.get("skill")
@@ -327,7 +329,6 @@ def collect_audit_cadence(base=None):
         lines = f.read_text(errors="replace").splitlines()
     except OSError:
         return result
-    now = datetime.now(timezone.utc)
     for line in lines:
         line = line.strip()
         if not line:
@@ -339,7 +340,7 @@ def collect_audit_cadence(base=None):
         if not isinstance(row, dict):
             continue
         skill = row.get("skill")
-        dt = parse_ts(row.get("ts"), now)
+        dt = _parse_ts(row.get("ts"))
         if not skill or dt is None:
             continue
         day = dt.date().isoformat()
