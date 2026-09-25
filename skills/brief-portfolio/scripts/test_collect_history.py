@@ -218,6 +218,22 @@ def test_rotation_publishes_both_snapshots_owner_only(tmp_path, monkeypatch):
 
 
 @pytest.mark.usefixtures("permissive_umask")
+def test_existing_out_dir_without_data_json_keeps_its_protection(
+    tmp_path,
+    monkeypatch,
+):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir(parents=True)
+    widen_protection(out_dir)
+    dir_protection_before = read_protection(out_dir)
+
+    run_collector(tmp_path, monkeypatch, ["alpha"], [])
+
+    assert_owner_only(out_dir / "data.json")
+    assert read_protection(out_dir) == dir_protection_before
+
+
+@pytest.mark.usefixtures("permissive_umask")
 def test_snapshot_temporaries_are_owner_only_before_publication(
     tmp_path,
     monkeypatch,
@@ -231,8 +247,25 @@ def test_snapshot_temporaries_are_owner_only_before_publication(
     )
     write_data_json_fixture(out_dir / "data.json", stale_at, "5-hours-old")
 
+    temporaries = {"data.json.tmp", "data-prev.json.tmp"}
+    original_write_text = Path.write_text
     original_replace = Path.replace
-    checked = []
+    written, checked_after_write, checked = [], [], []
+
+    def check_written_first(original):
+        # A written temporary must be owner-only by the next file operation,
+        # not merely by the time it is published.
+        def patched(self, *args, **kwargs):
+            while written:
+                assert_owner_only(written[-1])
+                checked_after_write.append(written.pop().name)
+            return original(self, *args, **kwargs)
+        return patched
+
+    def recording_write_text(self, *args, **kwargs):
+        if self.name in temporaries:
+            written.append(self)
+        return original_write_text(self, *args, **kwargs)
 
     def checking_replace(self, *args, **kwargs):
         if self.name in ("data.json.tmp", "data-prev.json.tmp"):
@@ -240,11 +273,14 @@ def test_snapshot_temporaries_are_owner_only_before_publication(
             checked.append(self.name)
         return original_replace(self, *args, **kwargs)
 
-    monkeypatch.setattr(Path, "replace", checking_replace)
+    monkeypatch.setattr(Path, "write_text", check_written_first(recording_write_text))
+    monkeypatch.setattr(Path, "read_text", check_written_first(Path.read_text))
+    monkeypatch.setattr(Path, "replace", check_written_first(checking_replace))
 
     run_collector(tmp_path, monkeypatch, ["alpha"], [])
 
-    assert set(checked) == {"data.json.tmp", "data-prev.json.tmp"}
+    assert set(checked_after_write) == temporaries
+    assert set(checked) == temporaries
 
 
 def test_offline_makes_zero_subprocess_calls(tmp_path, monkeypatch):
