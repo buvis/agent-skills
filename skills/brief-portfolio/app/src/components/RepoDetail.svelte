@@ -1,6 +1,6 @@
 <script>
   import { getContext } from 'svelte'
-  import { slug, epicsFor, isDepBot, daysAgo, ago, ciFailing, wipItems } from '../lib/derive.js'
+  import { slug, epicsFor, isDepBot, daysAgo, ago, ciFailing, wipItems, safeUrl } from '../lib/derive.js'
   import Icon from './Icon.svelte'
 
   let { repo, epics, onclose } = $props()
@@ -76,7 +76,7 @@
         {#each repo.security as a, i (i)}
           <li>
             <span class="lbl sev-{a.severity === 'critical' || a.severity === 'high' ? 'critical' : 'warning'}">{a.severity}</span>
-            {#if a.url}<a href={a.url} target="_blank" rel="noreferrer">{a.title}</a>{:else}{a.title}{/if}
+            {#if safeUrl(a.url)}<a href={safeUrl(a.url)} target="_blank" rel="noreferrer">{a.title}</a>{:else}{a.title}{/if}
           </li>
         {/each}
       </ul>
@@ -129,7 +129,7 @@
             <span class={ciFailing({ ci: [w] }).length ? 'sev-critical' : w.conclusion === 'success' ? 'sev-good' : ''}>
               {w.status !== 'completed' ? '◌' : w.conclusion === 'success' ? '✓' : '✗'}
             </span>
-            <a href={w.url} target="_blank" rel="noreferrer">{w.workflow}</a>
+            {#if safeUrl(w.url)}<a href={safeUrl(w.url)} target="_blank" rel="noreferrer">{w.workflow}</a>{:else}{w.workflow}{/if}
             <span class="cdate">{w.conclusion ?? w.status} · {w.date}</span>
           </li>
         {/each}

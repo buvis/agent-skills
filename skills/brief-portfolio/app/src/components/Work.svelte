@@ -1,6 +1,6 @@
 <script>
   import { getContext } from 'svelte'
-  import { slug, isDepBot, ciFailing, daysAgo } from '../lib/derive.js'
+  import { slug, isDepBot, ciFailing, daysAgo, safeUrl } from '../lib/derive.js'
 
   let { repos, external, onselect } = $props()
   const slots = getContext('slots')
@@ -53,7 +53,7 @@
             <td class:sev-serious={p.role === 'review requested'}>{p.role}</td>
             <td>{p.repo}</td>
             <td>
-              <a href={p.url} target="_blank" rel="noreferrer">#{p.number} {p.title}</a>
+              {#if safeUrl(p.url)}<a href={safeUrl(p.url)} target="_blank" rel="noreferrer">#{p.number} {p.title}</a>{:else}#{p.number} {p.title}{/if}
               {#if p.draft}<span class="lbl">draft</span>{/if}
             </td>
           </tr>
@@ -148,9 +148,7 @@
         </button>
         <div class="runs">
           {#each r.ci as w (w.workflow)}
-            <a class="run {runClass(w)}" href={w.url} target="_blank" rel="noreferrer">
-              {runMark(w)} {w.workflow}
-            </a>
+            {#if safeUrl(w.url)}<a class="run {runClass(w)}" href={safeUrl(w.url)} target="_blank" rel="noreferrer">{runMark(w)} {w.workflow}</a>{:else}{runMark(w)} {w.workflow}{/if}
           {/each}
         </div>
       </div>

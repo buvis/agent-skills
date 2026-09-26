@@ -1,6 +1,6 @@
 <script>
   import { getContext } from 'svelte'
-  import { allTodos, quadrant } from '../lib/derive.js'
+  import { allTodos, quadrant, safeUrl } from '../lib/derive.js'
   import { loadDone, saveDone } from '../lib/done.js'
   import Icon from './Icon.svelte'
 
@@ -52,7 +52,7 @@
           <input type="checkbox" id="m-{t.id}" checked={done.has(t.id)} onchange={() => toggle(t.id)} />
           <label for="m-{t.id}">
             <span class="action">
-              {#if t.url}<a href={t.url} target="_blank" rel="noreferrer">{t.action}</a>{:else}{t.action}{/if}
+              {#if safeUrl(t.url)}<a href={safeUrl(t.url)} target="_blank" rel="noreferrer">{t.action}</a>{:else}{t.action}{/if}
             </span>
             {#if t.why}<span class="why">{t.why}</span>{/if}
           </label>

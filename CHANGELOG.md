@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **brief-portfolio**: external PRs, CI runs, todos, and security alerts carrying non-http(s) URLs now render as plain text instead of clickable links.
 - **brief-portfolio**: `data.json`, `data-prev.json` and their `.tmp` files, plus a freshly-created out directory, are now written owner-only (POSIX `chmod 0o600`/`0o700`, Windows `icacls`) instead of the default world-readable mode, so a subprocess-stderr snippet carrying a leaked credential is never left in a world-readable file.
 - **brief-portfolio**: a failure to protect `data.json`, `data-prev.json`, their temporary files, or a freshly-created out directory now exits the collect run with a clear `cannot protect <path>: <error>` message and cleans up any temporary already written, instead of crashing with a raw traceback and possibly leaving an unprotected file behind.
 - **brief-portfolio**: `collect_ci` no longer reports a failed `actions/runs` fetch (such as a 500) as "no CI runs" with zero warnings; only HTTP 403/404 still read as Actions disabled (`ci: []`, no error), and every other failure lands a `ci:` entry in the repo's `errors` and leaves the `ci` key absent, which the page already renders as "not collected this run".
