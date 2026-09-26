@@ -47,16 +47,15 @@ def _load_history(workdir):
     hist_file = workdir / "history.jsonl"
     history = []
     if hist_file.is_file():
-        window = deque(maxlen=60)
         with hist_file.open() as f:
-            for i, l in enumerate(f, start=1):
-                if l.strip():
-                    window.append((i, l))
-        for i, l in window:
+            window = deque(
+                ((n, line) for n, line in enumerate(f, 1) if line.strip()), maxlen=60
+            )
+        for n, line in window:
             try:
-                history.append(json.loads(l))
+                history.append(json.loads(line))
             except json.JSONDecodeError as e:
-                print(f"WARN: history.jsonl line {i} skipped: {e}", file=sys.stderr)
+                print(f"WARN: history.jsonl line {n} skipped: {e}", file=sys.stderr)
     return history
 
 
