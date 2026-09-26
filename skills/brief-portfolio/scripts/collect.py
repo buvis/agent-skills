@@ -572,11 +572,9 @@ def history_needs_separator(hist_file):
 
 
 def load_repo_paths() -> list:
-    try:
-        rows = csv.reader(GITA_CSV.open())
-    except FileNotFoundError:
+    if not GITA_CSV.is_file():
         sys.exit(f"no repos found in gita registry: {GITA_CSV} is missing")
-    paths = [row[0] for row in rows if row and row[0].strip()]
+    paths = [row[0] for row in csv.reader(GITA_CSV.open()) if row and row[0].strip()]
     paths = [p for p in paths if (Path(p) / ".git").exists()]
     if not paths:
         sys.exit("no repos found in gita registry")
