@@ -13,14 +13,18 @@ TEMPLATE = Path(__file__).resolve().parent.parent / "assets/template.html"
 PLACEHOLDER = "__PORTFOLIO_PAYLOAD__"
 
 
+def _load_json_or_exit(path):
+    try:
+        return json.loads(path.read_text())
+    except json.JSONDecodeError as e:
+        sys.exit(f"{path}: {e}")
+
+
 def _load_data(workdir):
     data_file = workdir / "data.json"
     if not data_file.is_file():
         sys.exit(f"missing {data_file} — run collect.py first")
-    try:
-        return json.loads(data_file.read_text())
-    except json.JSONDecodeError as e:
-        sys.exit(f"{data_file}: {e}")
+    return _load_json_or_exit(data_file)
 
 
 def _load_epics(workdir):
@@ -28,15 +32,17 @@ def _load_epics(workdir):
     if not epics_file.is_file():
         print(f"WARN: {epics_file} not found — building without epic grouping", file=sys.stderr)
         return {"summary": "", "repos": {}}
-    try:
-        return json.loads(epics_file.read_text())
-    except json.JSONDecodeError as e:
-        sys.exit(f"{epics_file}: {e}")
+    return _load_json_or_exit(epics_file)
+
+
+def _load_prev(workdir):
+    prev_file = workdir / "data-prev.json"
+    if not prev_file.is_file():
+        return None
+    return _load_json_or_exit(prev_file)
 
 
 def _load_history(workdir):
-    prev_file = workdir / "data-prev.json"
-    prev = json.loads(prev_file.read_text()) if prev_file.is_file() else None
     hist_file = workdir / "history.jsonl"
     history = []
     if hist_file.is_file():
@@ -50,7 +56,7 @@ def _load_history(workdir):
                 history.append(json.loads(l))
             except json.JSONDecodeError as e:
                 print(f"WARN: history.jsonl line {i} skipped: {e}", file=sys.stderr)
-    return prev, history
+    return history
 
 
 def main():
@@ -65,7 +71,8 @@ def main():
 
     data = _load_data(workdir)
     epics = _load_epics(workdir)
-    prev, history = _load_history(workdir)
+    prev = _load_prev(workdir)
+    history = _load_history(workdir)
 
     template = TEMPLATE.read_text()
     if PLACEHOLDER not in template:

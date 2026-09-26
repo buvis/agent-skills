@@ -103,11 +103,6 @@ def test_no_flags_writes_the_home_default(tmp_path, monkeypatch):
     assert (home / ".local/share/agents/portfolio-brief/portfolio-brief.html").is_file()
 
 
-# Found by an agoge run on 2026-09-05. Each fails against the code as it stands,
-# so the strict xfail is the executable record of the defect: fix the defect and
-# the marker goes stale, turning the suite red to say "delete me".
-
-
 def test_a_torn_history_line_does_not_abort_the_build(tmp_path, monkeypatch, capsys):
     workdir = _workdir(tmp_path, {"repos": []})
     (workdir / "history.jsonl").write_text(
