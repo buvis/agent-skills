@@ -135,10 +135,7 @@ def discover_inventory(sources: Iterable[Path]) -> dict[str, Path]:
             if candidate.name.startswith(".") or not candidate.is_dir():
                 continue
             if candidate.is_symlink():
-                try:
-                    candidate.resolve().relative_to(source)
-                except ValueError:
-                    continue
+                continue
             if not (candidate / "SKILL.md").is_file():
                 continue
             name = _skill_name(candidate)
