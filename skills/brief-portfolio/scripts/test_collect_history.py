@@ -514,3 +514,18 @@ def test_history_counts_leaves_a_partial_failure_unmarked():
     row = history_counts({"errors": ["fetch: timeout"], "commits": []})
     # A non-fatal error alongside collected data must not get the "e" marker.
     assert "e" not in row
+
+
+def test_a_torn_history_tail_does_not_swallow_the_next_row(tmp_path, monkeypatch):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir(parents=True)
+    (out_dir / "history.jsonl").write_text('{"at":')
+
+    run_collector(tmp_path, monkeypatch, ["alpha"], [])
+
+    lines = (out_dir / "history.jsonl").read_text().splitlines()
+    assert len(lines) == 2
+    # The torn fragment is left exactly as it was: still its own bad line.
+    assert lines[0] == '{"at":'
+    # The new record starts on its own line and decodes independently.
+    assert json.loads(lines[1])
