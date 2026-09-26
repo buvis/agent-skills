@@ -411,6 +411,14 @@ def collect_local(path, branch):
             "ahead": ahead, "behind": behind, "stashes": stashes}
 
 
+def run_collectors(repo, tasks):
+    for key, fn in tasks:
+        try:
+            repo[key] = fn()
+        except Exception as e:
+            repo["errors"].append(f"{key}: {e}")
+
+
 def collect_repo(path, days, fetch):
     errors = []
     try:
@@ -426,14 +434,10 @@ def collect_repo(path, days, fetch):
             errors.append(f"fetch: {e}")
     # needs no default branch, runs before metadata: these read only the local
     # checkout, so a failed metadata call must not cost them too
-    for key, fn in [("prds", lambda: collect_prds(path)),
-                    ("changelog_unreleased", lambda: collect_changelog(path)),
-                    ("brush_last_run", lambda: collect_brush(path)),
-                    ("purge_last_run", lambda: collect_purge_devlocal(path))]:
-        try:
-            repo[key] = fn()
-        except Exception as e:
-            repo["errors"].append(f"{key}: {e}")
+    run_collectors(repo, [("prds", lambda: collect_prds(path)),
+                          ("changelog_unreleased", lambda: collect_changelog(path)),
+                          ("brush_last_run", lambda: collect_brush(path)),
+                          ("purge_last_run", lambda: collect_purge_devlocal(path))])
     try:
         meta = gh_json(f"repos/{owner}/{name}")
         repo.update(description=meta.get("description") or "",
@@ -447,17 +451,13 @@ def collect_repo(path, days, fetch):
         errors.append(f"meta: {e}")
         return repo
     branch = repo["default_branch"]
-    for key, fn in [("commits", lambda: collect_commits(path, branch, days)),
-                    ("issues", lambda: collect_issues(owner, name)),
-                    ("prs", lambda: collect_prs(owner, name)),
-                    ("ci", lambda: collect_ci(owner, name, branch)),
-                    ("security", lambda: collect_security(owner, name)),
-                    ("branches", lambda: collect_branches(path, branch)),
-                    ("local", lambda: collect_local(path, branch))]:
-        try:
-            repo[key] = fn()
-        except Exception as e:
-            repo["errors"].append(f"{key}: {e}")
+    run_collectors(repo, [("commits", lambda: collect_commits(path, branch, days)),
+                          ("issues", lambda: collect_issues(owner, name)),
+                          ("prs", lambda: collect_prs(owner, name)),
+                          ("ci", lambda: collect_ci(owner, name, branch)),
+                          ("security", lambda: collect_security(owner, name)),
+                          ("branches", lambda: collect_branches(path, branch)),
+                          ("local", lambda: collect_local(path, branch))])
     try:
         repo["releases"], repo["last_tag"], repo["unreleased_commits"] = \
             collect_releases(owner, name, path, branch)
