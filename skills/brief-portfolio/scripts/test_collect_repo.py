@@ -263,6 +263,51 @@ def test_a_failed_metadata_call_still_collects_the_local_hygiene_stamps(
     assert "local" not in result
 
 
+def test_collect_repo_resolves_the_current_branch_once(monkeypatch):
+    calls = []
+
+    def fake_run(cmd, cwd=None, timeout=120):
+        calls.append(cmd)
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:acme/widget.git\n"
+        return ""
+
+    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "gh_json", lambda path: {"default_branch": "master"})
+
+    collect_repo("/repos/acme/widget", 60, False)
+
+    rev_parse_calls = [
+        c for c in calls if c == ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+    ]
+    assert len(rev_parse_calls) == 1
+
+
+def test_a_failed_current_branch_lookup_skips_branches_and_local_without_raising(
+    monkeypatch,
+):
+    rev_parse_exc = RuntimeError("git: fatal error")
+
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:acme/widget.git\n"
+        if cmd[0] == "git" and cmd[1] == "rev-parse":
+            raise rev_parse_exc
+        return ""
+
+    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "gh_json", lambda path: {"default_branch": "master"})
+
+    result = collect_repo("/repos/acme/widget", 60, False)
+
+    assert result is not None
+    assert "prds" in result
+    assert "branches" not in result
+    assert "local" not in result
+    assert any(e.startswith("branches:") for e in result["errors"])
+    assert any(e.startswith("local:") for e in result["errors"])
+
+
 @pytest.mark.parametrize(
     "remote_url, expected",
     [
