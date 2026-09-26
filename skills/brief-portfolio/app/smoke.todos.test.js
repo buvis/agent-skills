@@ -185,11 +185,11 @@ test('copy open as markdown emits exactly one line per open todo whatever the ac
   // lines, and "injected todo" must not read as its own list item.
   const payload = structuredClone(PAYLOAD)
   payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
-  payload.data.epics = {
+  payload.epics = {
     summary: '',
     repos: {},
     todos: [
-      { id: 'inject-1', repo: 'buvis/demo', action: 'line one\n- [ ] injected todo [x](javascript:1)' },
+      { id: 'inject-1', repo: 'buvis/demo', action: 'line one\n- [ ]  injected todo [x](javascript:1)' },
     ],
   }
 
@@ -231,7 +231,7 @@ test('copy open as markdown escapes a pre-existing backslash so it cannot cancel
   // the escaping instead of doubling it.
   const payload = structuredClone(PAYLOAD)
   payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
-  payload.data.epics = {
+  payload.epics = {
     summary: '',
     repos: {},
     todos: [{ id: 'backslash-1', repo: 'buvis/demo', action: 'foo\\[bar]' }],
