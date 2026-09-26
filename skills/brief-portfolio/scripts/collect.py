@@ -538,6 +538,15 @@ def collect_external_section(known):
     return external
 
 
+def collect_and_partition(paths, days, fetch):
+    print(f"collecting {len(paths)} repos (days={days}, fetch={fetch})", file=sys.stderr)
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        collected = list(ex.map(lambda p: collect_repo(p, days, fetch), paths))
+    skipped = [r for r in collected if r.get("skipped")]
+    repos = [r for r in collected if not r.get("skipped")]
+    return collected, skipped, repos
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=60)
@@ -555,12 +564,7 @@ def main():
     if not paths:
         sys.exit("no repos found in gita registry")
 
-    print(f"collecting {len(paths)} repos (days={args.days}, fetch={not args.no_git_fetch})",
-          file=sys.stderr)
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        collected = list(ex.map(lambda p: collect_repo(p, args.days, not args.no_git_fetch), paths))
-    skipped = [r for r in collected if r.get("skipped")]
-    repos = [r for r in collected if not r.get("skipped")]
+    collected, skipped, repos = collect_and_partition(paths, args.days, not args.no_git_fetch)
 
     outdir = Path(args.out)
     outdir_is_new = not outdir.exists()
