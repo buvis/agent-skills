@@ -178,3 +178,88 @@ test('aria-live region clears once the failed-copy button label has reverted', a
     'aria-live region still holds stale "✗ copy failed" text after the button label reverted',
   )
 })
+
+test('copy open as markdown emits exactly one line per open todo whatever the action contains', async () => {
+  // A hostile epic action containing a literal newline and markdown
+  // checkbox/link syntax must not fragment the clipboard payload into extra
+  // lines, and "injected todo" must not read as its own list item.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
+  payload.data.epics = {
+    summary: '',
+    repos: {},
+    todos: [
+      { id: 'inject-1', repo: 'buvis/demo', action: 'line one\n- [ ] injected todo [x](javascript:1)' },
+    ],
+  }
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const openCount = doc.querySelectorAll('main .todo').length
+  assert.ok(openCount > 0, 'test setup produced no open todos to copy')
+
+  const button = [...doc.querySelectorAll('main button.chip')].find(
+    (b) => b.textContent.trim() === 'copy open as markdown',
+  )
+  assert.ok(button, 'missing "copy open as markdown" button')
+
+  let recorded = null
+  doc.defaultView.navigator.clipboard = {
+    writeText: (text) => {
+      recorded = text
+      return Promise.resolve()
+    },
+  }
+
+  button.click()
+  await flush()
+
+  assert.equal(button.textContent.trim(), '✓ copied')
+  const lines = recorded.split('\n')
+  assert.equal(lines.length, openCount, 'clipboard text did not have exactly one line per open todo')
+  assert.ok(
+    lines.includes('- [ ] buvis/demo: line one - \\[ \\] injected todo \\[x\\](javascript:1)'),
+    'injected todo did not stay on its source todo\'s line with brackets escaped',
+  )
+})
+
+test('copy open as markdown escapes a pre-existing backslash so it cannot cancel the added bracket escaping', async () => {
+  // A backslash already present in the action, immediately before a bracket,
+  // must itself be escaped before the brackets are escaped — otherwise the
+  // original backslash would combine with the newly inserted one and cancel
+  // the escaping instead of doubling it.
+  const payload = structuredClone(PAYLOAD)
+  payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
+  payload.data.epics = {
+    summary: '',
+    repos: {},
+    todos: [{ id: 'backslash-1', repo: 'buvis/demo', action: 'foo\\[bar]' }],
+  }
+
+  const { doc, openTab, flush } = render(payload)
+  await openTab('Todo')
+
+  const button = [...doc.querySelectorAll('main button.chip')].find(
+    (b) => b.textContent.trim() === 'copy open as markdown',
+  )
+  assert.ok(button, 'missing "copy open as markdown" button')
+
+  let recorded = null
+  doc.defaultView.navigator.clipboard = {
+    writeText: (text) => {
+      recorded = text
+      return Promise.resolve()
+    },
+  }
+
+  button.click()
+  await flush()
+
+  assert.equal(button.textContent.trim(), '✓ copied')
+  const lines = recorded.split('\n')
+  assert.ok(
+    lines.includes('- [ ] buvis/demo: foo\\\\\\[bar\\]'),
+    'pre-existing backslash before a bracket was not escaped to the exact expected output',
+  )
+})
