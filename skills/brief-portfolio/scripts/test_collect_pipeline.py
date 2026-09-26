@@ -1,10 +1,12 @@
 """Regression tests for collect.py's main() pipeline: the registry partition,
 recovery from an unusable data.json, and the audit-cadence call site. Also
-hosts the two agoge 2026-09-05 strict xfails: a missing registry (main()) and
-a capped commit count (collect_repo, not main()).
+hosts the agoge 2026-09-05 strict xfail for a missing registry (main()) and
+the true commit count behind a capped commit list (collect_commit_count,
+collect_repo, and the history row).
 Run: python3 -m pytest test_collect_pipeline.py -q"""
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -12,7 +14,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
 import collect
-from collect import MACHINE_AUDIT_SKILLS, collect_repo, main
+from collect import MACHINE_AUDIT_SKILLS, collect_repo, history_counts, main
 from collect_test_helpers import make_git_repo, run_collector, write_data_json_fixture
 
 
@@ -294,7 +296,7 @@ def test_a_raising_skill_adherence_reader_costs_one_metric_not_the_run(
     assert "WARN skill_adherence" in captured.err
 
 
-# Found by an agoge run on 2026-09-05. Each fails against the code as it stands,
+# Found by an agoge run on 2026-09-05. It fails against the code as it stands,
 # so the strict xfail is the executable record of the defect: fix the defect and
 # the marker goes stale, turning the suite red to say "delete me".
 
@@ -318,13 +320,11 @@ def test_missing_registry_file_exits_with_the_documented_message(tmp_path, monke
     assert "no repos found in gita registry" in str(exc.value)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=KeyError,
-    reason="agoge 2026-09-05: collect_commits truncates git log at MAX_COMMITS and nothing "
-    "records the true total, so a busy repo reads as exactly '200 commits' on the page "
-    "and the Brief headline undercounts the portfolio",
-)
+# The true commit count. agoge 2026-09-05 found that collect_commits caps its list
+# at MAX_COMMITS and nothing recorded the real total, so a busy repo read as
+# exactly "200 commits" and the history trend flattened at the cap.
+
+
 def test_a_capped_commit_list_still_carries_the_true_commit_count(tmp_path, monkeypatch):
     repo = tmp_path / "busy"
     make_git_repo(repo, commits=3)
@@ -345,3 +345,112 @@ def test_a_capped_commit_list_still_carries_the_true_commit_count(tmp_path, monk
 
     assert len(result["commits"]) == 2
     assert result["commit_count"] == 3
+
+
+def _serve_git_from_tmp_repos(monkeypatch):
+    """Send git to the real tmp repos (origin slug acme/<dir name>), fail every
+    gh call, and give the metadata call a master default branch."""
+    real_run = collect.run
+
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return f"git@github.com:acme/{Path(cwd).name}.git\n"
+        if cmd[0] == "git":
+            return real_run(cmd, cwd=cwd, timeout=timeout)
+        raise RuntimeError("gh: not authenticated")
+
+    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "gh_json", lambda path: {"default_branch": "master"})
+
+
+def test_commit_count_excludes_commits_older_than_the_window(tmp_path, monkeypatch):
+    monkeypatch.setenv("GIT_AUTHOR_DATE", "2020-01-01T12:00:00+00:00")
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "2020-01-01T12:00:00+00:00")
+    repo = tmp_path / "dormant"
+    make_git_repo(repo, commits=3)
+    # precondition: the fixture commits really are dated outside a 60-day window
+    assert collect.collect_commits(str(repo), "master", 60) == []
+
+    assert collect.collect_commit_count(str(repo), "master", 60) == 0
+    assert collect.collect_commit_count(str(repo), "master", 3650) == 3
+
+
+def test_commit_count_ignores_local_commits_not_on_the_origin_default_branch(tmp_path):
+    repo = tmp_path / "ahead"
+    make_git_repo(repo, commits=3)
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "--allow-empty", "-q", "-m", "local only"],
+        cwd=repo, check=True, capture_output=True,
+    )
+    # precondition: origin/master still holds only the fixture's three commits
+    assert len(collect.collect_commits(str(repo), "master", 60)) == 3
+
+    assert collect.collect_commit_count(str(repo), "master", 60) == 3
+
+
+def test_history_row_commit_field_uses_the_true_count(tmp_path, monkeypatch):
+    make_git_repo(tmp_path / "alpha", commits=3)
+    make_git_repo(tmp_path / "beta", commits=5)
+    registry = tmp_path / "repos.csv"
+    registry.write_text(f"{tmp_path / 'alpha'}\n{tmp_path / 'beta'}\n")
+    out_dir = tmp_path / "out"
+    _serve_git_from_tmp_repos(monkeypatch)
+    monkeypatch.setattr(collect, "MAX_COMMITS", 2)
+    monkeypatch.setattr(collect, "GITA_CSV", registry)
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "home")
+    monkeypatch.setattr(sys, "argv", ["collect.py", "--no-git-fetch", "--out", str(out_dir)])
+
+    main()
+
+    data = json.loads((out_dir / "data.json").read_text())
+    assert all(len(r["commits"]) == 2 for r in data["repos"])
+    counts = {f'{r["owner"]}/{r["name"]}': r["commit_count"] for r in data["repos"]}
+    assert counts == {"acme/alpha": 3, "acme/beta": 5}
+    last = json.loads((out_dir / "history.jsonl").read_text().strip().splitlines()[-1])
+    assert {slug: row["c"] for slug, row in last["repos"].items()} == counts
+
+
+def test_history_row_commit_field_falls_back_to_the_list_length_without_a_count():
+    legacy = {"owner": "acme", "name": "legacy", "errors": [],
+              "commits": [{"sha": "a1"}, {"sha": "b2"}]}
+
+    assert history_counts(legacy)["c"] == 2
+
+
+def test_a_failing_commit_count_warns_and_history_falls_back_to_the_list(
+    tmp_path,
+    monkeypatch,
+):
+    repo = tmp_path / "flaky"
+    make_git_repo(repo, commits=3)
+    _serve_git_from_tmp_repos(monkeypatch)
+
+    def raising_collect_commit_count(path, branch, days):
+        raise RuntimeError("rev-list timed out")
+
+    monkeypatch.setattr(collect, "collect_commit_count", raising_collect_commit_count)
+
+    result = collect_repo(str(repo), 60, False)
+
+    assert "commit_count" not in result
+    assert "commit_count: rev-list timed out" in result["errors"]
+    assert len(result["commits"]) == 3
+    assert history_counts(result)["c"] == 3
+
+
+def test_a_failed_metadata_call_leaves_commit_count_absent(tmp_path, monkeypatch):
+    repo = tmp_path / "unreachable"
+    make_git_repo(repo, commits=3)
+    _serve_git_from_tmp_repos(monkeypatch)
+
+    def failing_gh_json(path):
+        raise RuntimeError("gh: not authenticated")
+
+    monkeypatch.setattr(collect, "gh_json", failing_gh_json)
+
+    result = collect_repo(str(repo), 60, False)
+
+    assert any(e.startswith("meta: ") for e in result["errors"])
+    assert "commits" not in result
+    assert "commit_count" not in result
