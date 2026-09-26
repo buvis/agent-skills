@@ -579,7 +579,11 @@ def main():
     write_snapshot(data, outdir)
     hist = {"at": data["generated_at"], "skipped": len(skipped),
             "repos": {f'{r["owner"]}/{r["name"]}': history_counts(r) for r in repos}}
-    with (outdir / "history.jsonl").open("a") as hf:
+    hist_file = outdir / "history.jsonl"
+    existing_hist = hist_file.read_text() if hist_file.is_file() else ""
+    with hist_file.open("a") as hf:
+        if existing_hist and not existing_hist.endswith("\n"):
+            hf.write("\n")
         hf.write(json.dumps(hist) + "\n")
     write_digest(repos, outdir / "commits-digest.md")
 
