@@ -115,3 +115,69 @@ test('Work tab shows the not-collected-this-run line even when the CI wall has r
   )
   assert.doesNotMatch(mainText, /No CI runs/, 'empty state should not show once the wall has rows')
 })
+
+function assertSafeAnchors(doc) {
+  for (const a of doc.querySelectorAll('a[href]')) {
+    assert.ok(
+      a.protocol === 'https:' || a.protocol === 'http:',
+      `anchor href "${a.getAttribute('href')}" has unsafe protocol "${a.protocol}"`,
+    )
+  }
+}
+
+test('no anchor on any tab carries a javascript: or data: URL from the payload', async () => {
+  const payload = structuredClone(PAYLOAD)
+  // Duplicate backlog/wip entries in the shared PAYLOAD trip the each_key_duplicate
+  // crash on todo-keyed tabs (Todo, Matrix); reset as smoke.todos.test.js does.
+  payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
+  payload.data.repos[0].ci = [
+    { workflow: 'hostile-deploy', status: 'completed', conclusion: 'failure', url: 'javascript:window.__m=1', date: new Date(0).toISOString() },
+    { workflow: 'safe-deploy', status: 'completed', conclusion: 'success', url: 'https://example.org/run/safe', date: new Date(0).toISOString() },
+  ]
+  payload.data.repos[0].security = [
+    { severity: 'critical', title: 'Hostile security alert', url: 'javascript:window.__m=1' },
+    { severity: 'critical', title: 'Safe security alert', url: 'https://example.org/security/safe' },
+  ]
+  payload.data.external = {
+    error: null,
+    review_requested: [
+      { number: 7, title: 'Hostile external PR', repo: 'acme/widget', url: 'data:text/html,x', created: '2026-08-01' },
+      { number: 8, title: 'Safe external PR', repo: 'acme/widget', url: 'https://example.org/pr/safe', created: '2026-08-01' },
+    ],
+    authored: [],
+  }
+  payload.epics.todos = [
+    { id: 't1', repo: 'buvis/demo', action: 'Hostile todo action', url: 'data:text/html,x' },
+    { id: 't2', repo: 'buvis/demo', action: 'Safe todo action', url: 'https://example.org/todo/safe' },
+  ]
+  const { doc, openTab, flush } = render(payload)
+  const hrefs = () => [...doc.querySelectorAll('a[href]')].map((a) => a.getAttribute('href'))
+  await openTab('Todo')
+  assertSafeAnchors(doc)
+  assert.match(doc.querySelector('main').textContent, /Hostile todo action/, 'hostile todo label missing from Todo tab')
+  assert.ok(hrefs().includes('https://example.org/todo/safe'), 'safe todo anchor missing its href')
+  await openTab('Work')
+  assertSafeAnchors(doc)
+  const workText = doc.querySelector('main').textContent
+  assert.match(workText, /hostile-deploy/, 'hostile CI label missing from Work tab')
+  assert.match(workText, /Hostile external PR/, 'hostile external PR label missing from Work tab')
+  assert.ok(hrefs().includes('https://example.org/run/safe'), 'safe CI anchor missing its href')
+  assert.ok(hrefs().includes('https://example.org/pr/safe'), 'safe external PR anchor missing its href')
+  await openTab('Matrix')
+  assertSafeAnchors(doc)
+  assert.match(doc.querySelector('main').textContent, /Hostile security alert/, 'hostile security label missing from Matrix tab')
+  assert.ok(hrefs().includes('https://example.org/todo/safe'), 'safe todo anchor missing its href on Matrix tab')
+  await openTab('Repos')
+  const repoButton = doc.querySelector('button.card')
+  assert.ok(repoButton, 'missing repo card button')
+  repoButton.click()
+  await flush()
+  const panel = doc.querySelector('div.panel[role="dialog"]')
+  assert.ok(panel, 'missing repo detail panel')
+  assertSafeAnchors(doc)
+  const panelHrefs = [...panel.querySelectorAll('a[href]')].map((a) => a.getAttribute('href'))
+  assert.ok(panelHrefs.includes('https://example.org/security/safe'), 'safe security anchor missing its href in RepoDetail panel')
+  assert.ok(panelHrefs.includes('https://example.org/run/safe'), 'safe CI anchor missing its href in RepoDetail panel')
+  assert.match(panel.textContent, /Hostile security alert/, 'hostile security label missing from RepoDetail panel')
+  assert.match(panel.textContent, /hostile-deploy/, 'hostile workflow name missing from RepoDetail panel')
+})
