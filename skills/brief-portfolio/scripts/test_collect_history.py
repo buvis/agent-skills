@@ -367,7 +367,7 @@ def test_new_out_dir_protection_failure_exits_one_and_writes_nothing(
     assert "cannot protect" in message
     assert PROTECTION_SENTINEL in message
     # No snapshot, history or digest lands in a directory nobody protected.
-    assert not out_dir.exists() or sorted(out_dir.rglob("*")) == []
+    assert list(out_dir.rglob("*")) == []
 
 
 def test_offline_makes_zero_subprocess_calls(tmp_path, monkeypatch):
@@ -529,3 +529,50 @@ def test_a_torn_history_tail_does_not_swallow_the_next_row(tmp_path, monkeypatch
     assert lines[0] == '{"at":'
     # The new record starts on its own line and decodes independently.
     assert json.loads(lines[1])
+
+
+def test_a_carriage_return_tail_does_not_swallow_the_next_row(tmp_path, monkeypatch):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir(parents=True)
+    fragment = b'{"at":\r'
+    (out_dir / "history.jsonl").write_bytes(fragment)
+
+    run_collector(tmp_path, monkeypatch, ["alpha"], [])
+
+    # read_bytes(), not read_text(): universal-newline translation would
+    # turn the trailing \r into \n on read and hide an unrepaired file.
+    data = (out_dir / "history.jsonl").read_bytes()
+    # The torn fragment is left exactly as it was, carriage return and all.
+    assert data.startswith(fragment)
+    rest = data[len(fragment):]
+    # The new record starts on its own line rather than being fused onto
+    # the fragment's trailing \r.
+    assert rest[:1] == b"\n"
+    assert json.loads(rest[1:])
+
+
+def test_a_second_run_after_a_repaired_tail_adds_only_its_own_newline(
+    tmp_path,
+    monkeypatch,
+):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir(parents=True)
+    (out_dir / "history.jsonl").write_text('{"at":')
+
+    # Distinct names each call: make_registry's mkdir() is not idempotent,
+    # so reusing a name would collide on the second run's own setup rather
+    # than on the history-append behaviour under test. Both calls still
+    # target the same out_dir.
+    run_collector(tmp_path, monkeypatch, ["alpha"], [])
+    run_collector(tmp_path, monkeypatch, ["beta"], [])
+
+    lines = (out_dir / "history.jsonl").read_text().splitlines()
+    # The repair adds the missing separator once; a guard that instead
+    # unconditionally prepends a newline to any non-empty file would add
+    # a blank line on this second run and produce four lines here.
+    assert len(lines) == 3
+    # The torn fragment is left exactly as it was: still its own bad line.
+    assert lines[0] == '{"at":'
+    # Each appended record starts on its own line and decodes independently.
+    assert json.loads(lines[1])
+    assert json.loads(lines[2])
