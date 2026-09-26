@@ -219,6 +219,48 @@ def test_a_torn_history_line_yields_one_fewer_trend_point(tmp_path, monkeypatch,
     assert len(torn_history) == len(healthy_history) - 1
 
 
+def test_the_build_keeps_the_last_sixty_history_rows_without_reading_the_whole_file(
+    tmp_path, monkeypatch, capsys
+):
+    # 1000+ physical lines: a boring 940-line prefix pads the file well outside
+    # the last-60 window; the tail is built so the window boundary lands
+    # exactly on it, with a blank inside the window (must not consume a slot),
+    # a malformed line inside the window at a known physical line number (must
+    # warn, and must not be backfilled from the prefix), and trailing blanks
+    # after the last data row (must not shift the window either).
+    workdir = _workdir(tmp_path, {"repos": []})
+    prefix = [json.dumps({"at": f"row-{i}", "skipped": 0, "repos": {}}) for i in range(940)]
+    tail = [json.dumps({"at": f"tail-{i}", "skipped": 0, "repos": {}}) for i in range(58)]
+    lines = prefix + tail + [
+        "",  # interspersed blank inside the window
+        '{"at": bad',  # malformed line inside the window, physical line 1000
+        json.dumps({"at": "final-row", "skipped": 0, "repos": {}}),
+        "",  # trailing blanks
+        "",
+    ]
+    (workdir / "history.jsonl").write_text("\n".join(lines))
+
+    real_read_text = Path.read_text
+
+    def guarded_read_text(self, *args, **kwargs):
+        if self.name == "history.jsonl":
+            raise AssertionError("history.jsonl must not be read as a whole file")
+        return real_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", guarded_read_text)
+    out = tmp_path / "page.html"
+    monkeypatch.setattr(sys, "argv", ["build.py", "--dir", str(workdir), "--out", str(out)])
+
+    build.main()
+
+    captured = capsys.readouterr()
+    assert out.is_file()
+    assert re.findall(r"history\.jsonl line (\d+) skipped:", captured.err) == ["1000"]
+    history = json.loads(_payload_of(out.read_text()))["history"]
+    assert len(history) == 59
+    assert history[-1]["at"] == "final-row"
+
+
 def test_a_truncated_data_json_exits_with_a_message_naming_the_file(tmp_path):
     workdir = tmp_path / "work"
     workdir.mkdir()
