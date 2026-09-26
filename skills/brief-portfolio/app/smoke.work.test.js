@@ -125,7 +125,11 @@ function assertSafeAnchors(doc) {
   }
 }
 
-test('no anchor on any tab carries a javascript: or data: URL from the payload', async () => {
+// Shared hostile fixture: every derived-todo source (CI, security, external
+// PRs, epics.json manual todos) gets one hostile (javascript:/data:) and one
+// safe (https:) URL, so a test can assert sanitization without rebuilding
+// this payload from scratch.
+function buildHostilePayload() {
   const payload = structuredClone(PAYLOAD)
   // Duplicate backlog/wip entries in the shared PAYLOAD trip the each_key_duplicate
   // crash on todo-keyed tabs (Todo, Matrix); reset as smoke.todos.test.js does.
@@ -144,12 +148,22 @@ test('no anchor on any tab carries a javascript: or data: URL from the payload',
       { number: 7, title: 'Hostile external PR', repo: 'acme/widget', url: 'data:text/html,x', created: '2026-08-01' },
       { number: 8, title: 'Safe external PR', repo: 'acme/widget', url: 'https://example.org/pr/safe', created: '2026-08-01' },
     ],
-    authored: [],
+    // acme/widget2 is never in payload.data.repos, so this authored entry's
+    // Quick Wins button falls into the `t.url && window.open(t.url)` branch,
+    // not the onselect(byslug.get(...)) branch.
+    authored: [
+      { number: 3, title: 'Hostile quick win authored PR', repo: 'acme/widget2', url: 'javascript:window.__pwned=1', created: '2026-08-01' },
+    ],
   }
   payload.epics.todos = [
     { id: 't1', repo: 'buvis/demo', action: 'Hostile todo action', url: 'data:text/html,x' },
     { id: 't2', repo: 'buvis/demo', action: 'Safe todo action', url: 'https://example.org/todo/safe' },
   ]
+  return payload
+}
+
+test('no anchor on any tab carries a javascript: or data: URL from the payload', async () => {
+  const payload = buildHostilePayload()
   const { doc, openTab, flush } = render(payload)
   const hrefs = () => [...doc.querySelectorAll('a[href]')].map((a) => a.getAttribute('href'))
   await openTab('Todo')
@@ -180,4 +194,22 @@ test('no anchor on any tab carries a javascript: or data: URL from the payload',
   assert.ok(panelHrefs.includes('https://example.org/run/safe'), 'safe CI anchor missing its href in RepoDetail panel')
   assert.match(panel.textContent, /Hostile security alert/, 'hostile security label missing from RepoDetail panel')
   assert.match(panel.textContent, /hostile-deploy/, 'hostile workflow name missing from RepoDetail panel')
+})
+
+test('clicking the Quick Wins button for a not-loaded repo never calls window.open when the todo url is sanitized', async () => {
+  // The authored entry's repo (acme/widget2) is not in payload.data.repos, so
+  // its Quick Wins button takes the `t.url && window.open(t.url)` path rather
+  // than onselect(). Its url is a javascript: scheme, so a sanitizing
+  // implementation resolves it to undefined and window.open must never fire.
+  const payload = buildHostilePayload()
+  const { doc, flush } = render(payload)
+  const calls = []
+  doc.defaultView.open = (...args) => calls.push(args)
+  const button = [...doc.querySelectorAll('button.win')].find((b) =>
+    b.textContent.includes('Hostile quick win authored PR'),
+  )
+  assert.ok(button, 'missing Quick Wins button for the hostile authored todo')
+  button.click()
+  await flush()
+  assert.deepEqual(calls, [], 'window.open must never be called when the todo url is sanitized to undefined')
 })

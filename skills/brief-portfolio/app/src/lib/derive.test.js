@@ -257,4 +257,43 @@ assert.equal(safeUrl('data:text/html,x'), undefined)
 assert.equal(safeUrl(''), undefined)
 assert.equal(safeUrl(undefined), undefined)
 
+// --- derived-todo sanitization: safeUrl must actually be wired into
+// todosFor, both externalTodos branches, and allTodos's manual mapping —
+// pinning safeUrl in isolation (above) does not prove any of the three call
+// it, so removing those call sites would leave the assertions above green.
+const ciUrlRepo = { owner: 'h', name: 'ci', default_branch: 'master',
+  ci: [
+    { workflow: 'hostile-deploy', conclusion: 'failure', url: 'javascript:window.__m=1', date: '2026-01-01' },
+    { workflow: 'safe-deploy', conclusion: 'failure', url: 'https://example.org/run/safe', date: '2026-01-01' },
+  ] }
+const ciUrlTodos = todosFor([ciUrlRepo])
+const hostileCiTodo = ciUrlTodos.find((t) => t.id === 'h/ci:ci:hostile-deploy')
+const safeCiTodo = ciUrlTodos.find((t) => t.id === 'h/ci:ci:safe-deploy')
+assert.equal(hostileCiTodo.kind, 'ci')
+assert.equal(hostileCiTodo.url, undefined)
+assert.equal(safeCiTodo.kind, 'ci')
+assert.equal(safeCiTodo.url, 'https://example.org/run/safe')
+
+const hostileExt = externalTodos({
+  review_requested: [{ repo: 'a/b', number: 1, title: 'RR', created: '2026-07-01', url: 'javascript:window.__m=1' }],
+  authored: [{ repo: 'c/d', number: 2, title: 'AU', created: '2026-07-01', url: 'javascript:window.__m=1' }],
+})
+assert.equal(hostileExt.find((t) => t.id === 'ext:rr:a/b#1').url, undefined)
+assert.equal(hostileExt.find((t) => t.id === 'ext:mine:c/d#2').url, undefined)
+const safeExt = externalTodos({
+  review_requested: [{ repo: 'a/b', number: 1, title: 'RR', created: '2026-07-01', url: 'https://example.org/pr/1' }],
+  authored: [{ repo: 'c/d', number: 2, title: 'AU', created: '2026-07-01', url: 'https://example.org/pr/2' }],
+})
+assert.equal(safeExt.find((t) => t.id === 'ext:rr:a/b#1').url, 'https://example.org/pr/1')
+assert.equal(safeExt.find((t) => t.id === 'ext:mine:c/d#2').url, 'https://example.org/pr/2')
+
+const hostileManual = allTodos([repo],
+  { todos: [{ id: 'o/r:judgment:hostile', repo: 'o/r', kind: 'judgment', urgency: 'now', action: 'A', why: 'w', url: 'javascript:window.__m=1' }] },
+  null)
+assert.equal(hostileManual.find((t) => t.id === 'o/r:judgment:hostile').url, undefined)
+const safeManual = allTodos([repo],
+  { todos: [{ id: 'o/r:judgment:safe', repo: 'o/r', kind: 'judgment', urgency: 'now', action: 'A', why: 'w', url: 'https://example.org/j' }] },
+  null)
+assert.equal(safeManual.find((t) => t.id === 'o/r:judgment:safe').url, 'https://example.org/j')
+
 console.log('derive.test.js: all assertions passed')
