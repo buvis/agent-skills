@@ -1,6 +1,6 @@
 """Regression tests for collect.py's main() pipeline: the registry partition,
 recovery from an unusable data.json, and the audit-cadence call site. Also
-hosts the agoge 2026-09-05 strict xfail for a missing registry (main()) and
+hosts the missing-registry exit-message regression test (main()) and
 the true commit count behind a capped commit list (collect_commit_count,
 collect_repo, and the history row).
 Run: python3 -m pytest test_collect_pipeline.py -q"""
