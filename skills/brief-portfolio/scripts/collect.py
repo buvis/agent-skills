@@ -583,7 +583,11 @@ def main():
         offline_reuse(args.out)
         return
 
-    paths = [row[0] for row in csv.reader(GITA_CSV.open()) if row and row[0].strip()]
+    try:
+        rows = csv.reader(GITA_CSV.open())
+    except FileNotFoundError:
+        sys.exit(f"no repos found in gita registry: {GITA_CSV} is missing")
+    paths = [row[0] for row in rows if row and row[0].strip()]
     paths = [p for p in paths if (Path(p) / ".git").exists()]
     if not paths:
         sys.exit("no repos found in gita registry")
