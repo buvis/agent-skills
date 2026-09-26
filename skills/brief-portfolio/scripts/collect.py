@@ -557,8 +557,7 @@ def main():
     if outdir_is_new:
         protect_owner_only(outdir)
     data = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "since_days": args.days, "repos": repos}
-    data["skipped"] = skipped
+            "since_days": args.days, "repos": repos, "skipped": skipped}
     known = {f'{r["owner"]}/{r["name"]}' for r in collected}
     data["external"] = collect_external_section(known)
     try:
