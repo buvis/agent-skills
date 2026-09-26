@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 GITA_CSV = Path.home() / ".config/gita/repos.csv"
-REMOTE_RE = re.compile(r"github\.com[:/]([\w.-]+)/([\w.-]+?)(?:\.git)?/?$")
+REMOTE_RE = re.compile(r"github\.com[:/]([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?$")
 BRUSH_RE = re.compile(r"^\s*-\s*generated:\s*(\d{4}-\d{2}-\d{2})")
 MAX_COMMITS = 200
 DIGEST_COMMITS = 50
