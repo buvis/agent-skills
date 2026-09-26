@@ -584,11 +584,11 @@ def main():
     hist = {"at": data["generated_at"], "skipped": len(skipped),
             "repos": {f'{r["owner"]}/{r["name"]}': history_counts(r) for r in repos}}
     hist_file = outdir / "history.jsonl"
-    existing_hist = hist_file.read_text() if hist_file.is_file() else ""
-    with hist_file.open("a") as hf:
-        if existing_hist and not existing_hist.endswith("\n"):
-            hf.write("\n")
-        hf.write(json.dumps(hist) + "\n")
+    existing_hist = hist_file.read_bytes() if hist_file.is_file() else b""
+    with hist_file.open("ab") as hf:
+        if existing_hist and not existing_hist.endswith(b"\n"):
+            hf.write(b"\n")
+        hf.write((json.dumps(hist) + "\n").encode())
     write_digest(repos, outdir / "commits-digest.md")
 
     failed = [(r["owner"] + "/" + r["name"], r["errors"]) for r in repos if r["errors"]]
