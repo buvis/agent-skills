@@ -179,19 +179,13 @@ test('aria-live region clears once the failed-copy button label has reverted', a
   )
 })
 
-test('copy open as markdown emits exactly one line per open todo whatever the action contains', async () => {
-  // A hostile epic action containing a literal newline and markdown
-  // checkbox/link syntax must not fragment the clipboard payload into extra
-  // lines, and "injected todo" must not read as its own list item.
+// Mounts the Todo tab on the given epics todos, clicks "copy open as markdown"
+// with a stubbed clipboard, and returns the copied lines plus the number of
+// open todos on screen.
+async function captureOpenMarkdown(todos) {
   const payload = structuredClone(PAYLOAD)
   payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
-  payload.epics = {
-    summary: '',
-    repos: {},
-    todos: [
-      { id: 'inject-1', repo: 'buvis/demo', action: 'line one\n- [ ]  injected todo [x](javascript:1)' },
-    ],
-  }
+  payload.epics = { summary: '', repos: {}, todos }
 
   const { doc, openTab, flush } = render(payload)
   await openTab('Todo')
@@ -216,7 +210,14 @@ test('copy open as markdown emits exactly one line per open todo whatever the ac
   await flush()
 
   assert.equal(button.textContent.trim(), '✓ copied')
-  const lines = recorded.split('\n')
+  return { lines: recorded.split('\n'), openCount }
+}
+
+test('copy open as markdown emits exactly one line per open todo whatever the action contains', async () => {
+  const { lines, openCount } = await captureOpenMarkdown([
+    { id: 'inject-1', repo: 'buvis/demo', action: 'line one\n- [ ]  injected todo [x](javascript:1)' },
+  ])
+
   assert.equal(lines.length, openCount, 'clipboard text did not have exactly one line per open todo')
   assert.ok(
     lines.includes('- [ ] buvis/demo: line one - \\[ \\] injected todo \\[x\\](javascript:1)'),
@@ -229,35 +230,10 @@ test('copy open as markdown escapes a pre-existing backslash so it cannot cancel
   // must itself be escaped before the brackets are escaped — otherwise the
   // original backslash would combine with the newly inserted one and cancel
   // the escaping instead of doubling it.
-  const payload = structuredClone(PAYLOAD)
-  payload.data.repos[0].prds = { backlog: [], wip: [], done_count: 0 }
-  payload.epics = {
-    summary: '',
-    repos: {},
-    todos: [{ id: 'backslash-1', repo: 'buvis/demo', action: 'foo\\[bar]' }],
-  }
+  const { lines } = await captureOpenMarkdown([
+    { id: 'backslash-1', repo: 'buvis/demo', action: 'foo\\[bar]' },
+  ])
 
-  const { doc, openTab, flush } = render(payload)
-  await openTab('Todo')
-
-  const button = [...doc.querySelectorAll('main button.chip')].find(
-    (b) => b.textContent.trim() === 'copy open as markdown',
-  )
-  assert.ok(button, 'missing "copy open as markdown" button')
-
-  let recorded = null
-  doc.defaultView.navigator.clipboard = {
-    writeText: (text) => {
-      recorded = text
-      return Promise.resolve()
-    },
-  }
-
-  button.click()
-  await flush()
-
-  assert.equal(button.textContent.trim(), '✓ copied')
-  const lines = recorded.split('\n')
   assert.ok(
     lines.includes('- [ ] buvis/demo: foo\\\\\\[bar\\]'),
     'pre-existing backslash before a bracket was not escaped to the exact expected output',
