@@ -196,10 +196,9 @@ def collect_security(owner, name):
     return sorted(alerts, key=lambda a: SEV_ORDER.get(a["severity"], 9))
 
 
-def collect_branches(path, branch):
+def collect_branches(path, branch, current):
     merged = set(run(["git", "branch", "-a", "--merged", f"origin/{branch}",
                       "--format=%(refname:short)"], cwd=path).split())
-    current = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=path).strip()
     # %(refname:short) renders origin/HEAD as bare "origin"
     keep = {f"origin/{branch}", "origin/HEAD", "origin", branch, current}
     out = []
@@ -397,7 +396,7 @@ def history_counts(repo):
     return row
 
 
-def collect_local(path, branch):
+def collect_local(path, branch, current):
     lines = [l for l in run(["git", "status", "--porcelain"], cwd=path).splitlines() if l]
     # ponytail: oldest mtime among dirty files approximates "dirty since"
     ages = []
@@ -405,7 +404,6 @@ def collect_local(path, branch):
         f = Path(path) / l[3:].split(" -> ")[-1].strip('"')
         if f.is_file():
             ages.append(days_since_mtime(f))
-    cur = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=path).strip()
     ahead = behind = 0
     try:
         b, a = run(["git", "rev-list", "--left-right", "--count",
@@ -414,7 +412,7 @@ def collect_local(path, branch):
     except (RuntimeError, ValueError):
         pass
     stashes = len(run(["git", "stash", "list"], cwd=path).splitlines())
-    return {"branch": cur, "dirty": len(lines), "dirty_since_days": max(ages, default=None),
+    return {"branch": current, "dirty": len(lines), "dirty_since_days": max(ages, default=None),
             "ahead": ahead, "behind": behind, "stashes": stashes}
 
 
@@ -458,14 +456,25 @@ def collect_repo(path, days, fetch):
         errors.append(f"meta: {e}")
         return repo
     branch = repo["default_branch"]
+    try:
+        current = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=path).strip()
+        current_err = None
+    except (RuntimeError, subprocess.SubprocessError, OSError) as e:
+        current, current_err = None, e
+
+    def current_branch():
+        if current_err is not None:
+            raise current_err
+        return current
+
     run_collectors(repo, [("commits", lambda: collect_commits(path, branch, days)),
                           ("commit_count", lambda: collect_commit_count(path, branch, days)),
                           ("issues", lambda: collect_issues(owner, name)),
                           ("prs", lambda: collect_prs(owner, name)),
                           ("ci", lambda: collect_ci(owner, name, branch)),
                           ("security", lambda: collect_security(owner, name)),
-                          ("branches", lambda: collect_branches(path, branch)),
-                          ("local", lambda: collect_local(path, branch))])
+                          ("branches", lambda: collect_branches(path, branch, current_branch())),
+                          ("local", lambda: collect_local(path, branch, current_branch()))])
     try:
         repo["releases"], repo["last_tag"], repo["unreleased_commits"] = \
             collect_releases(owner, name, path, branch)
