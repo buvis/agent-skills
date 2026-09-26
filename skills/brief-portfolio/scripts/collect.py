@@ -547,6 +547,14 @@ def collect_and_partition(paths, days, fetch):
     return collected, skipped, repos
 
 
+def history_needs_separator(hist_file):
+    if not hist_file.is_file() or not hist_file.stat().st_size:
+        return False
+    with hist_file.open("rb") as hf:
+        hf.seek(-1, os.SEEK_END)
+        return hf.read(1) != b"\n"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=60)
@@ -584,9 +592,8 @@ def main():
     hist = {"at": data["generated_at"], "skipped": len(skipped),
             "repos": {f'{r["owner"]}/{r["name"]}': history_counts(r) for r in repos}}
     hist_file = outdir / "history.jsonl"
-    existing_hist = hist_file.read_bytes() if hist_file.is_file() else b""
     with hist_file.open("ab") as hf:
-        if existing_hist and not existing_hist.endswith(b"\n"):
+        if history_needs_separator(hist_file):
             hf.write(b"\n")
         hf.write((json.dumps(hist) + "\n").encode())
     write_digest(repos, outdir / "commits-digest.md")
