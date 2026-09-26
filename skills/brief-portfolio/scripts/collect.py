@@ -490,13 +490,24 @@ def protect_owner_only(path: Path) -> None:
         )
 
 
+def protect_or_exit(path: Path, *discard: Path) -> None:
+    """Protect path owner-only or exit 1, deleting the discard temporaries
+    first so nothing unprotected is published or left behind."""
+    try:
+        protect_owner_only(path)
+    except (OSError, subprocess.CalledProcessError) as e:
+        for f in discard:
+            f.unlink(missing_ok=True)
+        sys.exit(f"cannot protect {path}: {e}")
+
+
 def write_snapshot(data, outdir):
     """Atomically publish data.json, rotating the previous snapshot for the
     "since last brief" diff when it's stale enough (see should_rotate)."""
     data_file = outdir / "data.json"
     tmp_file = outdir / "data.json.tmp"
     tmp_file.write_text(json.dumps(data, indent=1))
-    protect_owner_only(tmp_file)
+    protect_or_exit(tmp_file, tmp_file)
     if data_file.exists():
         try:
             existing_text = data_file.read_text()
@@ -508,7 +519,7 @@ def write_snapshot(data, outdir):
         if rotate:
             prev_tmp = outdir / "data-prev.json.tmp"
             prev_tmp.write_text(existing_text)
-            protect_owner_only(prev_tmp)
+            protect_or_exit(prev_tmp, prev_tmp, tmp_file)
             prev_tmp.replace(outdir / "data-prev.json")
     tmp_file.replace(data_file)
 
@@ -555,7 +566,7 @@ def main():
     outdir_is_new = not outdir.exists()
     outdir.mkdir(parents=True, exist_ok=True)
     if outdir_is_new:
-        protect_owner_only(outdir)
+        protect_or_exit(outdir)
     data = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "since_days": args.days, "repos": repos, "skipped": skipped}
     known = {f'{r["owner"]}/{r["name"]}' for r in collected}
