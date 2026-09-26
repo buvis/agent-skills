@@ -380,9 +380,11 @@ def history_counts(repo):
            "b": len(prds.get("backlog", [])), "w": len(prds.get("wip", [])),
            "s": repo.get("stars", 0), "u": repo.get("unreleased_commits") or 0}
     # zeros from a failed collection are not real zeros; mark the row only when
-    # nothing landed: a partial failure still carries real counts
+    # nothing landed: a partial failure still carries real counts. "prds" is
+    # excluded here: it now collects before metadata (needs no default
+    # branch), so its presence no longer signals that metadata succeeded.
     if repo.get("errors") and not any(k in repo for k in (
-            "commits", "issues", "prs", "security", "ci", "local", "prds",
+            "commits", "issues", "prs", "security", "ci", "local",
             "stars", "unreleased_commits")):
         row["e"] = 1
     return row
@@ -422,6 +424,16 @@ def collect_repo(path, days, fetch):
             run(["git", "fetch", "--quiet", "origin"], cwd=path, timeout=180)
         except (RuntimeError, subprocess.SubprocessError, OSError) as e:
             errors.append(f"fetch: {e}")
+    # needs no default branch, runs before metadata: these read only the local
+    # checkout, so a failed metadata call must not cost them too
+    for key, fn in [("prds", lambda: collect_prds(path)),
+                    ("changelog_unreleased", lambda: collect_changelog(path)),
+                    ("brush_last_run", lambda: collect_brush(path)),
+                    ("purge_last_run", lambda: collect_purge_devlocal(path))]:
+        try:
+            repo[key] = fn()
+        except Exception as e:
+            repo["errors"].append(f"{key}: {e}")
     try:
         meta = gh_json(f"repos/{owner}/{name}")
         repo.update(description=meta.get("description") or "",
@@ -441,11 +453,7 @@ def collect_repo(path, days, fetch):
                     ("ci", lambda: collect_ci(owner, name, branch)),
                     ("security", lambda: collect_security(owner, name)),
                     ("branches", lambda: collect_branches(path, branch)),
-                    ("prds", lambda: collect_prds(path)),
-                    ("local", lambda: collect_local(path, branch)),
-                    ("changelog_unreleased", lambda: collect_changelog(path)),
-                    ("brush_last_run", lambda: collect_brush(path)),
-                    ("purge_last_run", lambda: collect_purge_devlocal(path))]:
+                    ("local", lambda: collect_local(path, branch))]:
         try:
             repo[key] = fn()
         except Exception as e:
