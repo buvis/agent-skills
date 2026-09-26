@@ -160,6 +160,11 @@ export function orgSlots(repos) {
 
 const RANK = { now: 0, soon: 1, later: 2 }
 
+// Only http(s) URLs survive into a todo's url field — data.json/epics.json
+// content is untrusted, and a javascript:/data: scheme must never round-trip
+// into a rendered link.
+export const safeUrl = (u) => (typeof u === 'string' && /^https?:\/\//i.test(u) ? u : undefined)
+
 // Deterministic follow-up extraction. Mechanical items only — the model step
 // adds judgment items (composition, cross-repo cleanups) via epics.json todos.
 // Each todo carries three mechanical axes beyond urgency:
@@ -173,7 +178,7 @@ export function todosFor(repos) {
     const gh = `https://github.com/${s}`
     const add = (kind, ref, urgency, action, why, extra = {}) =>
       out.push({ id: `${s}:${kind}:${ref}`, repo: s, kind, urgency, action, why,
-        importance: 'low', effort: 'medium', agent: null, url: null, ...extra })
+        importance: 'low', effort: 'medium', agent: null, ...extra, url: safeUrl(extra.url) })
     for (const w of ciFailing(r))
       add('ci', w.workflow, 'now', `Fix failing CI: ${w.workflow}`,
         `${w.conclusion} on ${r.default_branch} (${w.date})`,
@@ -339,11 +344,11 @@ export function externalTodos(external, repos = []) {
   const out = []
   for (const p of external?.review_requested ?? [])
     out.push({ id: `ext:rr:${p.repo}#${p.number}`, repo: p.repo, kind: 'external', urgency: 'now',
-      importance: 'high', effort: 'medium', agent: null, url: p.url, external: true,
+      importance: 'high', effort: 'medium', agent: null, url: safeUrl(p.url), external: true,
       action: `Review requested: ${p.repo}#${p.number} ${p.title}`, why: `waiting on you since ${p.created}` })
   for (const p of external?.authored ?? [])
     out.push({ id: `ext:mine:${p.repo}#${p.number}`, repo: p.repo, kind: 'external', urgency: 'soon',
-      importance: 'high', effort: 'quick', agent: null, url: p.url, external: true,
+      importance: 'high', effort: 'quick', agent: null, url: safeUrl(p.url), external: true,
       action: `Nudge your PR ${p.repo}#${p.number}: ${p.title}`, why: `your PR outside the portfolio, open since ${p.created}` })
   if (external?.error)
     out.push({ id: `ext:error:${hashStr(external.error)}`, repo: '(external)', kind: 'external', urgency: 'now',
@@ -360,7 +365,7 @@ export function allTodos(repos, epics, external) {
   const manual = (epics?.todos ?? [])
     .filter((t) => known.has(t.repo))
     .map((t) => ({ urgency: 'soon', kind: 'judgment', why: '', importance: 'high',
-      effort: 'medium', agent: null, url: null, ...t, manual: true }))
+      effort: 'medium', agent: null, ...t, url: safeUrl(t.url), manual: true }))
   const seen = new Set(manual.map((t) => t.id))
   return [...manual, ...externalTodos(external, repos), ...todosFor(repos).filter((t) => !seen.has(t.id))]
     .toSorted((a, b) => RANK[a.urgency] - RANK[b.urgency] || a.repo.localeCompare(b.repo))
