@@ -132,9 +132,9 @@ def discover_inventory(sources: Iterable[Path]) -> dict[str, Path]:
             continue
         seen_sources.add(source)
         for candidate in sorted(source.iterdir(), key=lambda path: path.name):
-            if candidate.name.startswith(".") or not candidate.is_dir():
-                continue
             if candidate.is_symlink():
+                continue
+            if candidate.name.startswith(".") or not candidate.is_dir():
                 continue
             if not (candidate / "SKILL.md").is_file():
                 continue
