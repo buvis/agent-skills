@@ -85,6 +85,12 @@ def collect_commits(path, branch, days):
             for line in out.splitlines() if "\x1f" in line]
 
 
+def collect_commit_count(path, branch, days):
+    """True commit total in the window; collect_commits caps its list at MAX_COMMITS."""
+    return int(run(["git", "rev-list", "--count", f"--since={days} days ago",
+                    f"origin/{branch}"], cwd=path))
+
+
 def collect_releases(owner, name, path, branch):
     rels = [{"tag": r["tag_name"], "name": r.get("name") or r["tag_name"],
              "date": iso_day(r.get("published_at")),
@@ -374,7 +380,8 @@ def history_counts(repo):
     prds = repo.get("prds") or {}
     failing = sum(1 for w in repo.get("ci", [])
                   if w.get("conclusion") in ("failure", "timed_out", "startup_failure"))
-    row = {"c": len(repo.get("commits", [])), "i": len(repo.get("issues", [])),
+    row = {"c": repo.get("commit_count", len(repo.get("commits", []))),
+           "i": len(repo.get("issues", [])),
            "p": len(repo.get("prs", [])), "a": len(repo.get("security", [])),
            "f": failing, "d": l.get("dirty", 0), "ah": l.get("ahead", 0),
            "b": len(prds.get("backlog", [])), "w": len(prds.get("wip", [])),
@@ -452,6 +459,7 @@ def collect_repo(path, days, fetch):
         return repo
     branch = repo["default_branch"]
     run_collectors(repo, [("commits", lambda: collect_commits(path, branch, days)),
+                          ("commit_count", lambda: collect_commit_count(path, branch, days)),
                           ("issues", lambda: collect_issues(owner, name)),
                           ("prs", lambda: collect_prs(owner, name)),
                           ("ci", lambda: collect_ci(owner, name, branch)),
