@@ -175,6 +175,10 @@ test('no anchor on any tab carries a javascript: or data: URL from the payload',
   const workText = doc.querySelector('main').textContent
   assert.match(workText, /hostile-deploy/, 'hostile CI label missing from Work tab')
   assert.match(workText, /Hostile external PR/, 'hostile external PR label missing from Work tab')
+  const droppedCiRun = [...doc.querySelectorAll('.cirow .runs > *')].find((el) => el.textContent.includes('hostile-deploy'))
+  assert.ok(droppedCiRun, 'dropped CI run must stay wrapped in an element carrying its badge classes')
+  assert.ok(droppedCiRun.classList.contains('run'), 'dropped CI run must keep the .run badge class')
+  assert.ok(droppedCiRun.classList.contains('sev-critical'), 'dropped CI run must keep its severity class')
   assert.ok(hrefs().includes('https://example.org/run/safe'), 'safe CI anchor missing its href')
   assert.ok(hrefs().includes('https://example.org/pr/safe'), 'safe external PR anchor missing its href')
   await openTab('Matrix')
