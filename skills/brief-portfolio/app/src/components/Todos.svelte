@@ -67,7 +67,7 @@
     const md = open
       .map((t) => {
         const action = t.action
-          .replace(/[\r\n]+/g, ' ')
+          .replace(/\s+/g, ' ')
           .replace(/\\/g, '\\\\')
           .replace(/[[\]]/g, (c) => `\\${c}`)
         return `- [ ] ${t.repo}: ${action}`
