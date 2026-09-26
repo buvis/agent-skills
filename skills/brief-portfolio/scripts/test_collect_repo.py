@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import collect
 from collect import collect_repo, stub_from_path
-from collect_test_helpers import make_trash_dir
+from collect_test_helpers import make_trash_dir, write_report
 
 
 def _run_answering_gh(outcome):
@@ -227,3 +227,33 @@ def test_collect_repo_purge_last_run_key_equals_collect_purge_devlocal_result(
     result = collect_repo(tmp_path, 60, False)
 
     assert result["purge_last_run"] == "2026-08-20"
+
+
+def test_a_failed_metadata_call_still_collects_the_local_hygiene_stamps(
+    tmp_path,
+    monkeypatch,
+):
+    write_report(tmp_path, "- generated: 2026-08-15\n")
+    make_trash_dir(tmp_path, dirs=["2026-08-20"])
+
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:acme/widget.git\n"
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    def fake_gh_json(path):
+        raise RuntimeError("gh: HTTP 500")
+
+    monkeypatch.setattr(collect, "run", fake_run)
+    monkeypatch.setattr(collect, "gh_json", fake_gh_json)
+
+    result = collect_repo(tmp_path, 60, False)
+
+    assert result["brush_last_run"] == "2026-08-15"
+    assert result["purge_last_run"] == "2026-08-20"
+    assert result["prds"] == {"backlog": [], "wip": [], "done_count": 0}
+    assert result["changelog_unreleased"] is None
+    assert len(result["errors"]) == 1
+    assert result["errors"][0] == "meta: gh: HTTP 500"
+    assert "branches" not in result
+    assert "local" not in result
