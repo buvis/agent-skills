@@ -347,9 +347,9 @@ def test_a_capped_commit_list_still_carries_the_true_commit_count(tmp_path, monk
     assert result["commit_count"] == 3
 
 
-def _serve_git_from_tmp_repos(monkeypatch):
+def _serve_git_from_tmp_repos(monkeypatch, default_branch="master"):
     """Send git to the real tmp repos (origin slug acme/<dir name>), fail every
-    gh call, and give the metadata call a master default branch."""
+    gh call, and give the metadata call `default_branch` as the default branch."""
     real_run = collect.run
 
     def fake_run(cmd, cwd=None, timeout=120):
@@ -360,19 +360,53 @@ def _serve_git_from_tmp_repos(monkeypatch):
         raise RuntimeError("gh: not authenticated")
 
     monkeypatch.setattr(collect, "run", fake_run)
-    monkeypatch.setattr(collect, "gh_json", lambda path: {"default_branch": "master"})
+    monkeypatch.setattr(collect, "gh_json", lambda path: {"default_branch": default_branch})
+
+
+def _make_mixed_age_repo(repo, monkeypatch, branch):
+    """Two commits dated 2020-01-01 (origin/master), then one commit dated now on
+    top of them, published as origin/<branch>."""
+    monkeypatch.setenv("GIT_AUTHOR_DATE", "2020-01-01T12:00:00+00:00")
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "2020-01-01T12:00:00+00:00")
+    make_git_repo(repo, commits=2)
+    monkeypatch.delenv("GIT_AUTHOR_DATE")
+    monkeypatch.delenv("GIT_COMMITTER_DATE")
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "--allow-empty", "-q", "-m", "fresh"],
+        cwd=repo, check=True, capture_output=True,
+    )
+    subprocess.run(
+        ["git", "update-ref", f"refs/remotes/origin/{branch}", "HEAD"],
+        cwd=repo, check=True, capture_output=True,
+    )
 
 
 def test_commit_count_excludes_commits_older_than_the_window(tmp_path, monkeypatch):
-    monkeypatch.setenv("GIT_AUTHOR_DATE", "2020-01-01T12:00:00+00:00")
-    monkeypatch.setenv("GIT_COMMITTER_DATE", "2020-01-01T12:00:00+00:00")
-    repo = tmp_path / "dormant"
-    make_git_repo(repo, commits=3)
-    # precondition: the fixture commits really are dated outside a 60-day window
-    assert collect.collect_commits(str(repo), "master", 60) == []
+    repo = tmp_path / "mixed"
+    _make_mixed_age_repo(repo, monkeypatch, "master")
+    # precondition: origin/master holds two 2020 commits and one from today
+    assert len(collect.collect_commits(str(repo), "master", 60)) == 1
+    assert len(collect.collect_commits(str(repo), "master", 3650)) == 3
 
-    assert collect.collect_commit_count(str(repo), "master", 60) == 0
+    assert collect.collect_commit_count(str(repo), "master", 60) == 1
     assert collect.collect_commit_count(str(repo), "master", 3650) == 3
+
+
+def test_collect_repo_counts_the_default_branch_inside_the_requested_window(
+    tmp_path,
+    monkeypatch,
+):
+    repo = tmp_path / "trunked"
+    _make_mixed_age_repo(repo, monkeypatch, "trunk")
+    _serve_git_from_tmp_repos(monkeypatch, default_branch="trunk")
+    # precondition: origin/trunk holds two 2020 commits and one from today,
+    # while origin/master stops at the two old ones
+    assert len(collect.collect_commits(str(repo), "trunk", 60)) == 1
+    assert len(collect.collect_commits(str(repo), "master", 3650)) == 2
+
+    assert collect_repo(str(repo), 60, False)["commit_count"] == 1
+    assert collect_repo(str(repo), 3650, False)["commit_count"] == 3
 
 
 def test_commit_count_ignores_local_commits_not_on_the_origin_default_branch(tmp_path):

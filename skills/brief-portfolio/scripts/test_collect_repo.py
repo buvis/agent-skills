@@ -154,6 +154,8 @@ def _run_answering_actions_runs(runs_exc):
     def fake_run(cmd, cwd=None, timeout=120):
         if cmd[0] == "git" and cmd[1] == "remote":
             return "git@github.com:demo/repo.git\n"
+        if cmd[0] == "git" and cmd[1] == "rev-list":
+            return "0\n"
         if cmd[0] == "git":
             return ""
         if cmd[0] == "gh" and cmd[1] == "api":
