@@ -297,20 +297,9 @@ def test_a_raising_skill_adherence_reader_costs_one_metric_not_the_run(
     assert "WARN skill_adherence" in captured.err
 
 
-# Found by an agoge run on 2026-09-05. It fails against the code as it stands,
-# so the strict xfail is the executable record of the defect: fix the defect and
-# the marker goes stale, turning the suite red to say "delete me".
-
-
-@pytest.mark.xfail(
-    strict=True,
-    raises=FileNotFoundError,
-    reason="agoge 2026-09-05: main() opens GITA_CSV unguarded, so a missing registry "
-    "escapes as a FileNotFoundError traceback instead of the 'no repos found in gita "
-    "registry' exit that SKILL.md documents for that case",
-)
 def test_missing_registry_file_exits_with_the_documented_message(tmp_path, monkeypatch):
-    monkeypatch.setattr(collect, "GITA_CSV", tmp_path / "absent" / "repos.csv")
+    missing_registry = tmp_path / "absent" / "repos.csv"
+    monkeypatch.setattr(collect, "GITA_CSV", missing_registry)
     monkeypatch.setattr(
         sys, "argv", ["collect.py", "--no-git-fetch", "--out", str(tmp_path / "out")]
     )
@@ -318,7 +307,7 @@ def test_missing_registry_file_exits_with_the_documented_message(tmp_path, monke
     with pytest.raises(SystemExit) as exc:
         main()
 
-    assert "no repos found in gita registry" in str(exc.value)
+    assert str(exc.value) == f"no repos found in gita registry: {missing_registry} is missing"
 
 
 # The true commit count. agoge 2026-09-05 found that collect_commits caps its list
