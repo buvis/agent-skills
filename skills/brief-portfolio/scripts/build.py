@@ -13,33 +13,28 @@ TEMPLATE = Path(__file__).resolve().parent.parent / "assets/template.html"
 PLACEHOLDER = "__PORTFOLIO_PAYLOAD__"
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    default_dir = Path.home() / ".local/share/agents/portfolio-brief"
-    ap.add_argument("--dir", default=str(default_dir))
-    ap.add_argument("--out", default=None)
-    args = ap.parse_args()
-
-    workdir = Path(args.dir)
-    out = Path(args.out) if args.out else workdir / "portfolio-brief.html"
+def _load_data(workdir):
     data_file = workdir / "data.json"
     if not data_file.is_file():
         sys.exit(f"missing {data_file} — run collect.py first")
     try:
-        data = json.loads(data_file.read_text())
+        return json.loads(data_file.read_text())
     except json.JSONDecodeError as e:
         sys.exit(f"{data_file}: {e}")
 
-    epics_file = workdir / "epics.json"
-    if epics_file.is_file():
-        try:
-            epics = json.loads(epics_file.read_text())
-        except json.JSONDecodeError as e:
-            sys.exit(f"{epics_file}: {e}")
-    else:
-        print(f"WARN: {epics_file} not found — building without epic grouping", file=sys.stderr)
-        epics = {"summary": "", "repos": {}}
 
+def _load_epics(workdir):
+    epics_file = workdir / "epics.json"
+    if not epics_file.is_file():
+        print(f"WARN: {epics_file} not found — building without epic grouping", file=sys.stderr)
+        return {"summary": "", "repos": {}}
+    try:
+        return json.loads(epics_file.read_text())
+    except json.JSONDecodeError as e:
+        sys.exit(f"{epics_file}: {e}")
+
+
+def _load_history(workdir):
     prev_file = workdir / "data-prev.json"
     prev = json.loads(prev_file.read_text()) if prev_file.is_file() else None
     hist_file = workdir / "history.jsonl"
@@ -55,6 +50,22 @@ def main():
                 history.append(json.loads(l))
             except json.JSONDecodeError as e:
                 print(f"WARN: history.jsonl line {i} skipped: {e}", file=sys.stderr)
+    return prev, history
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    default_dir = Path.home() / ".local/share/agents/portfolio-brief"
+    ap.add_argument("--dir", default=str(default_dir))
+    ap.add_argument("--out", default=None)
+    args = ap.parse_args()
+
+    workdir = Path(args.dir)
+    out = Path(args.out) if args.out else workdir / "portfolio-brief.html"
+
+    data = _load_data(workdir)
+    epics = _load_epics(workdir)
+    prev, history = _load_history(workdir)
 
     template = TEMPLATE.read_text()
     if PLACEHOLDER not in template:
