@@ -48,11 +48,12 @@
       <h2 style="color: var(--{tone})">{title} · {open.length}</h2>
       <p class="hint">{hint}</p>
       {#each hideDone ? open : items as t (t.id)}
+        {@const tUrl = safeUrl(t.url)}
         <div class="item" class:isdone={done.has(t.id)}>
           <input type="checkbox" id="m-{t.id}" checked={done.has(t.id)} onchange={() => toggle(t.id)} />
           <label for="m-{t.id}">
             <span class="action">
-              {#if safeUrl(t.url)}<a href={safeUrl(t.url)} target="_blank" rel="noreferrer">{t.action}</a>{:else}{t.action}{/if}
+              {#if tUrl}<a href={tUrl} target="_blank" rel="noreferrer">{t.action}</a>{:else}{t.action}{/if}
             </span>
             {#if t.why}<span class="why">{t.why}</span>{/if}
           </label>

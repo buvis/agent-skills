@@ -48,12 +48,13 @@
       <thead><tr><th>age</th><th>role</th><th>repo</th><th>PR</th></tr></thead>
       <tbody>
         {#each extRows as p (p.role + p.repo + p.number)}
+          {@const pUrl = safeUrl(p.url)}
           <tr>
             <td class="num">{age(p.created)}</td>
             <td class:sev-serious={p.role === 'review requested'}>{p.role}</td>
             <td>{p.repo}</td>
             <td>
-              {#if safeUrl(p.url)}<a href={safeUrl(p.url)} target="_blank" rel="noreferrer">#{p.number} {p.title}</a>{:else}#{p.number} {p.title}{/if}
+              {#if pUrl}<a href={pUrl} target="_blank" rel="noreferrer">#{p.number} {p.title}</a>{:else}#{p.number} {p.title}{/if}
               {#if p.draft}<span class="lbl">draft</span>{/if}
             </td>
           </tr>
@@ -148,7 +149,8 @@
         </button>
         <div class="runs">
           {#each r.ci as w (w.workflow)}
-            {#if safeUrl(w.url)}<a class="run {runClass(w)}" href={safeUrl(w.url)} target="_blank" rel="noreferrer">{runMark(w)} {w.workflow}</a>{:else}{runMark(w)} {w.workflow}{/if}
+            {@const wUrl = safeUrl(w.url)}
+            {#if wUrl}<a class="run {runClass(w)}" href={wUrl} target="_blank" rel="noreferrer">{runMark(w)} {w.workflow}</a>{:else}<span class="run {runClass(w)}">{runMark(w)} {w.workflow}</span>{/if}
           {/each}
         </div>
       </div>

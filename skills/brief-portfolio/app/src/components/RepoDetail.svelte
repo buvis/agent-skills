@@ -74,9 +74,10 @@
       <h3 class="sev-critical"><Icon name="security" size={12} /> Security alerts · {repo.security.length}</h3>
       <ul>
         {#each repo.security as a, i (i)}
+          {@const aUrl = safeUrl(a.url)}
           <li>
             <span class="lbl sev-{a.severity === 'critical' || a.severity === 'high' ? 'critical' : 'warning'}">{a.severity}</span>
-            {#if safeUrl(a.url)}<a href={safeUrl(a.url)} target="_blank" rel="noreferrer">{a.title}</a>{:else}{a.title}{/if}
+            {#if aUrl}<a href={aUrl} target="_blank" rel="noreferrer">{a.title}</a>{:else}{a.title}{/if}
           </li>
         {/each}
       </ul>
@@ -125,11 +126,12 @@
       <h3><Icon name="ci" size={12} /> CI</h3>
       <ul>
         {#each repo.ci as w (w.workflow)}
+          {@const wUrl = safeUrl(w.url)}
           <li>
             <span class={ciFailing({ ci: [w] }).length ? 'sev-critical' : w.conclusion === 'success' ? 'sev-good' : ''}>
               {w.status !== 'completed' ? '◌' : w.conclusion === 'success' ? '✓' : '✗'}
             </span>
-            {#if safeUrl(w.url)}<a href={safeUrl(w.url)} target="_blank" rel="noreferrer">{w.workflow}</a>{:else}{w.workflow}{/if}
+            {#if wUrl}<a href={wUrl} target="_blank" rel="noreferrer">{w.workflow}</a>{:else}{w.workflow}{/if}
             <span class="cdate">{w.conclusion ?? w.status} · {w.date}</span>
           </li>
         {/each}

@@ -95,11 +95,12 @@
         <button class="chip mini" disabled={openCount === 0} onclick={() => copy(all, u)}>{outcome?.label === u && outcome.kind === 'copied' ? '✓' : outcome?.label === u && outcome.kind === 'failed' ? '✗' : outcome?.label === u && outcome.kind === 'nothing' ? 'nothing' : 'copy'}</button>
       </h2>
       {#each shown as t (t.id)}
+        {@const tUrl = safeUrl(t.url)}
         <div class="todo" class:isdone={done.has(t.id)}>
           <input type="checkbox" id={t.id} checked={done.has(t.id)} onchange={() => toggle(t.id)} />
           <label for={t.id}>
             <span class="action">
-              {#if safeUrl(t.url)}<a href={safeUrl(t.url)} target="_blank" rel="noreferrer">{t.action}</a>{:else}{t.action}{/if}
+              {#if tUrl}<a href={tUrl} target="_blank" rel="noreferrer">{t.action}</a>{:else}{t.action}{/if}
             </span>
             {#if t.why}<span class="why">{t.why}</span>{/if}
           </label>
