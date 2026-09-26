@@ -11,6 +11,12 @@
   const grouped = $derived(epicsFor(repo, epics))
   const sc = $derived(scored.get(slug(repo)))
   const l = $derived(repo.local ?? {})
+  const commitCount = $derived((repo.commits ?? []).length)
+  const commitLabel = $derived(
+    repo.commit_count > commitCount
+      ? `${commitCount} of ${repo.commit_count} shown`
+      : `${commitCount} commits`
+  )
   let closeBtn = $state()
 
   $effect(() => {
@@ -85,7 +91,7 @@
   {/if}
 
   <section>
-    <h3><Icon name="commit" size={12} /> What happened · {(repo.commits ?? []).length} commits</h3>
+    <h3><Icon name="commit" size={12} /> What happened · {commitLabel}</h3>
     {#each grouped.epics as e, i (i)}
       <details open={grouped.epics.length <= 3}>
         <summary>

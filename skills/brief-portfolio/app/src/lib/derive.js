@@ -113,7 +113,7 @@ export function aggregate(repos, sinceDays) {
   const sum = (f) => repos.reduce((s, r) => s + f(r), 0)
   return {
     repos: repos.length,
-    commits: sum((r) => r.commits?.length ?? 0),
+    commits: sum((r) => ('commit_count' in r ? r.commit_count : (r.commits?.length ?? 0))),
     prs: sum((r) => r.prs?.length ?? 0),
     depPrs: sum((r) => (r.prs ?? []).filter(isDepBot).length),
     issues: sum((r) => r.issues?.length ?? 0),
