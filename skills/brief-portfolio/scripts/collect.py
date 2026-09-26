@@ -571,6 +571,18 @@ def history_needs_separator(hist_file):
         return hf.read(1) != b"\n"
 
 
+def load_repo_paths() -> list:
+    try:
+        rows = csv.reader(GITA_CSV.open())
+    except FileNotFoundError:
+        sys.exit(f"no repos found in gita registry: {GITA_CSV} is missing")
+    paths = [row[0] for row in rows if row and row[0].strip()]
+    paths = [p for p in paths if (Path(p) / ".git").exists()]
+    if not paths:
+        sys.exit("no repos found in gita registry")
+    return paths
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=60)
@@ -583,14 +595,7 @@ def main():
         offline_reuse(args.out)
         return
 
-    try:
-        rows = csv.reader(GITA_CSV.open())
-    except FileNotFoundError:
-        sys.exit(f"no repos found in gita registry: {GITA_CSV} is missing")
-    paths = [row[0] for row in rows if row and row[0].strip()]
-    paths = [p for p in paths if (Path(p) / ".git").exists()]
-    if not paths:
-        sys.exit("no repos found in gita registry")
+    paths = load_repo_paths()
 
     collected, skipped, repos = collect_and_partition(paths, args.days, not args.no_git_fetch)
 
