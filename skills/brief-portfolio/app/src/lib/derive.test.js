@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import {
   attention, todosFor, wipItems, quadrant, externalTodos, allTodos,
-  quickWins, sinceLast, historySeries,
+  quickWins, sinceLast, historySeries, safeUrl,
 } from './derive.js'
 
 const repo = {
@@ -248,5 +248,13 @@ assert.equal(errFirst.id, errFirstAgain.id, 'the same error string must produce 
 // No error present -> no error-shaped todo at all, regardless of id scheme
 assert.equal(externalTodos(null).length, 0) // no external payload -> no nag, no crash (auditTodos' machine-scope null guard)
 assert.equal(externalTodos({ review_requested: [], authored: [] }).filter((t) => t.kind === 'external').length, 0)
+
+// --- safeUrl keeps http and https and drops every other scheme ---
+assert.equal(safeUrl('https://a'), 'https://a')
+assert.equal(safeUrl('HTTP://a'), 'HTTP://a')
+assert.equal(safeUrl('javascript:1'), undefined)
+assert.equal(safeUrl('data:text/html,x'), undefined)
+assert.equal(safeUrl(''), undefined)
+assert.equal(safeUrl(undefined), undefined)
 
 console.log('derive.test.js: all assertions passed')
