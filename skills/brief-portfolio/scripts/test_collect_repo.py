@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent))
 import collect
 from collect import collect_repo, stub_from_path
@@ -259,3 +261,75 @@ def test_a_failed_metadata_call_still_collects_the_local_hygiene_stamps(
     assert result["errors"][0] == "meta: gh: HTTP 500"
     assert "branches" not in result
     assert "local" not in result
+
+
+@pytest.mark.parametrize(
+    "remote_url, expected",
+    [
+        pytest.param("git@github.com:demo/repo.git", ("demo", "repo"), id="ssh"),
+        pytest.param("https://github.com/demo/repo", ("demo", "repo"), id="https"),
+        pytest.param(
+            "https://github.com/demo/repo.git/",
+            ("demo", "repo"),
+            id="https-dotgit-trailing-slash",
+        ),
+        pytest.param(
+            "https://github.com/demo/my.repo-2",
+            ("demo", "my.repo-2"),
+            id="dots-and-dashes-in-name",
+        ),
+        pytest.param(
+            "git@github.com:demo/repo?x=1.git",
+            None,
+            id="query-string-not-in-charset",
+        ),
+        pytest.param(
+            "git@github.com:demo/repo/../other.git",
+            None,
+            id="extra-slash-in-name-segment",
+        ),
+        pytest.param(
+            "git@github.com:../other.git",
+            None,
+            id="owner-is-dotdot",
+        ),
+        pytest.param(
+            "git@github.com:demo/...git",
+            None,
+            id="name-is-dotdot",
+        ),
+    ],
+)
+def test_remote_re_accepts_github_slugs_and_rejects_query_and_dotdot(
+    monkeypatch, remote_url, expected
+):
+    def fake_run(cmd, cwd=None, timeout=120):
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return remote_url + "\n"
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(collect, "run", fake_run)
+
+    if expected is None:
+        with pytest.raises(RuntimeError):
+            collect.repo_slug("/repos/demo/repo")
+    else:
+        assert collect.repo_slug("/repos/demo/repo") == expected
+
+
+def test_an_unparseable_remote_is_skipped_before_any_gh_call(monkeypatch):
+    calls = []
+
+    def fake_run(cmd, cwd=None, timeout=120):
+        calls.append(cmd)
+        if cmd[0] == "git" and cmd[1] == "remote":
+            return "git@github.com:demo/repo?x=1.git\n"
+        if cmd[0] == "gh":
+            raise AssertionError(f"unexpected gh call: {cmd}")
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(collect, "run", fake_run)
+    result = collect_repo("/repos/demo/repo", 60, False)
+
+    assert result["skipped"]
+    assert not any(cmd[0] == "gh" for cmd in calls)
