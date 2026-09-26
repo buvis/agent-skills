@@ -191,12 +191,6 @@ def test_a_torn_history_line_yields_one_fewer_trend_point(tmp_path, monkeypatch,
     assert len(torn_history) == len(healthy_history) - 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=json.JSONDecodeError,
-    reason="agoge 2026-09-05: a truncated data.json reaches json.loads unguarded, so the "
-    "user sees a traceback instead of an exit message naming the file",
-)
 def test_a_truncated_data_json_exits_with_a_message_naming_the_file(tmp_path, monkeypatch):
     workdir = tmp_path / "work"
     workdir.mkdir()
@@ -209,3 +203,16 @@ def test_a_truncated_data_json_exits_with_a_message_naming_the_file(tmp_path, mo
         build.main()
 
     assert "data.json" in str(exc.value)
+
+
+def test_an_invalid_epics_json_exits_with_a_message_naming_the_file(tmp_path, monkeypatch):
+    workdir = _workdir(tmp_path, {"repos": []})
+    (workdir / "epics.json").write_text('{"summary": "x", "repos": {')
+    monkeypatch.setattr(
+        sys, "argv", ["build.py", "--dir", str(workdir), "--out", str(tmp_path / "page.html")]
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        build.main()
+
+    assert "epics.json" in str(exc.value)
