@@ -283,6 +283,46 @@ def test_snapshot_temporaries_are_owner_only_before_publication(
     assert set(checked) == temporaries
 
 
+@pytest.mark.parametrize("failing_name", ["data.json.tmp", "data-prev.json.tmp"])
+def test_protection_failure_exits_one_and_publishes_nothing(
+    tmp_path,
+    monkeypatch,
+    capsys,
+    failing_name,
+):
+    from datetime import timedelta
+
+    out_dir = tmp_path / "out"
+    out_dir.mkdir(parents=True)
+    # Stale, so the run reaches the rotation temporary too.
+    stale_at = (datetime.now(timezone.utc) - timedelta(hours=5)).isoformat(
+        timespec="seconds",
+    )
+    write_data_json_fixture(out_dir / "data.json", stale_at, "5-hours-old")
+    data_before = (out_dir / "data.json").read_bytes()
+    real_protect = collect.protect_owner_only
+
+    def protect_failing_on_one_path(path):
+        if Path(path).name == failing_name:
+            raise OSError("denied")
+        real_protect(path)
+
+    monkeypatch.setattr(collect, "protect_owner_only", protect_failing_on_one_path)
+
+    with pytest.raises(SystemExit) as exc_info:
+        run_collector(tmp_path, monkeypatch, ["alpha"], [])
+
+    code = exc_info.value.code
+    # sys.exit(message) prints message to stderr and exits with status 1.
+    assert code == 1 or isinstance(code, str), code
+    message = code if isinstance(code, str) else capsys.readouterr().err
+    assert "cannot protect" in message
+    assert "denied" in message
+    assert sorted(out_dir.rglob("*.tmp")) == []
+    assert (out_dir / "data.json").read_bytes() == data_before
+    assert not (out_dir / "data-prev.json").exists()
+
+
 def test_offline_makes_zero_subprocess_calls(tmp_path, monkeypatch):
     out_dir = tmp_path / "out"
     out_dir.mkdir(parents=True)
