@@ -7,6 +7,7 @@ Usage: build.py [--dir DIR] [--out FILE]
 import argparse
 import json
 import sys
+from collections import deque
 from pathlib import Path
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets/template.html"
@@ -46,12 +47,12 @@ def _load_history(workdir):
     hist_file = workdir / "history.jsonl"
     history = []
     if hist_file.is_file():
-        numbered = [
-            (i, l)
-            for i, l in enumerate(hist_file.read_text().splitlines(), start=1)
-            if l.strip()
-        ]
-        for i, l in numbered[-60:]:
+        window = deque(maxlen=60)
+        with hist_file.open() as f:
+            for i, l in enumerate(f, start=1):
+                if l.strip():
+                    window.append((i, l))
+        for i, l in window:
             try:
                 history.append(json.loads(l))
             except json.JSONDecodeError as e:
