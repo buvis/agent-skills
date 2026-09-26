@@ -424,25 +424,17 @@ def run_collectors(repo, tasks):
             repo["errors"].append(f"{key}: {e}")
 
 
-def collect_repo(path, days, fetch):
-    errors = []
-    try:
-        owner, name = repo_slug(path)
-    except (RuntimeError, subprocess.SubprocessError, OSError) as e:
-        print(f"WARN {path}: skipped ({e})", file=sys.stderr)
-        return stub_from_path(path, str(e))
-    repo = {"owner": owner, "name": name, "org": owner, "path": path, "errors": errors}
+def _fetch_repo(path, fetch, errors):
     if fetch:
         try:
             run(["git", "fetch", "--quiet", "origin"], cwd=path, timeout=180)
         except (RuntimeError, subprocess.SubprocessError, OSError) as e:
             errors.append(f"fetch: {e}")
-    # needs no default branch, runs before metadata: these read only the local
-    # checkout, so a failed metadata call must not cost them too
-    run_collectors(repo, [("prds", lambda: collect_prds(path)),
-                          ("changelog_unreleased", lambda: collect_changelog(path)),
-                          ("brush_last_run", lambda: collect_brush(path)),
-                          ("purge_last_run", lambda: collect_purge_devlocal(path))])
+
+
+def _collect_metadata(repo, owner, name):
+    """Fetch repo metadata into repo in place. Returns True on success;
+    on failure appends to repo["errors"] and returns False."""
     try:
         meta = gh_json(f"repos/{owner}/{name}")
         repo.update(description=meta.get("description") or "",
@@ -451,11 +443,16 @@ def collect_repo(path, days, fetch):
                     default_branch=meta["default_branch"],
                     stars=meta.get("stargazers_count", 0),
                     pushed_at=iso_day(meta.get("pushed_at")))
+        return True
     except (RuntimeError, subprocess.SubprocessError, KeyError, OSError,
             ValueError, AttributeError) as e:
-        errors.append(f"meta: {e}")
-        return repo
-    branch = repo["default_branch"]
+        repo["errors"].append(f"meta: {e}")
+        return False
+
+
+def _current_branch_resolver(path):
+    """Returns a zero-arg callable that returns the current branch name, or
+    re-raises the git error hit while resolving it, deferred to call time."""
     try:
         current = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=path).strip()
         current_err = None
@@ -466,7 +463,28 @@ def collect_repo(path, days, fetch):
         if current_err is not None:
             raise current_err
         return current
+    return current_branch
 
+
+def collect_repo(path, days, fetch):
+    errors = []
+    try:
+        owner, name = repo_slug(path)
+    except (RuntimeError, subprocess.SubprocessError, OSError) as e:
+        print(f"WARN {path}: skipped ({e})", file=sys.stderr)
+        return stub_from_path(path, str(e))
+    repo = {"owner": owner, "name": name, "org": owner, "path": path, "errors": errors}
+    _fetch_repo(path, fetch, errors)
+    # needs no default branch, runs before metadata: these read only the local
+    # checkout, so a failed metadata call must not cost them too
+    run_collectors(repo, [("prds", lambda: collect_prds(path)),
+                          ("changelog_unreleased", lambda: collect_changelog(path)),
+                          ("brush_last_run", lambda: collect_brush(path)),
+                          ("purge_last_run", lambda: collect_purge_devlocal(path))])
+    if not _collect_metadata(repo, owner, name):
+        return repo
+    branch = repo["default_branch"]
+    current_branch = _current_branch_resolver(path)
     run_collectors(repo, [("commits", lambda: collect_commits(path, branch, days)),
                           ("commit_count", lambda: collect_commit_count(path, branch, days)),
                           ("issues", lambda: collect_issues(owner, name)),
