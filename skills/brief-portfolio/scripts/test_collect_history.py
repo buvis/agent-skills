@@ -81,6 +81,39 @@ def assert_owner_only(path):
     assert "(I)" not in listing, listing
 
 
+PROTECTION_SENTINEL = "sentinel-7f3a"
+# protect_owner_only fails with OSError on POSIX and with CalledProcessError,
+# which is not an OSError, on Windows; a caller must handle both.
+PROTECTION_ERRORS = [
+    pytest.param(OSError, id="posix-chmod"),
+    pytest.param(
+        lambda message: subprocess.CalledProcessError(1, ["icacls", message]),
+        id="windows-icacls",
+    ),
+]
+
+
+def fail_protection_of(monkeypatch, failing_name, make_error):
+    """Make collect.protect_owner_only raise make_error(PROTECTION_SENTINEL)
+    for the path named failing_name and protect every other path for real."""
+    real_protect = collect.protect_owner_only
+
+    def protect_failing_on_one_path(path):
+        if Path(path).name == failing_name:
+            raise make_error(PROTECTION_SENTINEL)
+        real_protect(path)
+
+    monkeypatch.setattr(collect, "protect_owner_only", protect_failing_on_one_path)
+
+
+def read_exit_message(exc_info, capsys):
+    """Return the message a sys.exit(message) call reported."""
+    code = exc_info.value.code
+    # sys.exit(message) prints message to stderr and exits with status 1.
+    assert code == 1 or isinstance(code, str), code
+    return code if isinstance(code, str) else capsys.readouterr().err
+
+
 def test_rotate_min_age_is_four_hours():
     from datetime import timedelta
 
@@ -283,12 +316,14 @@ def test_snapshot_temporaries_are_owner_only_before_publication(
     assert set(checked) == temporaries
 
 
+@pytest.mark.parametrize("make_error", PROTECTION_ERRORS)
 @pytest.mark.parametrize("failing_name", ["data.json.tmp", "data-prev.json.tmp"])
 def test_protection_failure_exits_one_and_publishes_nothing(
     tmp_path,
     monkeypatch,
     capsys,
     failing_name,
+    make_error,
 ):
     from datetime import timedelta
 
@@ -300,27 +335,39 @@ def test_protection_failure_exits_one_and_publishes_nothing(
     )
     write_data_json_fixture(out_dir / "data.json", stale_at, "5-hours-old")
     data_before = (out_dir / "data.json").read_bytes()
-    real_protect = collect.protect_owner_only
-
-    def protect_failing_on_one_path(path):
-        if Path(path).name == failing_name:
-            raise OSError("denied")
-        real_protect(path)
-
-    monkeypatch.setattr(collect, "protect_owner_only", protect_failing_on_one_path)
+    fail_protection_of(monkeypatch, failing_name, make_error)
 
     with pytest.raises(SystemExit) as exc_info:
         run_collector(tmp_path, monkeypatch, ["alpha"], [])
 
-    code = exc_info.value.code
-    # sys.exit(message) prints message to stderr and exits with status 1.
-    assert code == 1 or isinstance(code, str), code
-    message = code if isinstance(code, str) else capsys.readouterr().err
+    message = read_exit_message(exc_info, capsys)
     assert "cannot protect" in message
-    assert "denied" in message
-    assert sorted(out_dir.rglob("*.tmp")) == []
+    assert failing_name in message
+    assert PROTECTION_SENTINEL in message
+    # Only the published snapshot is left: no temporary, no temporary moved
+    # aside under another name, no rotated data-prev.json.
+    assert sorted(p.name for p in out_dir.rglob("*")) == ["data.json"]
     assert (out_dir / "data.json").read_bytes() == data_before
-    assert not (out_dir / "data-prev.json").exists()
+
+
+@pytest.mark.parametrize("make_error", PROTECTION_ERRORS)
+def test_new_out_dir_protection_failure_exits_one_and_writes_nothing(
+    tmp_path,
+    monkeypatch,
+    capsys,
+    make_error,
+):
+    out_dir = tmp_path / "out"
+    fail_protection_of(monkeypatch, out_dir.name, make_error)
+
+    with pytest.raises(SystemExit) as exc_info:
+        run_collector(tmp_path, monkeypatch, ["alpha"], [])
+
+    message = read_exit_message(exc_info, capsys)
+    assert "cannot protect" in message
+    assert PROTECTION_SENTINEL in message
+    # No snapshot, history or digest lands in a directory nobody protected.
+    assert not out_dir.exists() or sorted(out_dir.rglob("*")) == []
 
 
 def test_offline_makes_zero_subprocess_calls(tmp_path, monkeypatch):
