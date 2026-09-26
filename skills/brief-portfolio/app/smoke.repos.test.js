@@ -77,39 +77,6 @@ test('RepoDetail panel renders both grouped epics that share a title, not once',
   assert.equal(epicTitles.length, 2, `expected 2 epics titled "Same epic", got ${epicTitles.length}`)
 })
 
-// New in this task: repo records now carry a top-level commit_count (the
-// true window total on the default branch), separate from the `commits`
-// array which is capped at 200 entries. aggregate() must sum commit_count,
-// falling back to commits.length only when the key is absent — the task
-// says the fallback fires on "no commit_count key at all", not on a falsy
-// value, so commit_count: 0 must be trusted rather than treated as missing.
-// Import placed here (not with the top-of-file imports) because this file's
-// tests are append-only; ES module imports hoist regardless of position.
-import { aggregate } from './src/lib/derive.js'
-
-test('aggregate sums commit_count instead of the capped commits array', () => {
-  const repos = [{ commits: [{}, {}], commit_count: 717 }]
-  assert.equal(aggregate(repos, 60).commits, 717)
-})
-
-test('aggregate falls back to commits.length for a repo with no commit_count key', () => {
-  const repos = [{ commits: [{}, {}] }]
-  assert.equal(aggregate(repos, 60).commits, 2)
-})
-
-test('aggregate keeps commit_count: 0 rather than falling back to commits.length', () => {
-  const repos = [{ commits: [{}, {}], commit_count: 0 }]
-  assert.equal(aggregate(repos, 60).commits, 0)
-})
-
-test('aggregate mixes commit_count and the commits.length fallback across repos', () => {
-  const repos = [
-    { commits: [{}, {}], commit_count: 717 },
-    { commits: [{}, {}, {}] },
-  ]
-  assert.equal(aggregate(repos, 60).commits, 720)
-})
-
 // "What happened" carries an Icon before its text, so match by substring
 // instead of exact equality with the heading label.
 function whatHappenedHeading(panel) {
@@ -129,9 +96,9 @@ function mainText(doc) {
   return main.textContent.replace(/\s+/g, ' ').trim()
 }
 
-async function openRepoDetailPanel(doc, openTab, flush) {
+async function openRepoDetailPanel(doc, openTab, flush, index = 0) {
   await openTab('Repos')
-  const repoButton = doc.querySelector('button.card')
+  const repoButton = doc.querySelectorAll('button.card')[index]
   assert.ok(repoButton, 'missing repo card button')
   repoButton.click()
   await flush()
@@ -164,12 +131,24 @@ test('RepoDetail renders a plain commit count when commit_count matches the list
     { sha: 'ddddddd', date: '2026-08-02', subject: 'second' },
   ]
   payload.data.repos[0].commit_count = 2
+  const capped = structuredClone(PAYLOAD.data.repos[0])
+  capped.name = 'demo-capped'
+  capped.commits = [
+    { sha: 'gggggg1', date: '2026-08-01', subject: 'first' },
+    { sha: 'gggggg2', date: '2026-08-02', subject: 'second' },
+  ]
+  capped.commit_count = 500
+  payload.data.repos.push(capped)
 
   const { doc, openTab, flush } = render(payload)
   const panel = await openRepoDetailPanel(doc, openTab, flush)
   const heading = whatHappenedHeading(panel)
   assert.match(heading.textContent, /2 commits/)
   assert.doesNotMatch(heading.textContent, /shown/)
+
+  const cappedPanel = await openRepoDetailPanel(doc, openTab, flush, 1)
+  const cappedHeading = whatHappenedHeading(cappedPanel)
+  assert.match(cappedHeading.textContent, /shown/)
 })
 
 test('RepoDetail and the Brief headline fall back to commits.length when commit_count is absent', async () => {
@@ -178,6 +157,14 @@ test('RepoDetail and the Brief headline fall back to commits.length when commit_
     { sha: 'eeeeeee', date: '2026-08-01', subject: 'first' },
     { sha: 'fffffff', date: '2026-08-02', subject: 'second' },
   ]
+  const capped = structuredClone(PAYLOAD.data.repos[0])
+  capped.name = 'demo-capped'
+  capped.commits = [
+    { sha: 'hhhhhh1', date: '2026-08-01', subject: 'first' },
+    { sha: 'hhhhhh2', date: '2026-08-02', subject: 'second' },
+  ]
+  capped.commit_count = 500
+  payload.data.repos.push(capped)
 
   const { doc, openTab, flush } = render(payload)
   await openTab('Brief')
@@ -187,4 +174,8 @@ test('RepoDetail and the Brief headline fall back to commits.length when commit_
   const heading = whatHappenedHeading(panel)
   assert.match(heading.textContent, /2 commits/)
   assert.doesNotMatch(heading.textContent, /shown/)
+
+  const cappedPanel = await openRepoDetailPanel(doc, openTab, flush, 1)
+  const cappedHeading = whatHappenedHeading(cappedPanel)
+  assert.match(cappedHeading.textContent, /shown/)
 })

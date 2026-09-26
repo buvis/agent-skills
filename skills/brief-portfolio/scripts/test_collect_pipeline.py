@@ -8,6 +8,7 @@ Run: python3 -m pytest test_collect_pipeline.py -q"""
 import json
 import subprocess
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -328,18 +329,8 @@ def test_missing_registry_file_exits_with_the_documented_message(tmp_path, monke
 def test_a_capped_commit_list_still_carries_the_true_commit_count(tmp_path, monkeypatch):
     repo = tmp_path / "busy"
     make_git_repo(repo, commits=3)
-    real_run = collect.run
-
-    def fake_run(cmd, cwd=None, timeout=120):
-        if cmd[0] == "git" and cmd[1] == "remote":
-            return "git@github.com:acme/busy.git\n"
-        if cmd[0] == "git":
-            return real_run(cmd, cwd=cwd, timeout=timeout)
-        raise RuntimeError("gh: not authenticated")
-
+    _serve_git_from_tmp_repos(monkeypatch)
     monkeypatch.setattr(collect, "MAX_COMMITS", 2)
-    monkeypatch.setattr(collect, "run", fake_run)
-    monkeypatch.setattr(collect, "gh_json", lambda path: {"default_branch": "master"})
 
     result = collect_repo(str(repo), 60, False)
 
@@ -364,10 +355,13 @@ def _serve_git_from_tmp_repos(monkeypatch, default_branch="master"):
 
 
 def _make_mixed_age_repo(repo, monkeypatch, branch):
-    """Two commits dated 2020-01-01 (origin/master), then one commit dated now on
-    top of them, published as origin/<branch>."""
-    monkeypatch.setenv("GIT_AUTHOR_DATE", "2020-01-01T12:00:00+00:00")
-    monkeypatch.setenv("GIT_COMMITTER_DATE", "2020-01-01T12:00:00+00:00")
+    """Two commits dated ~100 days ago (origin/master), then one commit dated
+    now on top of them, published as origin/<branch>."""
+    old_date = (datetime.now(timezone.utc) - timedelta(days=100)).strftime(
+        "%Y-%m-%dT12:00:00+00:00"
+    )
+    monkeypatch.setenv("GIT_AUTHOR_DATE", old_date)
+    monkeypatch.setenv("GIT_COMMITTER_DATE", old_date)
     make_git_repo(repo, commits=2)
     monkeypatch.delenv("GIT_AUTHOR_DATE")
     monkeypatch.delenv("GIT_COMMITTER_DATE")
@@ -385,12 +379,12 @@ def _make_mixed_age_repo(repo, monkeypatch, branch):
 def test_commit_count_excludes_commits_older_than_the_window(tmp_path, monkeypatch):
     repo = tmp_path / "mixed"
     _make_mixed_age_repo(repo, monkeypatch, "master")
-    # precondition: origin/master holds two 2020 commits and one from today
+    # precondition: origin/master holds two ~100-day-old commits and one from today
     assert len(collect.collect_commits(str(repo), "master", 60)) == 1
-    assert len(collect.collect_commits(str(repo), "master", 3650)) == 3
+    assert len(collect.collect_commits(str(repo), "master", 120)) == 3
 
     assert collect.collect_commit_count(str(repo), "master", 60) == 1
-    assert collect.collect_commit_count(str(repo), "master", 3650) == 3
+    assert collect.collect_commit_count(str(repo), "master", 120) == 3
 
 
 def test_collect_repo_counts_the_default_branch_inside_the_requested_window(
@@ -400,13 +394,13 @@ def test_collect_repo_counts_the_default_branch_inside_the_requested_window(
     repo = tmp_path / "trunked"
     _make_mixed_age_repo(repo, monkeypatch, "trunk")
     _serve_git_from_tmp_repos(monkeypatch, default_branch="trunk")
-    # precondition: origin/trunk holds two 2020 commits and one from today,
-    # while origin/master stops at the two old ones
+    # precondition: origin/trunk holds two ~100-day-old commits and one from
+    # today, while origin/master stops at the two old ones
     assert len(collect.collect_commits(str(repo), "trunk", 60)) == 1
-    assert len(collect.collect_commits(str(repo), "master", 3650)) == 2
+    assert len(collect.collect_commits(str(repo), "master", 120)) == 2
 
     assert collect_repo(str(repo), 60, False)["commit_count"] == 1
-    assert collect_repo(str(repo), 3650, False)["commit_count"] == 3
+    assert collect_repo(str(repo), 120, False)["commit_count"] == 3
 
 
 def test_commit_count_ignores_local_commits_not_on_the_origin_default_branch(tmp_path):
@@ -450,6 +444,13 @@ def test_history_row_commit_field_falls_back_to_the_list_length_without_a_count(
               "commits": [{"sha": "a1"}, {"sha": "b2"}]}
 
     assert history_counts(legacy)["c"] == 2
+    assert "e" not in history_counts(legacy)
+
+
+def test_history_row_marks_error_even_when_commit_count_alone_succeeded():
+    row_with_only_commit_count = {"owner": "acme", "name": "onlycount",
+                                   "errors": ["meta: boom"], "commit_count": 5}
+    assert history_counts(row_with_only_commit_count)["e"] == 1
 
 
 def test_a_failing_commit_count_warns_and_history_falls_back_to_the_list(
@@ -481,10 +482,15 @@ def test_a_failed_metadata_call_leaves_commit_count_absent(tmp_path, monkeypatch
     def failing_gh_json(path):
         raise RuntimeError("gh: not authenticated")
 
+    def unreachable_collect_commit_count(path, branch, days):
+        raise AssertionError("collect_commit_count must not run after a metadata failure")
+
     monkeypatch.setattr(collect, "gh_json", failing_gh_json)
+    monkeypatch.setattr(collect, "collect_commit_count", unreachable_collect_commit_count)
 
     result = collect_repo(str(repo), 60, False)
 
     assert any(e.startswith("meta: ") for e in result["errors"])
     assert "commits" not in result
     assert "commit_count" not in result
+    assert not any("must not run after a metadata failure" in e for e in result["errors"])

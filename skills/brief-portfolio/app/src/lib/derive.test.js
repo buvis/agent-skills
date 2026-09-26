@@ -2,8 +2,19 @@
 import assert from 'node:assert/strict'
 import {
   attention, todosFor, wipItems, quadrant, externalTodos, allTodos,
-  quickWins, sinceLast, historySeries, safeUrl,
+  quickWins, sinceLast, historySeries, safeUrl, aggregate,
 } from './derive.js'
+
+// --- aggregate: sums commit_count instead of the capped commits array, falling
+// back to commits.length only when the key is absent entirely (commit_count: 0
+// must be trusted, not treated as missing) ---
+assert.equal(aggregate([{ commits: [{}, {}], commit_count: 717 }], 60).commits, 717)
+assert.equal(aggregate([{ commits: [{}, {}] }], 60).commits, 2)
+assert.equal(aggregate([{ commits: [{}, {}], commit_count: 0 }], 60).commits, 0)
+assert.equal(aggregate([
+  { commits: [{}, {}], commit_count: 717 },
+  { commits: [{}, {}, {}] },
+], 60).commits, 720)
 
 const repo = {
   owner: 'o',
