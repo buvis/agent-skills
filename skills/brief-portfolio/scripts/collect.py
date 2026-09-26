@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 GITA_CSV = Path.home() / ".config/gita/repos.csv"
-REMOTE_RE = re.compile(r"github\.com[:/]([^/]+)/(.+?)(?:\.git)?/?$")
+REMOTE_RE = re.compile(r"github\.com[:/]([\w.-]+)/([\w.-]+?)(?:\.git)?/?$")
 BRUSH_RE = re.compile(r"^\s*-\s*generated:\s*(\d{4}-\d{2}-\d{2})")
 MAX_COMMITS = 200
 DIGEST_COMMITS = 50
@@ -72,7 +72,7 @@ def days_since_mtime(f):
 def repo_slug(path):
     url = run(["git", "remote", "get-url", "origin"], cwd=path).strip()
     m = REMOTE_RE.search(url)
-    if not m:
+    if not m or m.group(1) in (".", "..") or m.group(2) in (".", ".."):
         raise RuntimeError(f"not a github remote: {url}")
     return m.group(1), m.group(2)
 
