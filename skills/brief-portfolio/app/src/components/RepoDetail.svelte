@@ -11,11 +11,11 @@
   const grouped = $derived(epicsFor(repo, epics))
   const sc = $derived(scored.get(slug(repo)))
   const l = $derived(repo.local ?? {})
-  const commitCount = $derived((repo.commits ?? []).length)
+  const shown = $derived((repo.commits ?? []).length)
   const commitLabel = $derived(
-    repo.commit_count > commitCount
-      ? `${commitCount} of ${repo.commit_count} shown`
-      : `${commitCount} commits`
+    repo.commit_count > shown
+      ? `${shown} of ${repo.commit_count} shown`
+      : `${shown} commits`
   )
   let closeBtn = $state()
 
