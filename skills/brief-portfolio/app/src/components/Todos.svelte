@@ -64,7 +64,15 @@
       announce('nothing', label)
       return
     }
-    const md = open.map((t) => `- [ ] ${t.repo}: ${t.action}`).join('\n')
+    const md = open
+      .map((t) => {
+        const action = t.action
+          .replace(/[\r\n]+/g, ' ')
+          .replace(/\\/g, '\\\\')
+          .replace(/[[\]]/g, (c) => `\\${c}`)
+        return `- [ ] ${t.repo}: ${action}`
+      })
+      .join('\n')
     try {
       await navigator.clipboard.writeText(md)
     } catch {
