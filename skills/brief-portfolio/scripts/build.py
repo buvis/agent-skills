@@ -39,8 +39,16 @@ def main():
     hist_file = workdir / "history.jsonl"
     history = []
     if hist_file.is_file():
-        lines = [l for l in hist_file.read_text().splitlines() if l.strip()]
-        history = [json.loads(l) for l in lines[-60:]]
+        numbered = [
+            (i, l)
+            for i, l in enumerate(hist_file.read_text().splitlines(), start=1)
+            if l.strip()
+        ]
+        for i, l in numbered[-60:]:
+            try:
+                history.append(json.loads(l))
+            except json.JSONDecodeError as e:
+                print(f"WARN: history.jsonl line {i} skipped: {e}", file=sys.stderr)
 
     template = TEMPLATE.read_text()
     if PLACEHOLDER not in template:
