@@ -25,11 +25,17 @@ def main():
     data_file = workdir / "data.json"
     if not data_file.is_file():
         sys.exit(f"missing {data_file} — run collect.py first")
-    data = json.loads(data_file.read_text())
+    try:
+        data = json.loads(data_file.read_text())
+    except json.JSONDecodeError as e:
+        sys.exit(f"{data_file}: {e}")
 
     epics_file = workdir / "epics.json"
     if epics_file.is_file():
-        epics = json.loads(epics_file.read_text())
+        try:
+            epics = json.loads(epics_file.read_text())
+        except json.JSONDecodeError as e:
+            sys.exit(f"{epics_file}: {e}")
     else:
         print(f"WARN: {epics_file} not found — building without epic grouping", file=sys.stderr)
         epics = {"summary": "", "repos": {}}
