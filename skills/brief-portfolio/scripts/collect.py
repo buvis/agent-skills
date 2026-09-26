@@ -7,6 +7,7 @@ Usage: collect.py [--days N] [--no-git-fetch] [--offline] [--out DIR]
 import argparse
 import csv
 import json
+import os
 import re
 import subprocess
 import sys
@@ -471,12 +472,31 @@ def write_digest(repos, out):
     out.write_text("\n".join(lines))
 
 
+def protect_owner_only(path: Path) -> None:
+    """Restrict path (a file or a directory) to the current user only, so a
+    subprocess-stderr snippet containing a leaked credential is never
+    readable by anyone else. Raises OSError (POSIX chmod) or
+    subprocess.CalledProcessError (Windows icacls) on failure - callers are
+    responsible for not publishing whatever they were protecting."""
+    if os.name == "posix":
+        os.chmod(path, 0o700 if path.is_dir() else 0o600)
+    elif os.name == "nt":
+        username = os.environ["USERNAME"]
+        target = f"{username}:(OI)(CI)F" if path.is_dir() else f"{username}:F"
+        subprocess.run(
+            ["icacls", str(path), "/inheritance:r", "/grant:r", target],
+            check=True,
+            capture_output=True,
+        )
+
+
 def write_snapshot(data, outdir):
     """Atomically publish data.json, rotating the previous snapshot for the
     "since last brief" diff when it's stale enough (see should_rotate)."""
     data_file = outdir / "data.json"
     tmp_file = outdir / "data.json.tmp"
     tmp_file.write_text(json.dumps(data, indent=1))
+    protect_owner_only(tmp_file)
     if data_file.exists():
         try:
             existing_text = data_file.read_text()
@@ -488,6 +508,7 @@ def write_snapshot(data, outdir):
         if rotate:
             prev_tmp = outdir / "data-prev.json.tmp"
             prev_tmp.write_text(existing_text)
+            protect_owner_only(prev_tmp)
             prev_tmp.replace(outdir / "data-prev.json")
     tmp_file.replace(data_file)
 
@@ -531,7 +552,10 @@ def main():
     repos = [r for r in collected if not r.get("skipped")]
 
     outdir = Path(args.out)
+    outdir_is_new = not outdir.exists()
     outdir.mkdir(parents=True, exist_ok=True)
+    if outdir_is_new:
+        protect_owner_only(outdir)
     data = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "since_days": args.days, "repos": repos}
     data["skipped"] = skipped
