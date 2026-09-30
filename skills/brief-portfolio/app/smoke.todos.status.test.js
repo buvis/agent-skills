@@ -19,7 +19,7 @@ function stubClipboard(doc) {
 test('Todos tab shows a "nothing" status on a per-group copy when the group\'s only open item is checked done', async () => {
   // This payload derives exactly two open todos: one 'soon' (brush_last_run
   // is left unset) and one 'later' (a non-empty backlog). purge_last_run is
-  // set to now so the repo-scoped purge-devlocal maintenance nag (also
+  // set to now so the repo-scoped purge-devtmp maintenance nag (also
   // 'soon' whenever it's unset) doesn't add a second item to the soon group.
   // Checking off the sole 'soon' item leaves that group with nothing open,
   // so clicking its own per-group copy button should decline instead of
@@ -66,7 +66,7 @@ test('Todos tab shows a "nothing" status on a per-group copy when the group\'s o
 test('Todos tab disables the "copy open as markdown" button and touches nothing when there are no open todos', async () => {
   // Zero todos: an empty backlog/wip/done_count alone still leaves two
   // repo-scoped nags standing — a 'soon' brush nag whenever brush_last_run
-  // is unset or stale, and a 'soon' maintenance "Run /purge-devlocal" nag
+  // is unset or stale, and a 'soon' maintenance "Run /purge-devtmp" nag
   // whenever purge_last_run is unset or stale (generated unconditionally,
   // it does not depend on the external field) — so both must also be set to
   // now to actually reach openCount === 0.
@@ -140,7 +140,7 @@ test('A declined copy is announced truthfully even right after a successful copy
   // Two open todos in different urgency groups: one 'soon' (brush_last_run
   // left unset) and one 'later' (a non-empty backlog) — the same fixture
   // recipe as the "shows a 'nothing' status" test above. purge_last_run is
-  // set to now so the repo-scoped purge-devlocal nag doesn't add a second
+  // set to now so the repo-scoped purge-devtmp nag doesn't add a second
   // 'soon' item.
   const payload = structuredClone(PAYLOAD)
   payload.data.repos[0].prds = { backlog: ['Ship it.'], wip: [], done_count: 0 }

@@ -217,7 +217,7 @@ def collect_branches(path, branch, current):
 
 
 def collect_prds(path):
-    base = Path(path) / "dev/local/prds"
+    base = Path(path) / "docs/dev/project-management/prds"
     def entries(sub):
         out = []
         for f in sorted((base / sub).glob("*.md")) if (base / sub).is_dir() else []:
@@ -245,7 +245,7 @@ def collect_changelog(path):
 
 def collect_brush(path):
     """ISO day of the last brush hygiene run (report's `generated:` line); None = never."""
-    f = Path(path) / "dev/local/audit-results/brush-report.md"
+    f = Path(path) / "docs/dev/project-management/audit-results/brush-report.md"
     if not f.is_file():
         return None
     for line in f.read_text(errors="replace").splitlines():
@@ -258,10 +258,10 @@ def collect_brush(path):
 DATE_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
-def collect_purge_devlocal(path):
-    """Newest dated (YYYY-MM-DD) subdirectory name under dev/local/.trash/;
+def collect_purge_devtmp(path):
+    """Newest dated (YYYY-MM-DD) subdirectory name under docs/dev/tmp/.trash/;
     None when the trash dir is absent or has no dated subdirectory."""
-    trash = Path(path) / "dev/local/.trash"
+    trash = Path(path) / "docs/dev/tmp/.trash"
     if not trash.is_dir():
         return None
     return max((e.name for e in trash.iterdir() if e.is_dir() and DATE_DIR_RE.match(e.name)), default=None)
@@ -480,7 +480,7 @@ def collect_repo(path, days, fetch):
     run_collectors(repo, [("prds", lambda: collect_prds(path)),
                           ("changelog_unreleased", lambda: collect_changelog(path)),
                           ("brush_last_run", lambda: collect_brush(path)),
-                          ("purge_last_run", lambda: collect_purge_devlocal(path))])
+                          ("purge_last_run", lambda: collect_purge_devtmp(path))])
     if not _collect_metadata(repo, owner, name):
         return repo
     branch = repo["default_branch"]

@@ -214,7 +214,7 @@ def test_a_404_on_actions_runs_still_reads_as_actions_disabled(monkeypatch):
     assert not any(e.startswith("ci:") for e in result["errors"])
 
 
-def test_collect_repo_purge_last_run_key_equals_collect_purge_devlocal_result(
+def test_collect_repo_purge_last_run_key_equals_collect_purge_devtmp_result(
     tmp_path,
     monkeypatch,
 ):

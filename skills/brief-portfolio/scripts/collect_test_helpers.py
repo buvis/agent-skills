@@ -16,7 +16,7 @@ from collect import main
 
 
 def write_report(tmp_path: Path, body: str) -> None:
-    report = tmp_path / "dev/local/audit-results/brush-report.md"
+    report = tmp_path / "docs/dev/project-management/audit-results/brush-report.md"
     report.parent.mkdir(parents=True)
     report.write_text(body)
 
@@ -78,9 +78,9 @@ def write_data_json_fixture(path: Path, generated_at: str, marker: str) -> str:
 
 
 def make_trash_dir(tmp_path: Path, *, dirs=(), files=()) -> Path:
-    """Build tmp_path/dev/local/.trash/ with the given subdirectory and file
+    """Build tmp_path/docs/dev/tmp/.trash/ with the given subdirectory and file
     names created directly inside it."""
-    trash = tmp_path / "dev/local/.trash"
+    trash = tmp_path / "docs/dev/tmp/.trash"
     trash.mkdir(parents=True)
     for name in dirs:
         (trash / name).mkdir()

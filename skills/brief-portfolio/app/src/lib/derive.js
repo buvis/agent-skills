@@ -259,7 +259,7 @@ export function todosFor(repos) {
     const prds = r.prds ?? { backlog: [], wip: [] }
     for (const w of wipItems(prds))
       add('prd', w.title, w.idle_days >= 14 ? 'now' : 'soon', `Finish WIP PRD: ${w.title}`,
-        w.idle_days >= 7 ? `idle ${w.idle_days}d in dev/local/prds/wip` : 'sitting in dev/local/prds/wip',
+        w.idle_days >= 7 ? `idle ${w.idle_days}d in docs/dev/project-management/prds/wip` : 'sitting in docs/dev/project-management/prds/wip',
         { importance: 'high', effort: 'deep' })
     if (prds.backlog.length)
       add('prd', 'backlog', 'later', `Pick next PRD from backlog (${prds.backlog.length} waiting)`, `next: ${prds.backlog[0]}`,
@@ -304,7 +304,7 @@ function hashStr(s) {
 // off each repo's own purge_last_run.
 export const AUDIT_CADENCE = [
   { skill: 'claude-checkup:audit-filesystem', horizonDays: 30, command: '/claude-checkup:audit-filesystem', scope: 'machine' },
-  { skill: 'purge-devlocal',                  horizonDays: 30, command: '/purge-devlocal',                  scope: 'repo' },
+  { skill: 'purge-devtmp',                    horizonDays: 30, command: '/purge-devtmp',                    scope: 'repo' },
   { skill: 'claude-checkup:audit-context',     horizonDays: 90, command: '/claude-checkup:audit-context',     scope: 'machine' },
   { skill: 'claude-checkup:audit-config',      horizonDays: 90, command: '/claude-checkup:audit-config',      scope: 'machine' },
   { skill: 'claude-checkup:audit-authoring',   horizonDays: 90, command: '/claude-checkup:audit-authoring',   scope: 'machine' },
@@ -339,7 +339,7 @@ export function auditTodos(external, repos = []) {
 
 // PRs outside the gita portfolio that involve the user (collect.py `external`),
 // plus maintenance-cadence nags (PRD 00006): machine-wide ~/.claude audits and
-// repo-scoped purge-devlocal rows both ride this channel via auditTodos.
+// repo-scoped purge-devtmp rows both ride this channel via auditTodos.
 export function externalTodos(external, repos = []) {
   const out = []
   for (const p of external?.review_requested ?? [])

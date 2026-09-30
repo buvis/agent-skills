@@ -130,16 +130,16 @@ assert.equal(externalTodos({ audit_cadence: { 'claude-checkup:audit-filesystem':
 assert.equal(externalTodos(null).length, 0) // no external payload -> no nag, no crash (auditTodos' machine-scope null guard)
 
 // --- cadence boundaries on both horizons: the row fires AT the horizon, not a day later ---
-// 30d horizon, repo scope: purge-devlocal reads each repo's `purge_last_run`.
+// 30d horizon, repo scope: purge-devtmp reads each repo's `purge_last_run`.
 const purgeRowAt = (n) => externalTodos({}, [{ owner: 'o', name: 'r', purge_last_run: day(n) }])
-  .find((t) => t.id.startsWith('o/r:audit:purge-devlocal:'))
+  .find((t) => t.id.startsWith('o/r:audit:purge-devtmp:'))
 assert.equal(purgeRowAt(0), undefined)
 assert.equal(purgeRowAt(29), undefined)
-assert.ok(purgeRowAt(30), 'purge-devlocal must fire at exactly its 30d horizon')
-assert.ok(purgeRowAt(31), 'purge-devlocal must fire past its 30d horizon')
+assert.ok(purgeRowAt(30), 'purge-devtmp must fire at exactly its 30d horizon')
+assert.ok(purgeRowAt(31), 'purge-devtmp must fire past its 30d horizon')
 assert.equal(
-  externalTodos({}, [{ owner: 'o', name: 'r' }]).find((t) => t.id.startsWith('o/r:audit:purge-devlocal:')).id,
-  'o/r:audit:purge-devlocal:never',
+  externalTodos({}, [{ owner: 'o', name: 'r' }]).find((t) => t.id.startsWith('o/r:audit:purge-devtmp:')).id,
+  'o/r:audit:purge-devtmp:never',
 )
 // 90d horizon, machine scope: audit-context is one of the ~/.claude audits.
 const isCtxAudit = (t) => t.id.startsWith('claude:audit:claude-checkup:audit-context:')
@@ -154,9 +154,9 @@ assert.equal(externalTodos({ audit_cadence: {} }).find(isCtxAudit).id, 'claude:a
 const purgeRows = externalTodos({}, [
   { owner: 'o', name: 'stale', purge_last_run: day(60) },
   { owner: 'o', name: 'fresh', purge_last_run: day(1) },
-]).filter((t) => t.id.includes(':audit:purge-devlocal:'))
+]).filter((t) => t.id.includes(':audit:purge-devtmp:'))
 assert.equal(purgeRows.length, 1)
-assert.equal(purgeRows[0].id, `o/stale:audit:purge-devlocal:${day(60)}`)
+assert.equal(purgeRows[0].id, `o/stale:audit:purge-devtmp:${day(60)}`)
 
 // --- merged list + quick wins ---
 const all = allTodos([repo], { todos: [{ id: 'o/r:judgment:x', repo: 'o/r', kind: 'judgment', urgency: 'now', action: 'A', why: 'w' }] }, null)

@@ -17,11 +17,11 @@ and a pickable cross-repo todo list for every repo in the gita registry
 - Path: `~/.config/gita/repos.csv` - the repo registry. Without it `collect.py`
   exits with "no repos found in gita registry" and there is nothing to brief.
 - CLIs: `gh` (authenticated), `git`, `python3`.
-- Reads per repo: `dev/local/audit-results/brush-report.md` — its `generated:`
+- Reads per repo: `docs/dev/project-management/audit-results/brush-report.md` — its `generated:`
   line stamps the last `brush` run and powers the 30-day brush-cadence nag
   (todo + attention reason). Missing report = never brushed = the nag fires.
-- Reads per repo: `dev/local/.trash/<date>/` — the newest dated directory stamps
-  the last `purge-devlocal` run and powers its 30-day cadence nag. No dated
+- Reads per repo: `docs/dev/tmp/.trash/<date>/` — the newest dated directory stamps
+  the last `purge-devtmp` run and powers its 30-day cadence nag. No dated
   directory = never purged = the nag fires.
 - Reads once per run: `~/.local/share/agents/metrics/skills.jsonl` — the newest
   `ts` per skill stamps the last run of each machine-wide config audit and powers
@@ -100,7 +100,7 @@ Todo rules:
   and engaged issues, stale-issue triage, PRD pipeline with wip idle-days,
   stray branches and worktrees, review requests outside the portfolio, overdue
   brush hygiene on a 30-day cadence, and one row per overdue config audit —
-  `purge-devlocal` per repo and the `claude-checkup:*` audits machine-wide,
+  `purge-devtmp` per repo and the `claude-checkup:*` audits machine-wide,
   each on its own 30- or 90-day horizon). Do NOT duplicate those.
 - Add only judgment items: composed follow-ups ("this repo has been dirty for
   11 days — resume or park the PRD work"), cross-repo observations, process

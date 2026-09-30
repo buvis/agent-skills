@@ -1,5 +1,5 @@
 """Regression tests for collect.py's local parsers: brush reports, skill
-adherence, audit cadence and the purge-devlocal trash scan.
+adherence, audit cadence and the purge-devtmp trash scan.
 Run: python3 -m pytest test_collect_local.py -q"""
 
 import json
@@ -13,7 +13,7 @@ from collect import (
     collect_audit_cadence,
     collect_brush,
     collect_claude_skill_adherence,
-    collect_purge_devlocal,
+    collect_purge_devtmp,
 )
 from collect_test_helpers import make_trash_dir, write_report
 
@@ -136,14 +136,14 @@ def test_audit_cadence_returns_newest_day_per_skill_and_none_for_no_rows(tmp_pat
                     "skill": "claude-checkup:audit-filesystem",
                     "ts": "2026-08-10T09:00:00+00:00",
                 },
-                {"skill": "purge-devlocal", "ts": "2026-08-12T00:00:00+00:00"},
+                {"skill": "purge-devtmp", "ts": "2026-08-12T00:00:00+00:00"},
             ]
         )
         + "\n",
     )
     result = collect_audit_cadence(f)
     assert result["claude-checkup:audit-filesystem"] == "2026-08-15"
-    assert result["purge-devlocal"] == "2026-08-12"
+    assert result["purge-devtmp"] == "2026-08-12"
     assert result["claude-checkup:audit-context"] is None
 
 
@@ -169,7 +169,7 @@ def test_audit_cadence_seeds_all_six_keys_and_includes_unnamespaced_skill(tmp_pa
                     "skill": "claude-checkup:audit-sessions",
                     "ts": "2026-08-20T00:00:00+00:00",
                 },
-                {"skill": "purge-devlocal", "ts": "2026-08-18T00:00:00+00:00"},
+                {"skill": "purge-devtmp", "ts": "2026-08-18T00:00:00+00:00"},
             ]
         )
         + "\n",
@@ -181,7 +181,7 @@ def test_audit_cadence_seeds_all_six_keys_and_includes_unnamespaced_skill(tmp_pa
     for skill in MACHINE_AUDIT_SKILLS:
         if skill != "claude-checkup:audit-sessions":
             assert result[skill] is None
-    assert result["purge-devlocal"] == "2026-08-18"
+    assert result["purge-devtmp"] == "2026-08-18"
 
 
 def test_audit_cadence_skips_malformed_json_line_without_raising(tmp_path):
@@ -245,7 +245,7 @@ def test_audit_cadence_ignores_unparseable_and_future_timestamps(tmp_path):
                 {"skill": skill, "ts": "2026-01-01T00:00:00"},
                 {"skill": skill, "ts": valid_past.isoformat()},
                 {"skill": skill, "ts": "0001-01-01T00:00:00+01:00"},
-                {"skill": "purge-devlocal", "ts": "2026-08-15T01:00:00+05:00"},
+                {"skill": "purge-devtmp", "ts": "2026-08-15T01:00:00+05:00"},
                 {
                     "skill": "claude-checkup:audit-sessions",
                     "ts": "2026-08-01T00:00:00+00:00",
@@ -260,35 +260,35 @@ def test_audit_cadence_ignores_unparseable_and_future_timestamps(tmp_path):
     )
     result = collect_audit_cadence(base=f)
     assert result[skill] == valid_past.date().isoformat()
-    assert result["purge-devlocal"] == "2026-08-14"
+    assert result["purge-devtmp"] == "2026-08-14"
     assert result["claude-checkup:audit-sessions"] == "2026-08-01"
 
 
-def test_collect_purge_devlocal_returns_none_when_trash_dir_absent(tmp_path):
-    assert collect_purge_devlocal(tmp_path) is None
+def test_collect_purge_devtmp_returns_none_when_trash_dir_absent(tmp_path):
+    assert collect_purge_devtmp(tmp_path) is None
 
 
-def test_collect_purge_devlocal_returns_the_only_dated_subdirectory(tmp_path):
+def test_collect_purge_devtmp_returns_the_only_dated_subdirectory(tmp_path):
     make_trash_dir(tmp_path, dirs=["2026-08-01"])
-    assert collect_purge_devlocal(tmp_path) == "2026-08-01"
+    assert collect_purge_devtmp(tmp_path) == "2026-08-01"
 
 
-def test_collect_purge_devlocal_returns_newest_of_two_dated_subdirectories(tmp_path):
+def test_collect_purge_devtmp_returns_newest_of_two_dated_subdirectories(tmp_path):
     make_trash_dir(tmp_path, dirs=["2026-08-01", "2026-08-20"])
-    assert collect_purge_devlocal(tmp_path) == "2026-08-20"
+    assert collect_purge_devtmp(tmp_path) == "2026-08-20"
 
 
-def test_collect_purge_devlocal_returns_none_when_no_dated_directory_present(tmp_path):
+def test_collect_purge_devtmp_returns_none_when_no_dated_directory_present(tmp_path):
     make_trash_dir(tmp_path, dirs=["backup", "2026-8-1"], files=["manifest.tsv"])
-    assert collect_purge_devlocal(tmp_path) is None
+    assert collect_purge_devtmp(tmp_path) is None
 
 
-def test_collect_purge_devlocal_ignores_plain_file_named_like_a_date(tmp_path):
+def test_collect_purge_devtmp_ignores_plain_file_named_like_a_date(tmp_path):
     make_trash_dir(tmp_path, files=["2026-08-01"])
-    assert collect_purge_devlocal(tmp_path) is None
+    assert collect_purge_devtmp(tmp_path) is None
 
 
-def test_collect_purge_devlocal_picks_newest_directory_despite_a_later_named_file(
+def test_collect_purge_devtmp_picks_newest_directory_despite_a_later_named_file(
     tmp_path,
 ):
     make_trash_dir(
@@ -296,9 +296,9 @@ def test_collect_purge_devlocal_picks_newest_directory_despite_a_later_named_fil
         dirs=["2026-08-01", "2026-08-20"],
         files=["2026-08-31", "manifest.tsv"],
     )
-    assert collect_purge_devlocal(tmp_path) == "2026-08-20"
+    assert collect_purge_devtmp(tmp_path) == "2026-08-20"
 
 
-def test_collect_purge_devlocal_accepts_str_path_argument(tmp_path):
+def test_collect_purge_devtmp_accepts_str_path_argument(tmp_path):
     make_trash_dir(tmp_path, dirs=["2026-08-01"])
-    assert collect_purge_devlocal(str(tmp_path)) == "2026-08-01"
+    assert collect_purge_devtmp(str(tmp_path)) == "2026-08-01"

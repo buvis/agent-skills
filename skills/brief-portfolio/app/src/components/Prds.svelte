@@ -28,7 +28,7 @@
 <section class="sec">
   <h2>PRD pipeline · {tot.w} wip · {tot.b} backlog · {tot.d} done</h2>
   {#if rows.length === 0}
-    <p class="empty">No PRDs found under dev/local/prds/ in any repo.</p>
+    <p class="empty">No PRDs found under docs/dev/project-management/prds/ in any repo.</p>
   {:else}
     <div class="grid">
       {#each rows as { r, p } (slug(r))}
