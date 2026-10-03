@@ -85,6 +85,8 @@ While drafting, mark every contract detail you invented rather than sourced from
 
 **Metric rule (no suite-wide numbers):** Success criteria and acceptance criteria name the tests that must pass (by test name, or a `pytest -k` / `node --test` filter) and, when timing matters, the budget of the test this PRD owns. Never pin a suite total ("18 passing, up from 16", "suite under 2050ms"): a neighbouring PRD adds one test and the criterion is stale before this one is drained, and no implementer can satisfy it without deleting coverage. Rationale: batch 202609040601 deferred four such criteria across PRDs 00019 and 00033, every one unmeetable on the day it was reviewed.
 
+**Gate rule (full suite once, at the end):** A task's Acceptance names that task's own tests. The project's full gate (`release-checks`, the whole test directory, `make check`) appears only in the last phase's Exit Criteria, or the PRD's Success Metrics. The autopilot pipeline already runs the full suite once after the last task, so every per-task "full gate green" line buys a duplicate run the orchestrator must make to tick the box. Rationale: in the first 0.7.0 batch (2026-10-03), most of the remaining full-suite runs (about 2 min each, several per PRD) came from task Acceptance lines that named `release-checks`.
+
 ### Optional frontmatter fields
 
 PRD frontmatter is a YAML block at the top of the file delimited by `---` lines. Seven fields are recognized by the autopilot pipeline (six parsed by `/autopilot:run-autopilot` Phase 0; `default_model` is owned and re-read by `/autopilot:plan-tasks`). All six Phase-0 fields are optional; `default_model` is decided for every PRD by step 5.6:
