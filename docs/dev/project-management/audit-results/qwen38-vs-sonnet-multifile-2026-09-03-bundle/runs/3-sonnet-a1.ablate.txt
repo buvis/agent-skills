@@ -1,0 +1,37 @@
+   Building buvis-gems @ file:///private/tmp/qwen-eval-00010/3-repoint-zettel-save-sonnet-a1-ablate
+      Built buvis-gems @ file:///private/tmp/qwen-eval-00010/3-repoint-zettel-save-sonnet-a1-ablate
+Uninstalled 1 package in 0.97ms
+Installed 1 package in 3ms
+..F....                                                                  [100%]
+=================================== FAILURES ===================================
+_________ TestSave.test_replace_failure_leaves_original_note_untouched _________
+
+self = <tests.lib.zettel.infrastructure.persistence.test_markdown_zettel_repository_writer.TestSave object at 0x1098ee2c0>
+mock_format = <MagicMock name='format' id='4455978992'>
+repository = <buvis.pybase.zettel.infrastructure.persistence.markdown_zettel_repository.markdown_zettel_repository.MarkdownZettelRepository object at 0x1098fe990>
+tmp_path = PosixPath('/private/var/folders/m6/1mnc9pdn28d5vdxy4hxyr1m40000gn/T/pytest-of-bob/pytest-5022/test_replace_failure_leaves_or0')
+mocker = <pytest_mock.plugin.MockerFixture object at 0x10998d160>
+
+    @patch(
+        "buvis.pybase.zettel.infrastructure.formatting.markdown_zettel_formatter.markdown_zettel_formatter.MarkdownZettelFormatter.format"
+    )
+    def test_replace_failure_leaves_original_note_untouched(self, mock_format, repository, tmp_path, mocker) -> None:
+        file_path = tmp_path / "zettel.md"
+        file_path.write_text("original content", encoding="utf-8")
+        zettel_data = ZettelData(file_path=str(file_path))
+        zettel = MagicMock(spec=Zettel)
+        zettel.get_data.return_value = zettel_data
+        mock_format.return_value = "formatted content"
+        mocker.patch(
+            "buvis.pybase.filesystem.atomic_write.os.replace",
+            side_effect=OSError("disk full"),
+        )
+    
+>       with pytest.raises(OSError):
+             ^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE OSError
+
+tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py:61: Failed
+=========================== short test summary info ============================
+FAILED tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py::TestSave::test_replace_failure_leaves_original_note_untouched
+1 failed, 6 passed in 0.23s

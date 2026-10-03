@@ -1,0 +1,1 @@
+[llama-cpp] failed to reach http://localhost:8080/v1/models: fetch failed

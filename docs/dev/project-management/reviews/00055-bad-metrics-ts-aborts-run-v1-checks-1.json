@@ -1,0 +1,26 @@
+[
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: tests, skill validation, and braid checks pass at the reviewed HEAD; the context records successful execution.",
+    "file": null,
+    "command": "uv run pytest",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: tests, skill validation, and braid checks pass at the reviewed HEAD; the context records successful execution.",
+    "file": null,
+    "command": "uv run python3 skills/create-skill/scripts/validate_skill.py skills/brief-portfolio",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: tests, skill validation, and braid checks pass at the reviewed HEAD; the context records successful execution.",
+    "file": null,
+    "command": "braid --check",
+    "source": "bob",
+    "result": {"exit": 127}
+  }
+]

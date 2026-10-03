@@ -1,0 +1,34 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "10 touched test(s) pass against the pre-change code: test_main_save_prints_added_n_of_m_counting_m_as_every_record_read_not_just_new_ones, test_main_start_returns_zero, test_main_next_prints_the_next_undecided_entry_as_one_line_of_json_and_returns_zero, test_main_next_prints_nothing_and_returns_one_when_nothing_is_available, test_main_decide_kept_records_the_decision_and_returns_zero, test_main_decide_dropped_records_the_decision_and_returns_zero +4 more",
+    "file": "skills/distil-memory/scripts/test_docket_cli.py",
+    "reason": "These ten are unchanged relocations, moved out of test_docket.py by task 1's split-hygiene step; they pin pre-existing behavior by design, which is the fail-first replay block's own documented behavior-preserving case. This PRD changes queue routing, not the behavior those tests cover, and every original CLI test is still present and passing. Rewriting their intent is out of scope."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "PRD's Implementation section cites `test_docket.py:402-727` as the home of the `main()` CLI tests, but those tests now live in a separate `test_docket_cli.py`/`test_docket_exit_codes.py` (split before this PRD's commits) — spec-to-layout drift only, all required scenarios are still covered and passing.",
+    "file": "skills/distil-memory/scripts/test_docket_cli.py",
+    "reason": "Stale line reference in the PRD's own prose, not a code defect. Blake states himself that every required scenario is covered and passing. The PRD moves to done/ at finalize, so editing its Implementation section buys nothing."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`_save_from_proposals_dir` reads `proposals.json` and each proposal's referenced file with unguarded `.read_text()` calls (no try/except), so a missing/unreadable proposals file surfaces as a raw traceback instead of the clean stderr+exit-code pattern used everywhere else in `docket.py`'s `main()`. Pre-existing (unchanged by this PRD's diff) and mitigated by the funnel's atomic proposals-directory publish, so low likelihood, but real.",
+    "file": "skills/distil-memory/scripts/docket.py:203-211",
+    "reason": "Confirmed pre-existing: docket.py lines 203 and 211 are unchanged by this diff, which only added the path= parameter and the derivation at lines 200-202. Fixing adjacent pre-existing code is forbidden by the surgical-changes rule, and Blake rates the likelihood low. Worth a separate PRD, not this one."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: checks pass after rework. VERIFY: run `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/distil-memory`, and `braid --check`.",
+    "file": null,
+    "reason": "Not a defect: this is the exact line agents/bob.md orders when a criterion needs runtime verification and the codex sandbox forbids execution. The three commands it names are the same three dev/local/autopilot/last-verification.json records at this cycle's reviewed HEAD e2ff3d4f1da8655416e44b49f6d21f2f551a712c, all exit 0 (1024 passed, 0 failed, 5 skipped), and Alice and Carl each re-ran them live this cycle with the same result. Nothing to fix and nothing left to check."
+  }
+]

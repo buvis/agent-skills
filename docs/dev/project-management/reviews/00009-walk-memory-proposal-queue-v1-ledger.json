@@ -1,0 +1,42 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "Memory-file and `MEMORY.md` symlinks can escape the selected store and overwrite external files",
+    "file": "skills/distil-memory/scripts/write.py:39",
+    "reason": "The memory store is the operator's own `~/.claude/projects/<hash>/memory/` directory, reached from the source transcript's own location. It is not a trust boundary and takes no untrusted input, so a planted symlink there presupposes an attacker who already has write access to the same directory the tool writes to. Adding path-containment checks would be defensive validation for a state that cannot occur, which `rules/coding-style.md` forbids (validate at system boundaries only). Deferred, not fixed."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`RUBRIC_VERSION` is a hand-maintained string constant, coupled to `distil.py`'s `_DISTIL_PROMPT` only by a code comment (\"bump by hand when ... changes meaningfully\"). There is no automated check tying the two, so a future prompt change could ship without bumping the version, leaving proposals judged under a now-stale rubric silently suppressed forever (the PRD's stated intent is that a rubric bump reopens old drops).",
+    "file": "skills/distil-memory/scripts/docket.py",
+    "reason": "Hand-maintenance is the specified design, not an oversight: the task contract states `RUBRIC_VERSION = \"1\"  # bump by hand when distil.py's _DISTIL_PROMPT changes meaningfully`. Automating the coupling (hashing the prompt into the version) would change the rejection record's key semantics and re-open every drop on any incidental prompt edit, which is worse than the documented manual bump. Deferred as an accepted limitation."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The PRD's Structural Decomposition and Phase 0 Exit Criteria name the module `queue.py`/`test_queue.py` verbatim; it was renamed to `docket.py`/`test_docket.py` (commit 9a44a4e) to avoid shadowing Python's stdlib `queue` module. Functionally equivalent and fully tested, but running the PRD's own literal exit-criteria command fails: `pytest scripts/test_queue.py` -> \"file or directory not found\".",
+    "file": "skills/distil-memory/scripts/docket.py",
+    "reason": "Settled, recorded spec divergence. `queue` is a Python stdlib module name; once `concurrent.futures` loads stdlib `queue` into `sys.modules`, `import queue` bound the stdlib module and 33 of 941 tests failed. The rename was the root fix; a conftest override and importlib shims were both considered and rejected (dev/local/meta/assumptions.md). Blake is blind by construction so his re-raise is legitimate, but the decision stands. The only residue is a stale name in a historical PRD document, not a code defect."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Eliminate redundant file write operations by modifying the lines list and performing a single write_text at the end",
+    "file": "skills/distil-memory/scripts/write.py",
+    "reason": "Contradicted by the code. `append_pointer` has two `index_path.write_text(...)` call sites (write.py:85 and write.py:89) but they are mutually exclusive branches: line 85 is inside the update-in-place loop and returns immediately, so exactly one write executes per invocation. There is no redundant runtime write to eliminate. Verified by reading write.py:81-90."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: tests and required validator/braid checks actually pass",
+    "file": "N/A",
+    "reason": "Sandbox artifact, not a defect. Bob runs static-only and is instructed to emit this line for any criterion needing runtime verification. The orchestrator ran the suite in the foreground this cycle: 941 passed, 5 skipped, 0 failed. Alice independently ran the create-skill validator ([OK] Skill is valid!) and Eve ran both plus the 500-test distil-memory subset."
+  }
+]

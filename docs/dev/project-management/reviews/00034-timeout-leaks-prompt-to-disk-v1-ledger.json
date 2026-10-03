@@ -1,0 +1,18 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "[FIX] The direct timeout unit at lines 385–398 duplicates the end-to-end regression at lines 43–63; remove it and its synthetic prompt because the E2E test already exercises the real proposal/shortlist prompt and fails against the base revision",
+    "file": "skills/distil-memory/scripts/test_funnel_distil_dedup.py:385",
+    "reason": "Not duplicate coverage, so the test stays. The E2E asserts the message through funnel.main with the real prompt; the direct unit asserts the same contract at _type_proposal's own boundary with a 500-char synthetic argv the E2E cannot produce, which is the exact leak vector the PRD describes. It is also the timeout member of a three-test symmetry whose other two members pin PRD Must-have #2 (RuntimeError/OSError unchanged) and cannot be removed. Both tests were hand-verified to FAIL against base 19cbdf7 (see the review file's fail-first block). Alice reviewed the same code independently and judged the extra tests legitimate coverage of a stated requirement, not scope creep."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "[KNOWN] RuntimeError still persists raw `claude` stderr in `dedup_error`, leaving an unexamined disclosure boundary; changing it is out of scope because the PRD explicitly requires this branch to remain unchanged",
+    "file": "skills/distil-memory/scripts/funnel.py:362",
+    "reason": "Bob filed it as KNOWN himself. PRD Must-have #2 explicitly requires this branch unchanged, and PRD Must-have #4 requires the new test's docstring to name it as a known, unexamined boundary, which it does. Out of scope by specification and already on the record; a future PRD can examine the stderr path."
+  }
+]

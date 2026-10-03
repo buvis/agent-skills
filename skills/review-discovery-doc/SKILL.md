@@ -22,11 +22,11 @@ Critical, finding-by-finding review of a feature discovery document produced by 
 
 ## Inputs
 
-**Required** - the discovery document path (absolute path to the markdown file under `dev/local/discovery/`).
+**Required** - the discovery document path (absolute path to the markdown file under `docs/dev/project-management/discovery/`).
 
 **Path solicitation:**
 1. Scan the user's most recent message for a markdown path. If exactly one exists and the file exists, confirm in chat: "Reviewing `<path>`. Wrong doc? Say so now."
-2. If no path is present, ask: "Which discovery doc should I review? Give an absolute path (e.g. `/Users/you/repo/dev/local/discovery/00006-foo.md`)." Wait. Do not proceed.
+2. If no path is present, ask: "Which discovery doc should I review? Give an absolute path (e.g. `/Users/you/repo/docs/dev/project-management/discovery/00006-foo.md`)." Wait. Do not proceed.
 3. Verify the path exists (Read). If it doesn't, ask again with the error.
 
 ## Ground rules

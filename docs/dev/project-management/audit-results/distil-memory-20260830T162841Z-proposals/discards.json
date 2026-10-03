@@ -1,0 +1,22 @@
+[
+  {
+    "transcript": "/Users/bob/.claude/projects/-Users-bob-git-src-github-com-buvis-agent-skills/038e0e9c-3a8d-4809-86b6-ea6033303478.jsonl",
+    "line_no": 421,
+    "reason": "every actionable item in the snippet is stale or already captured elsewhere. Verified against the current repo: `pyproject.toml` already has `testpaths = [\"tests\", \"skills\"]` and `pyyaml` in the dev group (the \"two pytest commands\" gap is fixed), and `skills/review-discovery-doc/SKILL.md` exists (the \"dead pointer, doesn't exist in this repo\" claim no longer holds). The remaining facts (the `${CLAUDE_SKILL_DIR}` corruption gotcha, the Dependencies-section convention) are explicitly stated as already documented in the repo's own AGENTS.md, which future sessions read directly \u2014 duplicating them here would just be a second, driftable copy of repo state rather than a fact worth remembering independently."
+  },
+  {
+    "transcript": "/Users/bob/.claude/projects/-Users-bob-git-src-github-com-buvis-agent-skills/04673316-5167-45a6-b475-942394b866da.jsonl",
+    "line_no": 38,
+    "reason": "this is a test-run report and line-level code-review findings for `skills/distil-memory/scripts/dedup.py` (TOCTOU double-syscall, missing docstring rationale) \u2014 the findings are either applied to the code (then git/the code is authoritative) or still open (then they belong in a PRD/review-tracking file, not agent memory). Nothing here is a fact that survives independent of the code's current state; a future session should read the file or the review report, not recall a stale line-number claim."
+  },
+  {
+    "transcript": "/Users/bob/.claude/projects/-Users-bob-git-src-github-com-buvis-agent-skills/09bf8a55-a2a0-4e1f-97d3-d3fbadead44c.jsonl",
+    "line_no": 438,
+    "reason": "the answer is not a usable memory file: body links to no other memory"
+  },
+  {
+    "transcript": "/Users/bob/.claude/projects/-Users-bob-git-src-github-com-buvis-agent-skills/14c35d58-82ef-418f-9cd9-e12e56a63c72.jsonl",
+    "line_no": 69,
+    "reason": "this is a single code-review finding (a parameter-name mismatch in `dedup.py` about to be fixed as part of the current review cycle), not a durable project fact \u2014 once addressed the code will show the correct signature, and until then it's directly visible by reading `skills/distil-memory/scripts/dedup.py:40-41`. Actionable review findings belong in the review's own tracking (ReportFindings/PRD), not in persistent memory."
+  }
+]

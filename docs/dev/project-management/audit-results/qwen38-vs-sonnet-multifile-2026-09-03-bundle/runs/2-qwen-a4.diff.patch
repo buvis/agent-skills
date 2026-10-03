@@ -1,0 +1,301 @@
+diff --git a/src/lib/buvis/pybase/result.py b/src/lib/buvis/pybase/result.py
+index 9170438..74d5b8d 100644
+--- a/src/lib/buvis/pybase/result.py
++++ b/src/lib/buvis/pybase/result.py
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+ 
++from collections.abc import Callable
+ from dataclasses import dataclass, field
+ from pathlib import PurePath
+ from typing import Any
+@@ -48,3 +49,25 @@ class CommandResult:
+             "warnings": self.warnings,
+             "metadata": _json_safe(self.metadata),
+         }
++
++
++def notify_result(result: CommandResult, notify: Callable[..., None]) -> None:
++    """Forward a :class:`CommandResult` to a TUI-style ``notify`` callback.
++
++    Every warning is forwarded first with ``severity="warning"``, then the
++    success output with ``severity="information"`` or the failure message
++    with ``severity="error"``. A success with empty output notifies nothing
++    beyond warnings; a failure with an empty error message falls back to
++    ``"Failed"``.
++
++    Args:
++        result: The command result to forward.
++        notify: Callback invoked as ``notify(message, severity=...)``.
++    """
++    for warning in result.warnings:
++        notify(warning, severity="warning")
++    if result.success:
++        if result.output:
++            notify(result.output, severity="information")
++        return
++    notify(result.error or "Failed", severity="error")
+diff --git a/src/tools/bim/tui/create_note.py b/src/tools/bim/tui/create_note.py
+index e74a3c3..afc6f89 100644
+--- a/src/tools/bim/tui/create_note.py
++++ b/src/tools/bim/tui/create_note.py
+@@ -3,7 +3,6 @@ from __future__ import annotations
+ from pathlib import Path
+ from typing import Any
+ 
+-from buvis.pybase.zettel.application.use_cases.create_zettel_use_case import CreateZettelUseCase
+ from buvis.pybase.zettel.application.use_cases.print_zettel_use_case import PrintZettelUseCase
+ from buvis.pybase.zettel.domain.templates import Question, ZettelTemplate
+ from textual import on, work
+@@ -86,6 +85,10 @@ class CreateNoteApp(App[None]):
+             self._update_preview()
+ 
+     def _on_template_selected(self, name: str) -> None:
++        # Select posts a Changed event for a preset value on mount, so the
++        # preselected template can be selected twice; skip the rebuild.
++        if self._current_template is not None and self._current_template.name == name:
++            return
+         self._current_template = self.templates[name]
+         container = self.query_one("#questions-container", Static)
+         # Clear old question widgets
+@@ -167,17 +170,36 @@ class CreateNoteApp(App[None]):
+             return
+         answers = self._gather_answers()
+ 
+-        use_case = CreateZettelUseCase(
+-            self.path_zettelkasten,
+-            get_repo(),
+-            hook_runner=get_hook_runner(),
++        from buvis.pybase.result import notify_result
++        from bim.commands.create_note.create_note import CommandCreateNote
++        from bim.params.create_note import CreateNoteParams
++
++        # Empty answers are dropped so CommandCreateNote applies the same
++        # defaults and required-answer validation as the CLI path.
++        params = CreateNoteParams(
++            zettel_type=self._current_template.name,
++            title=answers.get("title") or None,
++            tags=answers.get("tags") or None,
++            extra_answers={
++                key: value
++                for key, value in answers.items()
++                if key not in ("title", "tags") and value
++            },
+         )
+         try:
+-            path = use_case.execute(self._current_template, answers)
+-        except FileExistsError as e:
++            cmd = CommandCreateNote(
++                params=params,
++                path_zettelkasten=self.path_zettelkasten,
++                repo=get_repo(),
++                templates=self.templates,
++                hook_runner=get_hook_runner(),
++            )
++        except FileNotFoundError as e:
+             self.notify(str(e), severity="error")
+-        else:
+-            self.notify(f"Created {path}", severity="information")
++            return
++        result = cmd.execute()
++        notify_result(result, self.notify)
++        if result.success:
+             self.exit()
+ 
+     @on(Button.Pressed, "#cancel-btn")
+diff --git a/tests/lib/pybase/test_result.py b/tests/lib/pybase/test_result.py
+index c642d13..93970eb 100644
+--- a/tests/lib/pybase/test_result.py
++++ b/tests/lib/pybase/test_result.py
+@@ -3,8 +3,9 @@
+ from __future__ import annotations
+ 
+ from pathlib import Path
++from unittest.mock import MagicMock, call
+ 
+-from buvis.pybase.result import CommandResult, _json_safe
++from buvis.pybase.result import CommandResult, _json_safe, notify_result
+ 
+ 
+ class TestCommandResult:
+@@ -58,6 +59,69 @@ class TestCommandResult:
+         assert result.warnings == ["warned"]
+ 
+ 
++class TestNotifyResult:
++    def test_success_output_notified_as_information(self) -> None:
++        notify = MagicMock()
++        result = CommandResult(success=True, output="Created note.md")
++
++        notify_result(result, notify)
++
++        notify.assert_called_once_with("Created note.md", severity="information")
++
++    def test_success_with_empty_output_notifies_nothing(self) -> None:
++        notify = MagicMock()
++
++        notify_result(CommandResult(success=True), notify)
++
++        notify.assert_not_called()
++
++    def test_failure_error_notified_as_error(self) -> None:
++        notify = MagicMock()
++        result = CommandResult(success=False, error="boom")
++
++        notify_result(result, notify)
++
++        notify.assert_called_once_with("boom", severity="error")
++
++    def test_failure_with_empty_error_falls_back_to_failed(self) -> None:
++        notify = MagicMock()
++
++        notify_result(CommandResult(success=False), notify)
++
++        notify.assert_called_once_with("Failed", severity="error")
++
++    def test_warnings_notified_before_success_output(self) -> None:
++        notify = MagicMock()
++        result = CommandResult(success=True, output="ok", warnings=["w1", "w2"])
++
++        notify_result(result, notify)
++
++        assert notify.call_args_list == [
++            call("w1", severity="warning"),
++            call("w2", severity="warning"),
++            call("ok", severity="information"),
++        ]
++
++    def test_warnings_notified_before_failure_message(self) -> None:
++        notify = MagicMock()
++        result = CommandResult(success=False, error="bad", warnings=["w1"])
++
++        notify_result(result, notify)
++
++        assert notify.call_args_list == [
++            call("w1", severity="warning"),
++            call("bad", severity="error"),
++        ]
++
++    def test_success_with_warnings_and_empty_output_notifies_only_warnings(self) -> None:
++        notify = MagicMock()
++        result = CommandResult(success=True, warnings=["w1"])
++
++        notify_result(result, notify)
++
++        assert notify.call_args_list == [call("w1", severity="warning")]
++
++
+ class TestJsonSafe:
+     def test_converts_nested_paths_in_dicts_and_lists(self) -> None:
+         data = {
+diff --git a/tests/tools/bim/tui/test_create_note.py b/tests/tools/bim/tui/test_create_note.py
+index f4e8cc9..3a0c3a7 100644
+--- a/tests/tools/bim/tui/test_create_note.py
++++ b/tests/tools/bim/tui/test_create_note.py
+@@ -1,9 +1,11 @@
+ from __future__ import annotations
+ 
+ from pathlib import Path
+-from unittest.mock import MagicMock
++from unittest.mock import ANY, MagicMock
+ 
+ import pytest
++from bim.params.create_note import CreateNoteParams
++from buvis.pybase.result import CommandResult
+ from buvis.pybase.zettel.domain.templates import Question
+ from buvis.pybase.zettel.domain.value_objects.zettel_data import ZettelData
+ from textual.widgets import Button, Input, Select
+@@ -84,6 +86,93 @@ class TestCreateNoteApp:
+             await pilot.click("#cancel-btn")
+             await pilot.pause()
+ 
++    @pytest.mark.anyio
++    async def test_create_routes_through_command_create_note(self, mocker, tmp_path: Path):
++        mocker.patch(
++            "bim.tui.create_note.get_templates",
++            return_value={"note": _make_template()},
++        )
++        mocker.patch("bim.tui.create_note.get_formatter").return_value = MagicMock()
++        mocker.patch("bim.tui.create_note.PrintZettelUseCase").return_value.execute.return_value = "preview"
++        mocker.patch(
++            "buvis.pybase.zettel.domain.services.zettel_factory.ZettelFactory"
++        ).create.return_value = MagicMock()
++        mocker.patch(
++            "buvis.pybase.zettel.domain.entities.zettel.zettel.Zettel"
++        ).return_value.get_data.return_value = ZettelData()
++        mocker.patch("bim.tui.create_note.get_repo").return_value = MagicMock()
++        mocker.patch("bim.tui.create_note.get_hook_runner").return_value = MagicMock()
++        mock_cmd_cls = mocker.patch("bim.commands.create_note.create_note.CommandCreateNote")
++        mock_cmd = mock_cmd_cls.return_value
++        mock_cmd.execute.return_value = CommandResult(success=True, output="Created note.md")
++
++        from bim.tui.create_note import CreateNoteApp
++
++        app = CreateNoteApp(
++            path_zettelkasten=tmp_path,
++            preselected_type="note",
++            preselected_title="My Note",
++            preselected_tags="tag1, tag2",
++        )
++        notify_spy = mocker.spy(app, "notify")
++        exit_spy = mocker.spy(app, "exit")
++        async with app.run_test(size=(80, 40)) as pilot:
++            await pilot.pause()
++            await pilot.click("#create-btn")
++            await pilot.pause()
++            await pilot.pause()
++
++        mock_cmd_cls.assert_called_once_with(
++            params=CreateNoteParams(
++                zettel_type="note",
++                title="My Note",
++                tags="tag1, tag2",
++                extra_answers={},
++            ),
++            path_zettelkasten=tmp_path,
++            repo=ANY,
++            templates=ANY,
++            hook_runner=ANY,
++        )
++        mock_cmd.execute.assert_called_once_with()
++        notify_spy.assert_any_call("Created note.md", severity="information")
++        assert exit_spy.called
++
++    @pytest.mark.anyio
++    async def test_create_rejects_empty_required_answer(self, mocker, tmp_path: Path):
++        questions = [Question(key="author", prompt="Author", required=True)]
++        mocker.patch(
++            "bim.tui.create_note.get_templates",
++            return_value={"note": _make_template(questions=questions)},
++        )
++        mocker.patch("bim.tui.create_note.get_formatter").return_value = MagicMock()
++        mocker.patch("bim.tui.create_note.PrintZettelUseCase").return_value.execute.return_value = "preview"
++        mocker.patch(
++            "buvis.pybase.zettel.domain.services.zettel_factory.ZettelFactory"
++        ).create.return_value = MagicMock()
++        mocker.patch(
++            "buvis.pybase.zettel.domain.entities.zettel.zettel.Zettel"
++        ).return_value.get_data.return_value = ZettelData()
++        mocker.patch("bim.tui.create_note.get_repo").return_value = MagicMock()
++        mocker.patch("bim.tui.create_note.get_hook_runner").return_value = MagicMock()
++
++        from bim.tui.create_note import CreateNoteApp
++
++        app = CreateNoteApp(
++            path_zettelkasten=tmp_path,
++            preselected_type="note",
++            preselected_title="My Note",
++        )
++        notify_spy = mocker.spy(app, "notify")
++        exit_spy = mocker.spy(app, "exit")
++        async with app.run_test(size=(80, 40)) as pilot:
++            await pilot.pause()
++            await pilot.click("#create-btn")
++            await pilot.pause()
++            await pilot.pause()
++            notify_spy.assert_any_call("Missing required answer: author", severity="error")
++            exit_spy.assert_not_called()
++
+     @pytest.mark.anyio
+     async def test_gather_answers_collects_form_values(self, mocker):
+         mocker.patch(

@@ -1,0 +1,54 @@
+diff --git a/ddb-core/src/parser/mod.rs b/ddb-core/src/parser/mod.rs
+index a90b079..8870675 100644
+--- a/ddb-core/src/parser/mod.rs
++++ b/ddb-core/src/parser/mod.rs
+@@ -211,9 +211,20 @@ fn find_separators_after(lines: &[&str], fm_end: usize) -> Vec<usize> {
+     positions
+ }
+ 
++/// Upper bound on frontmatter byte size. Frontmatter beyond this is rejected
++/// as a parse error so an oversized synced file degrades into the existing
++/// lenient skip path instead of an unbounded parse.
++pub const MAX_FRONTMATTER_BYTES: usize = 256 * 1024;
++
+ /// Parse YAML frontmatter string into DoogatMeta.
+ /// Falls back to filename-based ID when `id` field is missing.
+ pub fn parse_frontmatter(yaml: &str, path: &str) -> Result<DoogatMeta> {
++    if yaml.len() > MAX_FRONTMATTER_BYTES {
++        return Err(DoogatError::Yaml(format!(
++            "frontmatter is {} bytes, exceeding the {MAX_FRONTMATTER_BYTES}-byte cap",
++            yaml.len()
++        )));
++    }
+     let raw: RawDoogatMeta = if yaml.trim().is_empty() {
+         RawDoogatMeta::default()
+     } else {
+diff --git a/ddb-core/src/parser/tests.rs b/ddb-core/src/parser/tests.rs
+index 45b8627..f6d03fb 100644
+--- a/ddb-core/src/parser/tests.rs
++++ b/ddb-core/src/parser/tests.rs
+@@ -186,6 +186,24 @@ fn frontmatter_explicit_id_overrides_stem_fallback() {
+     assert_eq!(meta.id, Some(DoogatId("20260226120000".into())));
+ }
+ 
++#[test]
++fn frontmatter_at_cap_still_parses() {
++    let padding = "a".repeat(MAX_FRONTMATTER_BYTES - "title: ".len());
++    let yaml = format!("title: {padding}");
++    assert_eq!(yaml.len(), MAX_FRONTMATTER_BYTES);
++    let meta = parse_frontmatter(&yaml, "note.md").unwrap();
++    assert_eq!(meta.title.as_deref(), Some(padding.as_str()));
++}
++
++#[test]
++fn frontmatter_over_cap_rejected_with_sizes_in_message() {
++    let yaml = "a".repeat(MAX_FRONTMATTER_BYTES + 1);
++    let err = parse_frontmatter(&yaml, "note.md").unwrap_err();
++    let msg = err.to_string();
++    assert!(msg.contains(&MAX_FRONTMATTER_BYTES.to_string()));
++    assert!(msg.contains(&(MAX_FRONTMATTER_BYTES + 1).to_string()));
++}
++
+ // -- inline field extraction tests --
+ 
+ #[test]

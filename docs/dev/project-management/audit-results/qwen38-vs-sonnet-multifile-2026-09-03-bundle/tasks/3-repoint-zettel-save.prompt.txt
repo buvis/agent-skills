@@ -1,0 +1,16 @@
+- [ ] Repoint `MarkdownZettelRepository.save` (`:55`) to `atomic_write_text` (depends on: Phase 0) — Acceptance: regression test proves an interrupted save leaves the original note intact.
+
+You are working in the repository root: the current working directory.
+Files to edit (paths relative to it):
+- src/lib/buvis/pybase/zettel/infrastructure/persistence/markdown_zettel_repository/markdown_zettel_repository.py
+- tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py
+
+Names the acceptance gate binds to (use these exact identifiers, signatures,
+literals and values):
+- none - every name the gate binds to already exists in the tree.
+  `atomic_write_text` is already exported from `buvis.pybase.filesystem` and
+  implemented in the module `buvis.pybase.filesystem.atomic_write`; the
+  regression case patches `os.replace` inside that module, so the write must go
+  through it rather than through a hand-rolled temp-file dance.
+
+Edit only inside this repository. Do not commit.

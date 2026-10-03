@@ -1,0 +1,17 @@
+   Building buvis-gems @ file:///private/tmp/qwen-eval-00010/2-route-tui-create-note-qwen-a1-baseline
+      Built buvis-gems @ file:///private/tmp/qwen-eval-00010/2-route-tui-create-note-qwen-a1-baseline
+Uninstalled 1 package in 1ms
+Installed 1 package in 3ms
+
+==================================== ERRORS ====================================
+_______________ ERROR collecting tests/lib/pybase/test_result.py _______________
+ImportError while importing test module '/private/tmp/qwen-eval-00010/2-route-tui-create-note-qwen-a1-baseline/tests/lib/pybase/test_result.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+tests/lib/pybase/test_result.py:8: in <module>
+    from buvis.pybase.result import CommandResult, _json_safe, notify_result
+E   ImportError: cannot import name 'notify_result' from 'buvis.pybase.result' (/private/tmp/qwen-eval-00010/2-route-tui-create-note-qwen-a1-baseline/src/lib/buvis/pybase/result.py)
+=========================== short test summary info ============================
+ERROR tests/lib/pybase/test_result.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.05s

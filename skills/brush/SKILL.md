@@ -13,18 +13,19 @@ report and one exact resume instruction. Full runs are token-heavy; use
 `quick` for routine passes.
 
 Prime rule: untracked does not mean disposable. Default for any untracked
-path is KEEP. `dev/local` holds important local-only support material: brush
-never hand-cleans it; only the `purge-devlocal` skill's coded rules run there.
+path is KEEP. Tracked work-management records under
+`docs/dev/project-management/` are never cleanup targets; temporary assets
+under `docs/dev/tmp/` are owned by `purge-devtmp`.
 
 ## Dependencies
 
 Brush only orchestrates; these skills do the work. A missing or failing one:
 record under Failures, skip its phase, continue. Never substitute hand-rolled
-cleanup for a missing skill (especially purge-devlocal).
+cleanup for a missing skill (especially purge-devtmp).
 
 - `catchup` (phase 1) - repo context; `git-ferry:catchup` on Claude Code,
   where the plugin owns the name and the standalone copy is not linked
-- `purge-devlocal` (phase 2) - sole owner of dev/local GC
+- `purge-devtmp` (phase 2) - sole owner of docs/dev/tmp cleanup
 - `assess-evolution` (phase 3), `review-prd-backlog` (phase 4),
   `manage-agents-md` (phase 5)
 - Optional plugins: `git-ferry:resolve-git-conflicts` (preflight pointer),
@@ -60,9 +61,9 @@ cleanup for a missing skill (especially purge-devlocal).
    re-collect facts, then act): execute every AUTO row; queue ASK rows as
    BR-items and MANUAL rows as section 3 items. Trash moves only via
    `python3 ~/.agents/skills/brush/scripts/trash_untracked.py --repo <root> <paths>`
-   (it re-vetoes protected paths itself). For dev/local, invoke the
-   `purge-devlocal` skill scoped to this repo: dry-run, sanity-check, apply;
-   its FLAG lines go into the report, never acted on. Commit tracked fixes as
+   (it re-vetoes protected paths itself). For `docs/dev/tmp/`, invoke the
+   `purge-devtmp` skill scoped to this repo: dry-run, sanity-check, apply.
+   Commit tracked fixes as
    `chore(hygiene): ...`.
 3. **Evolution** (full only): run the `assess-evolution` skill; tell it
    catchup already ran this session.
@@ -78,8 +79,8 @@ cleanup for a missing skill (especially purge-devlocal).
    skill's body as a queued BR-item (never auto-edit a skill); a memory that
    only mirrors what the skill already says is left alone. Steady state on a
    well-tended install is zero proposals (PRD 00083 R4).
-6. **Report + handoff**: write `dev/local/audit-results/brush-report.md`
-   (audit reports live in the curated audit-results store, never dev/local
+6. **Report + handoff**: write `docs/dev/project-management/audit-results/brush-report.md`
+   (audit reports live in the curated audit-results store, never docs/dev/project-management
    root) per `~/.agents/skills/brush/references/report-template.md`.
 
 Unattended posture for phases 3-5: take each sub-skill's recommended default
@@ -102,7 +103,7 @@ filled in, as the last thing in the final message:
 
 ```
 brush <mode> done - <repo>
-report: dev/local/audit-results/brush-report.md
+report: docs/dev/project-management/audit-results/brush-report.md
 auto: <N> | decisions: <M> | manual: <K> | unpushed: <U>
 next: edit the report, mark [x] on approved BR items, then run
   /brush apply               (in a session opened in <repo>)
@@ -111,7 +112,7 @@ nothing pending and no manual items -> no action needed
 ```
 
 If decisions are pending or a phase failed, also send
-`python3 ~/.claude/hooks/notify.py --send "brush <repo>" "<M> decisions pending - dev/local/audit-results/brush-report.md"`.
+`python3 ~/.claude/hooks/notify.py --send "brush <repo>" "<M> decisions pending - docs/dev/project-management/audit-results/brush-report.md"`.
 That notifier ships with Claude Code installs only. Skip it silently when the
 script is absent (check first, never substitute another notifier) or the human
 is present in an interactive session.

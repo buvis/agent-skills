@@ -1,0 +1,42 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Task 1's `feat` commit (`5902d90`) shipped without a `CHANGELOG.md` entry; the entry was added retroactively three commits later in task 3's `c215956`, breaking the \"changelog entry lands in the same commit\" rule even though the final merged state is correct.",
+    "file": "CHANGELOG.md",
+    "reason": "History-only finding with no defect in the working tree: the CHANGELOG entry is present and correct at HEAD. The only fix would be rewriting published commits, which the repo's git-safety rule forbids without explicit approval. Recorded so the process miss is visible; nothing to change in the code."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "[VERIFY] Cannot statically verify: run `python3 scripts/check_changelog_skills.py`, `uv run pytest scripts/test_check_changelog_skills.py -q`, `uv run pytest`, `uv run ruff check`, `uv run ruff format --check`, the specified YAML parse command, `braid --check`, and the GitHub Actions lint job",
+    "file": null,
+    "reason": "Sandbox artefact, not a defect: Bob cannot execute commands by design. Every named command already ran green at this exact HEAD (c215956) - four in dev/local/autopilot/last-verification.json (uv run pytest 1073 passed/0 failed/5 skipped, braid --check, check_changelog_skills.py, its pytest file) and the remaining ruff/YAML checks live in Carl's transcript this same cycle. The GitHub Actions run is the PRD's own explicitly-deferred human follow-up."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "critical",
+    "issue": "Diff edits `CHANGELOG.md`, but the task's file-scope directive is explicit: \"Files you may modify: scripts/check_changelog_skills.py, scripts/test_check_changelog_skills.py. Do NOT touch .github/workflows/ci.yml or CHANGELOG.md - both are correct as shipped.\" Revert the `CHANGELOG.md` hunk.",
+    "file": "CHANGELOG.md",
+    "reason": "Pat's observation is factually right and its prescribed fix is wrong, so the prescription is discarded rather than the observation. The CHANGELOG.md hunk was made by the orchestrator, not the implementor, and it is mandated by a standing BLOCKING rule: rules/changelog.md requires every `fix` commit with a user-visible change to update CHANGELOG.md in the SAME commit, and commit 4158240 is `fix(changelog-check)`. Reverting would (a) violate that rule and (b) reproduce exactly the defect this same review cycle raised against task 1's feat commit 5902d90, which shipped without its entry. The hunk is minimal and truthful: it amends the existing [Unreleased] Added bullet (not a new Fixed line, because the feature has never been released) to state the two semantics that actually ship - exact-case matching and location-independent path resolution. Leaving the old text would describe behaviour the code no longer has. The stale directive is the artefact at fault: the task description was written before the commit type was decided, and its intent was to stop the implementor re-litigating the shipped entry, not to override rules/changelog.md."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`find_missing()`/`main()` call `changelog_path.read_text()` with no try/except; a missing or unreadable `CHANGELOG.md` raises an unhandled traceback instead of a clear CI error message. Not required by the PRD, low risk since the file is guaranteed to exist in a normal checkout.",
+    "file": "scripts/check_changelog_skills.py",
+    "reason": "Unrequested error handling for a scenario that cannot occur. The PRD asks for exactly two exit behaviours (0 silent, 1 with one stderr line per miss) and Blake himself marks this as not a spec violation. The repo's coding-style rule is explicit: do not add error handling, fallbacks, or validation for scenarios that cannot happen; validate at system boundaries only. CHANGELOG.md is guaranteed present in any checkout where the check runs (it is the file the check exists to read), and an unhandled traceback is a legible CI failure, not a silent one. Adding the guard would also be scope creep against the PRD's own no-extra-functionality requirements (B6/B7), which Blake passed."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "11 touched test(s) pass against the pre-change code: test_reports_a_skill_dir_absent_from_the_changelog, test_passes_when_every_skill_dir_is_named, test_grandfathered_name_is_skipped, test_empty_skills_dir_returns_empty_list, test_skill_named_in_changelog_not_missing, test_substring_matching_requires_literal_substring +5 more",
+    "file": "scripts/test_check_changelog_skills.py",
+    "reason": "Expected shape for this diff, not unpinned behaviour. The cycle-1 rework is two behaviour fixes (case-sensitive literal matching, REPO_ROOT path resolution) plus a behaviour-preserving test-trimming pass. The replay measured 24 touched tests: 13 FAILED against base - those are precisely the tests pinning the two fixes - and 11 passed. The 11 passers assert pre-existing behaviour (grandfathered skipping, sorted output, non-directory entries ignored, substring matching) that this cycle deliberately did not change; they were touched only because the trimming pass moved or reformatted them. The replay block's own instruction is to weigh PRD intent before raising, since a behavior-preserving refactor's tests pass by design. Nothing here is behaviour left unpinned."
+  }
+]

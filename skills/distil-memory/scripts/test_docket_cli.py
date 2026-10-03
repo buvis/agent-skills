@@ -352,7 +352,7 @@ def test_main_save_next_decide_and_cursor_with_queue_flag_all_operate_on_the_giv
 ):
     monkeypatch.chdir(tmp_path)
     queue_path = tmp_path / "elsewhere" / "q.json"
-    default_report_dir = tmp_path / "dev" / "local" / "audit-results"
+    default_report_dir = tmp_path / "docs" / "dev" / "project-management" / "audit-results"
     proposals_dir = tmp_path / "proposals"
     proposals_dir.mkdir()
     (proposals_dir / "widget-fact.md").write_text("---\nname: widget-fact\n---\n\nBody text.\n")
@@ -403,7 +403,7 @@ def test_main_start_with_queue_flag_re_arms_the_per_run_cap_at_the_given_path(
 ):
     monkeypatch.chdir(tmp_path)
     queue_path = tmp_path / "elsewhere" / "q.json"
-    default_report_dir = tmp_path / "dev" / "local" / "audit-results"
+    default_report_dir = tmp_path / "docs" / "dev" / "project-management" / "audit-results"
     proposals = [
         _proposal(transcript="t.jsonl", line_no=n) for n in range(1, docket.PER_RUN_CAP + 3)
     ]

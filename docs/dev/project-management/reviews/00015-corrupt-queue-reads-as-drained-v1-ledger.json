@@ -1,0 +1,58 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Task 2's new CLI exit-code tests landed in a new file `test_docket_exit_codes.py` rather than in `test_docket.py`, so the literal acceptance criterion command (`uv run pytest skills/distil-memory/scripts/test_docket.py -q` \"passes with new tests...\") doesn't actually contain those tests, and PRD Success Criteria bullet 3 (\"`rg -n --files-with-matches docket skills src tests` lists only SKILL.md and three test files\") is now violated — the sweep returns SKILL.md plus four test files (test_docket.py, test_docket_exit_codes.py, test_walkthrough_integration.py, test_write.py). Runtime behavior (exit codes, messages) is fully correct and all tests pass; this is a test-organization/literal-criterion deviation, already self-flagged by the implementor for review judgment.",
+    "file": "skills/distil-memory/scripts/test_docket_exit_codes.py",
+    "reason": "Measured: test_docket.py is 780 lines and test_docket_exit_codes.py is 224. Merging them back to satisfy the literal acceptance command would produce a ~1004-line file, breaching the project's 800-line file limit (coding-style.md, consensus rule R13). The split satisfies the criterion's intent (the tests exist, run and pass under `uv run pytest skills/distil-memory/scripts -q`) while the literal single-file command and the 'three test files' sweep count are stale PRD text. Accepted as written; not reworked."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Task 2's acceptance criteria required new `docket.main([\"next\"])==2`/`[\"cursor\"])==2` tests to pass via `test_docket.py`; they were split into a separate file `test_docket_exit_codes.py`, so the literally-specified test command doesn't exercise them",
+    "file": "skills/distil-memory/scripts/test_docket_exit_codes.py",
+    "reason": "Duplicate of the test-split deferral above (same defect, different wording). Same reason: merging back breaches the 800-line file limit."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Success Criteria's file-sweep check (\"SKILL.md and three test files\") returns four test files (test_docket.py, test_docket_exit_codes.py, test_walkthrough_integration.py, test_write.py), not three",
+    "file": null,
+    "reason": "Same root cause as the test-split deferral: the fourth file IS test_docket_exit_codes.py, which this PRD deliberately added. The sweep's purpose was to prove SKILL.md is the whole non-test caller surface for the new exit code, and that still holds — no non-test caller was missed. The literal count is stale PRD text."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "F7: Splitting the tests preserves suite coverage, but the PRD's single-file acceptance command excludes them and its three-test-file sweep expectation is now false.",
+    "file": null,
+    "reason": "Duplicate of the test-split deferral above (Bob's wording of the same defect). Same reason."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "PRD Success Criteria states \"`uv run pytest skills/distil-memory/scripts -q` reports no failures and no xfailed tests,\" but the current run reports 1 xfailed (`test_write.py::test_an_index_that_cannot_be_read_leaves_no_memory_file_behind`). Verified via `git merge-base --is-ancestor` that this xfail's commit (`1a60fe0`) predates this PRD's `work_start_sha` (`aaf190c`), so it is pre-existing and unrelated to this PRD's three tasks, not a regression introduced by this diff. Flagging because it is a literal, unmet PRD success criterion.",
+    "file": "skills/distil-memory/scripts/test_write.py",
+    "reason": "Confirmed pre-existing and out of scope: the xfail belongs to a different agoge defect (append_pointer runs outside main()'s WriteError guard) and predates work_start_sha aaf190c. Fixing it here would be scope creep into another PRD's work. The criterion is suite-wide over a directory this PRD only partly owns, which the repo's own create-prd rule now forbids (commit 5b1cfda, 'forbid suite-wide totals in success criteria'). Deferred, not fixed."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "15 touched test(s) pass against the pre-change code: test_each_corruption_class_is_named_in_its_own_words_on_stderr +9 more",
+    "file": "skills/distil-memory/scripts/test_docket_exit_codes.py",
+    "reason": "Computed by the fail-first replay against base 5ef8be11fdc2, and judged not a defect on the block's own rule ('a behavior-preserving refactor's tests pass by design'). The tests that pass at base are coverage backfills for corruption classes the implementation already handled there: F4 was explicitly a TEST gap, not an implementation gap, and the F5/F6 restructures are behaviour-preserving. The behaviour this diff changed IS pinned - 22 of 38 touched tests fail at base, including every invalid-UTF-8 and non-object-payload case. The lead test named, test_each_corruption_class_is_named_in_its_own_words_on_stderr, exists to defeat a self-oracling suite and was proven to bind by installing a deliberately weakened load() over docket.py: 6 of its 7 cases failed, after which the file was restored from git."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Cannot statically verify: F10: the required `braid --check` succeeded at the reviewed HEAD; its result was not supplied.",
+    "file": null,
+    "reason": "Not fixable in this PRD and not a gate for it. Warden blocks `braid` in this session by command name and by absolute path ('[warden] blocked braid: unknown command'), as it did in cycle 1's. braid --check validates the skills link farm; this diff changes only file contents inside an existing skill plus the CHANGELOG, so it cannot alter what braid links. The skill-validity half of the repo's pre-commit trio did run at this HEAD: `uv run python3 skills/create-skill/scripts/validate_skill.py skills/distil-memory` exited 0. Carried as an open repo-level check, not a PRD defect."
+  }
+]

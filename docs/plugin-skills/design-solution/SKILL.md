@@ -45,19 +45,19 @@ PRD-owned.
 ## Inputs
 
 - **PRD path** (argument). If omitted, auto-select the single PRD in
-  `dev/local/prds/wip/`. Error and stop if `wip/` holds zero or 2+ PRDs
+  `docs/dev/project-management/prds/wip/`. Error and stop if `wip/` holds zero or 2+ PRDs
   ("ambiguous - pass the PRD path explicitly").
 - **Architecture context**, loaded when present (skip silently if absent):
   - the cartographer atlas for this repo
     (`~/.local/share/agents/cartographer/projects/<hash>/atlas.md`)
-  - `dev/local/meta/project-capsule.md`
+  - `docs/dev/project-management/meta/project-capsule.md`
   - `AGENTS.md` / `agent_docs/`
 
 ## Output
 
-`dev/local/designs/<prd-stem>-design.md`, where `<prd-stem>` is the PRD filename
-minus its `.md` extension. Create `dev/local/designs/` if missing - it is a
-durable artifact dir, like `dev/local/reviews/`.
+`docs/dev/project-management/designs/<prd-stem>-design.md`, where `<prd-stem>` is the PRD filename
+minus its `.md` extension. Create `docs/dev/project-management/designs/` if missing - it is a
+durable artifact dir, like `docs/dev/project-management/reviews/`.
 
 ## Workflow
 
@@ -85,7 +85,7 @@ Record findings in `## Reuse inventory`: one entry per existing helper as
 
 ### 3. Write the design doc
 
-Write `dev/local/designs/<prd-stem>-design.md` with **exactly these nine
+Write `docs/dev/project-management/designs/<prd-stem>-design.md` with **exactly these nine
 sections, these headings, in this order**:
 
 1. `## Architecture fit` - the target layers/modules this work lands in, drawn
@@ -155,7 +155,7 @@ the shape:
    subagent that shells out to a CLI hangs), absolute paths:
    ```
    Bash tool (run_in_background: true):
-     <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -f "{codex_prompt_file_abs}" -o "{abs_repo_path}/dev/local/tmp/design-codex-output-{id}.txt"
+     <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -f "{codex_prompt_file_abs}" -o "{abs_repo_path}/docs/dev/tmp/design-codex-output-{id}.txt"
    ```
    codex is **read-only** by default (no `-a`/`-y` -> `--sandbox read-only`) and
    never edits files; the prompt is self-contained (the same package the Claude
@@ -220,7 +220,7 @@ cap is the backstop).
 
 ```
 design-solution: <prd-stem>
-  doc: dev/local/designs/<prd-stem>-design.md
+  doc: docs/dev/project-management/designs/<prd-stem>-design.md
   reviewer dispatches: <n>/3
   findings: cardinal-sin <c>, blocker <b>, non-blocker <nb>, question <q>
   open cardinal sins/blockers: <none, or a list>
@@ -234,7 +234,7 @@ per-severity finding counts.
 ## Notes
 
 - One reviewer dispatch per loop iteration; never two in flight at once.
-- The skill writes only the design doc (and creates `dev/local/designs/`). It
+- The skill writes only the design doc (and creates `docs/dev/project-management/designs/`). It
   never edits the PRD, the task list, or autopilot state.
 - Downstream blind review and doubt review stay PRD-only by design; this design
   doc feeds `/plan-tasks` and the work-completion review, not the spec-only

@@ -31,9 +31,9 @@ gate fail #1 at current rung → feedback retry: dispatch Ivan with the failure 
                                 below, per the 1-dispatch budget)
 gate fail #2 at current rung → DIAGNOSE:
   1. Write task.description (from state.tasks[i].description, already in hand from step 1's
-     pending scan) to dev/local/tmp/diagnose-task-<id>.txt and run:
+     pending scan) to docs/dev/tmp/diagnose-task-<id>.txt and run:
        python3 <autopilot-plugin-root>/skills/work/scripts/diagnose_task.py <task-file> --repo-root <project-root>
-     `<project-root>` = the dir containing dev/local/, resolved by walking up from cwd (same anchor
+     `<project-root>` = the dir containing docs/dev/project-management/, resolved by walking up from cwd (same anchor
      as _walk_up.py) — NOT state.repo_root, which differs under a bare-repo-backed project.
      verdict "spec_gap" (exit 0) → REPAIR path below, if repair unused this task AND current rung
      is a haiku, sonnet, or opus rung, never fable (qwen never repairs — see budgets above)

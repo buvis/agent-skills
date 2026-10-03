@@ -20,7 +20,7 @@ Build-first discovery. The spec is a guess; the throwaway build is the elicitati
 
 ### 1. Rough spec (10 minutes, no polish)
 
-Write `dev/local/spikes/<slug>/SPEC.md` (Write tool, never shell redirects):
+Write `docs/dev/project-management/spikes/<slug>/SPEC.md` (Write tool, never shell redirects):
 
 - The user's idea, verbatim
 - The smallest outcome that would demonstrate it end-to-end
@@ -32,7 +32,7 @@ If the user gave only a phrase, ask at most one question, then guess the rest. W
 
 Build the smallest thing that demonstrates the idea end-to-end, directly in this session - no implementor dispatch, no TDD ceremony:
 
-- Standalone idea: build inside `dev/local/spikes/<slug>/`
+- Standalone idea: build inside `docs/dev/project-management/spikes/<slug>/`
 - Change to existing code: work on branch `spike/<slug>` (worktree if the working tree is dirty); never the current branch
 - Sandbox only: never touch production data, live services, or anything irreversible. Input validation at real trust boundaries stays; tests, changelog, review, and production-ready rules are suspended - this code is disposable by contract
 - Timebox: if it will not demonstrate in about an hour of effort, stop and report; the idea is not spike-sized - take the open questions to elicit-requirements instead
@@ -51,6 +51,6 @@ AskUserQuestion with exactly these three: **Refine and re-spike** (fold the answ
 
 ### 5. Graduate
 
-Invoke create-prd with SPEC.md plus the final assumptions and answers. The PRD contract records observed prototype behavior, not the original guesses. Note in the PRD context that the spike exists at `dev/local/spikes/<slug>/` (or branch `spike/<slug>`) as reference.
+Invoke create-prd with SPEC.md plus the final assumptions and answers. The PRD contract records observed prototype behavior, not the original guesses. Note in the PRD context that the spike exists at `docs/dev/project-management/spikes/<slug>/` (or branch `spike/<slug>`) as reference.
 
 The real implementation goes through the normal pipeline (plan-tasks, work, full review) and rebuilds from scratch - spike code never merges. Delete the spike once the PRD's implementation lands.

@@ -167,7 +167,7 @@ def test_main_default_out_lands_under_cwd_repo_when_process_cwd_is_elsewhere(
 
     assert exit_code == 0
 
-    expected_dir = repo_a / "dev" / "local" / "audit-results"
+    expected_dir = repo_a / "docs" / "dev" / "project-management" / "audit-results"
     assert expected_dir.is_dir(), f"expected a report directory at {expected_dir}"
     reports = list(expected_dir.glob("sweep-*.md"))
     assert len(reports) == 1, f"expected exactly one report in {expected_dir}"
@@ -240,7 +240,7 @@ def test_main_accepts_out_nested_several_directories_inside_cwd_repo(
         tmp_path, monkeypatch, "NESTEDOUTMARKER", _make_repo
     )
     out_index = argv.index("--out")
-    nested_out = repo_a / "dev" / "local" / "audit-results" / "nested-report.md"
+    nested_out = repo_a / "docs" / "dev" / "project-management" / "audit-results" / "nested-report.md"
     argv[out_index + 1] = str(nested_out)
 
     exit_code = sweep.main(argv)
@@ -409,7 +409,7 @@ def test_main_prints_resolved_report_path_to_stdout_on_success_with_default_out(
 
     assert exit_code == 0
 
-    expected_dir = repo_a / "dev" / "local" / "audit-results"
+    expected_dir = repo_a / "docs" / "dev" / "project-management" / "audit-results"
     reports = list(expected_dir.glob("sweep-*.md"))
     assert len(reports) == 1, f"expected exactly one report in {expected_dir}"
     written_report = reports[0]

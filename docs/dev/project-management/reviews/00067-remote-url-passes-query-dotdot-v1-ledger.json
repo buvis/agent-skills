@@ -1,0 +1,26 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The dispatched task's own \"Reuse\" instruction said to extend `make_fake_run` in `skills/brief-portfolio/scripts/collect_test_helpers.py` (adding an optional custom remote-URL string, default unchanged) for `test_an_unparseable_remote_is_skipped_before_any_gh_call`. Instead the diff defines a bespoke inline `fake_run` closure in both new tests that reimplements the same shape `make_fake_run` already has (dispatch on `cmd[0]`/`cmd[1]`, raise on any `gh` call). `make_fake_run` already raises unconditionally on `gh` calls, so extending it to accept a custom remote would have been a small, reusable change; the diff instead adds ~20 lines of duplicated fixture logic across two closures. Behavior-preserving simplification, not a defect: both new tests pass and the acceptance criteria (which only require \"the make_fake_run pattern\") are technically met.",
+    "file": "skills/brief-portfolio/scripts/test_collect_repo.py:320",
+    "reason": "The premise is wrong and acting on it would break the test it targets. make_fake_run raises RuntimeError(\"gh: not authenticated\") on a gh call, and collect_repo catches RuntimeError at collect.py:433 and returns a skip stub - so a gh call made through that helper is swallowed, not surfaced. test_an_unparseable_remote_is_skipped_before_any_gh_call asserts that no gh call happened, which needs an uncaught AssertionError plus a call log; make_fake_run has neither, and it derives its remote from Path(cwd).name so it cannot return a hostile URL at all. Reusing it would mean adding a call log and an error-mode switch to a helper shared by four test modules in order to serve one caller: more complexity, not less. The two closures are also not duplicates of each other - 4 lines asserting on repo_slug directly versus 7 lines asserting collect_repo made no gh call, with different error modes and different assertions - so the \"~20 lines of duplicated fixture logic\" figure does not hold. A per-test fake_run closure is this module's established convention (_run_answering_gh plus three other existing tests use it), so the diff matches surrounding style as rules/coding-style.md requires. Alice marked the row a simplification rather than a defect and confirmed the acceptance criteria are met either way."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "KNOWN: Four accepted-URL parameter instances pass against the pre-change code and cannot independently fail-first; fixing that is out of scope because they intentionally pin behavior the PRD requires to remain unchanged, while the four rejected instances provide fail-first coverage",
+    "file": "skills/brief-portfolio/scripts/test_collect_repo.py:303",
+    "reason": "The four accepted shapes are regression guards the PRD explicitly requires (Must-have: git@github.com:demo/repo.git, https://github.com/demo/repo, https://github.com/demo/repo.git/ and https://github.com/demo/my.repo-2 'still parse to their owner and name'). A guard for deliberately preserved behavior passes against base by design; that is not unpinned behavior. The change itself is pinned fail-first by the other five touched tests - the computed replay reports 5 of 9 failing against base. Acting on this row would mean deleting coverage the PRD mandates. Bob raised it himself as KNOWN/out-of-scope with this same justification, and the replay block states the same computed fact."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: VERIFY with `uv run pytest skills/brief-portfolio/scripts -q` that the required suite reports zero failures and all existing remote-parsing tests pass",
+    "file": null,
+    "reason": "The named check ran and passed four independent times at this exact HEAD (a46a690): Alice reported 115 passed / 0 failed, Blake reported 115 passed / 0 failed, Carl ran the same command plus the full suite, validate_skill and braid --check, and the work phase's own recorded verification in dev/local/autopilot/last-verification.json at this sha reports 3484 passed / 0 failed / 6 skipped with exit 0 on all three commands. This line is codex's read-only sandbox limitation, not an open question."
+  }
+]

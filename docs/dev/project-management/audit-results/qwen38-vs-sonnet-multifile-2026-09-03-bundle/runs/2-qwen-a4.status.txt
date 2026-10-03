@@ -1,0 +1,4 @@
+M	src/lib/buvis/pybase/result.py
+M	src/tools/bim/tui/create_note.py
+M	tests/lib/pybase/test_result.py
+M	tests/tools/bim/tui/test_create_note.py

@@ -2,7 +2,7 @@
 # Automates references/eval-runbook.md steps 2, 3 and 5 (dispatch each task,
 # verify against the REAL gate, and on a passing verdict append the candidate
 # to approved-models.txt). Step 1 - picking 6 single-file, test-gated, backend
-# tasks from dev/local/prds/done/ - stays manual: which tasks are eligible
+# tasks from docs/dev/project-management/prds/done/ - stays manual: which tasks are eligible
 # needs cross-repo judgment this script should not guess at.
 set -u
 
@@ -40,7 +40,7 @@ usage() {
     echo "                       transcript in the evidence log FIRST and confirm"
     echo "                       zero false success claims yourself - the script"
     echo "                       only checks the real gate's exit code."
-    echo "      --out FILE       Evidence log path (default: dev/local/audit-results/"
+    echo "      --out FILE       Evidence log path (default: docs/dev/project-management/audit-results/"
     echo "                       qwen-eval-<model-slug>-<date>.md)"
     echo "  -h, --help           Show this help"
 }
@@ -108,7 +108,7 @@ fi
 
 MODEL_SLUG="$(printf '%s' "$MODEL" | tr -c 'A-Za-z0-9._-' '-')"
 DATE_STR="$(date +%Y-%m-%d)"
-: "${OUT_FILE:=$REPO_ROOT/dev/local/audit-results/qwen-eval-${MODEL_SLUG}-${DATE_STR}.md}"
+: "${OUT_FILE:=$REPO_ROOT/docs/dev/project-management/audit-results/qwen-eval-${MODEL_SLUG}-${DATE_STR}.md}"
 mkdir -p "$(dirname "$OUT_FILE")"
 
 {

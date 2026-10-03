@@ -1,0 +1,51 @@
+   Compiling ddb-core v0.2.7 (/private/tmp/qwen-eval-00010/6-cap-frontmatter-size-sonnet-a1-baseline/ddb-core)
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:194:19
+    |
+194 |     let pad_len = MAX_FRONTMATTER_BYTES - prefix.len();
+    |                   ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:197:28
+    |
+197 |     assert_eq!(yaml.len(), MAX_FRONTMATTER_BYTES);
+    |                            ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:207:19
+    |
+207 |     let pad_len = MAX_FRONTMATTER_BYTES - prefix.len() + 1;
+    |                   ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:209:28
+    |
+209 |     assert_eq!(yaml.len(), MAX_FRONTMATTER_BYTES + 1);
+    |                            ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:221:19
+    |
+221 |     let pad_len = MAX_FRONTMATTER_BYTES - prefix.len() + 1;
+    |                   ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:224:28
+    |
+224 |     assert_eq!(actual_len, MAX_FRONTMATTER_BYTES + 1);
+    |                            ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:230:23
+    |
+230 |         msg.contains(&MAX_FRONTMATTER_BYTES.to_string()),
+    |                       ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:231:48
+    |
+231 |         "error must state the configured cap ({MAX_FRONTMATTER_BYTES}), got: {msg}"
+    |                                                ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `ddb-core` (lib test) due to 8 previous errors

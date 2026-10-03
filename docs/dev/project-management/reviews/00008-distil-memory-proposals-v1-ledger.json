@@ -1,0 +1,58 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "Judge calls persist hundreds of transcripts into the corpus future runs scan, causing self-ingestion and runaway growth",
+    "file": "skills/distil-memory/scripts/funnel.py:178",
+    "reason": "Real and measured (153 -> 474 selectable transcripts across the task-11 run), but the fix belongs to funnel.judge, which this diff does not touch (verified: judge is absent from df39b15..b4011f0) and which slice 1 (PRD 00007) shipped and triage shares. Changing how every stage invokes the claude CLI is outside PRD 00008's scope and needs its own PRD. Deferred to batch end, not dropped."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The calibration contract skips when the private memory plane is absent, so CI never exercises corpus compatibility",
+    "file": "skills/distil-memory/scripts/test_proposal.py:481",
+    "reason": "Decided at the design gate and recorded there: an anonymised hermetic fixture that always runs was proposed and deliberately not built in this slice. The skip-with-reason is the specified behaviour, not an oversight. Bob filed it under KNOWN himself."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Simplification: parse_index loops with .match(). Use a declarative dict comprehension with a walrus operator.",
+    "file": "skills/distil-memory/scripts/dedup.py",
+    "reason": "Behaviour-preserving style churn on working code that trades clarity for brevity. The review checklist's own Balance rule forbids exactly this: 'never propose a change that trades clarity for brevity'. The current 7-line loop is readable; a walrus dict comprehension is not an improvement."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "distil()'s actual signature adds index_has_names, and dedup.classify() adds judge=funnel.judge, beyond the PRD's literal module exports",
+    "file": "skills/distil-memory/scripts/distil.py",
+    "reason": "The design doc's Interfaces & contracts section specifies these exact signatures verbatim, including index_has_names and the injectable judge default, and the design doc is the implementation authority (the HOW). The PRD's Structural Decomposition export list is a sketch, not a signature contract. Blake judged it non-blocking himself."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "distil.load_examples() restricts few-shot anchors to metadata.type == project memories, narrower than the PRD's 'anchored on the existing 70 memories'",
+    "file": "skills/distil-memory/scripts/distil.py",
+    "reason": "The design contract for load_examples specifies exactly this: 'keeps the ones whose metadata.type is DISTIL_TYPE'. Anchoring on the type the stage is allowed to emit is the correct reading, and the task's own test list pins it ('keeps only project-type files')."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "skills/purge-devlocal/scripts/purge_devlocal.py carries a one-line comment date fix unrelated to PRD 00008, bundled into this diff",
+    "file": "skills/purge-devlocal/scripts/purge_devlocal.py:87",
+    "reason": "The requested remedy ('revert it or move it to separate work') is already satisfied: the change is isolated in its own commit 0d80bb0, one file, one line, with its own docs() type. It appears in the range diff only because the review range spans 32 commits. The corrected date (2026-08-30, root compat symlinks removed) is factually right, so reverting correct documentation to satisfy range-diff purity would be net-negative."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: pytest, skill validation, and braid checks pass",
+    "file": "N/A",
+    "reason": "Bob's sandbox marker, not a defect. The runtime gates were executed this cycle: uv run pytest -> 853 passed, 0 failed, 5 skipped (all 5 pre-existing in skills/survey, gated on the optional tree_sitter_language_pack); the create-skill validator reported OK, run independently by both Alice and Blake."
+  }
+]

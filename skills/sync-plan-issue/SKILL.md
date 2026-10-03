@@ -10,7 +10,7 @@ Update or create a GitHub issue with a structured plan summary based on Linear M
 
 ## Prerequisites
 
-- Active plan in conversation OR plan file in `dev/local/plans/` OR PRD in `dev/local/prds/wip/`
+- Active plan in conversation OR plan file in `docs/dev/project-management/plans/` OR PRD in `docs/dev/project-management/prds/wip/`
 - GitHub CLI authenticated (`gh auth status`)
 - Git repo with GitHub remote
 
@@ -30,8 +30,8 @@ If auth fails, stop and inform user.
 Find the plan from (in order):
 
 1. **Current conversation**: Look for recent output with plan structure (Problem/Solution/Tasks), explicit "Plan:" headers, or plan mode output
-2. **Plan files**: Check `dev/local/plans/`
-3. **PRD files**: Check `dev/local/prds/wip/`
+2. **Plan files**: Check `docs/dev/project-management/plans/`
+3. **PRD files**: Check `docs/dev/project-management/prds/wip/`
 
 If ambiguous, ask user to confirm which plan to sync.
 

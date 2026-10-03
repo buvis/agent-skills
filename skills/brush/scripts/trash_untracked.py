@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Move untracked repo debris into dev/local/.trash/<date>/ with a manifest.
+"""Move untracked repo debris into docs/dev/tmp/.trash/<date>/ with a manifest.
 
-Same trash and manifest convention as purge-devlocal (date, rule, original,
+Same trash and manifest convention as purge-devtmp (date, rule, original,
 trash path in .trash/manifest.tsv), so its 30-day empty-trash pass collects
-brush moves too. Refuses tracked files, anything under dev/local (important
-local-only support material owned by purge-devlocal), docs, secrets, paths
+brush moves too. Refuses tracked files, project-management records, docs,
+secrets, paths
 outside the repo, and anything fresher than --min-age-days.
 Restore: mv the file back per the manifest line.
 """
@@ -23,7 +23,7 @@ import sys
 from pathlib import Path, PurePosixPath
 
 PROTECT_SUFFIXES = (".md", ".rst", ".txt", ".adoc")
-PROTECT_PREFIXES = ("docs/", "doc/", "dev/local/", ".git/")
+PROTECT_PREFIXES = ("docs/", "doc/", "docs/dev/project-management/", ".git/")
 PROTECT_GLOBS = (".env*", "*.pem", "*.key", "id_rsa*", "id_ed25519*",
                  "readme*", "license*", "changelog*")
 
@@ -54,7 +54,7 @@ def as_git_rel(root: Path, path: Path) -> str:
     """`path` relative to `root` in Git's slash-form representation.
 
     On Windows a native separator becomes "/", matching `git ls-files` and the
-    "docs/", "dev/local/", ".git/" prefixes. On POSIX the components are
+    "docs/", "docs/dev/project-management/", ".git/" prefixes. On POSIX the components are
     returned untouched, so a backslash that is an ordinary filename character
     stays one.
     """
@@ -75,7 +75,7 @@ def veto_reason(rel: str, p: Path, tracked: set[str],
     if rel in tracked or any(t.startswith(rel + "/") for t in tracked):
         return "tracked (use git rm via a reviewed commit instead)"
     if rel.startswith(PROTECT_PREFIXES):
-        return "protected path (dev/local, docs, .git)"
+        return "protected path (docs/dev/project-management, docs, .git)"
     if PurePosixPath(rel).suffix in PROTECT_SUFFIXES:
         return "documentation suffix - never auto-trashed"
     if any(fnmatch.fnmatch(PurePosixPath(rel).name.lower(), g)
@@ -88,7 +88,7 @@ def veto_reason(rel: str, p: Path, tracked: set[str],
 
 
 def relocate(root: Path, rel: str, date: str) -> str:
-    dest = root / "dev/local/.trash" / date / rel
+    dest = root / "docs/dev/tmp/.trash" / date / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists():
         ts = int(datetime.datetime.now().timestamp())
@@ -99,7 +99,7 @@ def relocate(root: Path, rel: str, date: str) -> str:
 
 def note_manifest(root: Path, date: str, rule: str, rel: str,
                   trash_rel: str) -> None:
-    manifest = root / "dev/local/.trash/manifest.tsv"
+    manifest = root / "docs/dev/tmp/.trash/manifest.tsv"
     manifest.parent.mkdir(parents=True, exist_ok=True)
     with manifest.open("a", encoding="utf-8") as fh:
         fh.write(f"{date}\t{rule}\t{rel}\t{trash_rel}\n")

@@ -1,0 +1,21 @@
+[llama-cpp] failed to reach http://localhost:8080/v1/models: fetch failed
+Done. Both rebuild paths (incremental `batch_index_changes` and the parallel full rebuild) classify any `parser::parse` error as `ConsistencyWarning::MalformedYaml { path, error }` — path named, error text as reason — and the strict branch hard-fails with `Err(e)`. Since the new rejection is an ordinary `DoogatError::Parse`, it flows through that existing classification with no new warning variant.
+
+## Changes
+
+**`ddb-core/src/parser/mod.rs`**
+- Added module-scope constant `pub const MAX_FRONTMATTER_BYTES: usize = 256 * 1024;` (reachable from `tests.rs` via `use super::*`).
+- Enforced at the top of `parse_frontmatter(yaml: &str, path: &str)` against `yaml.len()`: `yaml.len() > MAX_FRONTMATTER_BYTES` returns `DoogatError::Parse` with a message containing the cap, the actual byte length, and the path — e.g. `parse: frontmatter exceeds 262144-byte cap (actual: 262145 bytes) at ddb/20260226120000.md`.
+
+**`ddb-core/src/parser/tests.rs`** — three unit tests:
+- `frontmatter_at_cap_still_parses` — valid YAML of exactly 262144 bytes parses (boundary).
+- `frontmatter_one_byte_over_cap_is_parse_error` — 262145 bytes returns `Err`; asserts it's `DoogatError::Parse`, and that `to_string()` contains both `262144` and `262145` as decimals plus the path.
+- `frontmatter_normal_size_unaffected_by_cap` — small frontmatter parses normally.
+
+## Tier 1 gate
+
+- `cargo build` — clean
+- `cargo clippy --workspace --all-targets` — `ddb-core` clean; only 5 pre-existing `doc_lazy_continuation` warnings in `tests/e2e/integration_typed_write_cli.rs` (unrelated to this change)
+- `cargo test-ci` — 1813 passed, 0 failed (incl. all 97 parser tests)
+
+No commit made.

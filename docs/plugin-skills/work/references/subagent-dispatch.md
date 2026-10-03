@@ -15,7 +15,7 @@ PostToolUse hooks do not fire inside subagents (see `SKILL.md` "CRITICAL: One Ta
 **Procedure before every Agent dispatch:**
 
 1. Render the prompt from its persona with `scripts/render_prompt.py`, per the call shape `SKILL.md` gives for that dispatch (Tess 2.7, Ivan 3 / 5.5 / 7, Pat 5.7). The orchestrator does **not** assemble the prompt string itself: the persona files carry every fixed block, and `SKILL.md` § Passing values to render_prompt.py decides which flag each value takes.
-2. Measure: the byte count `render_prompt.py` prints on stdout **is** the measurement. There is no separate `wc -c` step and no scratch copy to measure — the render already wrote the file to its `--out` path (`dev/local/tmp/dispatch-<persona>-<task-id>.txt`, a per-task filename, since a fixed name collides when independent rework tasks dispatch in parallel).
+2. Measure: the byte count `render_prompt.py` prints on stdout **is** the measurement. There is no separate `wc -c` step and no scratch copy to measure — the render already wrote the file to its `--out` path (`docs/dev/tmp/dispatch-<persona>-<task-id>.txt`, a per-task filename, since a fixed name collides when independent rework tasks dispatch in parallel).
 3. If the prompt exceeds 50 000 bytes:
    - Trim by removing the lowest-priority context first (large example files, full architecture docs). Re-measure.
    - If still oversized after one trim pass, abort the task. Wire the abort

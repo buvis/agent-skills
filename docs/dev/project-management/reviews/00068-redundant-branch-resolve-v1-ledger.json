@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Acceptance text names \"the make_fake_run pattern\" as the test's shape; the shipped test defines its own inline `fake_run`/`calls` list instead of reusing `collect_test_helpers.make_fake_run` (already used elsewhere in this suite). Behaviorally equivalent and the assertion is correct, so this is cosmetic only.",
+    "file": "skills/brief-portfolio/scripts/test_collect_repo.py:266",
+    "reason": "Contradicts the task contract. The task description explicitly instructed the opposite: 'follow the local recording-stub shape already used in test_collect_repo.py's test_an_unparseable_remote_is_skipped_before_any_gh_call (a fake_run closure that appends every dispatched cmd to a calls list before returning a canned answer) RATHER THAN collect_test_helpers.make_fake_run, which only stubs git remote/gh and does not answer the branches/commits/local/etc. calls a full collect_repo() run makes.' The inline stub is what the contract required; make_fake_run cannot answer the rev-parse calls this test counts. Blake is the blind lens and had no task context, so he read the PRD's parenthetical '(the make_fake_run pattern)' as prescribing the helper itself. Blake himself scored it cosmetic-only and passed every B rule."
+  }
+]

@@ -1,0 +1,11 @@
+M	ddb-cli/src/commands/crud.rs
+M	ddb-core/src/ddb.udl
+M	ddb-core/src/ffi/driver.rs
+M	ddb-core/src/ffi/mod.rs
+M	ddb-core/src/ffi/records.rs
+M	ddb-core/src/ffi/tests.rs
+M	ddb-core/src/service/create.rs
+M	ddb-core/src/service/mock_index_tests.rs
+M	ddb-core/src/service/mod.rs
+M	ddb-core/src/service/schema_apply.rs
+M	ddb-core/src/service/update.rs

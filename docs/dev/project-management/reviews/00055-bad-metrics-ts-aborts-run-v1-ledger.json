@@ -1,0 +1,18 @@
+[
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "queued check did not pass: `braid --check` -> exit 127 (checks-1.json, carried forward from cycle 1 finding \"Cannot statically verify: tests, skill validation, and braid checks pass at the reviewed HEAD; the context records successful execution.\")",
+    "file": null,
+    "reason": "Environment artifact, not a repo defect: exit 127 is `command not found` because `braid` is not on the headless shell's PATH (re-confirmed in the cycle-2 review session). The same check by absolute path, `/Users/bob/.agents/bin/braid --check`, exited 0 at HEAD 5552bd1 both in the work phase (last-verification.json) and again in the cycle-2 review session: `0 linked, 76 current, 20 ignored, 0 removed, 0 backed up, 0 drift`. The other two queued checks (`uv run pytest`, the skill validator) exited 0."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "1 touched test(s) pass against the pre-change code: test_a_raising_skill_adherence_reader_costs_one_metric_not_the_run",
+    "file": "skills/brief-portfolio/scripts/test_collect_pipeline.py",
+    "reason": "Comment-only edit: this cycle's diff removes a three-line paraphrasing comment from the test (cycle-1 finding F4, trim redundant material) and changes no assertion, so passing against the cycle-1 base 893e2df is expected. The test's behavior was pinned in cycle 1, where it failed against the PRD base a563e06a (cycle-1 replay: 3 touched tests ran, 3 failed at base). Not a tautology: its asserts (`skill_adherence is None`, `WARN skill_adherence` in stderr, exit 0) bind to the PRD's main()-wrap contract."
+  }
+]

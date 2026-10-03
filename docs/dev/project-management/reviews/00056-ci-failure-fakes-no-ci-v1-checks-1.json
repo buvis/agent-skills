@@ -1,0 +1,42 @@
+[
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: tests pass (VERIFY: run `uv run pytest skills/brief-portfolio/scripts -q` and `npm --prefix skills/brief-portfolio/app test`, including unchanged history and CI-wall tests).",
+    "file": null,
+    "command": "uv run pytest skills/brief-portfolio/scripts -q",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: tests pass (VERIFY: run `uv run pytest skills/brief-portfolio/scripts -q` and `npm --prefix skills/brief-portfolio/app test`, including unchanged history and CI-wall tests).",
+    "file": null,
+    "command": "npm --prefix skills/brief-portfolio/app test",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: repository checks pass (VERIFY: run `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/brief-portfolio`, and `braid --check`).",
+    "file": null,
+    "command": "uv run pytest",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: repository checks pass (VERIFY: run `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/brief-portfolio`, and `braid --check`).",
+    "file": null,
+    "command": "uv run python3 skills/create-skill/scripts/validate_skill.py skills/brief-portfolio",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: repository checks pass (VERIFY: run `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/brief-portfolio`, and `braid --check`).",
+    "file": null,
+    "command": "braid --check",
+    "source": "bob",
+    "result": {"exit": 127}
+  }
+]

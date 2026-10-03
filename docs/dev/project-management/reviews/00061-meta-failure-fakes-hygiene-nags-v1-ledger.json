@@ -1,0 +1,18 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: [VERIFY] required checks pass; run `uv run pytest skills/brief-portfolio/scripts -q`, `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/brief-portfolio`, and `braid --check`",
+    "file": null,
+    "reason": "Not a defect: it is Bob's read-only-sandbox note that he could not execute the checks. All four named checks are verified at the exact reviewed HEAD 0b69947bd7c93d8b8788e978490a33066cff8079. dev/local/autopilot/last-verification.json records that same sha with `uv run pytest -q` exit 0 (3463 passed, 0 failed, 6 skipped), `validate_skill.py skills/brief-portfolio` exit 0 and `braid --check` exit 0; independently this cycle Alice ran `uv run pytest skills/brief-portfolio/scripts -q` (95 passed, 2 pre-existing xfails, 0 failed) and Carl ran the brief-portfolio suite, the full `uv run pytest`, the skill validator, `braid --check` and `tests/test_braid.py`. Nothing is left to run, so this raises no work."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Cannot statically verify: [VERIFY] reproduce `demo/broken` with fresh brush and purge stamps, build the report, and confirm no brush or purge todo is derived",
+    "file": null,
+    "reason": "The check cannot be run as named: `demo/broken` and the metadata-failing gh shim appear nowhere in this repo (whole-tree rg finds no occurrence; a collect_purge_devlocal control search over the same scope returns 3 files, so the pattern works). They were an ad-hoc rig in the 2026-09-05 agoge run that raised finding 9. Building two scratch repos plus a gh shim plus a full collect-and-derive run is net-new QA scaffolding for a low finding and duplicates the agoge product-QA lane the batch runs after the drain. The asserted behavior is pinned where it can be pinned cheaply: test_a_failed_metadata_call_still_collects_the_local_hygiene_stamps proves all four local keys are set when metadata fails, the fail-first replay proves that test fails against base, and Blake confirmed derive.js:267 and :325 read r.brush_last_run / r.purge_last_run straight off the record, so present keys cannot render as \"never\". Deferred to batch end, not discarded, because the end-to-end reproduction genuinely was not executed."
+  }
+]

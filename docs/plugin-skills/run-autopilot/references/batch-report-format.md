@@ -1,6 +1,6 @@
 # Batch Report Format
 
-File: `dev/local/autopilot/reports/{batch_id}-report.md`
+File: `docs/dev/project-management/autopilot/reports/{batch_id}-report.md`
 
 Created at first PRD completion, appended after each subsequent PRD. Never
 deleted by autopilot (the wrapper archives `state.json` beside it at drain).

@@ -26,20 +26,20 @@ this build, and no Edit/Write ever.
 
 Run codex as a **direct background Bash command - do NOT wrap it in a Task subagent.** A subagent that shells out to a CLI hangs: the CLI spawns its own child process the subagent wrapper never gets a completion signal from, so the subagent yields "codex still running" and the reviewer never reports. That is the recurring Phase 4 review thrash-halt (playground 00007, 2026-06-30). Run codex directly and the harness tracks the background process. **In an interactive session** this re-invokes you when it finishes; **in headless/loop mode (`$_AUTOPILOT_LOOP` set) it does not** — headless `claude -p` kills background Bash ~5s after your turn ends, so ending the turn to "wait" for Bob kills him mid-review (2026-07-15 loop death, PRD 00062 cycle 3: the CLI reviewers killed with empty output). Dispatch the Watcher subagent from SKILL.md step 5 in the same message, or you will not be re-invoked.
 
-Write the prompt to a temp file, then dispatch (**absolute paths** - relative `dev/local/` paths get misresolved).
+Write the prompt to a temp file, then dispatch (**absolute paths** - relative `docs/dev/project-management/` paths get misresolved).
 
 **Full review (cycle 1)** - capture Bob's codex session thread id so later cycles can resume it:
 
 ```
 Bash tool (run_in_background: true):
-  <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -f "{bob_prompt_file_absolute_path}" -o "{abs_repo_path}/dev/local/tmp/bob-output-{id}.txt" --emit-thread-id "{abs_repo_path}/dev/local/tmp/bob-thread-{id}.txt"
+  <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -f "{bob_prompt_file_absolute_path}" -o "{abs_repo_path}/docs/dev/tmp/bob-output-{id}.txt" --emit-thread-id "{abs_repo_path}/docs/dev/tmp/bob-thread-{id}.txt"
 ```
 
 **Incremental review (rework cycle) with a prior `codex_thread_id`** (step 3 read it from the previous review file) - same command plus `--resume-thread` so Bob verifies fixes against his own cycle-1 critique instead of re-reviewing from zero:
 
 ```
 Bash tool (run_in_background: true):
-  <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -f "{bob_prompt_file_absolute_path}" -o "{abs_repo_path}/dev/local/tmp/bob-output-{id}.txt" --emit-thread-id "{abs_repo_path}/dev/local/tmp/bob-thread-{id}.txt" --resume-thread "{prior_codex_thread_id}"
+  <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -f "{bob_prompt_file_absolute_path}" -o "{abs_repo_path}/docs/dev/tmp/bob-output-{id}.txt" --emit-thread-id "{abs_repo_path}/docs/dev/tmp/bob-thread-{id}.txt" --resume-thread "{prior_codex_thread_id}"
 ```
 
 `--emit-thread-id` records the codex session id (from the `thread.started` event) to `bob-thread-{id}.txt`; step 8 stamps it into the review-file frontmatter as `codex_thread_id`, and the next cycle's step 3 reads it back. `--resume-thread` continues that session; an empty/expired thread degrades to a fresh run with a loud stderr note (never a blocked cycle), and it composes with `--emit-thread-id` (re-writing the same id keeps the sidecar fresh for the following cycle). **Never add `--ephemeral` to the cycle-1 dispatch - it disables resume.** `-o` writes codex's review text straight to the file step 6 consolidates - no manual save, no Agent round-trip. When the background command completes, read `bob-output-{id}.txt`. If `codex-run.sh` exits non-zero, treat Bob as a failed reviewer (graceful degradation per `retry-policy.md`); a single failed CLI reviewer does not block the cycle.
@@ -52,7 +52,7 @@ Write the prompt to a temp file, then dispatch (**absolute paths**):
 
 ```
 Bash tool (run_in_background: true):
-  <autopilot-plugin-root>/skills/use-gemini/scripts/gemini-run.sh -f "{carl_prompt_file_absolute_path}" -o "{abs_repo_path}/dev/local/tmp/carl-output-{id}.txt"
+  <autopilot-plugin-root>/skills/use-gemini/scripts/gemini-run.sh -f "{carl_prompt_file_absolute_path}" -o "{abs_repo_path}/docs/dev/tmp/carl-output-{id}.txt"
 ```
 
 `-o` writes Carl's output straight to the file step 6 consolidates. When the background command completes, read `carl-output-{id}.txt`. If `gemini-run.sh` exits non-zero (e.g. monthly quota exceeded), skip Carl and proceed with the other reviewers (graceful degradation).

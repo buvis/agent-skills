@@ -24,7 +24,7 @@ report. You stay in control through one file and one command.
    1 catchup ── 2 git hygiene ── 3 assess ── 4 backlog ── 5 AGENTS.md
                   |                    (3-5 full mode only)
                   v
-   6 report: dev/local/audit-results/brush-report.md
+   6 report: docs/dev/project-management/audit-results/brush-report.md
                   |
         +---------+----------+
         |                    |
@@ -51,19 +51,18 @@ notifier is installed, it pings you when decisions are pending.
 | AUTO | fetch --prune, merged-branch delete (SHA logged), junk to trash, gitignore fixes | runs unattended, undo listed in report |
 | ASK | unmerged branches, stashes, scratch files, rebases, config | waits for your [x] |
 | MANUAL | remote deletes, history rewrites, secrets | never executed by apply, listed for you |
-| NEVER | git clean -f, any push, force-push, tags, docs, dev/local, .env | brush will not do these |
+| NEVER | git clean -f, any push, force-push, tags, docs, tracked project-management records, .env | brush will not do these |
 
 Untracked never means disposable: default is KEEP. File removals are
-trash-first moves into `dev/local/.trash/<date>/` with a manifest line
-(purge-devlocal's columns, batch dir and 30-day GC window; its paths are
-store-relative, brush's repo-relative, so restore each row from the directory
-it was written against). Restore is `mv` back. dev/local itself is owned by
-purge-devlocal; brush never hand-cleans it.
+trash-first moves into `docs/dev/tmp/.trash/<date>/` with a manifest line
+(purge-devtmp's columns, batch dir and 30-day cleanup window). Restore is
+`mv` back. Tracked `docs/dev/project-management/` records are never
+cleanup targets.
 
 ## Recovery
 
-- Trashed file: see `dev/local/.trash/manifest.tsv`, `mv` it back from the
-  repo root for a brush row, from `dev/local/` for a purge-devlocal one.
+- Trashed file: see `docs/dev/tmp/.trash/manifest.tsv`; `mv` it back from
+  the path recorded in the manifest.
 - Deleted branch: report row has the SHA - `git branch <name> <sha>`.
 - Hygiene commit: `git revert <sha>` (sha in the report).
 
@@ -78,7 +77,7 @@ purge-devlocal; brush never hand-cleans it.
 
 ## Depends on
 
-Skills: git-ferry:catchup, purge-devlocal, assess-evolution,
+Skills: git-ferry:catchup, purge-devtmp, assess-evolution,
 review-prd-backlog, manage-agents-md. Optional: gh, notify.py,
 git-ferry:resolve-git-conflicts, git-ferry:review-deps-prs. A missing
 dependency skips its phase and lands in the report's Failures section.

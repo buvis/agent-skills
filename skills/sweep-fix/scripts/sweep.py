@@ -543,7 +543,7 @@ def _resolve_report_path(cwd_path, out, reason):
     name; refuses (exit 1) if it would land outside `cwd_path`."""
     if not out:
         slug = re.sub(r"[^a-z0-9]+", "-", reason[:40].lower()).strip("-")
-        out = f"dev/local/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
+        out = f"docs/dev/project-management/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
 
     out_path = (cwd_path / out).resolve()
     if not out_path.is_relative_to(cwd_path):

@@ -1,0 +1,269 @@
+diff --git a/src/lib/buvis/pybase/result.py b/src/lib/buvis/pybase/result.py
+index 2c9c47f4..91704380 100644
+--- a/src/lib/buvis/pybase/result.py
++++ b/src/lib/buvis/pybase/result.py
+@@ -1,6 +1,5 @@
+ from __future__ import annotations
+ 
+-from collections.abc import Callable
+ from dataclasses import dataclass, field
+ from pathlib import PurePath
+ from typing import Any
+@@ -49,20 +48,3 @@ class CommandResult:
+             "warnings": self.warnings,
+             "metadata": _json_safe(self.metadata),
+         }
+-
+-
+-def notify_result(result: CommandResult, notify: Callable[..., None]) -> None:
+-    """Report a command result through a Textual-style notify callback.
+-
+-    Args:
+-        result: Command result to report.
+-        notify: Callable accepting ``(message, *, severity)``, e.g. Textual's
+-            ``App.notify``.
+-    """
+-    for warning in result.warnings:
+-        notify(warning, severity="warning")
+-    if result.success:
+-        if result.output:
+-            notify(result.output, severity="information")
+-    else:
+-        notify(result.error or "Failed", severity="error")
+diff --git a/src/tools/bim/tui/create_note.py b/src/tools/bim/tui/create_note.py
+index b5bbe574..e74a3c37 100644
+--- a/src/tools/bim/tui/create_note.py
++++ b/src/tools/bim/tui/create_note.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ from pathlib import Path
+ from typing import Any
+ 
+-from buvis.pybase.result import notify_result
++from buvis.pybase.zettel.application.use_cases.create_zettel_use_case import CreateZettelUseCase
+ from buvis.pybase.zettel.application.use_cases.print_zettel_use_case import PrintZettelUseCase
+ from buvis.pybase.zettel.domain.templates import Question, ZettelTemplate
+ from textual import on, work
+@@ -167,26 +167,17 @@ class CreateNoteApp(App[None]):
+             return
+         answers = self._gather_answers()
+ 
+-        extra_answers = {q.key: answers[q.key] for q, _ in self._question_widgets if answers.get(q.key)}
+-
+-        from bim.commands.create_note.create_note import CommandCreateNote
+-        from bim.params.create_note import CreateNoteParams
+-
+-        params = CreateNoteParams(
+-            zettel_type=self._current_template.name,
+-            title=answers["title"],
+-            tags=answers["tags"] or None,
+-            extra_answers=extra_answers,
+-        )
+-        result = CommandCreateNote(
+-            path_zettelkasten=self.path_zettelkasten,
+-            params=params,
+-            repo=get_repo(),
+-            templates=self.templates,
++        use_case = CreateZettelUseCase(
++            self.path_zettelkasten,
++            get_repo(),
+             hook_runner=get_hook_runner(),
+-        ).execute()
+-        notify_result(result, self.notify)
+-        if result.success:
++        )
++        try:
++            path = use_case.execute(self._current_template, answers)
++        except FileExistsError as e:
++            self.notify(str(e), severity="error")
++        else:
++            self.notify(f"Created {path}", severity="information")
+             self.exit()
+ 
+     @on(Button.Pressed, "#cancel-btn")
+diff --git a/tests/lib/pybase/test_result.py b/tests/lib/pybase/test_result.py
+index 01f9992c..c642d135 100644
+--- a/tests/lib/pybase/test_result.py
++++ b/tests/lib/pybase/test_result.py
+@@ -2,20 +2,9 @@
+ 
+ from __future__ import annotations
+ 
+-from collections.abc import Callable
+ from pathlib import Path
+ 
+-from buvis.pybase.result import CommandResult, _json_safe, notify_result
+-
+-
+-def _notify_stub() -> tuple[list[tuple[str, str]], Callable[..., None]]:
+-    """Build a list-collecting stand-in for Textual's `notify` callable."""
+-    calls: list[tuple[str, str]] = []
+-
+-    def notify(message: str, *, severity: str = "information") -> None:
+-        calls.append((message, severity))
+-
+-    return calls, notify
++from buvis.pybase.result import CommandResult, _json_safe
+ 
+ 
+ class TestCommandResult:
+@@ -82,64 +71,3 @@ class TestJsonSafe:
+             "items": ["a", {"child": "b"}],
+             "tuple": ["c"],
+         }
+-
+-
+-class TestNotifyResult:
+-    def test_success_with_output_notifies_information(self) -> None:
+-        calls, notify = _notify_stub()
+-        result = CommandResult(success=True, output="Created note.md")
+-
+-        notify_result(result, notify)
+-
+-        assert calls == [("Created note.md", "information")]
+-
+-    def test_success_without_output_notifies_nothing(self) -> None:
+-        calls, notify = _notify_stub()
+-        result = CommandResult(success=True)
+-
+-        notify_result(result, notify)
+-
+-        assert calls == []
+-
+-    def test_failure_with_error_notifies_error_severity(self) -> None:
+-        calls, notify = _notify_stub()
+-        result = CommandResult(success=False, error="Missing required answer: type")
+-
+-        notify_result(result, notify)
+-
+-        assert calls == [("Missing required answer: type", "error")]
+-
+-    def test_failure_without_error_falls_back_to_default_message(self) -> None:
+-        calls, notify = _notify_stub()
+-        result = CommandResult(success=False)
+-
+-        notify_result(result, notify)
+-
+-        assert calls == [("Failed", "error")]
+-
+-    def test_warnings_notify_before_success_output(self) -> None:
+-        calls, notify = _notify_stub()
+-        result = CommandResult(success=True, output="ok", warnings=["heads up"])
+-
+-        notify_result(result, notify)
+-
+-        assert calls == [("heads up", "warning"), ("ok", "information")]
+-
+-    def test_warnings_notify_alongside_failure(self) -> None:
+-        calls, notify = _notify_stub()
+-        result = CommandResult(success=False, error="bad", warnings=["heads up"])
+-
+-        notify_result(result, notify)
+-
+-        assert calls == [("heads up", "warning"), ("bad", "error")]
+-
+-    def test_multiple_warnings_each_notify_independently(self) -> None:
+-        calls, notify = _notify_stub()
+-        result = CommandResult(success=True, warnings=["first warning", "second warning"])
+-
+-        notify_result(result, notify)
+-
+-        assert calls == [
+-            ("first warning", "warning"),
+-            ("second warning", "warning"),
+-        ]
+diff --git a/tests/tools/bim/tui/test_create_note.py b/tests/tools/bim/tui/test_create_note.py
+index c28f32b6..f4e8cc9c 100644
+--- a/tests/tools/bim/tui/test_create_note.py
++++ b/tests/tools/bim/tui/test_create_note.py
+@@ -4,7 +4,6 @@ from pathlib import Path
+ from unittest.mock import MagicMock
+ 
+ import pytest
+-from buvis.pybase.result import CommandResult
+ from buvis.pybase.zettel.domain.templates import Question
+ from buvis.pybase.zettel.domain.value_objects.zettel_data import ZettelData
+ from textual.widgets import Button, Input, Select
+@@ -108,83 +107,3 @@ class TestCreateNoteApp:
+             answers = app._gather_answers()
+             assert answers["title"] == "My Note"
+             assert answers["tags"] == "tag1, tag2"
+-
+-    @pytest.mark.anyio
+-    async def test_create_with_blank_required_answer_notifies_error_and_stays_open(self, mocker, tmp_path):
+-        template = _make_template(questions=[Question(key="status", prompt="Status", required=True)])
+-        mocker.patch(
+-            "bim.tui.create_note.get_templates",
+-            return_value={"note": template},
+-        )
+-        mocker.patch("bim.tui.create_note.get_formatter").return_value = MagicMock()
+-        mocker.patch("bim.tui.create_note.PrintZettelUseCase").return_value.execute.return_value = "preview"
+-        mocker.patch("bim.tui.create_note.get_repo").return_value = MagicMock()
+-        mocker.patch("bim.tui.create_note.get_hook_runner").return_value = MagicMock()
+-
+-        from bim.tui.create_note import CreateNoteApp
+-
+-        app = CreateNoteApp(path_zettelkasten=tmp_path)
+-        async with app.run_test(size=(80, 40)) as pilot:
+-            await pilot.pause()
+-            template_select = app.query_one("#template-select", Select)
+-            template_select.value = "note"
+-            await pilot.pause()
+-            title_input = app.query_one("#title-input", Input)
+-            title_input.value = "My Title"
+-            await pilot.pause()
+-
+-            notify = mocker.spy(app, "notify")
+-
+-            await pilot.click("#create-btn")
+-            await pilot.pause()
+-            await app.workers.wait_for_complete()
+-
+-            assert notify.call_count == 1
+-            assert notify.call_args.args[0] == "Missing required answer: status"
+-            assert notify.call_args.kwargs["severity"] == "error"
+-            assert app.is_running is True
+-
+-    @pytest.mark.anyio
+-    async def test_create_filters_blank_answers_from_extra_answers(self, mocker, tmp_path):
+-        template = _make_template(
+-            questions=[
+-                Question(key="status", prompt="Status"),
+-                Question(key="priority", prompt="Priority"),
+-            ]
+-        )
+-        mocker.patch(
+-            "bim.tui.create_note.get_templates",
+-            return_value={"note": template},
+-        )
+-        mocker.patch("bim.tui.create_note.get_formatter").return_value = MagicMock()
+-        mocker.patch("bim.tui.create_note.PrintZettelUseCase").return_value.execute.return_value = "preview"
+-        mocker.patch("bim.tui.create_note.get_repo").return_value = MagicMock()
+-        mocker.patch("bim.tui.create_note.get_hook_runner").return_value = MagicMock()
+-        mock_command_cls = mocker.patch("bim.commands.create_note.create_note.CommandCreateNote")
+-        mock_command_cls.return_value.execute.return_value = CommandResult(success=True, output="Created my-title.md")
+-
+-        from bim.tui.create_note import CreateNoteApp
+-
+-        app = CreateNoteApp(path_zettelkasten=tmp_path)
+-        async with app.run_test(size=(80, 40)) as pilot:
+-            await pilot.pause()
+-            template_select = app.query_one("#template-select", Select)
+-            template_select.value = "note"
+-            await pilot.pause()
+-            title_input = app.query_one("#title-input", Input)
+-            title_input.value = "My Title"
+-            await pilot.pause()
+-            priority_input = app.query_one("#q-priority", Input)
+-            priority_input.value = "high"
+-            await pilot.pause()
+-
+-            await pilot.click("#create-btn")
+-            await pilot.pause()
+-            await app.workers.wait_for_complete()
+-
+-            assert mock_command_cls.call_count == 1
+-            params = mock_command_cls.call_args.kwargs["params"]
+-            assert params.zettel_type == "note"
+-            assert params.title == "My Title"
+-            assert params.tags is None
+-            assert params.extra_answers == {"priority": "high"}

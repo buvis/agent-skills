@@ -261,7 +261,7 @@ def test_main_names_the_directory_it_published_in_both_the_printed_and_the_persi
     run puts its proposals in a stamped directory of its own, so the path the
     printed report gives, the path the report on disk gives, and the directory
     that exists are one and the same. A paragraph naming a fixed
-    `dev/local/audit-results/proposals/` sends every reader to a directory no
+    `docs/dev/project-management/audit-results/proposals/` sends every reader to a directory no
     run ever creates.
 
     An audit directory holds every run's proposals, not just this run's, so a

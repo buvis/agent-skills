@@ -4,9 +4,9 @@ Procedure for adding a candidate model id to `scripts/approved-models.txt`. Run 
 
 ## 1. Pick 6 eval tasks
 
-Do not reuse a fixed task list - pick fresh from whatever is currently in `dev/local/prds/done/` across your repos. Selection rule, applied at eval time:
+Do not reuse a fixed task list - pick fresh from whatever is currently in `docs/dev/project-management/prds/done/` across your repos. Selection rule, applied at eval time:
 
-- Scan the task ledgers of recently completed PRDs in `dev/local/prds/done/`.
+- Scan the task ledgers of recently completed PRDs in `docs/dev/project-management/prds/done/`.
 - Pick 6 tasks that are: **single-file** (one file touched), **test-gated** (a real test or check proves pass/fail, not a human read), and **backend** (no UI/visual judgment needed).
 - Prefer tasks completed recently, across more than one PRD, so the sample isn't biased by one feature's quirks.
 - Skip any task whose "done" state can't be re-verified today (test deleted, dependency moved on).
@@ -48,7 +48,7 @@ Append one line to `~/.agents/skills/use-qwen/scripts/approved-models.txt`, exac
 
 ```
 # Qualified YYYY-MM-DD: 6-task agentic eval, N/6 passed, tasks drawn from
-# dev/local/prds/done/ (name the PRDs used). Served via llama.cpp.
+# docs/dev/project-management/prds/done/ (name the PRDs used). Served via llama.cpp.
 <candidate-model-id>
 ```
 

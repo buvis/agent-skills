@@ -1,0 +1,3 @@
+Clean, no warnings. Done.
+
+**Summary:** Added `MAX_FRONTMATTER_BYTES` (256 * 1024) in `ddb-core/src/parser/mod.rs`, enforced in `parse_frontmatter` before YAML parsing (rejects with `DoogatError::Yaml`, which already classifies into `ConsistencyWarning::MalformedYaml` via the lenient skip path — no new variant needed). Error message includes both the cap and actual byte length. Added boundary tests (`frontmatter_at_cap_still_parses`, `frontmatter_over_cap_rejected_with_sizes_in_message`) to `parser/tests.rs`. `cargo build`, `cargo test -p ddb-core parser::`, and `cargo clippy --all-targets` all pass clean.

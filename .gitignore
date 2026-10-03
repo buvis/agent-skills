@@ -1,7 +1,10 @@
 /.braid-state.json
 /backups/
 /build/
-/dev/local/
+dev/local/
+/docs/dev/tmp/
+/docs/dev/project-management/**/*.lock
+/docs/dev/project-management/autopilot/state.json.bak*
 /dist/
 # A skill that ships a front end builds its template locally; the built
 # artifact is committed as assets/, the build tree is not.

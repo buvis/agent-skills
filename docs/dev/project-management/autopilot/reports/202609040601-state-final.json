@@ -1,0 +1,270 @@
+{
+  "prd": "00033-smoke-sleep-becomes-poll-v1.md",
+  "phase": "done",
+  "next_phase": "",
+  "schema_version": 1,
+  "batch": {
+    "id": "202609040601",
+    "mode": "autopilot",
+    "completed_prds": [
+      {
+        "filename": "00019-storage-failure-blanks-page-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 8,
+        "escalated_decisions": 0,
+        "tasks_completed": 4,
+        "tasks_total": 4
+      },
+      {
+        "filename": "00024-empty-copy-wipes-clipboard-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 5,
+        "escalated_decisions": 0,
+        "tasks_completed": 3,
+        "tasks_total": 3
+      },
+      {
+        "filename": "00025-brief-accessibility-pass-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 4,
+        "tasks_total": 4
+      },
+      {
+        "filename": "00026-ci-wall-blank-empty-state-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 8,
+        "escalated_decisions": 0,
+        "tasks_completed": 3,
+        "tasks_total": 3
+      },
+      {
+        "filename": "00028-history-records-fabricated-zeros-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 7,
+        "tasks_total": 7
+      },
+      {
+        "filename": "00033-smoke-sleep-becomes-poll-v1.md",
+        "cycles": 3,
+        "autonomous_decisions": 11,
+        "escalated_decisions": 0,
+        "tasks_completed": 5,
+        "tasks_total": 5
+      }
+    ],
+    "plugin_versions": {
+      "aegis@buvis-plugins": "0.3.2",
+      "warden@buvis-plugins": "0.14.0"
+    },
+    "catchup_completed_at": "2026-09-05T00:07:50Z",
+    "catchup_head_sha": "91a0bd85c933f9594cceecf71372061fddc6c651",
+    "parks_consecutive": 0
+  },
+  "catchup_mode": "skipped",
+  "doubt_reviewer": "codex",
+  "consensus_engine": "legacy",
+  "rework_cap": 5,
+  "tasks_total": 0,
+  "qwen_preflight": {
+    "batch_id": "202609040601",
+    "verdict": "completion_failed",
+    "detail": "warden denied qwen-run.sh as an unrecognized command in this session (tool-level block, not a qwen backend health failure) - could not run any of the 4 preflight checks",
+    "checked_at": "2026-09-04T06:35:00Z"
+  },
+  "tasks_completed": 0,
+  "phases_completed": [
+    "review"
+  ],
+  "cycle": 3,
+  "replan_count": 0,
+  "codex_probe": {
+    "batch_id": "202609040601",
+    "verdict": "unhealthy",
+    "backend": "codex",
+    "detail": "hook_doctor: empty\t/Users/bob/.codex/hooks/analyze-instincts.py",
+    "hook_doctor": "summary\t3 ok, 7 stale, 2 broken",
+    "checked_at": "2026-09-04T20:32:04Z"
+  },
+  "design_mode": "skipped",
+  "tasks": [],
+  "work_start_sha": "14da8539cc4de5ddcf3d9f07f6f532157efcfd1d",
+  "repo_root": "/Users/bob/git/src/github.com/buvis/agent-skills-lane-brief",
+  "contract_card": "step: PRD 00033-smoke-sleep-becomes-poll-v1 CONVERGED at review cycle 3.\nReview gate is finished; handing off to the finalize session (Phase 9, done gate).\n\nstate: phase=done, next_phase=done, cycle=3, phases_completed=[\"review\"],\ntasks 5/5 completed, rework_task_ids=[], loop mode ON.\nHEAD 4a96fb5, work_start_sha 14da8539cc4de5ddcf3d9f07f6f532157efcfd1d.\nbatch 202609040601, 5 PRDs completed so far.\n\nwhat happened in cycle 3: Verdict 2 findings, no CRITICAL/HIGH.\n- Bob's \ud83d\udfe1 (flush test used an `observedWhilePending` flag) was SWEPT as task 5\n  `[D3]` via the micro lane, committed as 4a96fb5, Pat closed it `resolved`.\n- Blake's \u26aa (no CHANGELOG entry for the `fix`-typed commit a5d9c48) is DEFERRED\n  to batch end \u2014 the PRD is test-only and rules/changelog.md exempts `test`\n  commits, so the honest fix would break the rule the finding invokes; the real\n  defect is the landed commit's type, correctable only by rewriting history.\n  Recorded in state.deferred_decisions, the batch deferred JSON, and the ledger.\n- Carl unavailable all three cycles (both gemini backends dead). Denominator 3.\n- Suite green at HEAD: 44 passed, 0 failed, 0 skipped\n  (dev/local/autopilot/last-verification.json, sha 4a96fb5).\n\ninvariants that bind right now:\n- Phase 5 NEVER reopens after convergence. Do not run another review cycle,\n  do not increment cycle.\n- Loop mode: never AskUserQuestion; a per-PRD problem stalls or defers, it does\n  not write phase=\"paused\".\n- Every lifecycle `mv` is VERIFIED: confirm the PRD exists in the destination\n  before appending to batch.completed_prds. A failed move PAUSES (site mv_verify).\n- The batch report filename is built from state.batch.id (202609040601) \u2014 never\n  glob reports/*.md.\n\nnext: the finalize session runs Phase 9 (`references/phase-done.md`), reaching it\nvia Phase 4's loop-level skip (`\"review\"` is in phases_completed). It renders the\naudit log from the state decision arrays, moves the PRD wip -> done with the\n00033- prefix and verifies the move, appends to\nreports/202609040601-report.md, then either selects the next PRD\n(`phase-done --outcome more_prds`) or drains the batch\n(`phase-done --outcome drained`, empty next_phase).",
+  "review_lenses": {
+    "consensus": "done",
+    "blind": "done",
+    "doubt": "done",
+    "ui": "failed"
+  },
+  "doubts_rubric_verdicts": [
+    {
+      "rule_id": "D1",
+      "verdict": "pass"
+    },
+    {
+      "rule_id": "D2",
+      "verdict": "pass"
+    },
+    {
+      "rule_id": "D3",
+      "verdict": "pass"
+    },
+    {
+      "rule_id": "D4",
+      "verdict": "pass"
+    },
+    {
+      "rule_id": "D5",
+      "verdict": "pass"
+    }
+  ],
+  "autonomous_decisions": [
+    {
+      "cycle": 1,
+      "issue": "waitFor never invokes the render-bound flush() the PRD must-have names; it awaits a bare global setTimeout instead",
+      "severity": "high",
+      "consensus": "2/3",
+      "action": "auto-fix",
+      "reason": "Genuine must-have spec deviation (Bob 0x1F7E0, corroborated by Blake). Bounded mechanical fix in one test-only file with exactly one caller; touches no production code, no public API, no data model, so no research protocol applies. Routed into rework task [D1]."
+    },
+    {
+      "cycle": 1,
+      "issue": "Comment above waitFor still says \"Not wired into any test yet\" although task 2 wired it in",
+      "severity": "medium",
+      "consensus": "3/3",
+      "action": "auto-fix",
+      "reason": "Highest-consensus finding of the cycle once the paraphrase split by the :13 line suffix is merged (Alice, Blake, Bob all raised it). Trivially false comment, clear mechanical fix. Routed into rework task [D1]."
+    },
+    {
+      "cycle": 1,
+      "issue": "waitFor checks the predicate before the deadline and sleeps a full interval past it, so a predicate that turns true after the timeout still succeeds",
+      "severity": "medium",
+      "consensus": "1/3",
+      "action": "auto-fix",
+      "reason": "Real off-by-one-interval defect in the deadline the PRD exists to establish; the helper can overshoot its own timeout by up to one interval. Mechanical fix, additive to the same function. Routed into rework task [D1]."
+    },
+    {
+      "cycle": 1,
+      "issue": "waitFor deadline/throw path and its flush behaviour are never exercised by any test; the single caller only walks the happy path",
+      "severity": "medium",
+      "consensus": "2/3",
+      "action": "auto-fix",
+      "reason": "Alice and Bob independently. The throw at the deadline is an explicit PRD must-have that no test binds, so a regression to it would pass silently. Fix is additive (adds tests only). Routed into rework task [D1]."
+    },
+    {
+      "cycle": 1,
+      "issue": "Bob VERIFY item: run the suite and confirm 41 passing / 0 failing, the affected test under 1600ms and the suite under 2050ms",
+      "severity": "low",
+      "consensus": "1/3",
+      "action": "discarded",
+      "reason": "Sandbox limitation already answered by recorded fact, not a defect. last-verification.json records 41 passed / 0 failed / 0 skipped at the reviewed HEAD a5d9c48, and Blake measured the affected test at 1514.7ms. Not queued as a verification check: the queue source values are reserved for the Eve lane and Eve did not run (the codex doubt-roster guard did not fire, both tasks were implemented by claude). Ledger: discarded."
+    },
+    {
+      "cycle": 1,
+      "issue": "Carl (gemini) produced no output: copilot backend rejected the pinned model gemini-3.1-pro-preview, and the one-retry budget spent on the native gemini backend failed with IneligibleTierError",
+      "severity": "low",
+      "consensus": "n/a",
+      "action": "continue-degraded",
+      "reason": "Safety Checks row: a reviewer that errors transiently is logged and the cycle continues on the reviewers that succeeded. Three of four lenses (consensus, blind, doubt) produced parseable output, so the cycle completed; consensus denominator recorded as 3, not 4. Not a PAUSE - that is reserved for a cycle where no reviewer parses."
+    },
+    {
+      "cycle": 2,
+      "type": "assumed-ambiguity",
+      "issue": "Success criterion \"the suite total drops below 2050ms from 2090ms\" is not met: smoke.test.js alone now runs 35 tests in 4453ms (44 tests / 4543ms via npm test), because an unrelated real-time-sleeping test dominates the suite far more than the 1600ms sleep this PRD targeted",
+      "severity": "high",
+      "consensus": "1/3",
+      "action": "defer",
+      "reason": "Requirements ambiguity, same class as the already-settled stale \"16 passing tests\" bar. The 2090ms baseline and 2050ms target were measured against a 16-test suite that no longer exists; the suite is now 44 tests, grown by five earlier PRDs in this batch. Blake confirmed the dominant cost is an unrelated real-time-sleeping test this PRD never touched. The criterion this PRD actually governs - its own test under 1600ms - IS met (1617ms to ~1524ms, measured by Alice and Blake independently). Simplest safe assumption: per-test bound met, suite-total number stale. Chasing it would rewrite an unrelated test another PRD owns. Deferred to batch end."
+    },
+    {
+      "cycle": 2,
+      "type": "assumed-ambiguity",
+      "issue": "waitFor signature diverges from the Must-have spec: the PRD names { timeout = 3000, interval = 25 } but the implementation adds an undocumented flush option, and the call site passes { flush }",
+      "severity": "medium",
+      "consensus": "1/3",
+      "action": "defer",
+      "reason": "The PRD must-have is self-contradictory: one clause names the signature without flush, the same sentence requires the helper to await flush(). flush is a per-render closure, so a module-level helper cannot reach it unless passed in - the clauses cannot both hold literally. Cycle 1s gate already adjudicated this (Bobs 2/3 HIGH: waitFor never invokes the render-bound flush the PRD requires) and the fix kept flush optional so both documented defaults survive. Blake is the blind lens and cannot see that history. Simplest safe assumption: the flush clause wins, since a poller that never flushes fails the PRDs purpose. Deferred so the PRD text is corrected, not the code."
+    },
+    {
+      "cycle": 2,
+      "issue": "Three new waitFor unit tests were added beyond the two explicit Phase 0 tasks - scope creep per the blind lens",
+      "severity": "medium",
+      "consensus": "1/3",
+      "action": "discarded",
+      "reason": "Contradicts the record. Those three tests were ordered by this reviews own cycle-1 decision gate, which found (Alice and Bob, 2/3) that the PRD must-have \"throws a named assertion error at the deadline\" had no test binding it. They are that must-haves coverage, not extra work. Blake is blind to that history. Also recorded because the ledger matcher MIS-DISMISSED this finding onto the unrelated 16-passing-tests entry; discarded here on its own verified ground so the mis-match does not decide it silently."
+    },
+    {
+      "cycle": 2,
+      "issue": "Bob: the flush test does not prove waitFor awaits the callback (synchronous flush returning an already-resolved promise would pass even without await); the deadline tests always-false predicate also passes the cycle-1 implementation; the caller re-flushes redundantly after waitFor already flushed; the new three-line comment restates the signature",
+      "severity": "medium",
+      "consensus": "1/3",
+      "action": "auto-fix",
+      "reason": "Four Medium findings from the doubt lens against the quality of cycle-1s own fix. Three are additive or mechanical and test-only; the comment one is a second occurrence at the same site, so Protocol B ran (see the research entry). Routed into rework task [D2]."
+    },
+    {
+      "cycle": 2,
+      "issue": "Recurring at the same site: the waitFor helper comment was flagged in cycle 1 (falsely said \"not wired into any test yet\") and is flagged again in cycle 2 (the replacement merely restates the signature)",
+      "severity": "medium",
+      "consensus": "1/3",
+      "action": "auto-fix",
+      "research": {
+        "category": "recurring-issue",
+        "protocol": "B",
+        "verdict": "proceed",
+        "checks": [
+          {
+            "check": "previous fix identified",
+            "result": "cycle-1 task 3 [D1] rewrote the comment rather than deleting it",
+            "pass": true
+          },
+          {
+            "check": "root cause found",
+            "result": "the fix removed the false sentence but kept a comment that paraphrases the signature and loop control, which the de-slop lens objects to on its own terms - the cycle-1 finding was about falsity, this one is about redundancy",
+            "pass": true
+          },
+          {
+            "check": "different approach available",
+            "result": "delete the comment entirely instead of rewriting it again - Bobs own proposed fix, and the one approach not yet tried",
+            "pass": true
+          },
+          {
+            "check": "recurrence count < 3",
+            "result": "2nd occurrence",
+            "pass": true
+          }
+        ],
+        "evidence_summary": "Root cause identified, a genuinely different approach exists (delete rather than rewrite), and this is the 2nd not 3rd recurrence. All Protocol B checks pass, so the verdict is proceed and the finding is treated as auto-fix."
+      },
+      "reason": "Protocol B verdict proceed. Routed into rework task [D2] with the instruction to delete the comment, not rewrite it a third time."
+    },
+    {
+      "cycle": 2,
+      "issue": "Carl (gemini) produced no output again: the copilot backend rejected the pinned model gemini-3.1-pro-preview, and the one-retry budget spent on the native gemini backend failed with IneligibleTierError",
+      "severity": "low",
+      "consensus": "n/a",
+      "action": "continue-degraded",
+      "reason": "Safety Checks row: a reviewer that errors transiently is logged and the cycle continues on the reviewers that succeeded. Three of four lenses (consensus, blind, doubt) produced parseable output, so the cycle completed; consensus denominator recorded as 3, not 4. Identical to cycle 1 - this is an environment limitation, not a per-cycle flake. Not a PAUSE: that is reserved for a cycle where no reviewer parses."
+    },
+    {
+      "cycle": 3,
+      "decision": "Cycle 3 decision gate: converged (no unresolved CRITICAL/HIGH; doubt-roster constraint gate certified). Two findings, both non-blocking. Bob 1/3 medium (flush-test de-slop) routed to the tail sweep as one [D3] task. Blake 1/3 low (missing CHANGELOG entry for commit a5d9c48) deferred to batch end as not actionable. Three further Blake re-raises were auto-dismissed by the settled-decisions ledger, all correctly.",
+      "rationale": "Medium and Low never block convergence; the medium is swept rather than dropped, the low has no honest fix inside this PRD."
+    }
+  ],
+  "rework_task_ids": [],
+  "deferred_decisions": [
+    {
+      "type": "review-finding",
+      "issue": "Commit a5d9c48 is conventionally typed fix(brief-portfolio) but touches only test code with no user-visible effect; no CHANGELOG.md entry accompanies it.",
+      "severity": "low",
+      "consensus": "1/3",
+      "file": "CHANGELOG.md",
+      "cycle": 3,
+      "reason": "Not actionable as raised. The PRD is explicitly test-only (no production source changes), and rules/changelog.md exempts test commits from a CHANGELOG entry - so adding one would break the rule the finding invokes. The real defect is the commit type on a landed commit (fix where test was correct), correctable only by rewriting history, which needs force-push approval and is unrelated to this PRD. Deferred to batch end."
+    }
+  ]
+}

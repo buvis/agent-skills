@@ -1,0 +1,1567 @@
+{"kind":"handoff","site":"build","edge":"resume","at":1788350001,"phase":"build","prd":"00010-qwen38-multifile-capability-eval-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788592180,"phase":"build","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"id":"5e854cb5","kind":"tess","task":"1","queued_at":1788592687,"prompt_bytes":40826}
+{"id":"bea851ba","kind":"ivan","task":"1","queued_at":1788592960,"prompt_bytes":46948}
+{"id":"a5e12c7c","kind":"ivan","task":"1","queued_at":1788593209,"prompt_bytes":48560}
+{"id":"3db9b84a","kind":"pat","task":"1","queued_at":1788593446,"prompt_bytes":10487}
+{"id":"a71c616f","kind":"pat","task":"1","queued_at":1788593552,"prompt_bytes":10762}
+{"id":"6e8705cb","kind":"ivan","task":"1","queued_at":1788593588,"prompt_bytes":20799}
+{"id":"7cd6e0cc","kind":"pat","task":"1","queued_at":1788593686,"prompt_bytes":3435}
+{"kind":"handoff","site":"build","edge":"leave","at":1788593901,"phase":"build","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"id":"5e86840c","kind":"tess","task":"2","queued_at":1788594103,"prompt_bytes":42668}
+{"id":"6bf5a5fd","kind":"devon","task":"2","queued_at":1788594304,"prompt_bytes":3895}
+{"id":"552bf0c0","kind":"tess","task":"2","queued_at":1788594511,"prompt_bytes":9496}
+{"id":"5b873630","kind":"devon","task":"2","queued_at":1788594729,"prompt_bytes":5022}
+{"id":"16466e2d","kind":"tess","task":"2","queued_at":1788594965,"prompt_bytes":9793}
+{"id":"19ebc1f0","kind":"devon","task":"2","queued_at":1788595200,"prompt_bytes":5445}
+{"id":"5f5969ac","kind":"ivan","task":"2","queued_at":1788595531,"prompt_bytes":43342}
+{"id":"bd83f8b8","kind":"ivan","task":"2","queued_at":1788595983,"prompt_bytes":9380}
+{"id":"db1630ae","kind":"pat","task":"2","queued_at":1788596315,"prompt_bytes":17775}
+{"id":"e484a7fe","kind":"pat","task":"2","queued_at":1788596524,"prompt_bytes":1287}
+{"id":"5aec64f3","kind":"pat","task":"2","queued_at":1788596545,"prompt_bytes":19062}
+{"kind":"handoff","site":"build","edge":"leave","at":1788596725,"phase":"build","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"id":"8eb48f18","kind":"ivan","task":"3","queued_at":1788597211,"prompt_bytes":3513}
+{"kind":"handoff","site":"build","edge":"leave","at":1788597633,"phase":"review","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788597736,"phase":"review","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"id":"7b8c837f","kind":"tess","task":"4","queued_at":1788599273,"prompt_bytes":18855}
+{"id":"7b8c837f","ended_at":1788599536,"elapsed_s":263,"outcome":"ok","detail":null}
+{"id":"22dd7a8c","kind":"devon","task":"4","queued_at":1788599609,"prompt_bytes":4069}
+{"id":"22dd7a8c","ended_at":1788599820,"elapsed_s":211,"outcome":"ok","detail":"exploit succeeded: literal byte-match and string-match defeat both bug tests"}
+{"id":"0207f405","kind":"tess","task":"4","queued_at":1788599849,"prompt_bytes":11731}
+{"id":"0207f405","ended_at":1788600257,"elapsed_s":408,"outcome":"ok","detail":null}
+{"id":"7621c344","kind":"devon","task":"4","queued_at":1788600281,"prompt_bytes":4172}
+{"kind":"handoff","site":"review","edge":"resume","at":1788608050,"phase":"review","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"id":"7b88d318","kind":"pat","task":"4","queued_at":1788608271,"prompt_bytes":16445}
+{"id":"7b88d318","ended_at":1788608392,"elapsed_s":121,"outcome":"ok","detail":null}
+{"id":"d0075815","kind":"pat","task":"5","queued_at":1788608604,"prompt_bytes":11967}
+{"id":"d0075815","ended_at":1788608671,"elapsed_s":67,"outcome":"ok","detail":null}
+{"id":"724c546a","kind":"ivan","task":"6","queued_at":1788608774,"prompt_bytes":13241}
+{"id":"724c546a","ended_at":1788610228,"elapsed_s":1454,"outcome":"ok","detail":null}
+{"id":"96fa7550","kind":"pat","task":"6","queued_at":1788610379,"prompt_bytes":20553}
+{"id":"96fa7550","ended_at":1788610474,"elapsed_s":95,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788610655,"phase":"review","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788610734,"phase":"review","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"id":"8996662b","kind":"pat","task":"7","queued_at":1788615422,"prompt_bytes":13623}
+{"kind":"handoff","site":"review","edge":"leave","at":1788615563,"phase":"done","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788615604,"phase":"done","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788615716,"phase":"build","prd":"00015-corrupt-queue-reads-as-drained-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788615852,"phase":"build","prd":"00016-queue-lands-in-wrong-repo-v1.md"}
+{"id":"09295347","kind":"tess","task":"1","queued_at":1788616548,"prompt_bytes":41387}
+{"id":"463e1903","kind":"ivan","task":"1","queued_at":1788616880,"prompt_bytes":39109}
+{"id":"a8285bf2","kind":"ivan","task":"1","queued_at":1788617333,"prompt_bytes":9380}
+{"id":"a2344391","kind":"pat","task":"1","queued_at":1788617877,"prompt_bytes":35757}
+{"kind":"handoff","site":"build","edge":"leave","at":1788646279,"phase":"build","prd":"00016-queue-lands-in-wrong-repo-v1.md"}
+{"id":"b801e592","kind":"tess","task":"2","queued_at":1788646672,"prompt_bytes":29786}
+{"id":"b801e592","ended_at":1788646788,"elapsed_s":116,"outcome":"ok","detail":null}
+{"id":"aa2261bf","kind":"ivan","task":"2","queued_at":1788646878,"prompt_bytes":24574}
+{"id":"aa2261bf","ended_at":1788647611,"elapsed_s":733,"outcome":"ok","detail":null}
+{"id":"bc9b76c7","kind":"pat","task":"2","queued_at":1788647899,"prompt_bytes":8373}
+{"id":"0724d913","kind":"ivan","task":"2","queued_at":1788647980,"prompt_bytes":9884}
+{"id":"0207aec5","kind":"ivan","task":"2","queued_at":1788648166,"prompt_bytes":10592}
+{"id":"9479a3b0","kind":"pat","task":"2","queued_at":1788648301,"prompt_bytes":2953}
+{"id":"bc9b76c7","ended_at":1788648339,"elapsed_s":440,"outcome":"ok","detail":null}
+{"id":"ee996719","kind":"ivan","task":"3","queued_at":1788648606,"prompt_bytes":12482}
+{"id":"ee996719","ended_at":1788648707,"elapsed_s":101,"outcome":"ok","detail":null}
+{"id":"240dd720","kind":"ivan","task":"4","queued_at":1788648974,"prompt_bytes":12331}
+{"id":"240dd720","ended_at":1788649142,"elapsed_s":168,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788649424,"phase":"review","prd":"00016-queue-lands-in-wrong-repo-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788649587,"phase":"review","prd":"00016-queue-lands-in-wrong-repo-v1.md"}
+{"id":"2f65e12e","kind":"ivan","task":"5","queued_at":1788651079,"prompt_bytes":15601}
+{"id":"2f65e12e","ended_at":1788651475,"elapsed_s":396,"outcome":"ok","detail":null}
+{"id":"005dd6e4","kind":"pat","task":"5","queued_at":1788651666,"prompt_bytes":18153}
+{"id":"005dd6e4","ended_at":1788651731,"elapsed_s":65,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788651912,"phase":"review","prd":"00016-queue-lands-in-wrong-repo-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788652020,"phase":"review","prd":"00016-queue-lands-in-wrong-repo-v1.md"}
+{"kind":"handoff","site":"review","edge":"leave","at":1788653072,"phase":"done","prd":"00016-queue-lands-in-wrong-repo-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788653148,"phase":"done","prd":"00016-queue-lands-in-wrong-repo-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788653306,"phase":"build","prd":"00016-queue-lands-in-wrong-repo-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788653588,"phase":"build","prd":"00017-malformed-memory-half-written-v1.md"}
+{"id":"999d61ad","kind":"tess","task":"1","queued_at":1788654390,"prompt_bytes":28634}
+{"id":"999d61ad","ended_at":1788654689,"elapsed_s":299,"outcome":"ok","detail":null}
+{"id":"7734230b","kind":"devon","task":"1","queued_at":1788654816,"prompt_bytes":5369}
+{"id":"7734230b","ended_at":1788655099,"elapsed_s":283,"outcome":"ok","detail":"broke the tests; hardcoded message copy passes all 5"}
+{"id":"1be49a55","kind":"tess","task":"1","queued_at":1788655145,"prompt_bytes":7631}
+{"id":"1be49a55","ended_at":1788655493,"elapsed_s":348,"outcome":"ok","detail":null}
+{"id":"1f85da74","kind":"devon","task":"1","queued_at":1788655552,"prompt_bytes":6021}
+{"id":"1f85da74","ended_at":1788655800,"elapsed_s":248,"outcome":"ok","detail":"broke them again; shape-keyed gate on metadata: token"}
+{"id":"6bde64fc","kind":"tess","task":"1","queued_at":1788655842,"prompt_bytes":8528}
+{"id":"6bde64fc","ended_at":1788656114,"elapsed_s":272,"outcome":"ok","detail":null}
+{"id":"be37cfde","kind":"devon","task":"1","queued_at":1788656176,"prompt_bytes":6246}
+{"id":"be37cfde","ended_at":1788656523,"elapsed_s":347,"outcome":"ok","detail":"2 more exploits: size-gated validation; write-then-validate. A/C rounds exhausted"}
+{"id":"c48f9229","kind":"ivan","task":"1","queued_at":1788656605,"prompt_bytes":35426}
+{"id":"c48f9229","ended_at":1788656781,"elapsed_s":176,"outcome":"ok","detail":null}
+{"id":"e76158ad","kind":"pat","task":"1","queued_at":1788657014,"prompt_bytes":15042}
+{"id":"e76158ad","ended_at":1788657043,"elapsed_s":29,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788657181,"phase":"build","prd":"00017-malformed-memory-half-written-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788657392,"phase":"build","prd":"00017-malformed-memory-half-written-v1.md"}
+{"id":"346d807f","kind":"tess","task":"2","queued_at":1788657929,"prompt_bytes":37069}
+{"id":"346d807f","ended_at":1788658295,"elapsed_s":366,"outcome":"ok","detail":null}
+{"id":"c7448680","kind":"devon","task":"2","queued_at":1788658388,"prompt_bytes":4814}
+{"id":"c7448680","ended_at":1788658729,"elapsed_s":341,"outcome":"ok","detail":"broke tests: 4 weaknesses"}
+{"id":"b4c467dd","kind":"tess","task":"2","queued_at":1788658777,"prompt_bytes":11123}
+{"id":"b4c467dd","ended_at":1788659215,"elapsed_s":438,"outcome":"ok","detail":null}
+{"id":"6b2b104d","kind":"devon","task":"2","queued_at":1788659247,"prompt_bytes":5032}
+{"id":"6b2b104d","ended_at":1788659774,"elapsed_s":527,"outcome":"ok","detail":"broke tests again: 2 exploits, A/C round cap reached"}
+{"id":"55b24a88","kind":"ivan","task":"2","queued_at":1788659942,"prompt_bytes":44936}
+{"id":"55b24a88","ended_at":1788660143,"elapsed_s":201,"outcome":"ok","detail":null}
+{"id":"5f2fdab2","kind":"tess","task":"2","queued_at":1788660302,"prompt_bytes":9562}
+{"id":"5f2fdab2","ended_at":1788660465,"elapsed_s":163,"outcome":"ok","detail":null}
+{"id":"3d199b4d","kind":"ivan","task":"2","queued_at":1788660545,"prompt_bytes":10018}
+{"id":"3d199b4d","ended_at":1788660715,"elapsed_s":170,"outcome":"ok","detail":null}
+{"id":"4607998f","kind":"ivan","task":"2","queued_at":1788660893,"prompt_bytes":8639}
+{"id":"4607998f","ended_at":1788661328,"elapsed_s":435,"outcome":"ok","detail":null}
+{"id":"ea8090dc","kind":"pat","task":"2","queued_at":1788661523,"prompt_bytes":54726}
+{"id":"0520e84a","kind":"pat","task":"2","queued_at":1788661587,"prompt_bytes":29919}
+{"id":"0520e84a","ended_at":1788661815,"elapsed_s":228,"outcome":"ok","detail":null}
+{"id":"fbd05685","kind":"tess","task":"2","queued_at":1788661951,"prompt_bytes":9269}
+{"id":"fbd05685","ended_at":1788662082,"elapsed_s":131,"outcome":"ok","detail":null}
+{"id":"8c3a75a8","kind":"ivan","task":"2","queued_at":1788662136,"prompt_bytes":8785}
+{"id":"8c3a75a8","ended_at":1788662236,"elapsed_s":100,"outcome":"ok","detail":null}
+{"id":"1bc09161","kind":"pat","task":"2","queued_at":1788662314,"prompt_bytes":6931}
+{"id":"1bc09161","ended_at":1788662423,"elapsed_s":109,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788662576,"phase":"build","prd":"00017-malformed-memory-half-written-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788662739,"phase":"build","prd":"00017-malformed-memory-half-written-v1.md"}
+{"id":"7c1052f4","kind":"tess","task":"3","queued_at":1788662968,"prompt_bytes":25812}
+{"id":"7c1052f4","ended_at":1788663171,"elapsed_s":203,"outcome":"ok","detail":null}
+{"id":"bfa394da","kind":"devon","task":"3","queued_at":1788663280,"prompt_bytes":8741}
+{"id":"bfa394da","ended_at":1788663581,"elapsed_s":301,"outcome":"ok","detail":"2 exploits passed; tests sent back to Tess"}
+{"id":"7e7eb694","kind":"tess","task":"3","queued_at":1788663620,"prompt_bytes":10969}
+{"id":"7e7eb694","ended_at":1788664003,"elapsed_s":383,"outcome":"ok","detail":null}
+{"id":"d897db18","kind":"devon","task":"3","queued_at":1788664062,"prompt_bytes":5568}
+{"id":"d897db18","ended_at":1788664429,"elapsed_s":367,"outcome":"ok","detail":"round 2 exploit passed; A/C cap exhausted, proceeding"}
+{"id":"21cbc06f","kind":"ivan","task":"3","queued_at":1788664540,"prompt_bytes":36013}
+{"id":"21cbc06f","ended_at":1788664667,"elapsed_s":127,"outcome":"ok","detail":null}
+{"id":"44eab6b0","kind":"pat","task":"3","queued_at":1788664804,"prompt_bytes":18522}
+{"id":"44eab6b0","ended_at":1788664883,"elapsed_s":79,"outcome":"ok","detail":null}
+{"id":"04e45569","kind":"tess","task":"4","queued_at":1788665071,"prompt_bytes":26690}
+{"id":"04e45569","ended_at":1788665254,"elapsed_s":183,"outcome":"ok","detail":null}
+{"id":"1aa0a7b8","kind":"devon","task":"4","queued_at":1788665297,"prompt_bytes":5400}
+{"id":"1aa0a7b8","ended_at":1788665578,"elapsed_s":281,"outcome":"ok","detail":"exploit passed; stale sibling test surfaced"}
+{"id":"0feeb31a","kind":"tess","task":"4","queued_at":1788665647,"prompt_bytes":13116}
+{"id":"0feeb31a","ended_at":1788665939,"elapsed_s":292,"outcome":"ok","detail":null}
+{"id":"43f6c931","kind":"devon","task":"4","queued_at":1788665981,"prompt_bytes":6373}
+{"id":"43f6c931","ended_at":1788666385,"elapsed_s":404,"outcome":"ok","detail":"round 2 exploits passed; A/C cap exhausted, proceeding"}
+{"id":"e826d8e6","kind":"ivan","task":"4","queued_at":1788666481,"prompt_bytes":47097}
+{"id":"e826d8e6","ended_at":1788666609,"elapsed_s":128,"outcome":"ok","detail":null}
+{"id":"318a76ee","kind":"ivan","task":"4","queued_at":1788666764,"prompt_bytes":14571}
+{"id":"318a76ee","ended_at":1788667069,"elapsed_s":305,"outcome":"ok","detail":"style-limit split"}
+{"id":"36dd0eb5","kind":"pat","task":"4","queued_at":1788667229,"prompt_bytes":41266}
+{"id":"36dd0eb5","ended_at":1788667315,"elapsed_s":86,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"resume","at":1788667631,"phase":"build","prd":"00017-malformed-memory-half-written-v1.md"}
+{"id":"a574c50a","kind":"pat","task":"4","queued_at":1788667709,"prompt_bytes":41541}
+{"kind":"handoff","site":"build","edge":"leave","at":1788668040,"phase":"review","prd":"00017-malformed-memory-half-written-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788668152,"phase":"review","prd":"00017-malformed-memory-half-written-v1.md"}
+{"id":"429cb62f","kind":"tess","task":"5","queued_at":1788670053,"prompt_bytes":34115}
+{"id":"429cb62f","ended_at":1788670349,"elapsed_s":296,"outcome":"ok","detail":null}
+{"id":"1f0ba098","kind":"devon","task":"5","queued_at":1788670422,"prompt_bytes":4775}
+{"id":"1f0ba098","ended_at":1788670907,"elapsed_s":485,"outcome":"ok","detail":"broke tests round 1"}
+{"id":"76b818c6","kind":"tess","task":"5","queued_at":1788670944,"prompt_bytes":10412}
+{"id":"76b818c6","ended_at":1788671210,"elapsed_s":266,"outcome":"ok","detail":null}
+{"id":"b38e02d3","kind":"devon","task":"5","queued_at":1788671250,"prompt_bytes":6387}
+{"id":"b38e02d3","ended_at":1788671620,"elapsed_s":370,"outcome":"ok","detail":"broke tests round 2; A/C cap exhausted"}
+{"id":"09b95b46","kind":"ivan","task":"5","queued_at":1788671722,"prompt_bytes":40201}
+{"id":"09b95b46","ended_at":1788671988,"elapsed_s":266,"outcome":"ok","detail":null}
+{"id":"ec82364b","kind":"pat","task":"5","queued_at":1788672242,"prompt_bytes":25225}
+{"id":"ec82364b","ended_at":1788672350,"elapsed_s":108,"outcome":"ok","detail":null}
+{"id":"37d00503","kind":"ivan","task":"6","queued_at":1788672579,"prompt_bytes":11174}
+{"id":"37d00503","ended_at":1788673195,"elapsed_s":616,"outcome":"ok","detail":null}
+{"id":"053a32c5","kind":"pat","task":"6","queued_at":1788673364,"prompt_bytes":21201}
+{"id":"053a32c5","ended_at":1788673456,"elapsed_s":92,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788673682,"phase":"review","prd":"00017-malformed-memory-half-written-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788673784,"phase":"review","prd":"00017-malformed-memory-half-written-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788681856,"phase":"review","prd":"00017-malformed-memory-half-written-v1.md"}
+{"id":"c70f20ff","kind":"tess","task":"7","queued_at":1788683895,"prompt_bytes":21181}
+{"id":"c70f20ff","ended_at":1788684056,"elapsed_s":161,"outcome":"ok","detail":null}
+{"id":"9c42b8d1","kind":"tess","task":"7","queued_at":1788684108,"prompt_bytes":11500}
+{"id":"9c42b8d1","ended_at":1788684174,"elapsed_s":66,"outcome":"ok","detail":null}
+{"id":"103d85c7","kind":"devon","task":"7","queued_at":1788684235,"prompt_bytes":4033}
+{"id":"103d85c7","ended_at":1788684531,"elapsed_s":296,"outcome":"ok","detail":"broke the tests: stderr assertions satisfiable by canned messages"}
+{"id":"c0cca8d3","kind":"tess","task":"7","queued_at":1788684591,"prompt_bytes":14709}
+{"id":"c0cca8d3","ended_at":1788685012,"elapsed_s":421,"outcome":"ok","detail":null}
+{"id":"91127b8d","kind":"devon","task":"7","queued_at":1788685038,"prompt_bytes":4668}
+{"id":"91127b8d","ended_at":1788685284,"elapsed_s":246,"outcome":"ok","detail":"round 2: broke tests via non-atomic _atomic_write; atomicity never pinned"}
+{"id":"48f795cc","kind":"ivan","task":"7","queued_at":1788685421,"prompt_bytes":14955}
+{"id":"48f795cc","ended_at":1788685587,"elapsed_s":166,"outcome":"ok","detail":null}
+{"id":"e929999e","kind":"pat","task":"7","queued_at":1788685736,"prompt_bytes":33877}
+{"id":"e929999e","ended_at":1788685867,"elapsed_s":131,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788686009,"phase":"done","prd":"00017-malformed-memory-half-written-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788686099,"phase":"done","prd":"00017-malformed-memory-half-written-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788686254,"phase":"build","prd":"00017-malformed-memory-half-written-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788686358,"phase":"build","prd":"00020-changelog-skill-presence-check-v1.md"}
+{"id":"0cf98eef","kind":"tess","task":"1","queued_at":1788686958,"prompt_bytes":10936}
+{"id":"0cf98eef","ended_at":1788687159,"elapsed_s":201,"outcome":"ok","detail":null}
+{"id":"75fd0876","kind":"ivan","task":"1","queued_at":1788687272,"prompt_bytes":22569}
+{"id":"75fd0876","ended_at":1788687533,"elapsed_s":261,"outcome":"ok","detail":null}
+{"id":"5c85693a","kind":"tess","task":"1","queued_at":1788717058,"prompt_bytes":7666}
+{"id":"05f92385","kind":"ivan","task":"1","queued_at":1788717190,"prompt_bytes":22758}
+{"id":"217fb296","kind":"ivan","task":"1","queued_at":1788717390,"prompt_bytes":9725}
+{"id":"4f1f1fa7","kind":"ivan","task":"2","queued_at":1788717596,"prompt_bytes":13503}
+{"id":"e4c28edd","kind":"ivan","task":"3","queued_at":1788717766,"prompt_bytes":10348}
+{"kind":"handoff","site":"build","edge":"leave","at":1788717946,"phase":"review","prd":"00020-changelog-skill-presence-check-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788718006,"phase":"review","prd":"00020-changelog-skill-presence-check-v1.md"}
+{"id":"11adb159","kind":"tess","task":"4","queued_at":1788719012,"prompt_bytes":24781}
+{"id":"4e35f568","kind":"ivan","task":"4","queued_at":1788719491,"prompt_bytes":27589}
+{"id":"4e35f568","ended_at":1788720076,"elapsed_s":585,"outcome":"ok","detail":null}
+{"id":"11adb159","ended_at":1788720077,"elapsed_s":1065,"outcome":"ok","detail":null}
+{"id":"68ebe982","kind":"pat","task":"4","queued_at":1788720236,"prompt_bytes":40372}
+{"id":"68ebe982","ended_at":1788720378,"elapsed_s":142,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788720556,"phase":"review","prd":"00020-changelog-skill-presence-check-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788720603,"phase":"review","prd":"00020-changelog-skill-presence-check-v1.md"}
+{"id":"3000e219","kind":"ivan","task":"5","queued_at":1788721527,"prompt_bytes":16428}
+{"id":"3000e219","ended_at":1788721687,"elapsed_s":160,"outcome":"ok","detail":null}
+{"id":"56fe80fd","kind":"pat","task":"5","queued_at":1788721775,"prompt_bytes":14714}
+{"id":"56fe80fd","ended_at":1788721830,"elapsed_s":55,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788721914,"phase":"done","prd":"00020-changelog-skill-presence-check-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788721971,"phase":"done","prd":"00020-changelog-skill-presence-check-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788722045,"phase":"build","prd":"00020-changelog-skill-presence-check-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788722164,"phase":"build","prd":"00021-risks-tile-fake-zero-v1.md"}
+{"id":"f0ed5332","kind":"ivan","task":"1","queued_at":1788722566,"prompt_bytes":9814}
+{"id":"f0ed5332","ended_at":1788722680,"elapsed_s":114,"outcome":"ok","detail":null}
+{"id":"f4c2c541","kind":"pat","task":"1","queued_at":1788722801,"prompt_bytes":7548}
+{"id":"f4c2c541","ended_at":1788722815,"elapsed_s":14,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788722885,"phase":"build","prd":"00021-risks-tile-fake-zero-v1.md"}
+{"id":"e8cf24a2","kind":"ivan","task":"2","queued_at":1788723092,"prompt_bytes":4078}
+{"id":"33c322be","kind":"ivan","task":"2","queued_at":1788723123,"prompt_bytes":4695}
+{"id":"33c322be","ended_at":1788723219,"elapsed_s":96,"outcome":"ok","detail":null}
+{"id":"d8efc275","kind":"pat","task":"2","queued_at":1788723292,"prompt_bytes":39429}
+{"id":"98a401e0","kind":"pat","task":"2","queued_at":1788723347,"prompt_bytes":39704}
+{"id":"e1d5cc27","kind":"ivan","task":"3","queued_at":1788723501,"prompt_bytes":4821}
+{"id":"e1d5cc27","ended_at":1788723556,"elapsed_s":55,"outcome":"ok","detail":null}
+{"id":"91b04005","kind":"ivan","task":"4","queued_at":1788723648,"prompt_bytes":4834}
+{"id":"91b04005","ended_at":1788723704,"elapsed_s":56,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788723819,"phase":"review","prd":"00021-risks-tile-fake-zero-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788723904,"phase":"review","prd":"00021-risks-tile-fake-zero-v1.md"}
+{"id":"991431b2","kind":"pat","task":"5","queued_at":1788724962,"prompt_bytes":8259}
+{"kind":"handoff","site":"review","edge":"leave","at":1788725067,"phase":"done","prd":"00021-risks-tile-fake-zero-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788725117,"phase":"done","prd":"00021-risks-tile-fake-zero-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788725221,"phase":"build","prd":"00021-risks-tile-fake-zero-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788725321,"phase":"build","prd":"00022-node-ci-and-install-docs-v1.md"}
+{"id":"d30f7733","kind":"ivan","task":"1","queued_at":1788725806,"prompt_bytes":9713}
+{"id":"802c449c","kind":"ivan","task":"2","queued_at":1788725999,"prompt_bytes":9463}
+{"id":"ea95df33","kind":"pat","task":"2","queued_at":1788726073,"prompt_bytes":6122}
+{"id":"ea95df33","ended_at":1788726087,"elapsed_s":14,"outcome":"ok","detail":null}
+{"id":"6592309f","kind":"ivan","task":"3","queued_at":1788726117,"prompt_bytes":9951}
+{"id":"70b0b14f","kind":"pat","task":"3","queued_at":1788726209,"prompt_bytes":5331}
+{"id":"70b0b14f","ended_at":1788726230,"elapsed_s":21,"outcome":"ok","detail":null}
+{"id":"f59dd409","kind":"ivan","task":"4","queued_at":1788726276,"prompt_bytes":9868}
+{"kind":"handoff","site":"build","edge":"leave","at":1788726452,"phase":"review","prd":"00022-node-ci-and-install-docs-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788726513,"phase":"review","prd":"00022-node-ci-and-install-docs-v1.md"}
+{"kind":"handoff","site":"review","edge":"leave","at":1788727394,"phase":"done","prd":"00022-node-ci-and-install-docs-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788727426,"phase":"done","prd":"00022-node-ci-and-install-docs-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788727496,"phase":"build","prd":"00030-survey-prunes-skip-dirs-deep-v1.md"}
+{"id":"2baf122b","kind":"tess","task":"1","queued_at":1788727944,"prompt_bytes":39380}
+{"id":"2baf122b","ended_at":1788728226,"elapsed_s":282,"outcome":"ok","detail":null}
+{"id":"ab3912fa","kind":"ivan","task":"1","queued_at":1788728296,"prompt_bytes":44180}
+{"id":"ab3912fa","ended_at":1788728536,"elapsed_s":240,"outcome":"ok","detail":null}
+{"id":"5d56984a","kind":"pat","task":"1","queued_at":1788728666,"prompt_bytes":13406}
+{"id":"35fcffb8","kind":"ivan","task":"3","queued_at":1788729065,"prompt_bytes":10175}
+{"id":"35fcffb8","ended_at":1788729202,"elapsed_s":137,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788729374,"phase":"review","prd":"00030-survey-prunes-skip-dirs-deep-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788730100,"phase":"review","prd":"00030-survey-prunes-skip-dirs-deep-v1.md"}
+{"id":"9e1cad5b","kind":"ivan","task":"4","queued_at":1788731333,"prompt_bytes":11417}
+{"id":"9e1cad5b","ended_at":1788731388,"elapsed_s":55,"outcome":"ok","detail":null}
+{"id":"c4e3480b","kind":"pat","task":"4","queued_at":1788731481,"prompt_bytes":9574}
+{"id":"3af32989","kind":"pat","task":"5","queued_at":1788731729,"prompt_bytes":10202}
+{"id":"3fa405a7","kind":"pat","task":"6","queued_at":1788731850,"prompt_bytes":7047}
+{"kind":"handoff","site":"review","edge":"leave","at":1788731929,"phase":"review","prd":"00030-survey-prunes-skip-dirs-deep-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788732002,"phase":"review","prd":"00030-survey-prunes-skip-dirs-deep-v1.md"}
+{"id":"93179e69","kind":"tess","task":"7","queued_at":1788733068,"prompt_bytes":50478}
+{"id":"8f6acd87","kind":"tess","task":"7","queued_at":1788733095,"prompt_bytes":12375}
+{"id":"8f6acd87","ended_at":1788733248,"elapsed_s":153,"outcome":"ok","detail":null}
+{"id":"a5ad7b69","kind":"ivan","task":"7","queued_at":1788733358,"prompt_bytes":8565}
+{"id":"a5ad7b69","ended_at":1788733447,"elapsed_s":89,"outcome":"ok","detail":null}
+{"id":"8a3da9f4","kind":"pat","task":"7","queued_at":1788733529,"prompt_bytes":14395}
+{"id":"8a3da9f4","ended_at":1788733577,"elapsed_s":48,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788733667,"phase":"done","prd":"00030-survey-prunes-skip-dirs-deep-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788733701,"phase":"done","prd":"00030-survey-prunes-skip-dirs-deep-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788733781,"phase":"build","prd":"00030-survey-prunes-skip-dirs-deep-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788733936,"phase":"build","prd":"00032-sweep-validates-out-late-v1.md"}
+{"id":"910888f4","kind":"ivan","task":"1","queued_at":1788734331,"prompt_bytes":10121}
+{"id":"910888f4","ended_at":1788734428,"elapsed_s":97,"outcome":"ok","detail":null}
+{"id":"0a98dd15","kind":"pat","task":"1","queued_at":1788734544,"prompt_bytes":6446}
+{"id":"0a98dd15","ended_at":1788734561,"elapsed_s":17,"outcome":"ok","detail":null}
+{"id":"bdf62572","kind":"ivan","task":"2","queued_at":1788734694,"prompt_bytes":9941}
+{"id":"a2dad189","kind":"ivan","task":"3","queued_at":1788734838,"prompt_bytes":10220}
+{"kind":"handoff","site":"build","edge":"leave","at":1788735097,"phase":"review","prd":"00032-sweep-validates-out-late-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788735174,"phase":"review","prd":"00032-sweep-validates-out-late-v1.md"}
+{"kind":"handoff","site":"review","edge":"leave","at":1788736149,"phase":"done","prd":"00032-sweep-validates-out-late-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788736199,"phase":"done","prd":"00032-sweep-validates-out-late-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788736316,"phase":"build","prd":"00034-timeout-leaks-prompt-to-disk-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788736325,"phase":"build","prd":"00032-sweep-validates-out-late-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788736423,"phase":"build","prd":"00034-timeout-leaks-prompt-to-disk-v1.md"}
+{"id":"908fb8c3","kind":"tess","task":"1","queued_at":1788736820,"prompt_bytes":20029}
+{"id":"bd247d06","kind":"ivan","task":"1","queued_at":1788737243,"prompt_bytes":25059}
+{"id":"1610cba4","kind":"pat","task":"1","queued_at":1788737428,"prompt_bytes":10268}
+{"id":"51b44f4b","kind":"ivan","task":"2","queued_at":1788737568,"prompt_bytes":10950}
+{"kind":"handoff","site":"build","edge":"leave","at":1788737804,"phase":"review","prd":"00034-timeout-leaks-prompt-to-disk-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788737857,"phase":"review","prd":"00034-timeout-leaks-prompt-to-disk-v1.md"}
+{"id":"d61f128a","kind":"pat","task":"3","queued_at":1788738939,"prompt_bytes":11020}
+{"id":"d61f128a","ended_at":1788738994,"elapsed_s":55,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788739067,"phase":"done","prd":"00034-timeout-leaks-prompt-to-disk-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788739111,"phase":"done","prd":"00034-timeout-leaks-prompt-to-disk-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788739215,"phase":"build","prd":"00034-timeout-leaks-prompt-to-disk-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788739333,"phase":"build","prd":"00036-create-skill-scripts-help-and-union-path-v1.md"}
+{"id":"4404ec6a","kind":"tess","task":"1","queued_at":1788739695,"prompt_bytes":9369}
+{"id":"84ba07a4","kind":"ivan","task":"1","queued_at":1788739887,"prompt_bytes":13975}
+{"id":"790f9b42","kind":"pat","task":"1","queued_at":1788740078,"prompt_bytes":7729}
+{"id":"959fb29d","kind":"ivan","task":"2","queued_at":1788740184,"prompt_bytes":9874}
+{"id":"a0451b90","kind":"tess","task":"3","queued_at":1788740316,"prompt_bytes":10563}
+{"id":"b4149d9f","kind":"ivan","task":"3","queued_at":1788740449,"prompt_bytes":9680}
+{"id":"579d9483","kind":"pat","task":"3","queued_at":1788740590,"prompt_bytes":6504}
+{"id":"cb378cd3","kind":"ivan","task":"4","queued_at":1788740647,"prompt_bytes":10019}
+{"kind":"handoff","site":"build","edge":"leave","at":1788740833,"phase":"review","prd":"00036-create-skill-scripts-help-and-union-path-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788740929,"phase":"review","prd":"00036-create-skill-scripts-help-and-union-path-v1.md"}
+{"id":"4e068893","kind":"ivan","task":"6","queued_at":1788742005,"prompt_bytes":11684}
+{"id":"4e068893","ended_at":1788742071,"elapsed_s":66,"outcome":"ok","detail":null}
+{"id":"a43f4522","kind":"pat","task":"6","queued_at":1788742150,"prompt_bytes":8069}
+{"id":"a43f4522","ended_at":1788742179,"elapsed_s":29,"outcome":"ok","detail":null}
+{"id":"c98f171a","kind":"ivan","task":"7","queued_at":1788742229,"prompt_bytes":11715}
+{"id":"c98f171a","ended_at":1788742277,"elapsed_s":48,"outcome":"ok","detail":null}
+{"id":"ebf97cfc","kind":"pat","task":"7","queued_at":1788742327,"prompt_bytes":7840}
+{"id":"ebf97cfc","ended_at":1788742354,"elapsed_s":27,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788742431,"phase":"review","prd":"00036-create-skill-scripts-help-and-union-path-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788742494,"phase":"review","prd":"00036-create-skill-scripts-help-and-union-path-v1.md"}
+{"kind":"handoff","site":"review","edge":"leave","at":1788743261,"phase":"done","prd":"00036-create-skill-scripts-help-and-union-path-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788743468,"phase":"build","prd":"00038-braid-docs-flags-and-backup-paths-v1.md"}
+{"id":"5e449de9","kind":"tess","task":"1","queued_at":1788743743,"prompt_bytes":33148}
+{"id":"5e449de9","ended_at":1788743873,"elapsed_s":130,"outcome":"ok","detail":null}
+{"id":"9bee4419","kind":"ivan","task":"1","queued_at":1788743964,"prompt_bytes":20634}
+{"id":"9bee4419","ended_at":1788744029,"elapsed_s":65,"outcome":"ok","detail":null}
+{"id":"cbbe67be","kind":"pat","task":"1","queued_at":1788744133,"prompt_bytes":7624}
+{"id":"d370d6b8","kind":"pat","task":"1","queued_at":1788744404,"prompt_bytes":7957}
+{"id":"7b1de5cb","kind":"ivan","task":"2","queued_at":1788744617,"prompt_bytes":10542}
+{"id":"4702214b","kind":"pat","task":"2","queued_at":1788744773,"prompt_bytes":7530}
+{"id":"3ebeb9f5","kind":"ivan","task":"3","queued_at":1788744873,"prompt_bytes":9968}
+{"id":"5cf9ec0b","kind":"pat","task":"3","queued_at":1788744984,"prompt_bytes":6213}
+{"kind":"handoff","site":"build","edge":"leave","at":1788745083,"phase":"review","prd":"00038-braid-docs-flags-and-backup-paths-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788745152,"phase":"review","prd":"00038-braid-docs-flags-and-backup-paths-v1.md"}
+{"id":"d9bda340","kind":"pat","task":"4","queued_at":1788746093,"prompt_bytes":10318}
+{"id":"d9bda340","ended_at":1788746139,"elapsed_s":46,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788746219,"phase":"review","prd":"00038-braid-docs-flags-and-backup-paths-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788746259,"phase":"review","prd":"00038-braid-docs-flags-and-backup-paths-v1.md"}
+{"kind":"handoff","site":"review","edge":"leave","at":1788747255,"phase":"done","prd":"00038-braid-docs-flags-and-backup-paths-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788747285,"phase":"done","prd":"00038-braid-docs-flags-and-backup-paths-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788749548,"phase":"done","prd":"00038-braid-docs-flags-and-backup-paths-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788749671,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788749746,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"id":"b63f55bf","kind":"tess","task":"1","queued_at":1788753370,"prompt_bytes":17613}
+{"id":"b63f55bf","ended_at":1788753749,"elapsed_s":379,"outcome":"ok","detail":null}
+{"id":"5ad6fdb8","kind":"devon","task":"1","queued_at":1788753799,"prompt_bytes":4822}
+{"id":"5ad6fdb8","ended_at":1788754193,"elapsed_s":394,"outcome":"ok","detail":"broke the tests: two wrong configs pass all six"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788754344,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"id":"85ee5a2b","kind":"tess","task":"1","queued_at":1788754458,"prompt_bytes":8823}
+{"id":"85ee5a2b","ended_at":1788755120,"elapsed_s":662,"outcome":"ok","detail":null}
+{"id":"571bd108","kind":"devon","task":"1","queued_at":1788755182,"prompt_bytes":6866}
+{"id":"571bd108","ended_at":1788755760,"elapsed_s":578,"outcome":"ok","detail":"6 exploits found; 2-round A/C cap exhausted"}
+{"id":"7f9ab6c4","kind":"ivan","task":"1","queued_at":1788755830,"prompt_bytes":23369}
+{"id":"7f9ab6c4","ended_at":1788756187,"elapsed_s":357,"outcome":"ok","detail":null}
+{"id":"78688ff7","kind":"deslop","task":"1","queued_at":1788756275,"prompt_bytes":10122}
+{"id":"78688ff7","ended_at":1788756473,"elapsed_s":198,"outcome":"ok","detail":"no slop found"}
+{"id":"fd94d95c","kind":"pat","task":"1","queued_at":1788756543,"prompt_bytes":28369}
+{"id":"fd94d95c","ended_at":1788756766,"elapsed_s":223,"outcome":"ok","detail":null}
+{"id":"61608d4e","kind":"ivan","task":"1","queued_at":1788756794,"prompt_bytes":11743}
+{"id":"61608d4e","ended_at":1788756941,"elapsed_s":147,"outcome":"ok","detail":null}
+{"id":"86879d03","kind":"pat","task":"1","queued_at":1788756973,"prompt_bytes":5257}
+{"id":"86879d03","ended_at":1788757046,"elapsed_s":73,"outcome":"ok","detail":"medium resolved, low carried"}
+{"id":"89e8f8bd","kind":"tess","task":"2","queued_at":1788757165,"prompt_bytes":22171}
+{"id":"89e8f8bd","ended_at":1788757759,"elapsed_s":594,"outcome":"ok","detail":null}
+{"id":"f2c24065","kind":"devon","task":"2","queued_at":1788757800,"prompt_bytes":5466}
+{"id":"f2c24065","ended_at":1788758384,"elapsed_s":584,"outcome":"ok","detail":"3 of 4 wrong impls passed 17/17"}
+{"id":"446b5784","kind":"tess","task":"2","queued_at":1788758436,"prompt_bytes":14640}
+{"id":"446b5784","ended_at":1788758838,"elapsed_s":402,"outcome":"ok","detail":"22 tests; flagged a windows conflict in addition 2"}
+{"id":"6ed91319","kind":"tess","task":"2","queued_at":1788758866,"prompt_bytes":12180}
+{"id":"6ed91319","ended_at":1788758950,"elapsed_s":84,"outcome":"ok","detail":"windows branch corrected"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788759118,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"id":"e656763b","kind":"ivan","task":"2","queued_at":1788759183,"prompt_bytes":24344}
+{"id":"e656763b","ended_at":1788759605,"elapsed_s":422,"outcome":"ok","detail":null}
+{"id":"ff22e1f2","kind":"ivan","task":"2","queued_at":1788759673,"prompt_bytes":10117}
+{"id":"ff22e1f2","ended_at":1788759774,"elapsed_s":101,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788759900,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788760003,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"id":"b160eb4e","kind":"ivan","task":"3","queued_at":1788760373,"prompt_bytes":15483}
+{"id":"b160eb4e","ended_at":1788760689,"elapsed_s":316,"outcome":"ok","detail":null}
+{"id":"79045327","kind":"ivan","task":"4","queued_at":1788760853,"prompt_bytes":16963}
+{"id":"79045327","ended_at":1788761314,"elapsed_s":461,"outcome":"ok","detail":null}
+{"id":"679abd6d","kind":"ivan","task":"5","queued_at":1788761525,"prompt_bytes":14562}
+{"id":"679abd6d","ended_at":1788761734,"elapsed_s":209,"outcome":"ok","detail":null}
+{"id":"913c959b","kind":"ivan","task":"5","queued_at":1788761802,"prompt_bytes":10965}
+{"id":"913c959b","ended_at":1788761921,"elapsed_s":119,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788762022,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788762145,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"id":"c1d48559","kind":"tess","task":"6","queued_at":1788762307,"prompt_bytes":23743}
+{"id":"c1d48559","ended_at":1788762610,"elapsed_s":303,"outcome":"ok","detail":null}
+{"id":"517b3f66","kind":"devon","task":"6","queued_at":1788762696,"prompt_bytes":3999}
+{"id":"517b3f66","ended_at":1788762974,"elapsed_s":278,"outcome":"ok","detail":"broke the tests on first attempt"}
+{"id":"aeeab276","kind":"tess","task":"6","queued_at":1788763013,"prompt_bytes":13851}
+{"id":"aeeab276","ended_at":1788763358,"elapsed_s":345,"outcome":"ok","detail":null}
+{"id":"f722a905","kind":"devon","task":"6","queued_at":1788763394,"prompt_bytes":5214}
+{"id":"f722a905","ended_at":1788763660,"elapsed_s":266,"outcome":"ok","detail":"broke the strengthened suite; A/C rounds exhausted"}
+{"id":"f3c4a5e9","kind":"ivan","task":"6","queued_at":1788763736,"prompt_bytes":24130}
+{"id":"f3c4a5e9","ended_at":1788763867,"elapsed_s":131,"outcome":"ok","detail":null}
+{"id":"e124ba79","kind":"pat","task":"6","queued_at":1788763967,"prompt_bytes":24606}
+{"id":"e124ba79","ended_at":1788764041,"elapsed_s":74,"outcome":"ok","detail":null}
+{"id":"b44647b9","kind":"pat","task":"6","queued_at":1788764055,"prompt_bytes":24881}
+{"id":"b44647b9","ended_at":1788764069,"elapsed_s":14,"outcome":"ok","detail":null}
+{"id":"bd2e7b16","kind":"tess","task":"7","queued_at":1788764217,"prompt_bytes":40102}
+{"id":"bd2e7b16","ended_at":1788764944,"elapsed_s":727,"outcome":"ok","detail":null}
+{"id":"bde71273","kind":"devon","task":"7","queued_at":1788765007,"prompt_bytes":4847}
+{"kind":"handoff","site":"build","edge":"resume","at":1788767683,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"id":"25f9f259","kind":"devon","task":"7","queued_at":1788767909,"prompt_bytes":3922}
+{"id":"25f9f259","ended_at":1788768267,"elapsed_s":358,"outcome":"ok","detail":null}
+{"id":"18c890a1","kind":"tess","task":"7","queued_at":1788768329,"prompt_bytes":8435}
+{"id":"18c890a1","ended_at":1788769081,"elapsed_s":752,"outcome":"ok","detail":null}
+{"id":"155f371d","kind":"devon","task":"7","queued_at":1788769124,"prompt_bytes":4609}
+{"id":"155f371d","ended_at":1788769487,"elapsed_s":363,"outcome":"ok","detail":null}
+{"id":"c4baca20","kind":"ivan","task":"7","queued_at":1788769512,"prompt_bytes":43906}
+{"id":"c4baca20","ended_at":1788769656,"elapsed_s":144,"outcome":"ok","detail":null}
+{"id":"7038d064","kind":"ivan","task":"7","queued_at":1788769718,"prompt_bytes":9383}
+{"id":"7038d064","ended_at":1788770289,"elapsed_s":571,"outcome":"ok","detail":null}
+{"id":"40e31358","kind":"pat","task":"7","queued_at":1788770390,"prompt_bytes":51392}
+{"id":"49a4ebf0","kind":"pat","task":"7","queued_at":1788770418,"prompt_bytes":50259}
+{"id":"ff6a6edd","kind":"pat","task":"7","queued_at":1788770466,"prompt_bytes":49929}
+{"id":"ff6a6edd","ended_at":1788770542,"elapsed_s":76,"outcome":"ok","detail":null}
+{"id":"ea58d87e","kind":"pat","task":"7","queued_at":1788770566,"prompt_bytes":49875}
+{"id":"ea58d87e","ended_at":1788770580,"elapsed_s":14,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"resume","at":1788771038,"phase":"build","prd":"00047-check-links-repeated-stats-v1.md"}
+{"id":"ee0636aa","kind":"tess","task":"1","queued_at":1788771271,"prompt_bytes":14857}
+{"id":"ee0636aa","ended_at":1788771528,"elapsed_s":257,"outcome":"ok","detail":null}
+{"id":"e1afd1d3","kind":"ivan","task":"1","queued_at":1788771595,"prompt_bytes":14533}
+{"id":"e1afd1d3","ended_at":1788771704,"elapsed_s":109,"outcome":"ok","detail":null}
+{"id":"c1b05442","kind":"pat","task":"1","queued_at":1788771896,"prompt_bytes":9237}
+{"kind":"handoff","site":"build","edge":"resume","at":1788772049,"phase":"build","prd":"00047-check-links-repeated-stats-v1.md"}
+{"id":"aece0f13","kind":"deslop","task":"1","queued_at":1788772214,"prompt_bytes":9703}
+{"id":"aece0f13","ended_at":1788772304,"elapsed_s":90,"outcome":"ok","detail":null}
+{"id":"22a084a8","kind":"pat","task":"1","queued_at":1788772356,"prompt_bytes":9204}
+{"id":"ec81289f","kind":"ivan","task":"2","queued_at":1788772606,"prompt_bytes":9189}
+{"id":"7d4eb1e4","kind":"ivan","task":"2","queued_at":1788772652,"prompt_bytes":10411}
+{"kind":"handoff","site":"build","edge":"leave","at":1788772950,"phase":"review","prd":"00047-check-links-repeated-stats-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1788773005,"phase":"review","prd":"00047-check-links-repeated-stats-v1.md"}
+{"id":"56f4a8f9","kind":"pat","task":"3","queued_at":1788774010,"prompt_bytes":10605}
+{"id":"56f4a8f9","ended_at":1788774031,"elapsed_s":21,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1788774128,"phase":"done","prd":"00047-check-links-repeated-stats-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1788774161,"phase":"done","prd":"00047-check-links-repeated-stats-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1788774235,"phase":"build","prd":"00047-check-links-repeated-stats-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788774332,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"4fc8832a","kind":"tess","task":"1","queued_at":1788778594,"prompt_bytes":25581}
+{"id":"4fc8832a","ended_at":1788778817,"elapsed_s":223,"outcome":"ok","detail":null}
+{"id":"ec5a2803","kind":"devon","task":"1","queued_at":1788778907,"prompt_bytes":4484}
+{"id":"ec5a2803","ended_at":1788778939,"elapsed_s":32,"outcome":"killed","detail":null}
+{"kind":"handoff","site":"build","edge":"resume","at":1788779153,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"210ed8cd","kind":"devon","task":"1","queued_at":1788779188,"prompt_bytes":4484}
+{"id":"210ed8cd","ended_at":1788779358,"elapsed_s":170,"outcome":"ok","detail":"exploit succeeded: 26 passed 0 failed"}
+{"id":"4275209f","kind":"tess","task":"1","queued_at":1788779443,"prompt_bytes":8925}
+{"id":"b3abe946","kind":"tess","task":"1","queued_at":1788779471,"prompt_bytes":9645}
+{"id":"b3abe946","ended_at":1788779879,"elapsed_s":408,"outcome":"ok","detail":"4 weaknesses fixed; fake now 15/11"}
+{"id":"5dc5695b","kind":"devon","task":"1","queued_at":1788779912,"prompt_bytes":4781}
+{"id":"5dc5695b","ended_at":1788780142,"elapsed_s":230,"outcome":"ok","detail":"round 2 exploit succeeded 26/0; new shape-sniffing angle"}
+{"id":"6f454cce","kind":"tess","task":"1","queued_at":1788780173,"prompt_bytes":9361}
+{"id":"6f454cce","ended_at":1788780612,"elapsed_s":439,"outcome":"ok","detail":"3 items fixed; each verified against its own mutant"}
+{"id":"89d4459b","kind":"ivan","task":"1","queued_at":1788780667,"prompt_bytes":28801}
+{"id":"89d4459b","ended_at":1788780804,"elapsed_s":137,"outcome":"ok","detail":"26/0 on bash 5.x and 3.2"}
+{"id":"db75c9d5","kind":"pat","task":"1","queued_at":1788780940,"prompt_bytes":30967}
+{"id":"db75c9d5","ended_at":1788780978,"elapsed_s":38,"outcome":"ok","detail":"NO FINDINGS"}
+{"id":"654be75e","kind":"tess","task":"2","queued_at":1788781178,"prompt_bytes":22097}
+{"id":"654be75e","ended_at":1788781905,"elapsed_s":727,"outcome":"ok","detail":"151 tests, RED via ModuleNotFoundError, 4 ambiguities raised"}
+{"id":"48a047d0","kind":"tess","task":"2","queued_at":1788782010,"prompt_bytes":16093}
+{"id":"48a047d0","ended_at":1788782335,"elapsed_s":325,"outcome":"ok","detail":"3 cells pinned; verified by 3 mutations"}
+{"id":"44d18703","kind":"devon","task":"2","queued_at":1788782422,"prompt_bytes":6439}
+{"id":"44d18703","ended_at":1788782804,"elapsed_s":382,"outcome":"ok","detail":"exploit succeeded 153/0; 8 weaknesses named"}
+{"id":"66f59583","kind":"tess","task":"2","queued_at":1788782841,"prompt_bytes":18306}
+{"id":"66f59583","ended_at":1788783437,"elapsed_s":596,"outcome":"ok","detail":"8 gaps closed; 215 tests; exploit now 59 failed"}
+{"id":"a4326732","kind":"devon","task":"2","queued_at":1788783485,"prompt_bytes":6439}
+{"kind":"handoff","site":"build","edge":"resume","at":1788785632,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"a4326732","ended_at":1788785783,"elapsed_s":2298,"outcome":"lost","detail":null}
+{"id":"f9515b29","kind":"devon","task":"2","queued_at":1788785802,"prompt_bytes":6439}
+{"id":"f9515b29","ended_at":1788786243,"elapsed_s":441,"outcome":"ok","detail":"round 2 exploit succeeded 215/0; 10 weaknesses named"}
+{"id":"5d0e581b","kind":"tess","task":"2","queued_at":1788786300,"prompt_bytes":19581}
+{"id":"5d0e581b","ended_at":1788787128,"elapsed_s":828,"outcome":"ok","detail":"10 gaps addressed, 2 declined as unpinned contract; 215 -> 563 cases"}
+{"id":"741ed06a","kind":"ivan","task":"2","queued_at":1788787176,"prompt_bytes":42490}
+{"id":"741ed06a","ended_at":1788787777,"elapsed_s":601,"outcome":"ok","detail":"572 passed; records.py 342 lines, longest fn 26"}
+{"id":"dd1f8e2f","kind":"deslop","task":"2","queued_at":1788787862,"prompt_bytes":18466}
+{"id":"dd1f8e2f","ended_at":1788788117,"elapsed_s":255,"outcome":"ok","detail":"1 removal survived: unreachable timed_out guard in _verdict"}
+{"id":"fce3a177","kind":"pat","task":"2","queued_at":1788788173,"prompt_bytes":68459}
+{"id":"89319659","kind":"pat","task":"2","queued_at":1788788212,"prompt_bytes":31766}
+{"id":"89319659","ended_at":1788788391,"elapsed_s":179,"outcome":"ok","detail":"1 MEDIUM (rung-5/6 ordering in _judge_gates), 1 LOW"}
+{"id":"97736743","kind":"tess","task":"2","queued_at":1788788410,"prompt_bytes":15270}
+{"id":"97736743","ended_at":1788788541,"elapsed_s":131,"outcome":"ok","detail":"4 rows added; 3 fail red exactly on the rung-5/6 ordering bug"}
+{"id":"6a44b602","kind":"ivan","task":"2","queued_at":1788788574,"prompt_bytes":9145}
+{"id":"6a44b602","ended_at":1788788637,"elapsed_s":63,"outcome":"ok","detail":"rung-5 before rung-6 in _judge_gates; 576 passed"}
+{"id":"ec5f07c5","kind":"pat","task":"2","queued_at":1788788670,"prompt_bytes":5427}
+{"id":"ec5f07c5","ended_at":1788788700,"elapsed_s":30,"outcome":"ok","detail":"delta re-run: MEDIUM resolved, LOW carried forward, no new findings"}
+{"id":"831b3c0e","kind":"tess","task":"3","queued_at":1788788843,"prompt_bytes":18517}
+{"id":"831b3c0e","ended_at":1788789208,"elapsed_s":365,"outcome":"ok","detail":"104 cases, RED via ImportError, 7 assumptions raised"}
+{"id":"efd0e4a7","kind":"devon","task":"3","queued_at":1788789243,"prompt_bytes":6004}
+{"id":"efd0e4a7","ended_at":1788789433,"elapsed_s":190,"outcome":"ok","detail":"round 1 exploit succeeded 104/0; 4 exploits + 1 untested gap"}
+{"id":"a144148c","kind":"tess","task":"3","queued_at":1788789466,"prompt_bytes":13938}
+{"id":"a144148c","ended_at":1788790057,"elapsed_s":591,"outcome":"ok","detail":"5 gaps closed; 104 -> 160 cases; exploit now 125 failed"}
+{"id":"0517a1c9","kind":"devon","task":"3","queued_at":1788790064,"prompt_bytes":6004}
+{"id":"0517a1c9","ended_at":1788790341,"elapsed_s":277,"outcome":"ok","detail":"round 2 exploit succeeded 160/0; whitelist-of-the-one-good-value, 9 weaknesses"}
+{"id":"5422046d","kind":"tess","task":"3","queued_at":1788790379,"prompt_bytes":14951}
+{"id":"5422046d","ended_at":1788790963,"elapsed_s":584,"outcome":"ok","detail":"8 gaps closed; 160 -> 266 cases; exploit now 96 failed; 1 blocker raised"}
+{"id":"9353307e","kind":"ivan","task":"3","queued_at":1788791032,"prompt_bytes":7801}
+{"id":"9353307e","ended_at":1788791294,"elapsed_s":262,"outcome":"ok","detail":"266 passed; spec.py 190 lines, longest fn 22"}
+{"id":"98ed9589","kind":"ivan","task":"3","queued_at":1788791350,"prompt_bytes":7810}
+{"id":"98ed9589","ended_at":1788791569,"elapsed_s":219,"outcome":"ok","detail":"split 840 -> 620 + 260; 842 passed"}
+{"kind":"handoff","site":"build","edge":"leave","at":1788791630,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788791767,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"9a3b81a4","kind":"pat","task":"3","queued_at":1788792049,"prompt_bytes":48874}
+{"id":"9a3b81a4","ended_at":1788792067,"elapsed_s":18,"outcome":"error","detail":null}
+{"id":"fbf41344","kind":"pat","task":"3","queued_at":1788792073,"prompt_bytes":48119}
+{"id":"fbf41344","ended_at":1788792196,"elapsed_s":123,"outcome":"ok","detail":null}
+{"id":"453bc5be","kind":"pat","task":"3","queued_at":1788792240,"prompt_bytes":48394}
+{"id":"453bc5be","ended_at":1788792256,"elapsed_s":16,"outcome":"ok","detail":null}
+{"id":"10156fcd","kind":"pat","task":"3","queued_at":1788792337,"prompt_bytes":5034}
+{"id":"10156fcd","ended_at":1788792348,"elapsed_s":11,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788792478,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788792568,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"6f3aa782","kind":"tess","task":"4","queued_at":1788792904,"prompt_bytes":27903}
+{"id":"6f3aa782","ended_at":1788793375,"elapsed_s":471,"outcome":"ok","detail":null}
+{"id":"9df2237a","kind":"devon","task":"4","queued_at":1788793431,"prompt_bytes":3866}
+{"id":"9df2237a","ended_at":1788793607,"elapsed_s":176,"outcome":"ok","detail":"broke the tests: frozen-blob renderer passes all 38"}
+{"id":"6b95dacd","kind":"tess","task":"4","queued_at":1788793634,"prompt_bytes":14858}
+{"id":"6b95dacd","ended_at":1788794072,"elapsed_s":438,"outcome":"ok","detail":null}
+{"id":"686ba47f","kind":"devon","task":"4","queued_at":1788794095,"prompt_bytes":4315}
+{"id":"686ba47f","ended_at":1788794396,"elapsed_s":301,"outcome":"ok","detail":"broke the loader half: count-based validation passes all 82"}
+{"id":"f58361a7","kind":"tess","task":"4","queued_at":1788794427,"prompt_bytes":14719}
+{"id":"f58361a7","ended_at":1788794962,"elapsed_s":535,"outcome":"ok","detail":null}
+{"id":"7c427e44","kind":"tess","task":"4","queued_at":1788794984,"prompt_bytes":10756}
+{"id":"7c427e44","ended_at":1788795025,"elapsed_s":41,"outcome":"ok","detail":null}
+{"id":"370d47ff","kind":"ivan","task":"4","queued_at":1788795069,"prompt_bytes":28785}
+{"id":"370d47ff","ended_at":1788795421,"elapsed_s":352,"outcome":"ok","detail":null}
+{"id":"da04b451","kind":"pat","task":"4","queued_at":1788795505,"prompt_bytes":39133}
+{"id":"da04b451","ended_at":1788795620,"elapsed_s":115,"outcome":"ok","detail":null}
+{"id":"34e1da51","kind":"pat","task":"4","queued_at":1788795635,"prompt_bytes":39408}
+{"id":"34e1da51","ended_at":1788795652,"elapsed_s":17,"outcome":"ok","detail":null}
+{"id":"5b7a5ad1","kind":"tess","task":"4","queued_at":1788795705,"prompt_bytes":12769}
+{"id":"5b7a5ad1","ended_at":1788795829,"elapsed_s":124,"outcome":"ok","detail":null}
+{"id":"8c771758","kind":"ivan","task":"4","queued_at":1788795851,"prompt_bytes":8683}
+{"id":"8c771758","ended_at":1788795930,"elapsed_s":79,"outcome":"ok","detail":null}
+{"id":"276939c5","kind":"pat","task":"4","queued_at":1788795959,"prompt_bytes":8105}
+{"id":"276939c5","ended_at":1788795996,"elapsed_s":37,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788796094,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788796235,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"d4074133","kind":"tess","task":"5","queued_at":1788796481,"prompt_bytes":26030}
+{"id":"d4074133","ended_at":1788797459,"elapsed_s":978,"outcome":"ok","detail":null}
+{"id":"af0c8c48","kind":"tess","task":"5","queued_at":1788797499,"prompt_bytes":9893}
+{"id":"af0c8c48","ended_at":1788797556,"elapsed_s":57,"outcome":"ok","detail":null}
+{"id":"1496f63b","kind":"devon","task":"5","queued_at":1788797585,"prompt_bytes":3910}
+{"id":"1496f63b","ended_at":1788798033,"elapsed_s":448,"outcome":"ok","detail":"broke the tests: 10 exploits"}
+{"id":"be3a7c5c","kind":"tess","task":"5","queued_at":1788798063,"prompt_bytes":13541}
+{"kind":"handoff","site":"build","edge":"resume","at":1788803582,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"2b587797","kind":"devon","task":"5","queued_at":1788803692,"prompt_bytes":4177}
+{"id":"2b587797","ended_at":1788804118,"elapsed_s":426,"outcome":"ok","detail":null}
+{"id":"bd30daa3","kind":"tess","task":"5","queued_at":1788804136,"prompt_bytes":11778}
+{"id":"bb971b3b","kind":"ivan","task":"5","queued_at":1788804437,"prompt_bytes":39979}
+{"id":"b672c848","kind":"deslop","task":"5","queued_at":1788805083,"prompt_bytes":13001}
+{"id":"b672c848","ended_at":1788805335,"elapsed_s":252,"outcome":"ok","detail":null}
+{"id":"fc781672","kind":"ivan","task":"5","queued_at":1788805365,"prompt_bytes":9956}
+{"id":"4923ec48","kind":"ivan","task":"5","queued_at":1788805844,"prompt_bytes":9942}
+{"id":"65d32420","kind":"pat","task":"5","queued_at":1788805976,"prompt_bytes":55071}
+{"id":"6000cc9c","kind":"pat","task":"5","queued_at":1788806039,"prompt_bytes":51904}
+{"id":"9f5fdb6d","kind":"pat","task":"5","queued_at":1788806075,"prompt_bytes":39052}
+{"id":"a941b83c","kind":"ivan","task":"5","queued_at":1788806222,"prompt_bytes":11255}
+{"id":"404d9856","kind":"pat","task":"5","queued_at":1788806397,"prompt_bytes":6154}
+{"kind":"handoff","site":"build","edge":"resume","at":1788806599,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"5b67c3cc","kind":"tess","task":"6","queued_at":1788806973,"prompt_bytes":40213}
+{"id":"5b67c3cc","ended_at":1788807831,"elapsed_s":858,"outcome":"ok","detail":null}
+{"id":"37756b77","kind":"devon","task":"6","queued_at":1788807904,"prompt_bytes":4891}
+{"id":"37756b77","ended_at":1788808214,"elapsed_s":310,"outcome":"ok","detail":"broke the tests: 6 exploits"}
+{"id":"3130b6e0","kind":"tess","task":"6","queued_at":1788808245,"prompt_bytes":23776}
+{"id":"3130b6e0","ended_at":1788808937,"elapsed_s":692,"outcome":"ok","detail":null}
+{"id":"3a30e867","kind":"devon","task":"6","queued_at":1788808978,"prompt_bytes":6535}
+{"id":"3a30e867","ended_at":1788809498,"elapsed_s":520,"outcome":"ok","detail":"broke the tests again: 6 new exploits"}
+{"id":"c46e0d23","kind":"tess","task":"6","queued_at":1788809533,"prompt_bytes":24798}
+{"id":"c46e0d23","ended_at":1788810503,"elapsed_s":970,"outcome":"ok","detail":null}
+{"id":"60b05ee2","kind":"ivan","task":"6","queued_at":1788810580,"prompt_bytes":47222}
+{"id":"60b05ee2","ended_at":1788811158,"elapsed_s":578,"outcome":"ok","detail":null}
+{"id":"561b7fe4","kind":"pat","task":"6","queued_at":1788811329,"prompt_bytes":56469}
+{"id":"d047e4ad","kind":"pat","task":"6","queued_at":1788811363,"prompt_bytes":27243}
+{"id":"d047e4ad","ended_at":1788811464,"elapsed_s":101,"outcome":"ok","detail":null}
+{"id":"71d0dbc9","kind":"pat","task":"6","queued_at":1788811479,"prompt_bytes":27518}
+{"id":"71d0dbc9","ended_at":1788811496,"elapsed_s":17,"outcome":"ok","detail":null}
+{"id":"2db5defb","kind":"ivan","task":"6","queued_at":1788811567,"prompt_bytes":21785}
+{"id":"2db5defb","ended_at":1788811742,"elapsed_s":175,"outcome":"ok","detail":null}
+{"id":"21418d92","kind":"pat","task":"6","queued_at":1788811795,"prompt_bytes":4711}
+{"id":"21418d92","ended_at":1788811826,"elapsed_s":31,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788811940,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788812086,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"a710a360","kind":"tess","task":"7","queued_at":1788812450,"prompt_bytes":45728}
+{"id":"a710a360","ended_at":1788813004,"elapsed_s":554,"outcome":"ok","detail":null}
+{"id":"202ded40","kind":"tess","task":"7","queued_at":1788813056,"prompt_bytes":15893}
+{"id":"202ded40","ended_at":1788813274,"elapsed_s":218,"outcome":"ok","detail":null}
+{"id":"5ea86acf","kind":"devon","task":"7","queued_at":1788813326,"prompt_bytes":5849}
+{"id":"5ea86acf","ended_at":1788814216,"elapsed_s":890,"outcome":"ok","detail":"2 exploits passed"}
+{"id":"2cc6af25","kind":"tess","task":"7","queued_at":1788814256,"prompt_bytes":18087}
+{"id":"2cc6af25","ended_at":1788815087,"elapsed_s":831,"outcome":"ok","detail":null}
+{"id":"fa90ffcd","kind":"devon","task":"7","queued_at":1788815119,"prompt_bytes":6350}
+{"id":"fa90ffcd","ended_at":1788815465,"elapsed_s":346,"outcome":"ok","detail":"6 findings, A/C cap reached"}
+{"id":"fe55628d","kind":"ivan","task":"7","queued_at":1788815556,"prompt_bytes":41608}
+{"id":"fe55628d","ended_at":1788816170,"elapsed_s":614,"outcome":"ok","detail":null}
+{"id":"1274074e","kind":"deslop","task":"7","queued_at":1788816265,"prompt_bytes":9924}
+{"id":"1274074e","ended_at":1788816518,"elapsed_s":253,"outcome":"ok","detail":"no slop found"}
+{"id":"3f020c73","kind":"pat","task":"7","queued_at":1788816603,"prompt_bytes":49854}
+{"id":"3f020c73","ended_at":1788816758,"elapsed_s":155,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788816934,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788817029,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"18d969a2","kind":"tess","task":"8","queued_at":1788817427,"prompt_bytes":37080}
+{"id":"18d969a2","ended_at":1788818429,"elapsed_s":1002,"outcome":"ok","detail":null}
+{"id":"34aa5e90","kind":"devon","task":"8","queued_at":1788818491,"prompt_bytes":3788}
+{"id":"34aa5e90","ended_at":1788818820,"elapsed_s":329,"outcome":"ok","detail":"broke the tests: 10 exploits"}
+{"id":"f47feeb8","kind":"tess","task":"8","queued_at":1788818875,"prompt_bytes":17999}
+{"id":"f47feeb8","ended_at":1788819687,"elapsed_s":812,"outcome":"ok","detail":null}
+{"id":"cd775f95","kind":"devon","task":"8","queued_at":1788819742,"prompt_bytes":5393}
+{"id":"cd775f95","ended_at":1788820166,"elapsed_s":424,"outcome":"ok","detail":"broke the tests again: 5 exploits, 2 CRITICAL"}
+{"id":"802d2950","kind":"tess","task":"8","queued_at":1788820206,"prompt_bytes":17981}
+{"id":"802d2950","ended_at":1788821494,"elapsed_s":1288,"outcome":"ok","detail":null}
+{"id":"40aa5c22","kind":"ivan","task":"8","queued_at":1788821599,"prompt_bytes":12876}
+{"id":"40aa5c22","ended_at":1788822166,"elapsed_s":567,"outcome":"ok","detail":null}
+{"id":"0bfc509d","kind":"ivan","task":"8","queued_at":1788822237,"prompt_bytes":11982}
+{"id":"0bfc509d","ended_at":1788822371,"elapsed_s":134,"outcome":"ok","detail":null}
+{"id":"f43c7333","kind":"pat","task":"8","queued_at":1788822469,"prompt_bytes":30085}
+{"id":"f43c7333","ended_at":1788822668,"elapsed_s":199,"outcome":"ok","detail":null}
+{"id":"28b777f1","kind":"pat","task":"8","queued_at":1788822682,"prompt_bytes":30360}
+{"id":"28b777f1","ended_at":1788822698,"elapsed_s":16,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1788822861,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1788823049,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"704701c8","kind":"tess","task":"9","queued_at":1788823169,"prompt_bytes":33591}
+{"id":"704701c8","ended_at":1788823564,"elapsed_s":395,"outcome":"ok","detail":null}
+{"id":"a1e67d2f","kind":"tess","task":"9","queued_at":1788823842,"prompt_bytes":15616}
+{"id":"a1e67d2f","ended_at":1788824183,"elapsed_s":341,"outcome":"ok","detail":null}
+{"id":"dd9e4502","kind":"devon","task":"9","queued_at":1788824233,"prompt_bytes":32172}
+{"id":"dd9e4502","ended_at":1788824379,"elapsed_s":146,"outcome":"ok","detail":"broke the tests; 18 passed against a grep-based stub"}
+{"id":"b8657ffe","kind":"tess","task":"9","queued_at":1788824410,"prompt_bytes":19995}
+{"id":"b8657ffe","ended_at":1788825057,"elapsed_s":647,"outcome":"ok","detail":null}
+{"id":"420fd348","kind":"devon","task":"9","queued_at":1788825087,"prompt_bytes":41803}
+{"id":"420fd348","ended_at":1788825424,"elapsed_s":337,"outcome":"ok","detail":"broke the tests again; 33 passed against a last-line-only stub"}
+{"id":"a90a41aa","kind":"tess","task":"9","queued_at":1788825474,"prompt_bytes":19314}
+{"id":"a90a41aa","ended_at":1788826098,"elapsed_s":624,"outcome":"ok","detail":null}
+{"id":"1097c4a2","kind":"ivan","task":"9","queued_at":1788826151,"prompt_bytes":16720}
+{"id":"1097c4a2","ended_at":1788826538,"elapsed_s":387,"outcome":"ok","detail":null}
+{"id":"ec32dee5","kind":"pat","task":"9","queued_at":1788826668,"prompt_bytes":19294}
+{"id":"ec32dee5","ended_at":1788826763,"elapsed_s":95,"outcome":"ok","detail":null}
+{"id":"ba901d41","kind":"tess","task":"9","queued_at":1788826810,"prompt_bytes":16779}
+{"id":"ba901d41","ended_at":1788826933,"elapsed_s":123,"outcome":"ok","detail":null}
+{"id":"3662a447","kind":"ivan","task":"9","queued_at":1788826963,"prompt_bytes":16974}
+{"id":"3662a447","ended_at":1788827073,"elapsed_s":110,"outcome":"ok","detail":null}
+{"id":"d9104799","kind":"pat","task":"9","queued_at":1788827104,"prompt_bytes":7841}
+{"id":"d9104799","ended_at":1788827129,"elapsed_s":25,"outcome":"ok","detail":null}
+{"id":"67a47477","kind":"tess","task":"10","queued_at":1788827298,"prompt_bytes":30549}
+{"id":"67a47477","ended_at":1788828508,"elapsed_s":1210,"outcome":"ok","detail":null}
+{"id":"a8a7393a","kind":"devon","task":"10","queued_at":1788828567,"prompt_bytes":5099}
+{"kind":"handoff","site":"build","edge":"resume","at":1789297175,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"f18777e1","kind":"devon","task":"10","queued_at":1789297471,"prompt_bytes":6848}
+{"id":"f18777e1","ended_at":1789297828,"elapsed_s":357,"outcome":"ok","detail":"round 1: 9 exploits, tests broken"}
+{"id":"d843cc68","kind":"tess","task":"10","queued_at":1789297941,"prompt_bytes":17474}
+{"id":"d843cc68","ended_at":1789298570,"elapsed_s":629,"outcome":"ok","detail":"strengthened 7 holes, 86 tests"}
+{"id":"69a3344c","kind":"devon","task":"10","queued_at":1789298601,"prompt_bytes":7549}
+{"id":"69a3344c","ended_at":1789299026,"elapsed_s":425,"outcome":"ok","detail":"round 2: 4 exploits, tests broken"}
+{"id":"19e6227f","kind":"tess","task":"10","queued_at":1789299062,"prompt_bytes":16707}
+{"id":"19e6227f","ended_at":1789299506,"elapsed_s":444,"outcome":"ok","detail":"closed 4 round-2 holes, 96 tests, self-proved"}
+{"id":"56ac381a","kind":"ivan","task":"10","queued_at":1789299561,"prompt_bytes":18823}
+{"id":"56ac381a","ended_at":1789300115,"elapsed_s":554,"outcome":"ok","detail":"96 passed"}
+{"id":"cef273b9","kind":"deslop","task":"10","queued_at":1789300179,"prompt_bytes":19599}
+{"id":"cef273b9","ended_at":1789300439,"elapsed_s":260,"outcome":"ok","detail":"committed b0a2d27"}
+{"id":"1af40ff6","kind":"ivan","task":"10","queued_at":1789300488,"prompt_bytes":16410}
+{"id":"1af40ff6","ended_at":1789300502,"elapsed_s":14,"outcome":"killed","detail":"re-rendered before dispatch (allowlist widened by one read-only helper)"}
+{"id":"68bfed5d","kind":"ivan","task":"10","queued_at":1789300509,"prompt_bytes":16594}
+{"id":"68bfed5d","ended_at":1789301288,"elapsed_s":779,"outcome":"ok","detail":"split into 4 files, 1225 passed"}
+{"id":"0e209df4","kind":"pat","task":"10","queued_at":1789301383,"prompt_bytes":29059}
+{"id":"0e209df4","ended_at":1789301483,"elapsed_s":100,"outcome":"ok","detail":"1 MEDIUM, 2 LOW"}
+{"kind":"handoff","site":"build","edge":"leave","at":1789301648,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789301739,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"d710ba26","kind":"tess","task":"11","queued_at":1789302337,"prompt_bytes":40320}
+{"id":"d710ba26","ended_at":1789303067,"elapsed_s":730,"outcome":"ok","detail":null}
+{"id":"c080d1f2","kind":"devon","task":"11","queued_at":1789303125,"prompt_bytes":4981}
+{"id":"c080d1f2","ended_at":1789303526,"elapsed_s":401,"outcome":"ok","detail":"broke tests: 9 exploits"}
+{"id":"cc7ae7b0","kind":"tess","task":"11","queued_at":1789303604,"prompt_bytes":29018}
+{"id":"cc7ae7b0","ended_at":1789303917,"elapsed_s":313,"outcome":"ok","detail":null}
+{"id":"5785eecc","kind":"devon","task":"11","queued_at":1789303946,"prompt_bytes":4981}
+{"id":"5785eecc","ended_at":1789304416,"elapsed_s":470,"outcome":"ok","detail":"broke tests: 6 exploits"}
+{"id":"3d22d5e8","kind":"tess","task":"11","queued_at":1789304473,"prompt_bytes":28317}
+{"id":"3d22d5e8","ended_at":1789304765,"elapsed_s":292,"outcome":"ok","detail":null}
+{"id":"c9c5c557","kind":"ivan","task":"11","queued_at":1789304831,"prompt_bytes":17329}
+{"id":"c9c5c557","ended_at":1789305641,"elapsed_s":810,"outcome":"ok","detail":null}
+{"id":"1fb8866e","kind":"ivan","task":"11","queued_at":1789305707,"prompt_bytes":17454}
+{"id":"1fb8866e","ended_at":1789306208,"elapsed_s":501,"outcome":"ok","detail":null}
+{"id":"d81fca07","kind":"pat","task":"11","queued_at":1789306293,"prompt_bytes":44121}
+{"id":"d81fca07","ended_at":1789306412,"elapsed_s":119,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"resume","at":1789306613,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"1daecc8d","kind":"tess","task":"12","queued_at":1789307396,"prompt_bytes":42793}
+{"id":"1daecc8d","ended_at":1789308014,"elapsed_s":618,"outcome":"ok","detail":null}
+{"id":"d0c6b49a","kind":"devon","task":"12","queued_at":1789308079,"prompt_bytes":29364}
+{"id":"d0c6b49a","ended_at":1789308382,"elapsed_s":303,"outcome":"ok","detail":"broke the tests: 6 exploits"}
+{"id":"7b899a12","kind":"tess","task":"12","queued_at":1789308435,"prompt_bytes":30893}
+{"id":"7b899a12","ended_at":1789309286,"elapsed_s":851,"outcome":"ok","detail":null}
+{"id":"ec648066","kind":"devon","task":"12","queued_at":1789309321,"prompt_bytes":38696}
+{"id":"ec648066","ended_at":1789309794,"elapsed_s":473,"outcome":"ok","detail":"round 2: broke the tests, 6 exploits"}
+{"id":"6799217b","kind":"tess","task":"12","queued_at":1789309835,"prompt_bytes":29785}
+{"id":"6799217b","ended_at":1789310243,"elapsed_s":408,"outcome":"ok","detail":null}
+{"id":"dddefcc4","kind":"ivan","task":"12","queued_at":1789310317,"prompt_bytes":14093}
+{"id":"dddefcc4","ended_at":1789310539,"elapsed_s":222,"outcome":"ok","detail":null}
+{"id":"8428de45","kind":"pat","task":"12","queued_at":1789310646,"prompt_bytes":20895}
+{"id":"8428de45","ended_at":1789310714,"elapsed_s":68,"outcome":"ok","detail":null}
+{"id":"94a1e950","kind":"pat","task":"12","queued_at":1789310726,"prompt_bytes":21170}
+{"kind":"handoff","site":"build","edge":"resume","at":1789310922,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"94a1e950","ended_at":1789311151,"elapsed_s":425,"outcome":"ok","detail":null}
+{"id":"8eade588","kind":"tess","task":"13","queued_at":1789312054,"prompt_bytes":64305}
+{"id":"9c944320","kind":"tess","task":"13","queued_at":1789312119,"prompt_bytes":53329}
+{"id":"79d7e766","kind":"tess","task":"13","queued_at":1789312163,"prompt_bytes":51982}
+{"id":"69aa316a","kind":"tess","task":"13","queued_at":1789312196,"prompt_bytes":45197}
+{"id":"8eade588","ended_at":1789312200,"elapsed_s":146,"outcome":"error","detail":"render over the 50K budget, not dispatched"}
+{"id":"9c944320","ended_at":1789312202,"elapsed_s":83,"outcome":"error","detail":"render over the 50K budget, not dispatched"}
+{"id":"79d7e766","ended_at":1789312205,"elapsed_s":42,"outcome":"error","detail":"render over the 50K budget, not dispatched"}
+{"id":"69aa316a","ended_at":1789314156,"elapsed_s":1960,"outcome":"ok","detail":null}
+{"id":"f32682cd","kind":"tess","task":"13","queued_at":1789314322,"prompt_bytes":30433}
+{"id":"f32682cd","ended_at":1789314644,"elapsed_s":322,"outcome":"ok","detail":null}
+{"id":"539939f2","kind":"devon","task":"13","queued_at":1789314688,"prompt_bytes":5011}
+{"id":"539939f2","ended_at":1789315477,"elapsed_s":789,"outcome":"ok","detail":null}
+{"id":"7043512e","kind":"tess","task":"13","queued_at":1789315559,"prompt_bytes":34020}
+{"id":"5e854cb5","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"bea851ba","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"a5e12c7c","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"3db9b84a","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"a71c616f","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"6e8705cb","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"7cd6e0cc","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"5e86840c","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"6bf5a5fd","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"552bf0c0","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"5b873630","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"16466e2d","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"19ebc1f0","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"5f5969ac","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"bd83f8b8","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"db1630ae","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"e484a7fe","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"5aec64f3","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"8eb48f18","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"7621c344","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"8996662b","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"09295347","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"463e1903","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"a8285bf2","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"a2344391","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"0724d913","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"0207aec5","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"9479a3b0","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"ea8090dc","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"a574c50a","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"5c85693a","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"05f92385","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"217fb296","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"4f1f1fa7","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"e4c28edd","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"e8cf24a2","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"d8efc275","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"98a401e0","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"991431b2","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"d30f7733","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"802c449c","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"6592309f","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"f59dd409","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"5d56984a","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"c4e3480b","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"3af32989","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"3fa405a7","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"93179e69","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"bdf62572","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"a2dad189","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"908fb8c3","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"bd247d06","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"1610cba4","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"51b44f4b","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"4404ec6a","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"84ba07a4","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"790f9b42","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"959fb29d","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"a0451b90","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"b4149d9f","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"579d9483","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"cb378cd3","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"cbbe67be","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"d370d6b8","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"7b1de5cb","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"4702214b","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"3ebeb9f5","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"5cf9ec0b","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"bde71273","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"40e31358","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"49a4ebf0","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"c1b05442","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"22a084a8","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"ec81289f","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"7d4eb1e4","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"4275209f","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"fce3a177","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"be3a7c5c","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"bd30daa3","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"bb971b3b","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"fc781672","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"4923ec48","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"65d32420","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"6000cc9c","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"9f5fdb6d","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"a941b83c","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"404d9856","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"561b7fe4","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"a8a7393a","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"7043512e","ended_at":1789315798,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789315798,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"6ff97bbd","kind":"tess","task":"13","queued_at":1789316021,"prompt_bytes":34020}
+{"id":"6ff97bbd","ended_at":1789316829,"elapsed_s":808,"outcome":"ok","detail":"strengthened A-I; F unchecked half unsatisfiable under records ladder"}
+{"id":"33de0573","kind":"devon","task":"13","queued_at":1789317058,"prompt_bytes":6487}
+{"id":"33de0573","ended_at":1789317969,"elapsed_s":911,"outcome":"ok","detail":"round 2: broke tests, 8 exploits A2-H2"}
+{"id":"8f60b83e","kind":"tess","task":"13","queued_at":1789318086,"prompt_bytes":37171}
+{"id":"8f60b83e","ended_at":1789318883,"elapsed_s":797,"outcome":"ok","detail":"final strengthen: verify-on-drift bug fixed, A2 B2 G2 E2 F2 C2 F-unchecked closed; H2 D2 to Ivan as prose"}
+{"id":"06b37a29","kind":"ivan","task":"13","queued_at":1789318960,"prompt_bytes":47782}
+{"id":"06b37a29","ended_at":1789320389,"elapsed_s":1429,"outcome":"ok","detail":"89/90; one test binds to an impossible first_failure shape"}
+{"id":"4853a6de","kind":"deslop","task":"13","queued_at":1789320553,"prompt_bytes":12045}
+{"id":"4853a6de","ended_at":1789320776,"elapsed_s":223,"outcome":"ok","detail":"committed bad7bcb"}
+{"id":"f65c930b","kind":"pat","task":"13","queued_at":1789320946,"prompt_bytes":44435}
+{"id":"f65c930b","ended_at":1789321153,"elapsed_s":207,"outcome":"ok","detail":"1 MEDIUM (halted engine_run observed values), 1 LOW"}
+{"id":"650eb9b2","kind":"pat","task":"13","queued_at":1789321186,"prompt_bytes":44710}
+{"id":"650eb9b2","ended_at":1789321200,"elapsed_s":14,"outcome":"ok","detail":"correction retry: valid shape, MEDIUM + LOW"}
+{"kind":"handoff","site":"build","edge":"leave","at":1789321284,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789321382,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"2ccf21e6","kind":"ivan","task":"14","queued_at":1789321652,"prompt_bytes":16085}
+{"id":"2ccf21e6","ended_at":1789321928,"elapsed_s":276,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1789322214,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789322242,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"53eecd8d","kind":"bob","task":"review-00051-c1","queued_at":1789322835,"prompt_bytes":9867}
+{"id":"12ea100b","kind":"carl","task":"review-00051-c1","queued_at":1789322841,"prompt_bytes":7530}
+{"id":"53eecd8d","ended_at":1789326836,"elapsed_s":null,"outcome":"lost","detail":"open at review/resume handoff"}
+{"id":"12ea100b","ended_at":1789326836,"elapsed_s":null,"outcome":"lost","detail":"open at review/resume handoff"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789326836,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"53eecd8d","ended_at":1789327118,"elapsed_s":null,"outcome":"killed","detail":"spans handoff; review session died mid-review; no output published"}
+{"id":"12ea100b","ended_at":1789327123,"elapsed_s":null,"outcome":"ok","detail":"spans handoff; output published before the session died; reused by the resumed review session"}
+{"id":"6099f323","kind":"bob","task":"review-00051-c1","queued_at":1789327133,"prompt_bytes":9867}
+{"id":"6099f323","ended_at":1789327955,"elapsed_s":822,"outcome":"ok","detail":null}
+{"id":"3e0db88e","kind":"tess","task":"15","queued_at":1789329913,"prompt_bytes":32867}
+{"id":"3e0db88e","ended_at":1789330388,"elapsed_s":475,"outcome":"ok","detail":null}
+{"id":"0efe2627","kind":"devon","task":"15","queued_at":1789330462,"prompt_bytes":4507}
+{"id":"0efe2627","ended_at":1789330802,"elapsed_s":340,"outcome":"ok","detail":"broke tests: exploits A B D F"}
+{"id":"8a7c82f0","kind":"tess","task":"15","queued_at":1789330841,"prompt_bytes":11577}
+{"id":"8a7c82f0","ended_at":1789331257,"elapsed_s":416,"outcome":"ok","detail":null}
+{"id":"93739525","kind":"devon","task":"15","queued_at":1789331285,"prompt_bytes":4507}
+{"id":"93739525","ended_at":1789331812,"elapsed_s":527,"outcome":"ok","detail":"round 2: still breaks (fake fidelity 1,2,3; denylist 4; structural 5; finally 6)"}
+{"id":"f8e58d84","kind":"ivan","task":"15","queued_at":1789331891,"prompt_bytes":23529}
+{"id":"f8e58d84","ended_at":1789332229,"elapsed_s":338,"outcome":"ok","detail":null}
+{"id":"e8815a64","kind":"deslop","task":"15","queued_at":1789332348,"prompt_bytes":7058}
+{"id":"e8815a64","ended_at":1789332492,"elapsed_s":144,"outcome":"ok","detail":"no slop found"}
+{"id":"0caf8bfc","kind":"pat","task":"15","queued_at":1789332539,"prompt_bytes":33536}
+{"id":"0caf8bfc","ended_at":1789332617,"elapsed_s":78,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789332782,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789332844,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"e8d21b74","kind":"tess","task":"16","queued_at":1789333430,"prompt_bytes":49979}
+{"id":"e8d21b74","ended_at":1789333881,"elapsed_s":451,"outcome":"ok","detail":null}
+{"id":"0612c3db","kind":"devon","task":"16","queued_at":1789333933,"prompt_bytes":5989}
+{"id":"0612c3db","ended_at":1789334433,"elapsed_s":500,"outcome":"ok","detail":"3 exploits: W1 record ignores observed, W2 message-text classifier, W3 split merged capture by line shape"}
+{"id":"4891ff43","kind":"tess","task":"16","queued_at":1789334472,"prompt_bytes":22168}
+{"id":"4891ff43","ended_at":1789334699,"elapsed_s":227,"outcome":"ok","detail":null}
+{"id":"c17e06f9","kind":"devon","task":"16","queued_at":1789334712,"prompt_bytes":5989}
+{"id":"c17e06f9","ended_at":1789335200,"elapsed_s":488,"outcome":"ok","detail":"round 2 still breaks: E1 runner wraps every OSError as LaunchError, E2 dispatch probes argv[0] on disk"}
+{"id":"395012ae","kind":"ivan","task":"16","queued_at":1789335292,"prompt_bytes":54373}
+{"id":"b56b1721","kind":"ivan","task":"16","queued_at":1789335308,"prompt_bytes":30587}
+{"id":"395012ae","ended_at":1789335313,"elapsed_s":21,"outcome":"killed","detail":"render exceeded the 50K budget; trimmed and re-rendered, never dispatched"}
+{"id":"b56b1721","ended_at":1789335859,"elapsed_s":551,"outcome":"ok","detail":null}
+{"id":"b8e12189","kind":"deslop","task":"16","queued_at":1789335952,"prompt_bytes":11571}
+{"id":"b8e12189","ended_at":1789336109,"elapsed_s":157,"outcome":"ok","detail":"no slop found"}
+{"id":"a8ea4c9e","kind":"pat","task":"16","queued_at":1789336168,"prompt_bytes":43024}
+{"id":"a8ea4c9e","ended_at":1789336246,"elapsed_s":78,"outcome":"ok","detail":null}
+{"id":"8f77de79","kind":"ivan","task":"16","queued_at":1789336292,"prompt_bytes":14435}
+{"id":"8f77de79","ended_at":1789336428,"elapsed_s":136,"outcome":"ok","detail":null}
+{"id":"adbcdb56","kind":"pat","task":"16","queued_at":1789336474,"prompt_bytes":6482}
+{"id":"adbcdb56","ended_at":1789336487,"elapsed_s":13,"outcome":"ok","detail":null}
+{"id":"81557e20","kind":"tess","task":"17","queued_at":1789336741,"prompt_bytes":54265}
+{"id":"948e430f","kind":"tess","task":"17","queued_at":1789336752,"prompt_bytes":22688}
+{"id":"81557e20","ended_at":1789336755,"elapsed_s":14,"outcome":"killed","detail":"render exceeded the 50K budget; trimmed and re-rendered, never dispatched"}
+{"id":"948e430f","ended_at":1789337225,"elapsed_s":473,"outcome":"ok","detail":null}
+{"id":"50a471d1","kind":"devon","task":"17","queued_at":1789337258,"prompt_bytes":4323}
+{"id":"50a471d1","ended_at":1789337548,"elapsed_s":290,"outcome":"ok","detail":"4 confirmed holes: loose head_sha, non-hex digests, started containing T, non-letter drive / bare UNC"}
+{"id":"43cb294b","kind":"devon","task":"17","queued_at":1789337595,"prompt_bytes":4323}
+{"id":"43cb294b","ended_at":1789337959,"elapsed_s":364,"outcome":"ok","detail":"round 2 still breaks: 7 holes, the field-attribution one (record repr contains every key) is the real one"}
+{"id":"8da3fd1a","kind":"ivan","task":"17","queued_at":1789338038,"prompt_bytes":24195}
+{"id":"8da3fd1a","ended_at":1789338573,"elapsed_s":535,"outcome":"ok","detail":null}
+{"id":"42c9fccd","kind":"deslop","task":"17","queued_at":1789338627,"prompt_bytes":13260}
+{"id":"42c9fccd","ended_at":1789338703,"elapsed_s":76,"outcome":"ok","detail":"no slop found"}
+{"id":"edbf8deb","kind":"pat","task":"17","queued_at":1789338737,"prompt_bytes":34427}
+{"id":"edbf8deb","ended_at":1789344798,"elapsed_s":null,"outcome":"lost","detail":"open at review/resume handoff"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789344798,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"0c83e709","kind":"tess","task":"18","queued_at":1789345144,"prompt_bytes":28313}
+{"id":"0c83e709","ended_at":1789345822,"elapsed_s":678,"outcome":"ok","detail":null}
+{"id":"4794d137","kind":"devon","task":"18","queued_at":1789345872,"prompt_bytes":5446}
+{"id":"4794d137","ended_at":1789346215,"elapsed_s":343,"outcome":"ok","detail":"round 1 breaks: name-based refusal (escape/a/b/c, vault) with no resolution; name-status diff outside the finally; a resolver that fails open past 3 hops"}
+{"id":"3432020a","kind":"tess","task":"18","queued_at":1789346238,"prompt_bytes":16893}
+{"id":"3432020a","ended_at":1789346530,"elapsed_s":292,"outcome":"ok","detail":"strengthened: 8-hop chain, name-colliding inside chain, hash_paths by-landing case, name-status finally case; 16 red / 56 green"}
+{"id":"26612ec7","kind":"devon","task":"18","queued_at":1789346593,"prompt_bytes":6130}
+{"id":"26612ec7","ended_at":1789346887,"elapsed_s":294,"outcome":"ok","detail":"round 2 still breaks: text-only .. refusal, 2-cycle-by-text only, no absolute hash_paths case, reset only on CalledProcessError, ascii+surrogateescape decode"}
+{"id":"1532b11c","kind":"ivan","task":"18","queued_at":1789347047,"prompt_bytes":39808}
+{"id":"1532b11c","ended_at":1789347375,"elapsed_s":328,"outcome":"ok","detail":null}
+{"id":"5f091d99","kind":"deslop","task":"18","queued_at":1789347470,"prompt_bytes":10849}
+{"id":"5f091d99","ended_at":1789347714,"elapsed_s":244,"outcome":"ok","detail":"committed 958ddd8: dropped the empty-segment guard in _land"}
+{"id":"33152c8d","kind":"pat","task":"18","queued_at":1789347756,"prompt_bytes":37743}
+{"id":"33152c8d","ended_at":1789347862,"elapsed_s":106,"outcome":"ok","detail":"2 CLOSURE resolved, 1 LOW (duplicated refuse loop)"}
+{"id":"f888c1e2","kind":"tess","task":"19","queued_at":1789348098,"prompt_bytes":29858}
+{"id":"f888c1e2","ended_at":1789348773,"elapsed_s":675,"outcome":"ok","detail":null}
+{"id":"be0d10a1","kind":"devon","task":"19","queued_at":1789348822,"prompt_bytes":6334}
+{"id":"be0d10a1","ended_at":1789349117,"elapsed_s":295,"outcome":"ok","detail":"round 1 breaks: hardcoded unquote of two escapes, additions-only decode, artifact list keyed on baseline+shape, pretask absent instead of raising, grandfathered pre-label vetting"}
+{"id":"318fe19c","kind":"tess","task":"19","queued_at":1789349146,"prompt_bytes":17963}
+{"id":"318fe19c","ended_at":1789349902,"elapsed_s":756,"outcome":"ok","detail":"strengthened: four quoted names + -z argv pin, M/D/R quoted snapshot, artifact list per record field, pretask missing/disk-only/predates-label rows; 29 red / 94 green"}
+{"id":"d85c1035","kind":"devon","task":"19","queued_at":1789349981,"prompt_bytes":6606}
+{"id":"d85c1035","ended_at":1789350556,"elapsed_s":575,"outcome":"ok","detail":"round 2 still breaks: -z decoy + --raw text parse with a fixed unquote table, pretask signed over a re-dump, one-sided verify drift, diff.patch keyed on truthiness; flags the backslash name the record contract refuses"}
+{"id":"427adbeb","kind":"ivan","task":"19","queued_at":1789350703,"prompt_bytes":75272}
+{"id":"427adbeb","ended_at":1789350709,"elapsed_s":6,"outcome":"killed","detail":"render exceeded the 50K budget (75272); trimmed FAILING_TESTS to ids plus file pointers and re-rendered, never dispatched"}
+{"id":"961967d2","kind":"ivan","task":"19","queued_at":1789350734,"prompt_bytes":15049}
+{"id":"961967d2","ended_at":1789351355,"elapsed_s":621,"outcome":"ok","detail":null}
+{"id":"d610232b","kind":"deslop","task":"19","queued_at":1789351442,"prompt_bytes":11258}
+{"id":"d610232b","ended_at":1789351534,"elapsed_s":92,"outcome":"ok","detail":"no slop found"}
+{"id":"6d832a17","kind":"pat","task":"19","queued_at":1789351623,"prompt_bytes":51204}
+{"id":"6d832a17","ended_at":1789351631,"elapsed_s":8,"outcome":"killed","detail":"render exceeded the 50K budget (51204); trimmed the test-helper hunks from DIFF and re-rendered, never dispatched"}
+{"id":"1c609067","kind":"pat","task":"19","queued_at":1789351638,"prompt_bytes":44468}
+{"id":"1c609067","ended_at":1789351723,"elapsed_s":85,"outcome":"ok","detail":"3 CLOSURE resolved, 2 LOW (inline sealed.json load; private _note passed cross-module)"}
+{"kind":"handoff","site":"review","edge":"leave","at":1789351797,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789351846,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"93d03e42","kind":"tess","task":"20","queued_at":1789352317,"prompt_bytes":41311}
+{"id":"93d03e42","ended_at":1789353178,"elapsed_s":861,"outcome":"ok","detail":null}
+{"id":"d135ce94","kind":"devon","task":"20","queued_at":1789353252,"prompt_bytes":7626}
+{"id":"d135ce94","ended_at":1789353812,"elapsed_s":560,"outcome":"ok","detail":null}
+{"id":"4ad262aa","kind":"tess","task":"20","queued_at":1789353887,"prompt_bytes":29120}
+{"id":"4ad262aa","ended_at":1789354361,"elapsed_s":474,"outcome":"ok","detail":null}
+{"id":"c3d9cdb8","kind":"devon","task":"20","queued_at":1789354416,"prompt_bytes":9308}
+{"id":"c3d9cdb8","ended_at":1789355138,"elapsed_s":722,"outcome":"ok","detail":null}
+{"id":"acab1656","kind":"ivan","task":"20","queued_at":1789355369,"prompt_bytes":17657}
+{"id":"acab1656","ended_at":1789356003,"elapsed_s":634,"outcome":"ok","detail":null}
+{"id":"c3dadbc8","kind":"deslop","task":"20","queued_at":1789356143,"prompt_bytes":11874}
+{"id":"c3dadbc8","ended_at":1789356709,"elapsed_s":566,"outcome":"ok","detail":null}
+{"id":"680fb85b","kind":"pat","task":"20","queued_at":1789356761,"prompt_bytes":57478}
+{"id":"417290e2","kind":"pat","task":"20","queued_at":1789356773,"prompt_bytes":45368}
+{"id":"680fb85b","ended_at":1789356778,"elapsed_s":17,"outcome":"error","detail":"render oversize (57478 bytes); trimmed test-helper hunks and re-rendered as 417290e2, never dispatched"}
+{"id":"417290e2","ended_at":1789356852,"elapsed_s":79,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789356963,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789357010,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"c4f76ffb","kind":"tess","task":"21","queued_at":1789357452,"prompt_bytes":42807}
+{"id":"c4f76ffb","ended_at":1789357482,"elapsed_s":30,"outcome":"killed","detail":"re-rendered before dispatch: description amended"}
+{"id":"7daf97b2","kind":"tess","task":"21","queued_at":1789357489,"prompt_bytes":42879}
+{"id":"7daf97b2","ended_at":1789358116,"elapsed_s":627,"outcome":"ok","detail":null}
+{"id":"4402b397","kind":"devon","task":"21","queued_at":1789358194,"prompt_bytes":8644}
+{"id":"4402b397","ended_at":1789358623,"elapsed_s":429,"outcome":"ok","detail":"round 1: tests broken, six exploits"}
+{"id":"28b24037","kind":"tess","task":"21","queued_at":1789358691,"prompt_bytes":25553}
+{"id":"28b24037","ended_at":1789359114,"elapsed_s":423,"outcome":"ok","detail":null}
+{"id":"1fe7ee2d","kind":"devon","task":"21","queued_at":1789359144,"prompt_bytes":9848}
+{"id":"1fe7ee2d","ended_at":1789359535,"elapsed_s":391,"outcome":"ok","detail":"round 2: tests still broken, four exploits"}
+{"id":"71ec8a3e","kind":"ivan","task":"21","queued_at":1789359701,"prompt_bytes":16723}
+{"id":"71ec8a3e","ended_at":1789360130,"elapsed_s":429,"outcome":"ok","detail":null}
+{"id":"fa6995c9","kind":"deslop","task":"21","queued_at":1789360232,"prompt_bytes":11704}
+{"id":"fa6995c9","ended_at":1789360414,"elapsed_s":182,"outcome":"ok","detail":"no slop found"}
+{"id":"bce01a9b","kind":"pat","task":"21","queued_at":1789360447,"prompt_bytes":43190}
+{"id":"bce01a9b","ended_at":1789360522,"elapsed_s":75,"outcome":"ok","detail":null}
+{"id":"b500dec0","kind":"tess","task":"22","queued_at":1789360735,"prompt_bytes":49378}
+{"id":"b500dec0","ended_at":1789361404,"elapsed_s":669,"outcome":"ok","detail":null}
+{"id":"47b98497","kind":"devon","task":"22","queued_at":1789361440,"prompt_bytes":5822}
+{"id":"47b98497","ended_at":1789362819,"elapsed_s":null,"outcome":"lost","detail":"open at review/resume handoff"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789362819,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"47b98497","ended_at":1789363212,"elapsed_s":null,"outcome":"ok","detail":"spans handoff; round 1 re-send after session death: 3 exploits (pi value-dedupe, last-3 window, id-prefix)"}
+{"id":"3e60ddce","kind":"tess","task":"22","queued_at":1789363255,"prompt_bytes":17182}
+{"id":"3e60ddce","ended_at":1789363519,"elapsed_s":264,"outcome":"ok","detail":"strengthen round 1: 5 new cases, 29 failed / 56 passed against current code"}
+{"id":"7244d7a7","kind":"devon","task":"22","queued_at":1789363559,"prompt_bytes":6222}
+{"id":"7244d7a7","ended_at":1789363827,"elapsed_s":268,"outcome":"ok","detail":"round 2: 5 exploits (last-4 window, null text beside good block, pi isError absent, orphan tool_result, non-int token)"}
+{"id":"b2b3412c","kind":"ivan","task":"22","queued_at":1789363973,"prompt_bytes":11532}
+{"id":"b2b3412c","ended_at":1789364185,"elapsed_s":212,"outcome":"ok","detail":"90 passed; events.py 179->215"}
+{"id":"59a1594e","kind":"deslop","task":"22","queued_at":1789364249,"prompt_bytes":10939}
+{"id":"59a1594e","ended_at":1789364342,"elapsed_s":93,"outcome":"ok","detail":"no slop found"}
+{"id":"73c00c86","kind":"pat","task":"22","queued_at":1789364374,"prompt_bytes":40653}
+{"id":"73c00c86","ended_at":1789364447,"elapsed_s":73,"outcome":"ok","detail":"3 CLOSURE resolved, NO FINDINGS"}
+{"id":"de7b5dd7","kind":"tess","task":"23","queued_at":1789364743,"prompt_bytes":28419}
+{"id":"de7b5dd7","ended_at":1789365377,"elapsed_s":634,"outcome":"ok","detail":"42 failed / 382 passed against current code; new test_eval_spec_contract.py 261 lines, test_eval_prompts.py 714"}
+{"id":"f6532a90","kind":"devon","task":"23","queued_at":1789365424,"prompt_bytes":6543}
+{"id":"f6532a90","ended_at":1789365824,"elapsed_s":400,"outcome":"ok","detail":"round 1: 9 exploits (colon repo, drive/trailing-parent anchors, key-reciting messages, kind at two counts only, six-literal leak lists, last-anchor prefix membership, literal abc-slug)"}
+{"id":"6f9999f9","kind":"tess","task":"23","queued_at":1789365863,"prompt_bytes":21719}
+{"id":"6f9999f9","ended_at":1789366173,"elapsed_s":310,"outcome":"ok","detail":"strengthen round 1: 84 failed / 398 passed against current code"}
+{"id":"aca24431","kind":"devon","task":"23","queued_at":1789366236,"prompt_bytes":7444}
+{"id":"aca24431","ended_at":1789366636,"elapsed_s":400,"outcome":"ok","detail":"round 2: 8 exploits (last-line/last-anchor leak, oracle by heuristic, kind before override, maxsplit .., lowercase drive, lenient int, errors=replace, any-char drive)"}
+{"id":"4ec5cd71","kind":"ivan","task":"23","queued_at":1789366777,"prompt_bytes":15389}
+{"id":"4ec5cd71","ended_at":1789367343,"elapsed_s":566,"outcome":"ok","detail":"555 passed in the four suites; e2e fixture anchors calc.py (writable) - blocker raised, fixture is Tess-owned"}
+{"id":"3f7d6eec","kind":"deslop","task":"23","queued_at":1789367437,"prompt_bytes":14774}
+{"id":"3f7d6eec","ended_at":1789367579,"elapsed_s":142,"outcome":"ok","detail":"no slop found"}
+{"id":"8c5716f1","kind":"pat","task":"23","queued_at":1789367621,"prompt_bytes":49857}
+{"id":"8c5716f1","ended_at":1789367691,"elapsed_s":70,"outcome":"ok","detail":"6 CLOSURE resolved, NO FINDINGS"}
+{"id":"f675e574","kind":"tess","task":"24","queued_at":1789367893,"prompt_bytes":35107}
+{"id":"f675e574","ended_at":1789368532,"elapsed_s":639,"outcome":"ok","detail":"8 failed (non-finite bounds) / 2035 passed whole package; run_gates cases moved to the production path, hang test folded"}
+{"id":"d1988067","kind":"devon","task":"24","queued_at":1789368571,"prompt_bytes":4698}
+{"id":"d1988067","ended_at":1789368711,"elapsed_s":140,"outcome":"ok","detail":"round 1: 4 exploits (whitelist, denylist, substring guard misses 1e999, bare ValueError)"}
+{"id":"43f77206","kind":"tess","task":"24","queued_at":1789368737,"prompt_bytes":15741}
+{"id":"43f77206","ended_at":1789368924,"elapsed_s":187,"outcome":"ok","detail":"strengthen round 1: 18 refused x 2, 9 accepted x 2, reason phrase pinned; 36 failed / 19 passed today"}
+{"id":"ea099ce4","kind":"devon","task":"24","queued_at":1789368935,"prompt_bytes":5132}
+{"id":"ea099ce4","ended_at":1789369131,"elapsed_s":196,"outcome":"ok","detail":"round 2: 3 exploits (SystemExit bypassing argparse, text[:6] parse, regex grammar refusing 1e-3)"}
+{"id":"3dbff4e5","kind":"ivan","task":"24","queued_at":1789369198,"prompt_bytes":9441}
+{"id":"3dbff4e5","ended_at":1789369350,"elapsed_s":152,"outcome":"ok","detail":"85 bounds passed, 139 with gates, 90 harness"}
+{"id":"67b106be","kind":"pat","task":"24","queued_at":1789369407,"prompt_bytes":28836}
+{"id":"67b106be","ended_at":1789369438,"elapsed_s":31,"outcome":"ok","detail":"3 CLOSURE resolved, NO FINDINGS"}
+{"kind":"handoff","site":"review","edge":"leave","at":1789369720,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789369775,"phase":"review","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"id":"58f881bd","kind":"bob","task":"review-00051-c2","queued_at":1789370845,"prompt_bytes":23065}
+{"id":"81da78b8","kind":"carl","task":"review-00051-c2","queued_at":1789370848,"prompt_bytes":20628}
+{"id":"58f881bd","ended_at":1789372130,"elapsed_s":1285,"outcome":"ok","detail":null}
+{"id":"81da78b8","ended_at":1789372132,"elapsed_s":1284,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789373339,"phase":"done","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1789373379,"phase":"done","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1789373731,"phase":"build","prd":"00051-qwen-eval-harness-core-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789412196,"phase":"build","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"id":"f4f9e358","kind":"ivan","task":"1","queued_at":1789412969,"prompt_bytes":19056}
+{"id":"f4f9e358","ended_at":1789413366,"elapsed_s":397,"outcome":"ok","detail":null}
+{"id":"ed486403","kind":"tess","task":"2","queued_at":1789413486,"prompt_bytes":42842}
+{"id":"ed486403","ended_at":1789414911,"elapsed_s":1425,"outcome":"ok","detail":null}
+{"id":"60bdfb77","kind":"ivan","task":"2","queued_at":1789414976,"prompt_bytes":39289}
+{"id":"60bdfb77","ended_at":1789416130,"elapsed_s":1154,"outcome":"ok","detail":null}
+{"id":"993dee37","kind":"tess","task":"2","queued_at":1789416331,"prompt_bytes":15300}
+{"id":"993dee37","ended_at":1789416429,"elapsed_s":98,"outcome":"ok","detail":null}
+{"id":"d7e7e7c3","kind":"deslop","task":"2","queued_at":1789416621,"prompt_bytes":9327}
+{"id":"d7e7e7c3","ended_at":1789416844,"elapsed_s":223,"outcome":"ok","detail":null}
+{"id":"365fe3c8","kind":"ivan","task":"2","queued_at":1789416881,"prompt_bytes":26468}
+{"id":"365fe3c8","ended_at":1789417674,"elapsed_s":793,"outcome":"ok","detail":null}
+{"id":"3fe2e22b","kind":"pat","task":"2","queued_at":1789417915,"prompt_bytes":80973}
+{"id":"0a61794a","kind":"pat","task":"2","queued_at":1789417999,"prompt_bytes":37728}
+{"id":"3fe2e22b","ended_at":1789932214,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"0a61794a","ended_at":1789932214,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789932214,"phase":"build","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"id":"60dd8e8a","kind":"pat","task":"2","queued_at":1789932691,"prompt_bytes":81511}
+{"id":"6eefb087","kind":"pat","task":"2","queued_at":1789932796,"prompt_bytes":38862}
+{"id":"6eefb087","ended_at":1789932900,"elapsed_s":104,"outcome":"ok","detail":null}
+{"id":"cd82d65e","kind":"pat","task":"2","queued_at":1789932936,"prompt_bytes":39001}
+{"id":"e3186fa5","kind":"ivan","task":"2","queued_at":1789933095,"prompt_bytes":29683}
+{"id":"cc507674","kind":"ivan","task":"2","queued_at":1789933204,"prompt_bytes":34204}
+{"id":"904115df","kind":"ivan","task":"2","queued_at":1789934309,"prompt_bytes":29267}
+{"id":"73a37561","kind":"pat","task":"2","queued_at":1789934750,"prompt_bytes":22098}
+{"id":"73a37561","ended_at":1789934919,"elapsed_s":169,"outcome":"ok","detail":null}
+{"id":"60dd8e8a","ended_at":1789935097,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"cd82d65e","ended_at":1789935097,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"e3186fa5","ended_at":1789935097,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"cc507674","ended_at":1789935097,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"904115df","ended_at":1789935097,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1789935097,"phase":"build","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"id":"c7f4ac4f","kind":"ivan","task":"3","queued_at":1789935517,"prompt_bytes":18305}
+{"id":"1edeed06","kind":"pat","task":"3","queued_at":1789936024,"prompt_bytes":11199}
+{"id":"1edeed06","ended_at":1789936047,"elapsed_s":23,"outcome":"ok","detail":null}
+{"id":"c7f4ac4f","ended_at":1789936049,"elapsed_s":532,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1789936425,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789936449,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"id":"31b68b0c","kind":"bob","task":"review-1","queued_at":1789936931,"prompt_bytes":10345}
+{"id":"19b743f0","kind":"carl","task":"review-1","queued_at":1789936933,"prompt_bytes":6833}
+{"id":"19b743f0","ended_at":1789937558,"elapsed_s":625,"outcome":"ok","detail":null}
+{"id":"31b68b0c","ended_at":1789937559,"elapsed_s":628,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"resume","at":1789939670,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"id":"42be0529","kind":"tess","task":"4","queued_at":1789940904,"prompt_bytes":44441}
+{"id":"42be0529","ended_at":1789941862,"elapsed_s":958,"outcome":"ok","detail":null}
+{"id":"6a686561","kind":"tess","task":"4","queued_at":1789941910,"prompt_bytes":27391}
+{"id":"6a686561","ended_at":1789942024,"elapsed_s":114,"outcome":"ok","detail":null}
+{"id":"58606eb9","kind":"devon","task":"4","queued_at":1789942112,"prompt_bytes":26348}
+{"id":"58606eb9","ended_at":1789942518,"elapsed_s":406,"outcome":"ok","detail":null}
+{"id":"7377ccc2","kind":"tess","task":"4","queued_at":1789942559,"prompt_bytes":30664}
+{"id":"7377ccc2","ended_at":1789942870,"elapsed_s":311,"outcome":"ok","detail":null}
+{"id":"70d0ebbd","kind":"devon","task":"4","queued_at":1789942913,"prompt_bytes":29938}
+{"id":"70d0ebbd","ended_at":1789942931,"elapsed_s":18,"outcome":"killed","detail":"never dispatched: context-cap rotation fired before the Agent call"}
+{"kind":"handoff","site":"review","edge":"leave","at":1789942968,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789943026,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"id":"9021d0b9","kind":"devon","task":"4","queued_at":1789943096,"prompt_bytes":29527}
+{"id":"9021d0b9","ended_at":1789943575,"elapsed_s":479,"outcome":"ok","detail":"round 2: exploit found (f/drops/INCOMPLETE tallies unpinned); round exhausted, weakness flagged"}
+{"id":"1477a251","kind":"ivan","task":"4","queued_at":1789943600,"prompt_bytes":46374}
+{"id":"1477a251","ended_at":1789944213,"elapsed_s":613,"outcome":"ok","detail":null}
+{"id":"12267ead","kind":"deslop","task":"4","queued_at":1789944313,"prompt_bytes":27701}
+{"id":"12267ead","ended_at":1789944458,"elapsed_s":145,"outcome":"ok","detail":"no slop found"}
+{"id":"a62c84d8","kind":"pat","task":"4","queued_at":1789944494,"prompt_bytes":61384}
+{"id":"a62c84d8","ended_at":1789944518,"elapsed_s":24,"outcome":"error","detail":"prompt 61384 bytes over the 50K budget; trimmed and re-rendered, never dispatched"}
+{"id":"d7ec2913","kind":"pat","task":"4","queued_at":1789944522,"prompt_bytes":48651}
+{"id":"d7ec2913","ended_at":1789944661,"elapsed_s":139,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789944757,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789944818,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"id":"11c701c7","kind":"tess","task":"5","queued_at":1789945053,"prompt_bytes":28043}
+{"id":"11c701c7","ended_at":1789945406,"elapsed_s":353,"outcome":"ok","detail":null}
+{"id":"6e8def9f","kind":"ivan","task":"5","queued_at":1789945465,"prompt_bytes":24970}
+{"id":"6e8def9f","ended_at":1789945674,"elapsed_s":209,"outcome":"ok","detail":null}
+{"id":"91b66152","kind":"ivan","task":"5","queued_at":1789945765,"prompt_bytes":8480}
+{"id":"91b66152","ended_at":1789945860,"elapsed_s":95,"outcome":"ok","detail":null}
+{"id":"42b29831","kind":"pat","task":"5","queued_at":1789945910,"prompt_bytes":27299}
+{"id":"42b29831","ended_at":1789945963,"elapsed_s":53,"outcome":"ok","detail":null}
+{"id":"6db67dab","kind":"ivan","task":"6","queued_at":1789946149,"prompt_bytes":13413}
+{"id":"6db67dab","ended_at":1789946837,"elapsed_s":688,"outcome":"ok","detail":null}
+{"id":"a8ff111c","kind":"pat","task":"6","queued_at":1789946923,"prompt_bytes":22552}
+{"id":"a8ff111c","ended_at":1789946966,"elapsed_s":43,"outcome":"ok","detail":null}
+{"id":"dea03c84","kind":"ivan","task":"6","queued_at":1789946990,"prompt_bytes":10687}
+{"id":"dea03c84","ended_at":1789947048,"elapsed_s":58,"outcome":"ok","detail":null}
+{"id":"49733511","kind":"pat","task":"6","queued_at":1789947096,"prompt_bytes":4014}
+{"id":"49733511","ended_at":1789947109,"elapsed_s":13,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789947458,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789947490,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"id":"e050e1dd","kind":"bob","task":"review-00052-c2","queued_at":1789947942,"prompt_bytes":12344}
+{"id":"55e91605","kind":"carl","task":"review-00052-c2","queued_at":1789947945,"prompt_bytes":8985}
+{"id":"e050e1dd","ended_at":1789948333,"elapsed_s":391,"outcome":"error","detail":"exit 1"}
+{"id":"59939d29","kind":"bob","task":"review-00052-c2","queued_at":1789948336,"prompt_bytes":12344}
+{"id":"59939d29","ended_at":1789948367,"elapsed_s":31,"outcome":"error","detail":"retry: exit 1"}
+{"id":"55e91605","ended_at":1789948447,"elapsed_s":502,"outcome":"ok","detail":null}
+{"id":"cf256d92","kind":"tess","task":"7","queued_at":1789949203,"prompt_bytes":32961}
+{"id":"cf256d92","ended_at":1789949437,"elapsed_s":234,"outcome":"ok","detail":null}
+{"id":"dde26ac6","kind":"ivan","task":"7","queued_at":1789949545,"prompt_bytes":13945}
+{"id":"dde26ac6","ended_at":1789949574,"elapsed_s":29,"outcome":"killed","detail":"context-cap rotation"}
+{"kind":"handoff","site":"review","edge":"leave","at":1789949606,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789949667,"phase":"review","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"id":"6cd58a51","kind":"ivan","task":"7","queued_at":1789949719,"prompt_bytes":13945}
+{"id":"6cd58a51","ended_at":1789950518,"elapsed_s":799,"outcome":"ok","detail":null}
+{"id":"5d9efb67","kind":"pat","task":"7","queued_at":1789950666,"prompt_bytes":26382}
+{"id":"5d9efb67","ended_at":1789950703,"elapsed_s":37,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789951016,"phase":"done","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1789951049,"phase":"done","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1789951279,"phase":"build","prd":"00052-qwen-eval-harness-report-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789951417,"phase":"build","prd":"00053-split-oversized-brief-suites-v1.md"}
+{"kind":"handoff","site":"build","edge":"leave","at":1789953345,"phase":"build","prd":"00053-split-oversized-brief-suites-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789953472,"phase":"build","prd":"00053-split-oversized-brief-suites-v1.md"}
+{"id":"16bd1a22","kind":"ivan","task":"1","queued_at":1789953597,"prompt_bytes":9562}
+{"id":"02d6d237","kind":"ivan","task":"1","queued_at":1789953620,"prompt_bytes":82241}
+{"id":"13493092","kind":"ivan","task":"1","queued_at":1789953648,"prompt_bytes":11038}
+{"id":"13493092","ended_at":1789953924,"elapsed_s":276,"outcome":"ok","detail":null}
+{"id":"b49bbdad","kind":"ivan","task":"2","queued_at":1789954043,"prompt_bytes":10314}
+{"id":"b49bbdad","ended_at":1789954144,"elapsed_s":101,"outcome":"ok","detail":null}
+{"id":"bb36d166","kind":"pat","task":"2","queued_at":1789954289,"prompt_bytes":6463}
+{"id":"bb36d166","ended_at":1789954300,"elapsed_s":11,"outcome":"ok","detail":null}
+{"id":"0e34f5cc","kind":"ivan","task":"3","queued_at":1789954359,"prompt_bytes":11145}
+{"id":"0e34f5cc","ended_at":1789954834,"elapsed_s":475,"outcome":"ok","detail":null}
+{"id":"a5449dd2","kind":"pat","task":"3","queued_at":1789954925,"prompt_bytes":13168}
+{"id":"a5449dd2","ended_at":1789954937,"elapsed_s":12,"outcome":"ok","detail":null}
+{"id":"381612fa","kind":"ivan","task":"4","queued_at":1789955019,"prompt_bytes":17595}
+{"id":"381612fa","ended_at":1789955427,"elapsed_s":408,"outcome":"ok","detail":null}
+{"id":"1002f350","kind":"pat","task":"4","queued_at":1789955507,"prompt_bytes":85049}
+{"id":"1002f350","ended_at":1789955572,"elapsed_s":65,"outcome":"error","detail":null}
+{"id":"cf1c1ae3","kind":"ivan","task":"5","queued_at":1789955660,"prompt_bytes":19302}
+{"id":"cf1c1ae3","ended_at":1789956534,"elapsed_s":874,"outcome":"ok","detail":null}
+{"id":"5d19a83e","kind":"pat","task":"5","queued_at":1789956604,"prompt_bytes":73664}
+{"id":"5d19a83e","ended_at":1789956609,"elapsed_s":5,"outcome":"error","detail":null}
+{"id":"63aa004b","kind":"deslop","task":"5","queued_at":1789956661,"prompt_bytes":6644}
+{"id":"63aa004b","ended_at":1789956844,"elapsed_s":183,"outcome":"ok","detail":null}
+{"id":"16bd1a22","ended_at":1789957236,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"02d6d237","ended_at":1789957236,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1789957236,"phase":"review","prd":"00053-split-oversized-brief-suites-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789957276,"phase":"review","prd":"00053-split-oversized-brief-suites-v1.md"}
+{"id":"171afe1b","kind":"bob","task":"review-00053-c1-202609210222","queued_at":1789957749,"prompt_bytes":11479}
+{"id":"5b9c3f56","kind":"carl","task":"review-00053-c1-202609210222","queued_at":1789957752,"prompt_bytes":7773}
+{"id":"ead4f766","kind":"bob","task":"review-00053-c1-202609210222","queued_at":1789957968,"prompt_bytes":11479}
+{"id":"171afe1b","ended_at":1789958101,"elapsed_s":352,"outcome":"error","detail":"exit 1"}
+{"id":"ead4f766","ended_at":1789958102,"elapsed_s":134,"outcome":"error","detail":"retry: exit 1"}
+{"id":"5b9c3f56","ended_at":1789958159,"elapsed_s":407,"outcome":"ok","detail":null}
+{"id":"015f44ac","kind":"ivan","task":"6","queued_at":1789959118,"prompt_bytes":10846}
+{"id":"015f44ac","ended_at":1789959259,"elapsed_s":141,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"resume","at":1789959425,"phase":"review","prd":"00053-split-oversized-brief-suites-v1.md"}
+{"kind":"handoff","site":"review","edge":"leave","at":1789959790,"phase":"done","prd":"00053-split-oversized-brief-suites-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1789959821,"phase":"done","prd":"00053-split-oversized-brief-suites-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1789959997,"phase":"build","prd":"00053-split-oversized-brief-suites-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789960168,"phase":"build","prd":"00054-non-json-metadata-kills-collect-v1.md"}
+{"id":"989420f5","kind":"tess","task":"1","queued_at":1789960697,"prompt_bytes":12876}
+{"id":"666dd0ba","kind":"ivan","task":"1","queued_at":1789960935,"prompt_bytes":15811}
+{"id":"31315523","kind":"pat","task":"1","queued_at":1789961237,"prompt_bytes":11506}
+{"id":"31315523","ended_at":1789961274,"elapsed_s":37,"outcome":"ok","detail":null}
+{"id":"989420f5","ended_at":1789961633,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"666dd0ba","ended_at":1789961633,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1789961633,"phase":"review","prd":"00054-non-json-metadata-kills-collect-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789961664,"phase":"review","prd":"00054-non-json-metadata-kills-collect-v1.md"}
+{"id":"2c9210f6","kind":"bob","task":"review-00054-c1-202609210335","queued_at":1789962025,"prompt_bytes":9560}
+{"id":"568d32dc","kind":"carl","task":"review-00054-c1-202609210335","queued_at":1789962028,"prompt_bytes":6647}
+{"id":"2c9210f6","ended_at":1789962200,"elapsed_s":175,"outcome":"error","detail":"exit 1"}
+{"id":"e60ea2fc","kind":"bob","task":"review-00054-c1-202609210335","queued_at":1789962206,"prompt_bytes":9560}
+{"id":"e60ea2fc","ended_at":1789962221,"elapsed_s":15,"outcome":"error","detail":"retry: exit 1"}
+{"id":"568d32dc","ended_at":1789962264,"elapsed_s":236,"outcome":"ok","detail":null}
+{"id":"f5713161","kind":"ivan","task":"2","queued_at":1789962788,"prompt_bytes":12996}
+{"id":"f5713161","ended_at":1789962916,"elapsed_s":128,"outcome":"ok","detail":null}
+{"id":"00ba7b66","kind":"pat","task":"2","queued_at":1789963000,"prompt_bytes":12610}
+{"id":"00ba7b66","ended_at":1789963016,"elapsed_s":16,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789963379,"phase":"done","prd":"00054-non-json-metadata-kills-collect-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1789963412,"phase":"done","prd":"00054-non-json-metadata-kills-collect-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1789963550,"phase":"build","prd":"00054-non-json-metadata-kills-collect-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789963657,"phase":"build","prd":"00055-bad-metrics-ts-aborts-run-v1.md"}
+{"id":"f4fd081a","kind":"tess","task":"1","queued_at":1789964142,"prompt_bytes":41151}
+{"id":"075723e5","kind":"ivan","task":"1","queued_at":1789964438,"prompt_bytes":18373}
+{"id":"e8fdf20f","kind":"pat","task":"1","queued_at":1789964668,"prompt_bytes":12610}
+{"id":"165c6481","kind":"pat","task":"1","queued_at":1789964731,"prompt_bytes":12885}
+{"id":"50ee92b1","kind":"ivan","task":"1","queued_at":1789964770,"prompt_bytes":9786}
+{"id":"b5baf540","kind":"pat","task":"1","queued_at":1789964842,"prompt_bytes":4403}
+{"id":"29985388","kind":"pat","task":"1","queued_at":1789964879,"prompt_bytes":12684}
+{"id":"f4fd081a","ended_at":1789964971,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"075723e5","ended_at":1789964971,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"e8fdf20f","ended_at":1789964971,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"165c6481","ended_at":1789964971,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"50ee92b1","ended_at":1789964971,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"b5baf540","ended_at":1789964971,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"29985388","ended_at":1789964971,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1789964971,"phase":"build","prd":"00055-bad-metrics-ts-aborts-run-v1.md"}
+{"id":"fe7e4e7c","kind":"tess","task":"2","queued_at":1789965553,"prompt_bytes":40873}
+{"id":"fe7e4e7c","ended_at":1789965629,"elapsed_s":76,"outcome":"ok","detail":null}
+{"id":"f4ee743c","kind":"ivan","task":"2","queued_at":1789965681,"prompt_bytes":23443}
+{"id":"f4ee743c","ended_at":1789965738,"elapsed_s":57,"outcome":"ok","detail":null}
+{"id":"3a3ab32a","kind":"pat","task":"2","queued_at":1789965792,"prompt_bytes":8809}
+{"id":"3a3ab32a","ended_at":1789966151,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1789966151,"phase":"review","prd":"00055-bad-metrics-ts-aborts-run-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789966196,"phase":"review","prd":"00055-bad-metrics-ts-aborts-run-v1.md"}
+{"id":"fab95a0a","kind":"bob","task":"review-00055-c1-202609210450","queued_at":1789966618,"prompt_bytes":9602}
+{"id":"4f8219a7","kind":"carl","task":"review-00055-c1-202609210450","queued_at":1789966621,"prompt_bytes":6647}
+{"id":"fab95a0a","ended_at":1789966890,"elapsed_s":272,"outcome":"ok","detail":null}
+{"id":"4f8219a7","ended_at":1789966955,"elapsed_s":334,"outcome":"ok","detail":null}
+{"id":"06ab6091","kind":"tess","task":"4","queued_at":1789967562,"prompt_bytes":21192}
+{"id":"06ab6091","ended_at":1789967703,"elapsed_s":141,"outcome":"ok","detail":null}
+{"id":"37440cb9","kind":"ivan","task":"4","queued_at":1789967764,"prompt_bytes":14956}
+{"id":"37440cb9","ended_at":1789967858,"elapsed_s":94,"outcome":"ok","detail":null}
+{"id":"e477fda4","kind":"pat","task":"4","queued_at":1789967939,"prompt_bytes":11859}
+{"id":"e477fda4","ended_at":1789967958,"elapsed_s":19,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789968330,"phase":"review","prd":"00055-bad-metrics-ts-aborts-run-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789968364,"phase":"review","prd":"00055-bad-metrics-ts-aborts-run-v1.md"}
+{"id":"5b5d4afe","kind":"bob","task":"review-00055-c2-202609210526","queued_at":1789968767,"prompt_bytes":11311}
+{"id":"4d88eb32","kind":"carl","task":"review-00055-c2-202609210526","queued_at":1789968771,"prompt_bytes":8330}
+{"id":"5b5d4afe","ended_at":1789968895,"elapsed_s":128,"outcome":"ok","detail":null}
+{"id":"4d88eb32","ended_at":1789968910,"elapsed_s":139,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789969152,"phase":"done","prd":"00055-bad-metrics-ts-aborts-run-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1789969179,"phase":"done","prd":"00055-bad-metrics-ts-aborts-run-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1789969288,"phase":"build","prd":"00055-bad-metrics-ts-aborts-run-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1789969390,"phase":"build","prd":"00056-ci-failure-fakes-no-ci-v1.md"}
+{"id":"8fe3710f","kind":"tess","task":"1","queued_at":1789969687,"prompt_bytes":36036}
+{"id":"e5b9c077","kind":"ivan","task":"1","queued_at":1789970098,"prompt_bytes":16767}
+{"id":"0d62f791","kind":"pat","task":"1","queued_at":1789970290,"prompt_bytes":10786}
+{"id":"8fe3710f","ended_at":1789970662,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"e5b9c077","ended_at":1789970662,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"0d62f791","ended_at":1789970662,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1789970662,"phase":"review","prd":"00056-ci-failure-fakes-no-ci-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1789970691,"phase":"review","prd":"00056-ci-failure-fakes-no-ci-v1.md"}
+{"id":"de549b75","kind":"bob","task":"review-00056-c1","queued_at":1789971024,"prompt_bytes":7834}
+{"id":"b1cc7359","kind":"carl","task":"review-00056-c1","queued_at":1789971027,"prompt_bytes":5815}
+{"id":"de549b75","ended_at":1789971281,"elapsed_s":257,"outcome":"ok","detail":null}
+{"id":"b1cc7359","ended_at":1789971284,"elapsed_s":257,"outcome":"ok","detail":null}
+{"id":"55d20279","kind":"pat","task":"2","queued_at":1789971759,"prompt_bytes":10939}
+{"id":"55d20279","ended_at":1789971776,"elapsed_s":17,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1789972433,"phase":"done","prd":"00056-ci-failure-fakes-no-ci-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1790377343,"phase":"done","prd":"00056-ci-failure-fakes-no-ci-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790377404,"phase":"build","prd":"00056-ci-failure-fakes-no-ci-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790377538,"phase":"build","prd":"00057-data-json-world-readable-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790379024,"phase":"build","prd":"00057-data-json-world-readable-v1.md"}
+{"id":"e4a9bac2","kind":"tess","task":"1","queued_at":1790379486,"prompt_bytes":44721}
+{"id":"e4a9bac2","ended_at":1790379705,"elapsed_s":219,"outcome":"ok","detail":null}
+{"id":"c8735209","kind":"devon","task":"1","queued_at":1790379834,"prompt_bytes":8257}
+{"id":"c8735209","ended_at":1790380058,"elapsed_s":224,"outcome":"ok","detail":null}
+{"id":"3eff0ac1","kind":"tess","task":"1","queued_at":1790380176,"prompt_bytes":7721}
+{"id":"3eff0ac1","ended_at":1790380484,"elapsed_s":308,"outcome":"ok","detail":null}
+{"id":"061db63f","kind":"devon","task":"1","queued_at":1790380594,"prompt_bytes":5309}
+{"id":"061db63f","ended_at":1790380901,"elapsed_s":307,"outcome":"ok","detail":null}
+{"id":"10561184","kind":"ivan","task":"1","queued_at":1790380963,"prompt_bytes":19294}
+{"id":"10561184","ended_at":1790381063,"elapsed_s":100,"outcome":"ok","detail":null}
+{"id":"3fe32c05","kind":"ivan","task":"1","queued_at":1790381214,"prompt_bytes":6126}
+{"id":"3fe32c05","ended_at":1790381288,"elapsed_s":74,"outcome":"ok","detail":null}
+{"id":"51878cf4","kind":"pat","task":"1","queued_at":1790381443,"prompt_bytes":22702}
+{"id":"51878cf4","ended_at":1790381551,"elapsed_s":108,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1790381671,"phase":"build","prd":"00057-data-json-world-readable-v1.md"}
+{"id":"112513d9","kind":"tess","task":"2","queued_at":1790382091,"prompt_bytes":48331}
+{"id":"0b11eeaa","kind":"devon","task":"2","queued_at":1790382423,"prompt_bytes":4303}
+{"id":"0b11eeaa","ended_at":1790382523,"elapsed_s":100,"outcome":"ok","detail":null}
+{"id":"19ca15bd","kind":"tess","task":"2","queued_at":1790382557,"prompt_bytes":9618}
+{"id":"b934b89b","kind":"devon","task":"2","queued_at":1790382873,"prompt_bytes":4458}
+{"id":"b934b89b","ended_at":1790383084,"elapsed_s":211,"outcome":"ok","detail":null}
+{"id":"02d07236","kind":"ivan","task":"2","queued_at":1790383131,"prompt_bytes":25756}
+{"id":"01c64574","kind":"pat","task":"2","queued_at":1790383391,"prompt_bytes":17696}
+{"id":"112513d9","ended_at":1790383841,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"19ca15bd","ended_at":1790383841,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"02d07236","ended_at":1790383841,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"01c64574","ended_at":1790383841,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790383841,"phase":"review","prd":"00057-data-json-world-readable-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790383936,"phase":"review","prd":"00057-data-json-world-readable-v1.md"}
+{"id":"c537bf2b","kind":"bob","task":"review-00057-1","queued_at":1790384430,"prompt_bytes":8814}
+{"id":"3504c5ca","kind":"carl","task":"review-00057-1","queued_at":1790384431,"prompt_bytes":6580}
+{"id":"c537bf2b","ended_at":1790385030,"elapsed_s":600,"outcome":"ok","detail":null}
+{"id":"3504c5ca","ended_at":1790385031,"elapsed_s":600,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1790387926,"phase":"build","prd":"00057-data-json-world-readable-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790388109,"phase":"build","prd":"00058-page-links-accept-javascript-urls-v1.md"}
+{"id":"62b07544","kind":"tess","task":"1","queued_at":1790388742,"prompt_bytes":40825}
+{"id":"4978753d","kind":"ivan","task":"1","queued_at":1790388936,"prompt_bytes":25810}
+{"id":"784a9332","kind":"pat","task":"1","queued_at":1790389170,"prompt_bytes":10062}
+{"id":"62b07544","ended_at":1790389341,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"4978753d","ended_at":1790389341,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"784a9332","ended_at":1790389341,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790389341,"phase":"build","prd":"00058-page-links-accept-javascript-urls-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790389554,"phase":"build","prd":"00058-page-links-accept-javascript-urls-v1.md"}
+{"id":"675a738c","kind":"tess","task":"2","queued_at":1790390100,"prompt_bytes":18496}
+{"id":"675a738c","ended_at":1790390853,"elapsed_s":753,"outcome":"ok","detail":null}
+{"id":"e13e4372","kind":"tess","task":"2","queued_at":1790390976,"prompt_bytes":11755}
+{"id":"e13e4372","ended_at":1790391227,"elapsed_s":251,"outcome":"ok","detail":null}
+{"id":"05ee9e45","kind":"ivan","task":"2","queued_at":1790391409,"prompt_bytes":16771}
+{"id":"05ee9e45","ended_at":1790391892,"elapsed_s":483,"outcome":"ok","detail":null}
+{"id":"cb2e5d4a","kind":"pat","task":"2","queued_at":1790392037,"prompt_bytes":253223}
+{"id":"58ff8ec9","kind":"pat","task":"2","queued_at":1790392060,"prompt_bytes":20996}
+{"id":"cb2e5d4a","ended_at":1790392068,"elapsed_s":31,"outcome":"error","detail":"over budget at 253223 bytes, never dispatched; re-rendered as 58ff8ec9"}
+{"id":"58ff8ec9","ended_at":1790392520,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790392520,"phase":"review","prd":"00058-page-links-accept-javascript-urls-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790392595,"phase":"review","prd":"00058-page-links-accept-javascript-urls-v1.md"}
+{"id":"fc89b03d","kind":"bob","task":"review-00058-c1","queued_at":1790393205,"prompt_bytes":9738}
+{"id":"6dfe4526","kind":"carl","task":"review-00058-c1","queued_at":1790393209,"prompt_bytes":7147}
+{"id":"fc89b03d","ended_at":1790396893,"elapsed_s":3688,"outcome":"ok","detail":null}
+{"id":"6dfe4526","ended_at":1790396898,"elapsed_s":3689,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1790397306,"phase":"review","prd":"00058-page-links-accept-javascript-urls-v1.md"}
+{"id":"076fb236","kind":"tess","task":"3","queued_at":1790397678,"prompt_bytes":53245}
+{"id":"23eebcb5","kind":"tess","task":"3","queued_at":1790397688,"prompt_bytes":46083}
+{"id":"d1dbbb01","kind":"ivan","task":"3","queued_at":1790398384,"prompt_bytes":37209}
+{"id":"d810341a","kind":"pat","task":"3","queued_at":1790398781,"prompt_bytes":20325}
+{"id":"076fb236","ended_at":1790399353,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"23eebcb5","ended_at":1790399353,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"d1dbbb01","ended_at":1790399353,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"d810341a","ended_at":1790399353,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"kind":"handoff","site":"review","edge":"leave","at":1790399353,"phase":"done","prd":"00058-page-links-accept-javascript-urls-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790399582,"phase":"build","prd":"00058-page-links-accept-javascript-urls-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790399734,"phase":"build","prd":"00059-build-dies-on-torn-inputs-v1.md"}
+{"id":"d54d8441","kind":"tess","task":"1","queued_at":1790400201,"prompt_bytes":13607}
+{"id":"d54d8441","ended_at":1790400501,"elapsed_s":300,"outcome":"ok","detail":null}
+{"id":"5c15e41f","kind":"ivan","task":"1","queued_at":1790400563,"prompt_bytes":16767}
+{"id":"5c15e41f","ended_at":1790400675,"elapsed_s":112,"outcome":"ok","detail":null}
+{"id":"641892a0","kind":"pat","task":"1","queued_at":1790400768,"prompt_bytes":13308}
+{"id":"81d46b83","kind":"tess","task":"2","queued_at":1790400906,"prompt_bytes":17193}
+{"id":"81d46b83","ended_at":1790400994,"elapsed_s":88,"outcome":"ok","detail":null}
+{"id":"4cf4caf4","kind":"ivan","task":"2","queued_at":1790401032,"prompt_bytes":16979}
+{"id":"4cf4caf4","ended_at":1790401090,"elapsed_s":58,"outcome":"ok","detail":null}
+{"id":"f548b25a","kind":"ivan","task":"2","queued_at":1790401181,"prompt_bytes":9387}
+{"id":"f548b25a","ended_at":1790401271,"elapsed_s":90,"outcome":"ok","detail":null}
+{"id":"6bb484b5","kind":"pat","task":"2","queued_at":1790401332,"prompt_bytes":12684}
+{"id":"641892a0","ended_at":1790401717,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"6bb484b5","ended_at":1790401717,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790401717,"phase":"review","prd":"00059-build-dies-on-torn-inputs-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790401816,"phase":"review","prd":"00059-build-dies-on-torn-inputs-v1.md"}
+{"id":"b9ad4cbf","kind":"bob","task":"review-00059c1","queued_at":1790402373,"prompt_bytes":9070}
+{"id":"3f91c617","kind":"carl","task":"review-00059c1","queued_at":1790402374,"prompt_bytes":6664}
+{"id":"b9ad4cbf","ended_at":1790403066,"elapsed_s":693,"outcome":"ok","detail":null}
+{"id":"3f91c617","ended_at":1790403070,"elapsed_s":696,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1790403721,"phase":"review","prd":"00059-build-dies-on-torn-inputs-v1.md"}
+{"id":"21fcb537","kind":"tess","task":"3","queued_at":1790403960,"prompt_bytes":21429}
+{"id":"b428d770","kind":"ivan","task":"3","queued_at":1790404426,"prompt_bytes":18137}
+{"id":"5e412c4a","kind":"ivan","task":"3","queued_at":1790404482,"prompt_bytes":20803}
+{"id":"80d2b763","kind":"pat","task":"3","queued_at":1790404867,"prompt_bytes":21130}
+{"id":"21fcb537","ended_at":1790405388,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"b428d770","ended_at":1790405388,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"5e412c4a","ended_at":1790405388,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"80d2b763","ended_at":1790405388,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"kind":"handoff","site":"review","edge":"leave","at":1790405388,"phase":"done","prd":"00059-build-dies-on-torn-inputs-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790405582,"phase":"build","prd":"00059-build-dies-on-torn-inputs-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790405741,"phase":"build","prd":"00060-torn-history-fuses-next-row-v1.md"}
+{"id":"a467c861","kind":"tess","task":"1","queued_at":1790406165,"prompt_bytes":26100}
+{"id":"a467c861","ended_at":1790406196,"elapsed_s":31,"outcome":"ok","detail":null}
+{"id":"a467c861","ended_at":1790406291,"elapsed_s":126,"outcome":"ok","detail":null}
+{"id":"d67151fc","kind":"ivan","task":"1","queued_at":1790406405,"prompt_bytes":28178}
+{"id":"d67151fc","ended_at":1790406616,"elapsed_s":211,"outcome":"ok","detail":null}
+{"id":"2d27e55a","kind":"ivan","task":"1","queued_at":1790406737,"prompt_bytes":11253}
+{"id":"2d27e55a","ended_at":1790406870,"elapsed_s":133,"outcome":"ok","detail":null}
+{"id":"3d98fe17","kind":"pat","task":"1","queued_at":1790406973,"prompt_bytes":10397}
+{"id":"3d98fe17","ended_at":1790407016,"elapsed_s":43,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1790407488,"phase":"review","prd":"00060-torn-history-fuses-next-row-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790407534,"phase":"review","prd":"00060-torn-history-fuses-next-row-v1.md"}
+{"id":"6c1656bd","kind":"bob","task":"review-00060c1","queued_at":1790408047,"prompt_bytes":10051}
+{"id":"17ba6706","kind":"carl","task":"review-00060c1","queued_at":1790408052,"prompt_bytes":7145}
+{"id":"6c1656bd","ended_at":1790408407,"elapsed_s":360,"outcome":"ok","detail":null}
+{"id":"17ba6706","ended_at":1790408411,"elapsed_s":359,"outcome":"ok","detail":null}
+{"id":"3052d929","kind":"tess","task":"2","queued_at":1790408953,"prompt_bytes":30192}
+{"id":"3670e1dc","kind":"ivan","task":"2","queued_at":1790409390,"prompt_bytes":28293}
+{"id":"28b9a43c","kind":"pat","task":"2","queued_at":1790409657,"prompt_bytes":15865}
+{"id":"573b9fb8","kind":"ivan","task":"2","queued_at":1790409757,"prompt_bytes":12349}
+{"id":"bd828e74","kind":"pat","task":"2","queued_at":1790410008,"prompt_bytes":6756}
+{"id":"3052d929","ended_at":1790410503,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"3670e1dc","ended_at":1790410503,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"28b9a43c","ended_at":1790410503,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"573b9fb8","ended_at":1790410503,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"bd828e74","ended_at":1790410503,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"kind":"handoff","site":"review","edge":"leave","at":1790410503,"phase":"done","prd":"00060-torn-history-fuses-next-row-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1790410570,"phase":"done","prd":"00060-torn-history-fuses-next-row-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790410682,"phase":"build","prd":"00061-meta-failure-fakes-hygiene-nags-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790410702,"phase":"build","prd":"00060-torn-history-fuses-next-row-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790410948,"phase":"build","prd":"00061-meta-failure-fakes-hygiene-nags-v1.md"}
+{"id":"b14e8649","kind":"tess","task":"1","queued_at":1790411349,"prompt_bytes":40788}
+{"id":"ba1d5f3f","kind":"ivan","task":"1","queued_at":1790411751,"prompt_bytes":18326}
+{"id":"ae6b8d8f","kind":"ivan","task":"1","queued_at":1790412090,"prompt_bytes":9400}
+{"id":"71adb4ad","kind":"pat","task":"1","queued_at":1790412306,"prompt_bytes":17699}
+{"id":"b14e8649","ended_at":1790412794,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"ba1d5f3f","ended_at":1790412794,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"ae6b8d8f","ended_at":1790412794,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"71adb4ad","ended_at":1790412794,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790412794,"phase":"review","prd":"00061-meta-failure-fakes-hygiene-nags-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790412876,"phase":"review","prd":"00061-meta-failure-fakes-hygiene-nags-v1.md"}
+{"id":"0d811fc4","kind":"bob","task":"review-00061-c1","queued_at":1790413359,"prompt_bytes":8717}
+{"id":"0b98ca27","kind":"carl","task":"review-00061-c1","queued_at":1790413370,"prompt_bytes":6509}
+{"id":"109cda3c","kind":"carl","task":"review-00061-c1","queued_at":1790413688,"prompt_bytes":6509}
+{"id":"0d811fc4","ended_at":1790413999,"elapsed_s":640,"outcome":"ok","detail":null}
+{"id":"0b98ca27","ended_at":1790414003,"elapsed_s":633,"outcome":"error","detail":"format-invalid"}
+{"id":"109cda3c","ended_at":1790414007,"elapsed_s":319,"outcome":"ok","detail":"retry"}
+{"kind":"handoff","site":"review","edge":"leave","at":1790414364,"phase":"done","prd":"00061-meta-failure-fakes-hygiene-nags-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1790414460,"phase":"done","prd":"00061-meta-failure-fakes-hygiene-nags-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790414565,"phase":"build","prd":"00062-commit-cap-hides-true-count-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790414694,"phase":"build","prd":"00062-commit-cap-hides-true-count-v1.md"}
+{"id":"d1da56f1","kind":"tess","task":"1","queued_at":1790415470,"prompt_bytes":44788}
+{"id":"e643f986","kind":"devon","task":"1","queued_at":1790415935,"prompt_bytes":13131}
+{"id":"e643f986","ended_at":1790416075,"elapsed_s":140,"outcome":"ok","detail":null}
+{"id":"0cda629a","kind":"tess","task":"1","queued_at":1790416179,"prompt_bytes":9416}
+{"id":"6e510e3e","kind":"devon","task":"1","queued_at":1790416551,"prompt_bytes":14196}
+{"id":"6e510e3e","ended_at":1790416695,"elapsed_s":144,"outcome":"ok","detail":"round exhausted: branch arg still bypassable via --remotes union"}
+{"id":"597fa275","kind":"ivan","task":"1","queued_at":1790416819,"prompt_bytes":38587}
+{"id":"d1da56f1","ended_at":1790417355,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"0cda629a","ended_at":1790417355,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"597fa275","ended_at":1790417355,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790417355,"phase":"build","prd":"00062-commit-cap-hides-true-count-v1.md"}
+{"id":"00b16404","kind":"pat","task":"1","queued_at":1790418392,"prompt_bytes":20124}
+{"id":"00b16404","ended_at":1790418442,"elapsed_s":50,"outcome":"ok","detail":null}
+{"id":"b3b15c76","kind":"tess","task":"2","queued_at":1790418737,"prompt_bytes":14560}
+{"id":"b3b15c76","ended_at":1790419222,"elapsed_s":485,"outcome":"ok","detail":null}
+{"id":"268b65a7","kind":"ivan","task":"2","queued_at":1790419439,"prompt_bytes":4742}
+{"id":"268b65a7","ended_at":1790419928,"elapsed_s":489,"outcome":"ok","detail":null}
+{"id":"ef8f0515","kind":"pat","task":"2","queued_at":1790420101,"prompt_bytes":17168}
+{"id":"ef8f0515","ended_at":1790420118,"elapsed_s":17,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1790420936,"phase":"review","prd":"00062-commit-cap-hides-true-count-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790420991,"phase":"review","prd":"00062-commit-cap-hides-true-count-v1.md"}
+{"id":"fc8c3d08","kind":"bob","task":"review-00062-c1","queued_at":1790421706,"prompt_bytes":9270}
+{"id":"bbcaac58","kind":"carl","task":"review-00062-c1","queued_at":1790421708,"prompt_bytes":7714}
+{"id":"fc8c3d08","ended_at":1790422241,"elapsed_s":535,"outcome":"ok","detail":null}
+{"id":"bbcaac58","ended_at":1790422242,"elapsed_s":534,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1790422684,"phase":"review","prd":"00062-commit-cap-hides-true-count-v1.md"}
+{"id":"04b3e688","kind":"tess","task":"3","queued_at":1790423229,"prompt_bytes":26590}
+{"id":"59c482d6","kind":"ivan","task":"3","queued_at":1790424155,"prompt_bytes":5823}
+{"id":"11ebbf0c","kind":"pat","task":"3","queued_at":1790424421,"prompt_bytes":27383}
+{"id":"04b3e688","ended_at":1790425051,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"59c482d6","ended_at":1790425051,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"11ebbf0c","ended_at":1790425051,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"kind":"handoff","site":"review","edge":"leave","at":1790425051,"phase":"done","prd":"00062-commit-cap-hides-true-count-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1790425114,"phase":"done","prd":"00062-commit-cap-hides-true-count-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790425212,"phase":"build","prd":"00062-commit-cap-hides-true-count-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790425394,"phase":"build","prd":"00063-missing-registry-tracebacks-v1.md"}
+{"id":"e2cc065b","kind":"tess","task":"1","queued_at":1790425902,"prompt_bytes":51596}
+{"id":"1248f9b9","kind":"tess","task":"1","queued_at":1790425939,"prompt_bytes":27014}
+{"id":"0ccbfe03","kind":"tess","task":"1","queued_at":1790425954,"prompt_bytes":27014}
+{"id":"0ccbfe03","ended_at":1790426122,"elapsed_s":168,"outcome":"ok","detail":null}
+{"id":"8b18417b","kind":"ivan","task":"1","queued_at":1790426229,"prompt_bytes":29004}
+{"id":"657615c3","kind":"ivan","task":"1","queued_at":1790426238,"prompt_bytes":29004}
+{"id":"657615c3","ended_at":1790426387,"elapsed_s":149,"outcome":"ok","detail":null}
+{"id":"7dbea017","kind":"ivan","task":"1","queued_at":1790426498,"prompt_bytes":11253}
+{"id":"6506d7b2","kind":"ivan","task":"1","queued_at":1790426507,"prompt_bytes":11253}
+{"id":"6506d7b2","ended_at":1790426629,"elapsed_s":122,"outcome":"ok","detail":null}
+{"id":"8d3178d9","kind":"pat","task":"1","queued_at":1790426723,"prompt_bytes":10033}
+{"id":"501157c5","kind":"ivan","task":"1","queued_at":1790426802,"prompt_bytes":12574}
+{"id":"a6a0ba8d","kind":"ivan","task":"1","queued_at":1790426810,"prompt_bytes":12574}
+{"id":"a6a0ba8d","ended_at":1790426879,"elapsed_s":69,"outcome":"ok","detail":null}
+{"id":"63333dbd","kind":"pat","task":"1","queued_at":1790426933,"prompt_bytes":3414}
+{"id":"e2cc065b","ended_at":1790427433,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"1248f9b9","ended_at":1790427433,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"8b18417b","ended_at":1790427433,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"7dbea017","ended_at":1790427433,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"8d3178d9","ended_at":1790427433,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"501157c5","ended_at":1790427433,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"63333dbd","ended_at":1790427433,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790427433,"phase":"review","prd":"00063-missing-registry-tracebacks-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790427535,"phase":"review","prd":"00063-missing-registry-tracebacks-v1.md"}
+{"id":"0d4f17fc","kind":"bob","task":"review-00063c1","queued_at":1790428609,"prompt_bytes":11124}
+{"id":"a60336b1","kind":"carl","task":"review-00063c1","queued_at":1790428614,"prompt_bytes":7707}
+{"id":"0d4f17fc","ended_at":1790428988,"elapsed_s":379,"outcome":"ok","detail":null}
+{"id":"a60336b1","ended_at":1790428993,"elapsed_s":379,"outcome":"ok","detail":null}
+{"id":"7f1ef137","kind":"pat","task":"2","queued_at":1790430339,"prompt_bytes":9489}
+{"id":"7f1ef137","ended_at":1790430403,"elapsed_s":64,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1790431037,"phase":"done","prd":"00063-missing-registry-tracebacks-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1790431096,"phase":"done","prd":"00063-missing-registry-tracebacks-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790431231,"phase":"build","prd":"00063-missing-registry-tracebacks-v1.md"}
+{"id":"959d426d","kind":"tess","task":"1","queued_at":1790431866,"prompt_bytes":35355}
+{"id":"7aba1463","kind":"ivan","task":"1","queued_at":1790432059,"prompt_bytes":20265}
+{"id":"8b966119","kind":"pat","task":"1","queued_at":1790432344,"prompt_bytes":7762}
+{"id":"25186546","kind":"ivan","task":"1","queued_at":1790432410,"prompt_bytes":9877}
+{"id":"b27c53d1","kind":"pat","task":"1","queued_at":1790432490,"prompt_bytes":3502}
+{"id":"959d426d","ended_at":1790432892,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"7aba1463","ended_at":1790432892,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"8b966119","ended_at":1790432892,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"25186546","ended_at":1790432892,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"b27c53d1","ended_at":1790432892,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790432892,"phase":"review","prd":"00064-braid-follows-symlinked-skill-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790432936,"phase":"review","prd":"00064-braid-follows-symlinked-skill-v1.md"}
+{"id":"9c383e3a","kind":"bob","task":"review-00064-c1","queued_at":1790433549,"prompt_bytes":10021}
+{"id":"ccbecb3a","kind":"carl","task":"review-00064-c1","queued_at":1790433551,"prompt_bytes":6547}
+{"id":"9c383e3a","ended_at":1790434012,"elapsed_s":463,"outcome":"ok","detail":null}
+{"id":"ccbecb3a","ended_at":1790434013,"elapsed_s":462,"outcome":"ok","detail":null}
+{"id":"84606c73","kind":"pat","task":"2","queued_at":1790434826,"prompt_bytes":12175}
+{"id":"84606c73","ended_at":1790434845,"elapsed_s":19,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1790435286,"phase":"done","prd":"00064-braid-follows-symlinked-skill-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790435416,"phase":"build","prd":"00065-build-reads-whole-history-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790435427,"phase":"build","prd":"00064-braid-follows-symlinked-skill-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790435532,"phase":"build","prd":"00065-build-reads-whole-history-v1.md"}
+{"id":"1a1d51fc","kind":"tess","task":"1","queued_at":1790436118,"prompt_bytes":19481}
+{"id":"6e491122","kind":"ivan","task":"1","queued_at":1790436586,"prompt_bytes":21143}
+{"id":"914dc3aa","kind":"pat","task":"1","queued_at":1790437046,"prompt_bytes":12703}
+{"id":"1a1d51fc","ended_at":1790437470,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"6e491122","ended_at":1790437470,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"914dc3aa","ended_at":1790437470,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790437470,"phase":"review","prd":"00065-build-reads-whole-history-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790437526,"phase":"review","prd":"00065-build-reads-whole-history-v1.md"}
+{"id":"12d2fbd4","kind":"bob","task":"review-00065-1","queued_at":1790438244,"prompt_bytes":9333}
+{"id":"8be8ff5b","kind":"carl","task":"review-00065-1","queued_at":1790438250,"prompt_bytes":6601}
+{"id":"8be8ff5b","ended_at":1790438525,"elapsed_s":275,"outcome":"ok","detail":null}
+{"id":"12d2fbd4","ended_at":1790438649,"elapsed_s":405,"outcome":"ok","detail":null}
+{"id":"8b54b8e8","kind":"ivan","task":"2","queued_at":1790439215,"prompt_bytes":11655}
+{"id":"63172727","kind":"ivan","task":"2","queued_at":1790439264,"prompt_bytes":15671}
+{"id":"63172727","ended_at":1790439848,"elapsed_s":584,"outcome":"ok","detail":null}
+{"id":"d6b48361","kind":"pat","task":"2","queued_at":1790440047,"prompt_bytes":12533}
+{"id":"d6b48361","ended_at":1790440091,"elapsed_s":44,"outcome":"ok","detail":null}
+{"id":"8b54b8e8","ended_at":1790440527,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"kind":"handoff","site":"review","edge":"leave","at":1790440527,"phase":"done","prd":"00065-build-reads-whole-history-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1790440559,"phase":"done","prd":"00065-build-reads-whole-history-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790440703,"phase":"build","prd":"00065-build-reads-whole-history-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790440791,"phase":"build","prd":"00066-clipboard-markdown-unescaped-v1.md"}
+{"id":"8cc963e3","kind":"tess","task":"1","queued_at":1790441349,"prompt_bytes":21168}
+{"id":"58a9fb49","kind":"ivan","task":"1","queued_at":1790442047,"prompt_bytes":20146}
+{"id":"28871a15","kind":"ivan","task":"1","queued_at":1790442078,"prompt_bytes":20053}
+{"id":"df760a7c","kind":"ivan","task":"1","queued_at":1790442966,"prompt_bytes":21489}
+{"id":"ed095254","kind":"pat","task":"1","queued_at":1790443160,"prompt_bytes":90534}
+{"id":"5cbacbf6","kind":"pat","task":"1","queued_at":1790443188,"prompt_bytes":11038}
+{"id":"8cc963e3","ended_at":1790443720,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"58a9fb49","ended_at":1790443720,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"28871a15","ended_at":1790443720,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"df760a7c","ended_at":1790443720,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"ed095254","ended_at":1790443720,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"5cbacbf6","ended_at":1790443720,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790443720,"phase":"review","prd":"00066-clipboard-markdown-unescaped-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790443763,"phase":"review","prd":"00066-clipboard-markdown-unescaped-v1.md"}
+{"id":"4144d266","kind":"bob","task":"review-00066-c1","queued_at":1790444097,"prompt_bytes":8822}
+{"id":"ce9583ae","kind":"carl","task":"review-00066-c1","queued_at":1790444099,"prompt_bytes":6586}
+{"id":"4144d266","ended_at":1790444606,"elapsed_s":509,"outcome":"ok","detail":null}
+{"id":"ce9583ae","ended_at":1790444608,"elapsed_s":509,"outcome":"ok","detail":null}
+{"id":"2f36a883","kind":"pat","task":"2","queued_at":1790444997,"prompt_bytes":11469}
+{"id":"2f36a883","ended_at":1790445041,"elapsed_s":44,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1790445391,"phase":"done","prd":"00066-clipboard-markdown-unescaped-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1790445421,"phase":"done","prd":"00066-clipboard-markdown-unescaped-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790445464,"phase":"build","prd":"00066-clipboard-markdown-unescaped-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790445580,"phase":"build","prd":"00067-remote-url-passes-query-dotdot-v1.md"}
+{"id":"81838955","kind":"tess","task":"1","queued_at":1790446071,"prompt_bytes":44010}
+{"id":"4345be8b","kind":"ivan","task":"1","queued_at":1790446447,"prompt_bytes":20681}
+{"id":"ffd26ba1","kind":"pat","task":"1","queued_at":1790446878,"prompt_bytes":14201}
+{"id":"d13fb629","kind":"pat","task":"1","queued_at":1790446942,"prompt_bytes":14476}
+{"id":"85693168","kind":"ivan","task":"1","queued_at":1790446990,"prompt_bytes":9668}
+{"id":"bb911bbc","kind":"pat","task":"1","queued_at":1790447088,"prompt_bytes":3026}
+{"id":"81838955","ended_at":1790447525,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"4345be8b","ended_at":1790447525,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"ffd26ba1","ended_at":1790447525,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"d13fb629","ended_at":1790447525,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"85693168","ended_at":1790447525,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"bb911bbc","ended_at":1790447525,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790447525,"phase":"review","prd":"00067-remote-url-passes-query-dotdot-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790447562,"phase":"review","prd":"00067-remote-url-passes-query-dotdot-v1.md"}
+{"id":"5e1f431c","kind":"bob","task":"review-00067c1","queued_at":1790447969,"prompt_bytes":9195}
+{"id":"c0d76579","kind":"carl","task":"review-00067c1","queued_at":1790447970,"prompt_bytes":6854}
+{"id":"5e1f431c","ended_at":1790448603,"elapsed_s":634,"outcome":"ok","detail":null}
+{"id":"c0d76579","ended_at":1790448604,"elapsed_s":634,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1790449515,"phase":"done","prd":"00067-remote-url-passes-query-dotdot-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1790449564,"phase":"done","prd":"00067-remote-url-passes-query-dotdot-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1790449654,"phase":"build","prd":"00067-remote-url-passes-query-dotdot-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1790449730,"phase":"build","prd":"00068-redundant-branch-resolve-v1.md"}
+{"id":"d5905c4d","kind":"tess","task":"1","queued_at":1790450347,"prompt_bytes":24179}
+{"id":"9a406e53","kind":"ivan","task":"1","queued_at":1790450611,"prompt_bytes":22170}
+{"id":"edd6b6fe","kind":"ivan","task":"1","queued_at":1790450987,"prompt_bytes":9400}
+{"id":"359f66f9","kind":"pat","task":"1","queued_at":1790451178,"prompt_bytes":15067}
+{"id":"514a94bf","kind":"pat","task":"1","queued_at":1790451272,"prompt_bytes":15186}
+{"id":"d5905c4d","ended_at":1790451706,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"9a406e53","ended_at":1790451706,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"edd6b6fe","ended_at":1790451706,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"359f66f9","ended_at":1790451706,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"514a94bf","ended_at":1790451706,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1790451706,"phase":"review","prd":"00068-redundant-branch-resolve-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1790451743,"phase":"review","prd":"00068-redundant-branch-resolve-v1.md"}
+{"id":"7558b443","kind":"bob","task":"review-00068c1","queued_at":1790452261,"prompt_bytes":9249}
+{"id":"babd4483","kind":"carl","task":"review-00068c1","queued_at":1790452262,"prompt_bytes":6593}
+{"id":"7558b443","ended_at":1790452783,"elapsed_s":522,"outcome":"ok","detail":null}
+{"id":"babd4483","ended_at":1790452785,"elapsed_s":523,"outcome":"ok","detail":null}

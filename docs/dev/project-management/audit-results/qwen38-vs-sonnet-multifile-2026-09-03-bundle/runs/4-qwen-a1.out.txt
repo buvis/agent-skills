@@ -1,0 +1,23 @@
+[llama-cpp] failed to reach http://localhost:8080/v1/models: fetch failed
+The change is complete and verified. Summary:
+
+## Problem
+
+At triage, the pipeline stamps a `processed` row keyed by the **raw source sha** (`pending-triage`). But `CommandPromote._finalize` recorded the sha of the **OCR'd PDF** (`sha256_file(ocr_result.pdf_path)`). When the full-OCR branch fires, the filed PDF's bytes differ from the source, so:
+- the filed row was keyed by the wrong sha,
+- the pending-triage row was left stale (re-ingest hit it and the duplicate sidecar wrongly said "awaiting review in _triage/"),
+- and for proposals without a triage stamp (manual/legacy), re-ingesting the same source PDF slipped past dedup entirely and filed a second archive copy.
+
+## Fix — `src/tools/bim/commands/doc/promote/promote.py`
+
+`_finalize` now records `sha = ctx.proposal.source.sha256` (the raw source sha stamped on the proposal at triage) instead of hashing the OCR'd file. That sha flows into the `ProcessedRow` (the `INSERT OR REPLACE` retires the pending-triage row and keys the filed row by the source sha), the zettel frontmatter `file_sha256`, and the result metadata — all now matching the ingest path's staging-sha convention. The OCR'd PDF is still the file that gets moved (the zettel body must describe the filed PDF). Removed the now-unused `sha256_file` import. The triage side (`pipeline.py`) already records the raw source sha (Phase 0) and needed no change.
+
+## Tests — `tests/tools/bim/doc/test_promote.py`
+
+- **Updated** `test_promote_files_ocr_result_pdf_when_full_ocr_branch_ran`: the raw source sha is now the dedup key (with `manual` method + filed canonical filename); the OCR'd bytes' sha is asserted *not* recorded.
+- **Added** `test_promote_records_raw_source_sha_replacing_pending_triage_row`: simulates the pipeline's pending-triage stamp, promotes, and verifies via `StateDB.dedup` that the raw-source row equals the expected filed row using `model_dump(exclude={"sha256", "processed_at"})`.
+
+## Verification
+
+- Full end-to-end acceptance scenario (real `Pipeline` → triage → `CommandPromote` with full-OCR branch → re-ingest same source): **duplicate detected, exactly one archive copy, sidecar correctly references the filed document** — and the same scenario fails on the pre-change code.
+- `pytest tests/tools/bim/`: 1203 passed, 5 skipped (snapshots, non-canonical env) · `mypy`: clean · `ruff check` + `ruff format --check`: clean.

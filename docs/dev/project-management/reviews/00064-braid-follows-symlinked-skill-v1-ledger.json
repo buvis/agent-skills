@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: the dry-run reproduction emits no `WOULD LINK` line for the symlinked skill",
+    "file": null,
+    "reason": "Resolved by live evidence in the same cycle rather than left open. The item is a sandbox limit, not a defect: Bob cannot execute anything. It was not queueable (the check needs scratch-tree setup plus a stdout assertion, which is not the single-runnable-command shape the verification queue accepts), so it could not be routed. Alice and Blake each executed the PRD reproduction independently in separate scratch trees this cycle, and both report the symlinked skill absent from the dry-run output - Blake counted 76 WOULD LINK lines, none naming evil or outside, exit 0, nothing written. Do not re-raise unless the reproduction itself changes."
+  }
+]

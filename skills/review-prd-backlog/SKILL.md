@@ -1,7 +1,7 @@
 ---
 name: review-prd-backlog
-description: Use to review the PRD backlog (dev/local/prds/backlog) before /run-autopilot - create-prd compliance, collisions, sizing/regrouping, gaps, goal alignment. Triggers on "review backlog", "review prds", "audit backlog", "backlog ready".
-argument-hint: "[backlog dir, default dev/local/prds/backlog]"
+description: Use to review the PRD backlog (docs/dev/project-management/prds/backlog) before /run-autopilot - create-prd compliance, collisions, sizing/regrouping, gaps, goal alignment. Triggers on "review backlog", "review prds", "audit backlog", "backlog ready".
+argument-hint: "[backlog dir, default docs/dev/project-management/prds/backlog]"
 compatibility: "Portable backlog gate; large backlogs want a host that can dispatch sub-agents for the grounding lens, and full budget/tier coverage needs the autopilot plugin."
 ---
 
@@ -26,7 +26,7 @@ Review the PRD backlog before `/run-autopilot` drains it unattended. Two levels:
 
 ## Inputs
 
-Default target: `dev/local/prds/backlog/` in the current repo. An argument may override the directory. If the directory is missing or empty, say so and stop ("nothing to review; create PRDs with /create-prd"). If the user asked for "report only", skip the interactive resolution (step 8).
+Default target: `docs/dev/project-management/prds/backlog/` in the current repo. An argument may override the directory. If the directory is missing or empty, say so and stop ("nothing to review; create PRDs with /create-prd"). If the user asked for "report only", skip the interactive resolution (step 8).
 
 ## Ground rules (load-bearing)
 
@@ -40,9 +40,9 @@ Default target: `dev/local/prds/backlog/` in the current repo. An argument may o
 
 ## Workflow
 
-1. **Inventory.** List `backlog/` (the target) plus `wip/`, `hold/`, `done/` (recent), and `dev/local/discovery/` for context. Hygiene checks - each is Blocking because it breaks autopilot Phase 0 selection or lifecycle moves:
+1. **Inventory.** List `backlog/` (the target) plus `wip/`, `hold/`, `done/` (recent), and `docs/dev/project-management/discovery/` for context. Hygiene checks - each is Blocking because it breaks autopilot Phase 0 selection or lifecycle moves:
    - Only `NNNNN-{slug}-v{n}.md` PRD files in `backlog/`. A stray file mis-sorts the lowest-prefix pick (selection break). This review's own report NEVER goes inside `backlog/`.
-   - Sequence numbers unique across backlog/, wip/, done/, hold/, AND `dev/local/discovery/` (create-prd allocates across all of them).
+   - Sequence numbers unique across backlog/, wip/, done/, hold/, AND `docs/dev/project-management/discovery/` (create-prd allocates across all of them).
    - **Citation resolution** (mechanical, PRD 00081): run `python3 ~/.agents/skills/review-prd-backlog/scripts/check_links.py --root . --json` and keep only findings whose `file` is under `prds/backlog/` or `prds/wip/`. Each dangling citation is **Blocking** (fails as: stall - an implementor premise check trips on the dangling pointer) UNLESS the target is an output the PRD itself declares it will create (listed in its Repository Structure or a task) - those are normal forward references, not findings. A `link-ok:` token on the citing line waives it.
 2. **Load the law.** Read `~/.agents/skills/create-prd/SKILL.md` and its `assets/` templates (`minimal.md`, `standard.md`, `example_prd_rpg.md`). Lens A's checklist comes from these files as they are today. When budget or tier questions arise, consult the `autopilot:plan-tasks` skill, steps 4-4.7, from the installed autopilot plugin.
 3. **Comprehension pass.** Read every PRD fully. Build the backlog map: number, title, template used, line count, subsystems/files touched, dependencies (stated and inferred), frontmatter fields. Keep confusion notes: where, what is unclear, and why a planner or test author could misread it - these become Question findings.
@@ -52,7 +52,7 @@ Default target: `dev/local/prds/backlog/` in the current repo. An argument may o
    - **Blocking** - names one of these failure mechanisms: *selection break* (Phase 0 picks or moves the wrong file), *stall* (plan-tasks cannot split a task under the 150K budget; PRD parked in `hold/`), *wrong-TDD lock-in* (vague contract → tests invented from the task text alone encode a plausible-but-wrong schema; self-consistent failure surfaces only at PRD-level review), *rework thrash* (ambiguous acceptance criteria → reviewer and implementer disagree until the rework cap pauses the PRD), *coverage-gate block* (feature headings that reviewers cannot key verbatim), *unattended hang* (a step needs an interactive approval, credential, or human test/validation/decision mid-loop), *order break* (dependency on a higher-numbered PRD), *loop self-harm* (PRD edits the machinery executing the batch), *goal reversal* (PRD undoes what the project or another PRD is building toward).
    - **Non-blocking** - weakens quality or efficiency but the loop survives it.
    - **Question** - genuine ambiguity needing the author's intent (mostly from confusion notes).
-7. **Write the report** with the Write tool to `dev/local/audit-results/backlog-review-{YYYY-MM-DD}.md` (curated dir per the GC contract; never inside `prds/`; never via shell redirect). Format below. Chat output stays at three sentences plus the verdict.
+7. **Write the report** with the Write tool to `docs/dev/project-management/audit-results/backlog-review-{YYYY-MM-DD}.md` (curated dir per the GC contract; never inside `prds/`; never via shell redirect). Format below. Chat output stays at three sentences plus the verdict.
 8. **Resolve interactively** (skip on report-only). Walk findings severity-first (Blocking → RESHAPE proposals → Question → Non-blocking worth asking), one at a time, using the finding-card format below with `AskUserQuestion`. Record choices; do not edit yet (batch mode).
 9. **Apply pass.** Print the full decision summary to chat first (the recovery record if the session dies mid-apply). Then apply accepted text edits with Edit and reshapes per the mechanics below. Re-run lens A on every touched PRD, update the report file, and print the final verdict.
 
@@ -131,10 +131,10 @@ Every PRD pays fixed ceremony: catchup (batch-cached), design, planning, work, r
 
 ### H. Goal alignment and end state - is the sum worth running?
 
-Read the goal sources first: README/docs, `dev/local/meta/project-capsule.md`, CLAUDE.md, recent git log themes, the `done/` trajectory.
+Read the goal sources first: README/docs, `docs/dev/project-management/meta/project-capsule.md`, CLAUDE.md, recent git log themes, the `done/` trajectory.
 
 - Per PRD: does it move the goal? Flag underminers: re-adds complexity the roadmap or another PRD removes (goal reversal); instructs violating a standing rule (hook language policy, branch naming, changelog mandates) - the work phase will fight the hooks and thrash; speculative scope beyond the source discovery doc.
-- Traceability: when a source discovery doc exists in `dev/local/discovery/`, its must-haves carried over (a dropped must-have is Blocking) and no scope invented beyond it.
+- Traceability: when a source discovery doc exists in `docs/dev/project-management/discovery/`, its must-haves carried over (a dropped must-have is Blocking) and no scope invented beyond it.
 - End-state simulation: with every PRD done, describe the codebase. One pattern per problem? No orphaned deprecations? Docs current? Anything the batch leaves half-finished gets named in the report - "best shape to continue building" is the bar.
 
 ## Verdicts
@@ -172,9 +172,9 @@ Then `AskUserQuestion` with the same three options in the same order, `(Recommen
 ## Reshape mechanics (apply pass only)
 
 - Renumber: `mv` within `backlog/`, keep the `NNNNN-{slug}-v{n}.md` shape, keep cross-dir uniqueness.
-- Merge: Write a new PRD at the LOWEST absorbed number, on the template matching the merged complexity; `mv` absorbed originals to `dev/local/prds/hold/` (create it; autopilot never reads `hold/`). Delete only if the user explicitly chose deletion.
+- Merge: Write a new PRD at the LOWEST absorbed number, on the template matching the merged complexity; `mv` absorbed originals to `docs/dev/project-management/prds/hold/` (create it; autopilot never reads `hold/`). Delete only if the user explicitly chose deletion.
 - Split: part 1 keeps the original number; later parts take fresh numbers at the tail per create-prd's sequence logic. Each part must stand alone.
-- HOLD: `mv` to `dev/local/prds/hold/`; record the reason in the report, not in the PRD.
+- HOLD: `mv` to `docs/dev/project-management/prds/hold/`; record the reason in the report, not in the PRD.
 - Always `mv`, never `cp`. Never touch `wip/` or `done/` contents. After any reshape, re-run lens A on the touched files.
 
 ## Report format

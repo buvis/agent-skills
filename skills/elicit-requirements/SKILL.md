@@ -26,7 +26,7 @@ Turn a rough idea into a validated discovery document that `/create-prd` can con
 Find source material in this order:
 
 1. **Argument** - user passed a rough idea or file path
-2. **Brainstorming output** - check for recent prior work: plan-mode output in the conversation, `dev/local/spikes/` findings, `dev/local/discovery/` docs. If found, read it and extract existing requirements, constraints, and decisions. Skip questions that the prior work already answers.
+2. **Brainstorming output** - check for recent prior work: plan-mode output in the conversation, `docs/dev/project-management/spikes/` findings, `docs/dev/project-management/discovery/` docs. If found, read it and extract existing requirements, constraints, and decisions. Skip questions that the prior work already answers.
 3. **Conversation context** - idea discussed in current conversation
 
 If the input is a file path, read the file. Extract whatever is available: problem statement, requirements, constraints, success criteria, open questions.
@@ -88,13 +88,13 @@ Read `references/question-bank.md`. Select questions appropriate to the depth le
 Read `references/discovery-template.md`. Generate the discovery document at the classified depth.
 
 **Sequence numbering:**
-1. Scan all `.md` files in `dev/local/prds/**` and `dev/local/discovery/`
+1. Scan all `.md` files in `docs/dev/project-management/prds/**` and `docs/dev/project-management/discovery/`
 2. Extract leading 5-digit prefixes matching `^[0-9]{5}-`
 3. New sequence = max + 1, zero-padded to 5 digits
 
-**File path:** `dev/local/discovery/{sequence}-{feature-slug}.md`
+**File path:** `docs/dev/project-management/discovery/{sequence}-{feature-slug}.md`
 
-Create `dev/local/discovery/` if it doesn't exist.
+Create `docs/dev/project-management/discovery/` if it doesn't exist.
 
 **Content rules:**
 - Every section that appears must have real content. No stubs, no "N/A", no "TBD".
@@ -106,8 +106,8 @@ Create `dev/local/discovery/` if it doesn't exist.
 
 After writing the document:
 
-> Discovery saved to `dev/local/discovery/{filename}`.
-> Review it with `/review-discovery-doc dev/local/discovery/{filename}` (a critical five-lens pass), then run `/create-prd dev/local/discovery/{filename}` when ready.
+> Discovery saved to `docs/dev/project-management/discovery/{filename}`.
+> Review it with `/review-discovery-doc docs/dev/project-management/discovery/{filename}` (a critical five-lens pass), then run `/create-prd docs/dev/project-management/discovery/{filename}` when ready.
 
 Do not auto-invoke `/review-discovery-doc` or `/create-prd`. The user reviews first.
 

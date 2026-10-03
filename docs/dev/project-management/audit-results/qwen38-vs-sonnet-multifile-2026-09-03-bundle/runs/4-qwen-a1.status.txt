@@ -1,0 +1,2 @@
+M	src/tools/bim/commands/doc/promote/promote.py
+M	tests/tools/bim/doc/test_promote.py

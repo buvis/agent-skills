@@ -1,0 +1,31 @@
+# Multi-file eval manifest - stage B, 2026-09-02 (retry 1, gate feedback)
+#
+# Six vetted multi-file tasks, drawn from two repositories and two languages:
+# tasks 1-4 are gems (Python), tasks 5-6 are ddb (Rust). Kinds: one
+# `impl+caller` (task 1) and five `impl+test`. Every task has a
+# `<n>-<slug>.vetting.md` next to its prompt recording the base sha, the
+# per-file history verdict, the pinned interface and the reverse patch.
+#
+# Substitution (gate feedback, retry 1): task 5 (`generalize-write-lock`) is
+# disqualified for real - its pre-task tree does not compile, because
+# `ddb-core/src/indexer/tests/mod.rs` (outside its Required set) already
+# depends on the post-task `write_lock` interface. Its artifacts were renamed
+# to `tasks/dq5-generalize-write-lock.*` (never deleted). The vetted alternate,
+# `alt1-surface-reindex-skip-warnings`, was promoted into the vacated slot 5
+# under the `5-surface-reindex-skip-warnings` slug, with its raw test command
+# narrowed from the full unfiltered `cargo test -p ddb-core --lib` to the two
+# canonical test modules the task's diff touches (multiple positional filters
+# are ORed by libtest). The `alt1-*` originals are left in place unchanged;
+# there is no longer a separate alternate line below.
+#
+# Format: <prompt-file><TAB><verify-shell-command, tree-relative>
+# The executor prefixes the engine tree (--directory / --manifest-path) at run
+# time and copies the canonical tests in first. Task 1's command is an
+# `&&`-chain: the executor runs the segments one at a time, each tree-relative.
+#
+/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt	test ! -e src/tools/bim/commands/doc/shared/atomic_write.py && ! rg -q "shared\.atomic_write|shared/atomic_write" src/tools/bim tests/tools/bim && uv run pytest tests/tools/bim/doc -q
+/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt	uv run pytest tests/tools/bim/tui/test_create_note.py tests/lib/pybase/test_result.py -q
+/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/3-repoint-zettel-save.prompt.txt	uv run pytest tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py -q
+/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/4-record-raw-source-sha.prompt.txt	uv run pytest tests/tools/bim/doc/test_promote.py -q
+/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/5-surface-reindex-skip-warnings.prompt.txt	cargo test -p ddb-core --lib -- service::mock_index_tests ffi::tests
+/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/6-cap-frontmatter-size.prompt.txt	cargo test -p ddb-core --lib parser

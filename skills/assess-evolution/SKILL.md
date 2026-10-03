@@ -79,7 +79,7 @@ Answer one question: **could the current plan, fully executed, achieve the proje
 
 ## 6. Synthesize the findings report
 
-One ranked report, written to `dev/local/audit-results/evolution-assessment-{YYYY-MM-DD}.md` (curated dir per the GC contract; never at `dev/local` root). Each finding: **severity** (Critical/High/Med/Low) · **lens** · one-line defect · exact `file:line` evidence · one sentence on why it blocks growth / threatens stability / costs users · cheapest fix direction · **NEW vs already-tracked**. Include a short "what the architecture gets right" list so the team doesn't fix non-problems, and a "checked and safe" list so ruled-out hazards are visible. Mark UNVERIFIED explicitly (fail loud). Open the report with the reconstructed goal and the lens-9 coverage table so every finding reads against what the project is for.
+One ranked report, written to `docs/dev/project-management/audit-results/evolution-assessment-{YYYY-MM-DD}.md` (curated dir per the GC contract; never at `docs/dev/project-management` root). Each finding: **severity** (Critical/High/Med/Low) · **lens** · one-line defect · exact `file:line` evidence · one sentence on why it blocks growth / threatens stability / costs users · cheapest fix direction · **NEW vs already-tracked**. Include a short "what the architecture gets right" list so the team doesn't fix non-problems, and a "checked and safe" list so ruled-out hazards are visible. Mark UNVERIFIED explicitly (fail loud). Open the report with the reconstructed goal and the lens-9 coverage table so every finding reads against what the project is for.
 
 ## 7. Emit a phased, session-sized PRD roadmap
 
@@ -99,9 +99,9 @@ Every **missing** capability from lens 9 becomes either a PRD in the roadmap or 
 
 ## Outputs
 
-1. A findings report at `dev/local/audit-results/evolution-assessment-{YYYY-MM-DD}.md`.
+1. A findings report at `docs/dev/project-management/audit-results/evolution-assessment-{YYYY-MM-DD}.md`.
 2. The phased PRD set in the project's backlog, numbered for its pipeline.
-3. A roadmap/index doc that is the ordering authority, at `dev/local/audit-results/evolution-roadmap-{YYYY-MM-DD}.md`.
+3. A roadmap/index doc that is the ordering authority, at `docs/dev/project-management/audit-results/evolution-roadmap-{YYYY-MM-DD}.md`.
 4. Guardrail edits (AGENTS.md/CLAUDE.md + a doc).
 5. A downstream deletion ledger, the top-3 user wins, and the goal-coverage verdict (could the plan, fully executed, achieve the goal?).
 

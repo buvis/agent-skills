@@ -83,4 +83,4 @@ Queries run, date range of sources, domain restrictions, known blind spots.
 ## Delivery
 
 - Short results (< 2000 words): the agent returns directly, relay to user.
-- Long reports: instruct the agent to save to `dev/local/discovery/research-[topic-slug]-[YYYY-MM-DD].md` using the Write tool (curated dir per the GC contract; never dev/local root). Tell the user where it was saved.
+- Long reports: instruct the agent to save to `docs/dev/project-management/discovery/research-[topic-slug]-[YYYY-MM-DD].md` using the Write tool (curated dir per the GC contract; never docs/dev/project-management root). Tell the user where it was saved.

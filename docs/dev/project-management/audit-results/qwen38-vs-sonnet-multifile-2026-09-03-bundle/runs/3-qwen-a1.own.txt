@@ -1,0 +1,6 @@
+   Building buvis-gems @ file:///private/tmp/qwen-eval-00010/3-repoint-zettel-save-qwen-a1-own
+      Built buvis-gems @ file:///private/tmp/qwen-eval-00010/3-repoint-zettel-save-qwen-a1-own
+Uninstalled 1 package in 3ms
+Installed 1 package in 4ms
+.......                                                                  [100%]
+7 passed in 0.36s

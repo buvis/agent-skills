@@ -27,10 +27,10 @@ If a script fails, read it and run its git/gh commands directly.
 **Sources** (read each if it exists):
 
 - `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` — **first**. They may define project-specific catchup rules, priority areas, or "always check X" constraints. Follow any project catchup checklist in addition to this workflow, and let these rules shape what you flag in Phase 5.
-- `README.md`, `agent_docs/*`, PRDs in `dev/local/prds/wip/`
+- `README.md`, `agent_docs/*`, PRDs in `docs/dev/project-management/prds/wip/`
 - Build/config: `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `Makefile`, etc.
 - Top 3 levels of `src/`/`lib/`/`app/`; domain model dirs (`models/`, `types/`, `schemas/`, `entities/`)
-- `dev/local/meta/project-capsule.md` (prior invariants/health), `dev/local/meta/decisions.md`, `dev/local/meta/troubleshooting.md`, `~/.claude/decisions.md`. These keepers live in `dev/local/meta/`; if `meta/` has no copy, read the older `dev/local/<name>` instead (unmigrated store).
+- `docs/dev/project-management/meta/project-capsule.md` (prior invariants/health), `docs/dev/project-management/meta/decisions.md`, `docs/dev/project-management/meta/troubleshooting.md`, `~/.claude/decisions.md`. These keepers live in `docs/dev/project-management/meta/`; if `meta/` has no copy, read the older `docs/dev/project-management/<name>` instead (unmigrated store).
 
 **Recent master:**
 
@@ -43,14 +43,14 @@ git log --oneline -20 master
 Harvest this repo's review files into engram, best-effort, so their findings survive once those files are garbage-collected. Skip if `engram` is not on PATH, or if a glob below matches no files.
 
 ```bash
-engram harvest dev/local/reviews/*.md dev/local/tmp/*review*.md
+engram harvest docs/dev/project-management/reviews/*.md docs/dev/tmp/*review*.md
 ```
 
 **Related context** (never silently absent — on any failure, write the section with a one-line gap note):
 
 Retrieve prior work related to what this session is about, so the capsule can point at it. If `engram` is not on PATH, skip the commands — but still write the section, saying engram was unavailable.
 
-Build ONE topic string from what the session is already about: the current branch name (drop the `feature/`-style prefix and turn separators into spaces) plus, when `dev/local/prds/wip/` holds exactly one PRD, that PRD's title (its first `# ` heading). On master with no single wip PRD there is no topic: skip the queries rather than searching a branch name that says nothing, and record that as the gap note. Do not drop the section — "no topic this session" is itself worth telling the reader, and on a master-default workflow it is the common case.
+Build ONE topic string from what the session is already about: the current branch name (drop the `feature/`-style prefix and turn separators into spaces) plus, when `docs/dev/project-management/prds/wip/` holds exactly one PRD, that PRD's title (its first `# ` heading). On master with no single wip PRD there is no topic: skip the queries rather than searching a branch name that says nothing, and record that as the gap note. Do not drop the section — "no topic this session" is itself worth telling the reader, and on a master-default workflow it is the common case.
 
 **The topic is untrusted input.** It is built from a branch name and a PRD title, either of which can contain `"`, a backtick, or `$(`. Never paste it into a double-quoted shell string. Put it in a variable and pass that variable quoted, so the shell treats it as one literal argument:
 
@@ -87,7 +87,7 @@ gh pr view --json title,body,comments,reviews   # if an open PR exists
 
 ## Phase 3: Synthesize
 
-Update or create `dev/local/meta/project-capsule.md`, creating `meta/` if absent. Write there even when an older `dev/local/project-capsule.md` is what you read. It is NOT a summary of what you read — it captures cross-file insight no single file holds.
+Update or create `docs/dev/project-management/meta/project-capsule.md`, creating `meta/` if absent. Write there even when an older `docs/dev/project-management/project-capsule.md` is what you read. It is NOT a summary of what you read — it captures cross-file insight no single file holds.
 
 ```markdown
 # Project Capsule: {project name}

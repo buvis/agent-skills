@@ -1,0 +1,1 @@
+[{"cycle":1,"finding":"Cannot statically verify: the recorded pytest line (3476 passed / 0 failed / 6 skipped) omits the xfailed count, so the must-have \"same xfail set\" has no recorded evidence; both decorators read verbatim in test_collect_pipeline.py:284 and :303","file":null,"command":"uv run pytest skills/brief-portfolio/scripts -q","source":"bob","result":{"exit":0}}]

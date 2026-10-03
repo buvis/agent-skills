@@ -1,0 +1,1 @@
+dispatch exit code: n/a (the dispatching agent was killed by the session harness as stalled while the host session was suspended; the timeout/qwen-run.sh process group died with it before writing an exit code)

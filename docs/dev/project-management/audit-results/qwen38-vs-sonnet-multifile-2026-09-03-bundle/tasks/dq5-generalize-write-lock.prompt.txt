@@ -1,0 +1,24 @@
+- [ ] Extend/reuse the 00162 lock helper (`git_ops/write_lock.rs`) for an index-rebuild lock file; define and document the lock-ordering rule vs the git write lock (no deps) - Acceptance: a unit test proves two handles serialize and the guard releases on drop; the ordering rule is written down (module doc).
+
+You are working in the repository root: the current working directory.
+Files to edit (paths relative to it):
+- ddb-core/src/git_ops/write_lock.rs
+- ddb-core/src/git_ops/mod.rs
+- ddb-core/src/git_ops/tests.rs
+
+Names the acceptance gate binds to (use these exact identifiers, signatures,
+literals and values):
+- `pub fn acquire(lock_dir: &Path, lock_name: &str, timeout: Duration) -> Result<WriteLockGuard>`
+  in `ddb-core/src/git_ops/write_lock.rs` - exactly three parameters, in that
+  order.
+- `acquire` uses `lock_dir` as given (`lock_dir.join(lock_name)`); it must NOT
+  join `.git` itself any more. Callers pass the repository's `.git` directory
+  as `lock_dir`.
+- The lock file name is a caller-supplied argument, and the git write path
+  passes the literal `"ddb-write.lock"` - e.g. in `ddb-core/src/git_ops/mod.rs`:
+  `write_lock::acquire(&self.path.join(".git"), "ddb-write.lock", WRITE_LOCK_TIMEOUT)`.
+- The guard type stays `WriteLockGuard` and still releases the OS lock on drop.
+- The module stays reachable from the `git_ops` test module as
+  `super::write_lock`.
+
+Edit only inside this repository. Do not commit.

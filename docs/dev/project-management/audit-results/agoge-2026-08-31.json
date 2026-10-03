@@ -1,0 +1,319 @@
+{
+  "fixture": "agent-skills",
+  "authorization": {
+    "route": "invocation",
+    "source": "autoclaude-drain"
+  },
+  "findings": [
+    {
+      "domain": "security",
+      "severity": "HIGH",
+      "paths": ["skills/brief-portfolio/scripts/build.py", "skills/debrief-meeting/scripts/build.py"],
+      "status": "verified",
+      "title": "Any collected title containing `<!--<script>` blanks the whole built page"
+    },
+    {
+      "domain": "security",
+      "severity": "HIGH",
+      "paths": ["skills/brush/scripts/trash_untracked.py"],
+      "status": "verified",
+      "title": "`trash_untracked` moves files out of dev/local/ and .git/ when the path carries a `../`"
+    },
+    {
+      "domain": "journey",
+      "severity": "HIGH",
+      "paths": ["skills/brief-portfolio/scripts/build.py", "skills/brief-portfolio/SKILL.md"],
+      "status": "verified",
+      "title": "`build.py --dir <somewhere>` reads from there but overwrites the dashboard in $HOME"
+    },
+    {
+      "domain": "integration",
+      "severity": "HIGH",
+      "paths": ["src/agent_skills_braid/cli.py", "AGENTS.md"],
+      "status": "verified",
+      "title": "`braid --check` says 0 drift while dangling skill links sit in the farm forever"
+    },
+    {
+      "domain": "integration",
+      "severity": "HIGH",
+      "paths": ["skills/distil-memory/scripts/docket.py", "skills/distil-memory/SKILL.md"],
+      "status": "verified",
+      "title": "A corrupt review queue is indistinguishable from a finished one"
+    },
+    {
+      "domain": "integration",
+      "severity": "HIGH",
+      "paths": ["skills/distil-memory/scripts/docket.py", "skills/distil-memory/SKILL.md"],
+      "status": "verified",
+      "title": "The review queue lands wherever cwd is, so one proposal set can be queued and written twice"
+    },
+    {
+      "domain": "release",
+      "severity": "HIGH",
+      "paths": ["skills/distil-memory/scripts/write.py", "skills/distil-memory/scripts/docket.py", "skills/distil-memory/SKILL.md", "CHANGELOG.md"],
+      "status": "verified",
+      "title": "`write.py` puts a malformed memory file on disk, then crashes, and the documented recovery cannot succeed"
+    },
+    {
+      "domain": "ux",
+      "severity": "HIGH",
+      "paths": ["skills/brief-portfolio/app/src/components/Brief.svelte", "skills/brief-portfolio/scripts/collect.py", "skills/brief-portfolio/app/src/lib/derive.js"],
+      "status": "verified",
+      "title": "A repo whose collection failed renders as clean zeros on the landing page"
+    },
+    {
+      "domain": "ux",
+      "severity": "HIGH",
+      "paths": ["skills/brief-portfolio/app/src/lib/done.js", "skills/brief-portfolio/app/src/App.svelte", "skills/brief-portfolio/app/smoke.test.js"],
+      "status": "mocked",
+      "title": "Any localStorage failure blanks the entire page, with no message and nothing on the console"
+    },
+    {
+      "domain": "release",
+      "severity": "HIGH",
+      "paths": ["CHANGELOG.md", "skills/sweep-fix/SKILL.md", "skills/sweep-fix/scripts/sweep.py"],
+      "status": "verified",
+      "title": "The sweep-fix skill ships to every host with no changelog entry at all"
+    },
+    {
+      "domain": "ux",
+      "severity": "MEDIUM",
+      "paths": ["skills/debrief-meeting/app/src/components/Brief.svelte", "skills/debrief-meeting/assets/template.html", "skills/debrief-meeting/app/smoke.test.js"],
+      "status": "verified",
+      "title": "A debrief built without the extraction step reports 0 live risks beside three tiles saying unknown"
+    },
+    {
+      "domain": "journey",
+      "severity": "MEDIUM",
+      "paths": ["skills/debrief-meeting/SKILL.md", "skills/brief-portfolio/SKILL.md", ".gitignore"],
+      "status": "verified",
+      "title": "The documented `npm test` step fails on a fresh clone; nothing tells you to install first"
+    },
+    {
+      "domain": "ux",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/src/components/Brief.svelte", "skills/brief-portfolio/scripts/collect.py"],
+      "status": "verified",
+      "title": "The payload holds the skip reason and the page shows none of it"
+    },
+    {
+      "domain": "ux",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/src/lib/derive.js", "skills/brief-portfolio/app/src/App.svelte", "skills/debrief-meeting/app/src/lib/derive.js"],
+      "status": "verified",
+      "title": "One fatal message for three different causes, naming the cause that is usually wrong"
+    },
+    {
+      "domain": "ux",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/src/components/Todos.svelte"],
+      "status": "mocked",
+      "title": "`copy open as markdown` with nothing open wipes the clipboard and announces success"
+    },
+    {
+      "domain": "ux",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/src/App.svelte"],
+      "status": "verified",
+      "title": "The active tab is conveyed only by a CSS class"
+    },
+    {
+      "domain": "ux",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/src/components/Repos.svelte"],
+      "status": "verified",
+      "title": "The Repos tab search box and sort control have no accessible name"
+    },
+    {
+      "domain": "ux",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/src/components/Work.svelte"],
+      "status": "mocked",
+      "title": "The CI wall renders a heading over blank space where its siblings state an empty case"
+    },
+    {
+      "domain": "ux",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/src/components/Horizon.svelte", "skills/brief-portfolio/app/src/App.svelte"],
+      "status": "unverified",
+      "downgraded": "reported unverified by the lane: jsdom has no layout, so the {#if R > 60} guard failed and the nodes never rendered; the claim is read from source",
+      "title": "The Brief's main visual gives keyboard users a bare repo name while mouse users get every reason"
+    },
+    {
+      "domain": "integration",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/scripts/collect.py"],
+      "status": "verified",
+      "title": "Trend history permanently records fabricated zero counts for repos whose collection failed"
+    },
+    {
+      "domain": "release",
+      "severity": "MEDIUM",
+      "paths": ["CHANGELOG.md", "skills/distil-memory/scripts/write.py"],
+      "status": "verified",
+      "title": "Two fix commits skipped the same-commit changelog entry; one still has no entry at HEAD"
+    },
+    {
+      "domain": "release",
+      "severity": "MEDIUM",
+      "paths": ["CHANGELOG.md"],
+      "status": "verified",
+      "title": "[Unreleased] carries two ### Changed and two ### Fixed sections while claiming Keep a Changelog"
+    },
+    {
+      "domain": "release",
+      "severity": "MEDIUM",
+      "paths": ["CHANGELOG.md", "pyproject.toml", "src/agent_skills_braid/__init__.py", "README.md"],
+      "status": "verified",
+      "title": "Nothing has ever been released: zero tags, one heading, a frozen 0.1.0, and an unbacked SemVer claim"
+    },
+    {
+      "domain": "performance",
+      "severity": "MEDIUM",
+      "paths": ["skills/survey/scripts/run.py"],
+      "status": "verified",
+      "title": "survey walks the whole tree, then discards 97% of what it enumerated"
+    },
+    {
+      "domain": "performance",
+      "severity": "MEDIUM",
+      "paths": ["skills/survey/scripts/run.py"],
+      "status": "verified",
+      "title": "survey's skip lists only fire at depth 1, so it walks and indexes build output"
+    },
+    {
+      "domain": "performance",
+      "severity": "MEDIUM",
+      "paths": ["skills/sweep-fix/scripts/sweep.py", "skills/brief-portfolio/scripts/collect.py"],
+      "status": "verified",
+      "title": "sweep scans repos strictly serially; the 30s timeout bounds one repo, not the sweep"
+    },
+    {
+      "domain": "performance",
+      "severity": "MEDIUM",
+      "paths": ["skills/sweep-fix/scripts/sweep.py"],
+      "status": "verified",
+      "title": "sweep runs the full cross-repo scan before it validates --out"
+    },
+    {
+      "domain": "performance",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/smoke.test.js", "skills/brief-portfolio/app/package.json"],
+      "status": "verified",
+      "title": "77% of the node test suite is one hardcoded real-time sleep"
+    },
+    {
+      "domain": "security",
+      "severity": "MEDIUM",
+      "paths": ["skills/distil-memory/scripts/funnel.py", "skills/distil-memory/scripts/proposal.py", "skills/distil-memory/scripts/docket.py"],
+      "status": "mocked",
+      "title": "A model-call timeout writes the entire prompt, including up to five full memory files, into proposals.json"
+    },
+    {
+      "domain": "security",
+      "severity": "MEDIUM",
+      "paths": ["skills/purge-devlocal/scripts/purge_devlocal.py"],
+      "status": "verified",
+      "title": "purge-devlocal treats any directory merely named `local` as a GC store and trashes its source files"
+    },
+    {
+      "domain": "ux",
+      "severity": "LOW",
+      "paths": ["skills/create-skill/scripts/validate_skill.py"],
+      "status": "verified",
+      "title": "`validate_skill.py --help` answers `Path not found: .../--help`"
+    },
+    {
+      "domain": "ux",
+      "severity": "LOW",
+      "paths": ["skills/create-skill/scripts/init_skill.py", "skills/create-skill/SKILL.md"],
+      "status": "verified",
+      "title": "init_skill.py's printed next step names the Claude-only path while the docs name the union path"
+    },
+    {
+      "domain": "release",
+      "severity": "LOW",
+      "paths": ["README.md", "src/agent_skills_braid/cli.py"],
+      "status": "verified",
+      "title": "Union-side backups land in a directory the README never names, and the Claude path is missing a level"
+    },
+    {
+      "domain": "integration",
+      "severity": "LOW",
+      "paths": ["src/agent_skills_braid/cli.py"],
+      "status": "verified",
+      "title": "A braid state-write failure leaves one temp file per run and a raw traceback"
+    },
+    {
+      "domain": "integration",
+      "severity": "LOW",
+      "paths": ["src/agent_skills_braid/cli.py"],
+      "status": "verified",
+      "title": "`braid --check` aborts mid-report when one managed path was changed by hand"
+    },
+    {
+      "domain": "ux",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/app/src/components/Todos.svelte", "skills/brief-portfolio/app/src/components/Work.svelte", "skills/brief-portfolio/app/src/App.svelte"],
+      "status": "verified",
+      "title": "Toggle chips report their on/off state only through colour"
+    },
+    {
+      "domain": "ux",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/app/src/App.svelte", "skills/brief-portfolio/app/src/components/Brief.svelte"],
+      "status": "verified",
+      "title": "Filtering to one org still reports another org's uncollected repo"
+    },
+    {
+      "domain": "release",
+      "severity": "LOW",
+      "paths": ["CHANGELOG.md", ".github/workflows/ci.yml"],
+      "status": "verified",
+      "title": "The CI shell-suite entry miscounts the skills that ship one"
+    },
+    {
+      "domain": "release",
+      "severity": "LOW",
+      "paths": ["src/agent_skills_braid/cli.py", "README.md"],
+      "status": "verified",
+      "title": "Four braid flags exist with neither help text nor README coverage"
+    },
+    {
+      "domain": "release",
+      "severity": "LOW",
+      "paths": ["README.md", "src/agent_skills_braid/cli.py"],
+      "status": "unverified",
+      "downgraded": "reported unverified by the lane: the backslash is a source fact read from the file, and no Windows host exists to exercise the NTFS-junction fallback, whose only coverage is a stubbed runner",
+      "title": "The README's Windows command renders a doubled backslash, and the junction claim has never run on Windows"
+    },
+    {
+      "domain": "performance",
+      "severity": "LOW",
+      "paths": ["skills/survey/scripts/run.py"],
+      "status": "verified",
+      "title": "survey reads every sampled file from disk twice"
+    },
+    {
+      "domain": "performance",
+      "severity": "LOW",
+      "paths": ["skills/survey/scripts/run.py"],
+      "status": "verified",
+      "title": "The brief's budget trimmer is quadratic in brief length"
+    },
+    {
+      "domain": "performance",
+      "severity": "LOW",
+      "paths": ["skills/review-prd-backlog/scripts/check_links.py"],
+      "status": "verified",
+      "title": "check_links stats the filesystem once per reference, with no memoisation"
+    },
+    {
+      "domain": "security",
+      "severity": "LOW",
+      "paths": ["skills/brush/scripts/trash_untracked.py"],
+      "status": "verified",
+      "title": "`trash_untracked` has no dry-run: every invocation moves files immediately"
+    }
+  ]
+}

@@ -64,7 +64,7 @@ that made the claim.
 
 ## Report contract
 
-One run writes two files into the target repo's `dev/local/audit-results/`:
+One run writes two files into the target repo's `docs/dev/project-management/audit-results/`:
 
 - `agoge-<YYYY-MM-DD>.md` — for the human.
 - `agoge-<YYYY-MM-DD>.json` — for a scorer.
@@ -174,9 +174,9 @@ scoring as a zero the pack did not earn.
 
 ## Strategy profile contract
 
-One landing spot: `dev/local/meta/agoge-profile.md` in the target repo, falling
-back to `dev/local/agoge-profile.md` when `meta/` has none. A named keeper, so
-it survives dev/local GC, and it sits in the repo it governs, where the human
+One landing spot: `docs/dev/project-management/meta/agoge-profile.md` in the target repo, falling
+back to `docs/dev/project-management/agoge-profile.md` when `meta/` has none. A named keeper, so
+it is tracked with docs/dev/project-management, and it sits in the repo it governs, where the human
 who owns the pins can read and edit it.
 
 > One spot, deliberately. A generated codebase-map file was tried as a second

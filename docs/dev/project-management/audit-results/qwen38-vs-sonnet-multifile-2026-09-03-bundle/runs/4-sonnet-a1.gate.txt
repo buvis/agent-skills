@@ -1,0 +1,6 @@
+   Building buvis-gems @ file:///private/tmp/qwen-eval-00010/4-record-raw-source-sha-sonnet-a1-gate
+      Built buvis-gems @ file:///private/tmp/qwen-eval-00010/4-record-raw-source-sha-sonnet-a1-gate
+Uninstalled 1 package in 15ms
+Installed 1 package in 3ms
+................                                                         [100%]
+16 passed in 0.20s

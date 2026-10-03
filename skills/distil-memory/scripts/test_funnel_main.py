@@ -121,7 +121,7 @@ def test_main_normal_run_prints_and_writes_report_matching_render_yield_and_refl
     captured = capsys.readouterr()
     assert expected_report in captured.out
 
-    report_files = sorted((tmp_path / "dev" / "local" / "audit-results").glob("distil-memory-*.md"))
+    report_files = sorted((tmp_path / "docs" / "dev" / "project-management" / "audit-results").glob("distil-memory-*.md"))
     assert len(report_files) == 1
     assert report_files[0].read_text() == expected_report
 
@@ -168,7 +168,7 @@ def test_main_dry_run_makes_no_model_call_and_prints_and_writes_report_matching_
     assert expected_report in captured.out
     assert "survivors: n/a" in captured.out
 
-    report_files = sorted((tmp_path / "dev" / "local" / "audit-results").glob("distil-memory-*.md"))
+    report_files = sorted((tmp_path / "docs" / "dev" / "project-management" / "audit-results").glob("distil-memory-*.md"))
     assert len(report_files) == 1
     assert report_files[0].read_text() == expected_report
 
@@ -376,7 +376,7 @@ def test_main_reports_persistence_failure_to_stderr_and_returns_nonzero_when_wri
 
     captured = capsys.readouterr()
     assert expected_report in captured.out
-    assert str(Path("dev/local/audit-results")) in captured.err
+    assert str(Path("docs/dev/project-management/audit-results")) in captured.err
 
 
 def test_main_writes_report_under_the_repository_root_and_prints_its_absolute_path_when_run_from_a_deeply_nested_cwd(
@@ -400,15 +400,15 @@ def test_main_writes_report_under_the_repository_root_and_prints_its_absolute_pa
 
     assert exit_code == 0
 
-    nested_audit_dir = nested_cwd / "dev" / "local" / "audit-results"
+    nested_audit_dir = nested_cwd / "docs" / "dev" / "project-management" / "audit-results"
     assert not nested_audit_dir.exists()
 
-    report_dir = repo_root / "dev" / "local" / "audit-results"
+    report_dir = repo_root / "docs" / "dev" / "project-management" / "audit-results"
     report_files = sorted(report_dir.glob("distil-memory-*.md"))
     assert len(report_files) == 1
 
     # The printed path must be the *absolute* path to the file that was
-    # actually written. A relative print (e.g. bare "dev/local/audit-results/...")
+    # actually written. A relative print (e.g. bare "docs/dev/project-management/audit-results/...")
     # would not equal this string, which already carries the tmp_path prefix.
     captured = capsys.readouterr()
     assert str(report_files[0]) in captured.out
@@ -430,7 +430,7 @@ def test_main_falls_back_to_cwd_dev_local_audit_results_when_no_ancestor_directo
     exit_code = funnel.main([])
 
     assert exit_code == 0
-    report_files = sorted((tmp_path / "dev" / "local" / "audit-results").glob("distil-memory-*.md"))
+    report_files = sorted((tmp_path / "docs" / "dev" / "project-management" / "audit-results").glob("distil-memory-*.md"))
     assert len(report_files) == 1
 
 

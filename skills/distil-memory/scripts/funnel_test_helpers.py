@@ -76,7 +76,7 @@ metadata:
   type: project
 ---
 
-The yield report lands under dev/local/audit-results.
+The yield report lands under docs/dev/project-management/audit-results.
 
 **Why:** a reader who looks anywhere else finds nothing.
 
@@ -106,7 +106,7 @@ metadata:
   type: project
 ---
 
-Every run writes its yield report under dev/local/audit-results. See [[report-directory]].
+Every run writes its yield report under docs/dev/project-management/audit-results. See [[report-directory]].
 
 **Why:** a reader who looks in the skill directory finds nothing.
 
@@ -228,7 +228,7 @@ def make_corpus(tmp_path, monkeypatch):
             transcript=transcript,
             memory_dir=memory_dir,
             decoy=memory_dir / "unindexed-decoy.md",
-            audit_dir=tmp_path / "dev" / "local" / "audit-results",
+            audit_dir=tmp_path / "docs" / "dev" / "project-management" / "audit-results",
             version=version,
         )
 
@@ -295,7 +295,7 @@ def make_two_project_corpus(tmp_path, monkeypatch):
         return SimpleNamespace(
             one=projects[0],
             two=projects[1],
-            audit_dir=tmp_path / "dev" / "local" / "audit-results",
+            audit_dir=tmp_path / "docs" / "dev" / "project-management" / "audit-results",
         )
 
     return build

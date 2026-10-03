@@ -1,0 +1,50 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "New regression test does not pin the fix: `test_a_refused_out_path_creates_no_report_directory` passes unchanged against the pre-reorder code (mkdir already ran after the out-path fence in the old ordering too), so it doesn't verify the PRD's actual claim (zero search subprocesses before refusal) — that claim is only pinned by the sibling test that had its xfail marker removed",
+    "file": "skills/sweep-fix/scripts/test_sweep_main.py",
+    "reason": "True fact, wrong inference. The reorder IS pinned: test_an_out_path_outside_the_cwd_repo_is_refused_before_any_repo_is_scanned (test_sweep_main.py:469-483) monkeypatches sweep.scan and asserts scans == []; before the reorder _resolve_report_path ran after scan, so that assertion failed — which is why it shipped as @pytest.mark.xfail(strict=True) and why task 2 could only remove the marker after task 1 landed. The new test's job is different and PRD-mandated verbatim: guard the invariant that a refused run creates no directory, which moving mkdir could have broken. A guard for an invariant true on both sides correctly passes on both sides."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "FIX: The new no-directory test passes against pre-change code and does not pin the required ordering before `enumerate_repos`; stub `enumerate_repos`, assert it is never called, and retain the directory assertion",
+    "file": "skills/sweep-fix/scripts/test_sweep_main.py:253",
+    "reason": "Same defect as the ALICE row above, same resolution. The proposed assertion would duplicate the existing pin at test_sweep_main.py:469-483 (which already stubs sweep.scan and asserts scans == []) one call earlier in the same file — redundant coverage, which the review checklist's Eliminate-redundancy rule forbids adding."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Pre-existing either-or hedge assertion (`assert escaping_out in message or str(target) in message`) lets the test pass regardless of which string actually appears in stderr; not introduced by this diff but flagged by the mechanical tautology scan while reviewing this file",
+    "file": "skills/sweep-fix/scripts/test_sweep_main.py:211",
+    "reason": "Pre-existing and out of scope. The PRD's Success Criteria require test_main_refuses_relative_out_that_escapes_cwd_repo_via_dotdot to pass unchanged, 'so the fence and its message are untouched'. Tightening its assertion is exactly the adjacent-code improvement the surgical-changes rule excludes from this PRD's diff. Worth a separate backlog PRD; recorded in the review file as such."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "KNOWN: The pre-existing either-or message assertion leaves half the refusal-message contract unpinned; replacing it with separate assertions is outside this PRD, whose success criteria require this test to remain unchanged",
+    "file": "skills/sweep-fix/scripts/test_sweep_main.py:211",
+    "reason": "Same defect as the ALICE :211 row, same resolution. The doubt lens itself filed it as KNOWN with the identical out-of-scope justification, so there is nothing to decide."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "KNOWN: The changelog entry landed in `19cbdf7`, separate from fix commit `a070b8f`, violating the same-commit convention; repairing this now requires rewriting master history outside review scope",
+    "file": "CHANGELOG.md:51",
+    "reason": "The CHANGELOG entry exists and is correct; only the commit boundary differs from the standing same-commit rule. The sole remedy is rewriting published master history, which is disproportionate to a process slip with no user-visible effect. Filed as a work-phase process observation, not a defect in the delivered change."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "VERIFY: Cannot statically verify required checks passed; run `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/sweep-fix`, and `braid --check`",
+    "file": null,
+    "reason": "Already answered by recorded fact. dev/local/autopilot/last-verification.json records all three commands at sha 19cbdf76f4eef0216328d69b25ac0fb808b014da — the exact HEAD under review — each exit 0, with 1090 passed / 0 failed / 5 skipped. Carl independently re-ran the sweep-fix subset and both skill checks during this cycle; all passed. The item is a sandbox limitation of the static-only doubt lane, not a finding about the code."
+  }
+]

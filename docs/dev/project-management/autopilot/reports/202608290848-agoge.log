@@ -1,0 +1,19 @@
+Memory write blocked by the unattended write-scope fence (`~/.claude` is outside the allowed roots). Not fighting that in an unattended run — noting it below instead.
+
+**Run complete.** Both files written to `dev/local/audit-results/`: `agoge-2026-08-31.md` and `agoge-2026-08-31.json`.
+
+**44 findings after dedup — 10 HIGH, 20 MEDIUM, 14 LOW. No CRITICAL.** Statuses: 38 verified, 4 mocked, 2 unverified. Three findings merged two lanes each. No downgrades were applied — every `verified` claim quoted an executed command and its output; the three borderline calls are named in the report's status-audit section.
+
+Security lane authorization: route `invocation`, source `autoclaude-drain` (the profile's own line reads `not asserted`).
+
+**One side effect, on real data.** Walking journey 4, walter ran the profile's prescribed `build.py --dir <scratch>` and thereby overwrote `~/.local/share/agents/portfolio-brief/portfolio-brief.html` — that *is* finding 3, the command reads from `--dir` but writes to `$HOME`. It was rebuilt from the operator's own cache (633 kB); the 2026-07-13 original is not byte-recoverable. Worth confirming you're happy with the current file.
+
+**Authored:** branch `agoge/authored-tests-2026-08-31`, commit `1a60fe0`, not pushed. 10 strict-xfail tests across 7 files (one new). `pytest` → **963 passed, 5 skipped, 10 xfailed** — pass count identical to baseline. `ruff check` and `ruff format --check` clean. Target tree is byte-identical and I ended on `master`, where I started.
+
+Two things the authoring pass corrected, both in the report:
+- My first braid test XPASSED — braid *does* flag a missing state manifest. The defect needs a re-sync first, which spends that signal. Committed test encodes the real sequence.
+- Trudy's proposed fix for finding 30 would have broken the deliberate `test_accepts_a_store_named_local_without_prds`. I rewrote the options to require a `dev` parent instead.
+
+**Not done, and not a pass:** no browser exists anywhere reachable, so all 12 UI findings are DOM-level via jsdom; `debrief-meeting`'s smoke suite never ran (no `node_modules`, and installing would mutate the target); all five bash suites are warden-blocked locally; Windows is unreachable. Neither node suite runs in CI, which is why 12 findings have no durable test — adding a node job is the single change that would fix that.
+
+This was unattended, so nothing was decided and no PRDs were emitted. The report ends with the pending token; resume with `/run-agoge --resume dev/local/audit-results/agoge-2026-08-31.md`.

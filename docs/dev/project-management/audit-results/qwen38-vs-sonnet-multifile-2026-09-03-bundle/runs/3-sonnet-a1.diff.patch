@@ -1,0 +1,52 @@
+diff --git a/src/lib/buvis/pybase/zettel/infrastructure/persistence/markdown_zettel_repository/markdown_zettel_repository.py b/src/lib/buvis/pybase/zettel/infrastructure/persistence/markdown_zettel_repository/markdown_zettel_repository.py
+index efe60a5..80dfc39 100644
+--- a/src/lib/buvis/pybase/zettel/infrastructure/persistence/markdown_zettel_repository/markdown_zettel_repository.py
++++ b/src/lib/buvis/pybase/zettel/infrastructure/persistence/markdown_zettel_repository/markdown_zettel_repository.py
+@@ -4,6 +4,7 @@ import os
+ from pathlib import Path
+ from typing import Any
+ 
++from buvis.pybase.filesystem import atomic_write_text
+ from buvis.pybase.zettel.domain.entities.zettel.zettel import Zettel
+ from buvis.pybase.zettel.domain.interfaces.zettel_repository import ZettelRepository
+ from buvis.pybase.zettel.domain.services.zettel_factory import ZettelFactory
+@@ -62,7 +63,7 @@ class MarkdownZettelRepository(ZettelRepository):
+         if not data.file_path:
+             raise ValueError("Cannot save zettel without file_path")
+         formatted = MarkdownZettelFormatter.format(data)
+-        Path(data.file_path).write_text(formatted, encoding="utf-8")
++        atomic_write_text(Path(data.file_path), formatted)
+ 
+     def delete(self, zettel: Zettel) -> None:
+         data = zettel.get_data()
+diff --git a/tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py b/tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py
+index 8361471..b1d3a1e 100644
+--- a/tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py
++++ b/tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py
+@@ -43,6 +43,26 @@ class TestSave:
+         with pytest.raises(ValueError):
+             repository.save(zettel)
+ 
++    @patch(
++        "buvis.pybase.zettel.infrastructure.formatting.markdown_zettel_formatter.markdown_zettel_formatter.MarkdownZettelFormatter.format"
++    )
++    def test_replace_failure_leaves_original_note_untouched(self, mock_format, repository, tmp_path, mocker) -> None:
++        file_path = tmp_path / "zettel.md"
++        file_path.write_text("original content", encoding="utf-8")
++        zettel_data = ZettelData(file_path=str(file_path))
++        zettel = MagicMock(spec=Zettel)
++        zettel.get_data.return_value = zettel_data
++        mock_format.return_value = "formatted content"
++        mocker.patch(
++            "buvis.pybase.filesystem.atomic_write.os.replace",
++            side_effect=OSError("disk full"),
++        )
++
++        with pytest.raises(OSError):
++            repository.save(zettel)
++
++        assert file_path.read_text(encoding="utf-8") == "original content"
++
+ 
+ class TestDelete:
+     def test_delete_removes_file(self, repository, tmp_path) -> None:

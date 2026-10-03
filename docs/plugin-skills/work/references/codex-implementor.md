@@ -33,24 +33,20 @@ like a real implementor run:
 ```
 Bash (run_in_background: true):
   <autopilot-plugin-root>/skills/use-codex/scripts/codex-run.sh -a \
-    -d <realpath of the repo's dev/local> \
     -f <abs tmp prompt file> -o <abs tmp out file>
 then: TaskOutput(task_id, block=true, timeout=300000)
 ```
 
-`-d` is **mandatory on the probe**, not conditional: the probe artifact lives
-under `dev/local/`, which in this repo is a symlink outside the workspace.
-Under `--sandbox workspace-write` a write there resolves outside the writable
-root and is denied, so a probe without `-d` returns `unhealthy` on every batch
-in `~/.claude` and the rung would never fire.
+The probe writes only to `docs/dev/tmp/`, inside the repo's normal
+workspace. Do not widen the sandbox with `-d`.
 
 Prompt file contents: the TOOL-GATE NOTICE block from § Hook interaction
 verbatim, followed by these three lines with `<nonce>` substituted (a fresh
 per-probe value, e.g. `<batch_id>-<uuid4>`):
 
 ```
-Create the file dev/local/tmp/codex-probe-<nonce>.txt containing exactly: <nonce>
-Then run: git status --porcelain dev/local/tmp/codex-probe-<nonce>.txt
+Create the file docs/dev/tmp/codex-probe-<nonce>.txt containing exactly: <nonce>
+Then run: git status --porcelain docs/dev/tmp/codex-probe-<nonce>.txt
 Reply with the single word: done
 ```
 
@@ -59,10 +55,10 @@ probe performs exactly the two actions the gate intercepts (first `Write` to a
 path, first `Bash` of the session).
 
 Verdict is `"healthy"` iff ALL of: the helper exited 0, the `-o` file is
-non-empty, AND `dev/local/tmp/codex-probe-<nonce>.txt` exists on disk with
+non-empty, AND `docs/dev/tmp/codex-probe-<nonce>.txt` exists on disk with
 content equal to `<nonce>`. Delete the file after the verdict is written.
 **The nonce is load-bearing:** a fixed filename would still be on disk from a
-previous batch (`dev/local/tmp/` is GC'd only at 7 days), so a fully
+previous batch (`docs/dev/tmp/` is GC'd only at 7 days), so a fully
 hook-blocked run — exit 0, a non-empty `-o` explaining the deny, and last
 batch's leftover file — would satisfy every condition and report `healthy`.
 
@@ -135,10 +131,8 @@ the departures there, not here:
   explicit calling-skill grant before any unattended high-impact flag. **This
   bullet is that grant, and it covers `-a` at this rung only** — never `-y`,
   and never a reviewer dispatch.
-- **`-d <realpath of dev/local>`** whenever the task's file slice includes a
-  `dev/local/` path: that path is a symlink outside the workspace here and CLI
-  backends cannot follow it without `--add-dir`. Omit it otherwise, keeping the
-  sandbox as narrow as the task requires.
+- Do not add a separate `-d` grant for `docs/dev/project-management/`; it
+  is a tracked directory inside the repo workspace.
 - **On a `TaskOutput` timeout, kill before falling back.** `TaskStop` the codex
   background task and verify it is gone BEFORE dispatching the Claude
   fallback, then capture `git status --porcelain`. An orphaned

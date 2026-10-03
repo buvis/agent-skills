@@ -1,0 +1,1 @@
+`save` now goes through `atomic_write_text`; new test patches `os.replace` inside `atomic_write.py` to prove a failed swap leaves the original note untouched. 7 passed, mypy clean.

@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: `uv run pytest tests -q` reports zero failures",
+    "file": null,
+    "command": "uv run pytest tests -q",
+    "source": "bob",
+    "result": {"exit": 0}
+  }
+]

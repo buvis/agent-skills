@@ -1,0 +1,25 @@
+- [ ] Cap frontmatter size at the parse boundary so an oversized synced file degrades into the lenient skip path, never a fatal error or unbounded parse (depends on: Phase 0 collect-and-skip) - Acceptance: a file with an over-cap frontmatter block is skipped with a warning naming the path and reason; normal files unaffected; `--strict` hard-fails it; unit-tested.
+
+You are working in the repository root: the current working directory.
+Files to edit (paths relative to it):
+- ddb-core/src/parser/mod.rs
+- ddb-core/src/parser/tests.rs
+
+Names the acceptance gate binds to (use these exact identifiers, signatures,
+literals and values):
+- Constant name `MAX_FRONTMATTER_BYTES`, value `256 * 1024` (262144), declared
+  at module scope in `ddb-core/src/parser/mod.rs` so that
+  `ddb-core/src/parser/tests.rs` reaches it through `use super::*`.
+- The cap is enforced inside
+  `pub fn parse_frontmatter(yaml: &str, path: &str) -> Result<DoogatMeta>`,
+  against `yaml.len()`.
+- Boundary: a frontmatter string of exactly `MAX_FRONTMATTER_BYTES` bytes still
+  parses; one byte over returns `Err`.
+- Error-message contract: the returned error's `to_string()` contains BOTH the
+  cap as a decimal number AND the actual frontmatter byte length as a decimal
+  number.
+- The rejection stays an ordinary parse error, so the existing parse-error to
+  `ConsistencyWarning::MalformedYaml` classification carries it into the lenient
+  skip path; no new warning variant.
+
+Edit only inside this repository. Do not commit.

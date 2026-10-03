@@ -1,0 +1,8 @@
+M	src/tools/bim/commands/doc/audit/reporter.py
+D	src/tools/bim/commands/doc/shared/atomic_write.py
+M	src/tools/bim/commands/doc/shared/issuers.py
+M	src/tools/bim/commands/doc/shared/ocr.py
+M	src/tools/bim/commands/doc/shared/pipeline.py
+M	src/tools/bim/commands/doc/shared/triage.py
+M	src/tools/bim/commands/doc/shared/zettel_writer.py
+D	tests/tools/bim/doc/test_atomic_write.py

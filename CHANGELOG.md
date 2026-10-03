@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **handoff-session**: new skill that turns the current session into a
   paste-ready continuation prompt for the next one (state, work done, open
   tasks, decisions, dead ends, what needs the user), saves it under
-  `dev/local/tmp/`, and copies it to the system clipboard on request.
+  `docs/dev/tmp/`, and copies it to the system clipboard on request.
 - **brief-portfolio**: the nav names itself (`aria-label="Sections"`) and the
   active tab announces itself (`aria-current="page"`) to assistive tech,
   instead of only a CSS class marking the current view.
@@ -54,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **working documents**: store durable project-management artifacts under
+  `docs/dev/project-management/` and disposable assets under the globally
+  ignored `docs/dev/tmp/`; replace `purge-devlocal` with `purge-devtmp`.
 - **use-qwen**: record Qwen3.8's measured multi-file trust scope (single-file-only) in the Model Selection guidance, backed by a 6-task comparison against Sonnet.
 - **brief-portfolio**: nag each config audit on its own cadence instead of
   showing one coarse "config maintenance" row. Every machine audit gets its own

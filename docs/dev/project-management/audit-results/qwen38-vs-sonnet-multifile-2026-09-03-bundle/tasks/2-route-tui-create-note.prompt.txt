@@ -1,0 +1,27 @@
+- [ ] Route `tui/create_note.py` through `CommandCreateNote` (depends on: Phase 0) — Acceptance: TUI create runs the same validation/defaults as CLI; empty required answer is rejected.
+
+You are working in the repository root: the current working directory.
+Files to edit (paths relative to it):
+- src/tools/bim/tui/create_note.py
+- src/lib/buvis/pybase/result.py
+- tests/tools/bim/tui/test_create_note.py
+- tests/lib/pybase/test_result.py
+
+Names the acceptance gate binds to (use these exact identifiers, signatures,
+literals and values):
+- `notify_result(result, notify)` - a module-level function in
+  `src/lib/buvis/pybase/result.py`, importable as
+  `from buvis.pybase.result import notify_result`. Signature
+  `notify_result(result: CommandResult, notify: Callable[..., None]) -> None`,
+  parameters in that order.
+- It calls `notify(message, severity=...)` with `severity` passed as a keyword
+  argument, using exactly these severity strings: `"warning"` for every entry
+  of `result.warnings`, `"information"` for `result.output` on success,
+  `"error"` on failure.
+- Order of calls: every warning first, then the success output or the failure
+  message.
+- On success with an empty `output`, it notifies nothing.
+- Failure fallback literal: when `result.success` is false and `result.error`
+  is empty, the notified message is exactly `"Failed"`.
+
+Edit only inside this repository. Do not commit.

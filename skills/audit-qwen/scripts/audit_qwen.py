@@ -3,7 +3,7 @@
 
 Sweeps batch reports, autopilot state files and attempt ledgers across the
 gita-registered repos, plus any config or working directory that carries a
-`dev/local/autopilot` of its own, computes utilization rates deterministically,
+`docs/dev/project-management/autopilot` of its own, computes utilization rates deterministically,
 and prints a markdown report card ending in a WIDEN/NARROW/HOLD verdict.
 stdlib only; every figure is a code-side parse, the skill only narrates.
 
@@ -161,7 +161,7 @@ def parse_state(path: Path) -> dict:
 
 
 def read_attempt_ledger(path: Path) -> list[dict]:
-    """Rows of `<repo>/dev/local/autopilot/ledger/attempts.jsonl`.
+    """Rows of `<repo>/docs/dev/project-management/autopilot/ledger/attempts.jsonl`.
 
     `complete-prd` appends one JSONL row per attempt, shaped
     {batch_id, prd, task_id, task_name, task_model, qwen_eligible,
@@ -245,7 +245,7 @@ def classify_gate(attempt: dict) -> str:
 
 def discover_repos() -> tuple[list[Path], str]:
     """gita-registered repo paths (the brief-portfolio source), plus any config
-    or working directory that carries a `dev/local/autopilot` of its own."""
+    or working directory that carries a `docs/dev/project-management/autopilot` of its own."""
     paths: list[Path] = []
     note = ""
     try:
@@ -269,14 +269,14 @@ def discover_repos() -> tuple[list[Path], str]:
     # only some do; include it when it actually holds a ledger rather than
     # assuming one layout. Without gita there is still the current repo.
     for candidate in (Path.home() / ".claude", Path.cwd()):
-        if (candidate / "dev" / "local" / "autopilot").is_dir() and candidate not in paths:
+        if (candidate / "docs" / "dev" / "project-management" / "autopilot").is_dir() and candidate not in paths:
             paths.append(candidate)
     return paths, note
 
 
 def scan_repo(repo: Path) -> dict:
     """All qwen telemetry in one repo. Missing dirs -> a no-data row."""
-    auto = repo / "dev" / "local" / "autopilot"
+    auto = repo / "docs" / "dev" / "project-management" / "autopilot"
     reports_dir = auto / "reports"
     record = {
         "repo": repo.name,
@@ -555,7 +555,7 @@ def render(records: list[dict], agg: dict, note: str) -> str:
         " beats a ledger group, and either beats a report section"
         f" ({agg['superseded']} superseded this run).",
         "- The archived input is the attempt ledger"
-        " (`dev/local/autopilot/ledger/attempts.jsonl`), one JSONL row per attempt"
+        " (`docs/dev/project-management/autopilot/ledger/attempts.jsonl`), one JSONL row per attempt"
         " appended by complete-prd; the `Ledger rows` column counts its rows. A repo"
         " with no ledger contributes zero rather than failing the scan. Ledger rows"
         " carry no plan-time exclusion reason, so plan-time buckets come from live"

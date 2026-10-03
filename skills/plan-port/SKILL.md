@@ -97,7 +97,7 @@ skill was invoked, not from the matrix. Fill in the template's
 `## Retirement` block from all of the above before emitting the completed
 document as the plan.
 
-The plan is written to the target repo's `dev/local/discovery/`, sharing
+The plan is written to the target repo's `docs/dev/project-management/discovery/`, sharing
 that repo's PRD sequence - the source repo's, when the target does not
 exist yet. The retirement PRD is written in the source repo, alongside the
 final port phase.

@@ -1,0 +1,517 @@
+diff --git a/ddb-cli/src/commands/crud.rs b/ddb-cli/src/commands/crud.rs
+index 5f4aad0..a5fe60c 100644
+--- a/ddb-cli/src/commands/crud.rs
++++ b/ddb-cli/src/commands/crud.rs
+@@ -261,6 +261,81 @@ mod tests {
+         assert!(parsed.meta.tags.contains(&"bar".to_string()));
+     }
+ 
++    #[test]
++    fn create_and_update_surface_reindex_skip_warning_when_poison_file_present() {
++        let tmp = tempfile::TempDir::new().unwrap();
++        init_repo(tmp.path());
++
++        // Seed an existing doogat via the CLI so `update` has a target id.
++        create(
++            tmp.path(),
++            "Existing".to_string(),
++            None,
++            None,
++            None,
++            vec![],
++        )
++        .unwrap();
++        let svc = DoogatService::open(tmp.path()).unwrap();
++        let existing_id = svc.search("Existing").unwrap()[0].id.clone();
++
++        // Poison a doogat directly via `GitRepo`, bypassing the parser, so
++        // the repo carries genuinely malformed frontmatter that the next
++        // implicit reindex must skip rather than fail on. A distinct poison
++        // commit precedes each call below so each call's own incremental
++        // reindex diff actually includes a bad file to report on (once a
++        // poison file has been skipped past, `_ddb_meta.head` still advances
++        // and a later call with nothing new to scan reports no warning).
++        let repo = ddb_core::git_ops::GitRepo::open(tmp.path()).unwrap();
++        repo.commit_file(
++            "ddb/29990101000000.md",
++            "---\n: invalid yaml [\n---\nbody",
++            "add poison doogat 1",
++        )
++        .unwrap();
++
++        let svc = DoogatService::open(tmp.path()).unwrap();
++        let create_output = svc
++            .create(CreateCommand {
++                title: Some("After Poison".to_string()),
++                tags: vec![],
++                doogat_type: None,
++                body: None,
++                fields: Default::default(),
++                on_conflict: ConflictAction::Error,
++                unregistered_type_policy: UnregisteredTypePolicy::Strict,
++            })
++            .expect("create must succeed despite the poison file");
++        assert!(
++            create_output
++                .warnings
++                .iter()
++                .any(|w| w.code == "REINDEX_SKIPPED_FILES"),
++            "create's AppOutput must surface the skipped poison file, got: {:?}",
++            create_output.warnings
++        );
++
++        let update_output = svc
++            .update(UpdateCommand {
++                id: existing_id,
++                title: Some("Updated After Poison".to_string()),
++                tags: None,
++                doogat_type: None,
++                body: None,
++                fields: Default::default(),
++                unset_fields: vec![],
++            })
++            .expect("update must succeed despite the poison file");
++        assert!(
++            update_output
++                .warnings
++                .iter()
++                .any(|w| w.code == "REINDEX_SKIPPED_FILES"),
++            "update's AppOutput must surface the skipped poison file, got: {:?}",
++            update_output.warnings
++        );
++    }
++
+     #[test]
+     fn cli_create_stores_doogat_with_set_field() {
+         let tmp = tempfile::TempDir::new().unwrap();
+diff --git a/ddb-core/src/ddb.udl b/ddb-core/src/ddb.udl
+index 7632ec2..d83186a 100644
+--- a/ddb-core/src/ddb.udl
++++ b/ddb-core/src/ddb.udl
+@@ -30,10 +30,16 @@ dictionary SearchResult {
+     string updated_at;
+ };
+ 
++dictionary RebuildWarningRecord {
++    string code;
++    string message;
++};
++
+ dictionary RebuildReport {
+     u64 indexed;
+     u64 tables_materialized;
+     sequence<string> types_inferred;
++    sequence<RebuildWarningRecord> warnings;
+ };
+ 
+ dictionary SqlResultRecord {
+diff --git a/ddb-core/src/ffi/driver.rs b/ddb-core/src/ffi/driver.rs
+index b04b925..42f5244 100644
+--- a/ddb-core/src/ffi/driver.rs
++++ b/ddb-core/src/ffi/driver.rs
+@@ -10,7 +10,7 @@ use crate::service::DoogatService;
+ 
+ use super::records::{
+     empty_error_context, AttachmentInfo, DdbError, PaginatedSearchResult, RebuildReport,
+-    SchemaApplyReportRecord, SearchResult, SqlResultRecord, TypeSchemaRecord,
++    RebuildWarningRecord, SchemaApplyReportRecord, SearchResult, SqlResultRecord, TypeSchemaRecord,
+ };
+ 
+ /// High-level facade for mobile/desktop FFI consumers.
+@@ -117,10 +117,19 @@ impl DoogatDriver {
+     pub fn reindex(&self) -> Result<RebuildReport, DdbError> {
+         self.with_service(|svc| {
+             let report = svc.reindex().map_err(DdbError::from)?;
++            let warnings = report
++                .warnings
++                .iter()
++                .map(|w| RebuildWarningRecord {
++                    code: crate::app_contract::describe_consistency_warning_code(w).to_string(),
++                    message: crate::app_contract::describe_consistency_warning(w),
++                })
++                .collect();
+             Ok(RebuildReport {
+                 indexed: report.indexed as u64,
+                 tables_materialized: report.tables_materialized as u64,
+                 types_inferred: report.types_inferred,
++                warnings,
+             })
+         })
+     }
+diff --git a/ddb-core/src/ffi/mod.rs b/ddb-core/src/ffi/mod.rs
+index 0d71ca7..f26cc0d 100644
+--- a/ddb-core/src/ffi/mod.rs
++++ b/ddb-core/src/ffi/mod.rs
+@@ -13,6 +13,6 @@ mod tests;
+ pub use driver::DoogatDriver;
+ pub use records::{
+     AttachmentInfo, ColumnDefRecord, DdbError, DdbErrorContextEntry, PaginatedSearchResult,
+-    RebuildReport, SchemaApplyReportRecord, SchemaPlanOpRecord, SchemaWarningRecord, SearchResult,
+-    SqlResultRecord, TypeSchemaRecord,
++    RebuildReport, RebuildWarningRecord, SchemaApplyReportRecord, SchemaPlanOpRecord,
++    SchemaWarningRecord, SearchResult, SqlResultRecord, TypeSchemaRecord,
+ };
+diff --git a/ddb-core/src/ffi/records.rs b/ddb-core/src/ffi/records.rs
+index d69aa7e..eb0f1a7 100644
+--- a/ddb-core/src/ffi/records.rs
++++ b/ddb-core/src/ffi/records.rs
+@@ -168,12 +168,21 @@ impl From<crate::types::PaginatedSearchResult> for PaginatedSearchResult {
+     }
+ }
+ 
++/// FFI-safe reindex warning (e.g. a skipped poison file), mirroring
++/// `ConsistencyWarning` via `describe_consistency_warning`/`_code`.
++#[derive(Debug, uniffi::Record)]
++pub struct RebuildWarningRecord {
++    pub code: String,
++    pub message: String,
++}
++
+ /// FFI-safe rebuild report.
+ #[derive(uniffi::Record)]
+ pub struct RebuildReport {
+     pub indexed: u64,
+     pub tables_materialized: u64,
+     pub types_inferred: Vec<String>,
++    pub warnings: Vec<RebuildWarningRecord>,
+ }
+ 
+ /// FFI-safe attachment metadata.
+diff --git a/ddb-core/src/ffi/tests.rs b/ddb-core/src/ffi/tests.rs
+index bd4a585..44de7fe 100644
+--- a/ddb-core/src/ffi/tests.rs
++++ b/ddb-core/src/ffi/tests.rs
+@@ -47,6 +47,36 @@ fn register_node_returns_uuid() {
+     assert_eq!(uuid.len(), 36, "uuid should be 36 chars");
+ }
+ 
++#[test]
++fn reindex_report_exposes_skipped_poison_file_warning() {
++    let (_tmp, driver) = fresh_driver();
++    {
++        // Write directly via `GitRepo`, bypassing the parser, so the
++        // committed file carries genuinely malformed frontmatter.
++        let svc = driver.svc.lock().unwrap();
++        svc.repo
++            .commit_file(
++                "ddb/29990101000000.md",
++                "---\n: invalid yaml [\n---\nbody",
++                "add poison doogat",
++            )
++            .unwrap();
++    }
++
++    let report = driver.reindex().unwrap();
++
++    let warning = report
++        .warnings
++        .iter()
++        .find(|w| w.code == "MALFORMED_YAML")
++        .expect("reindex report must expose the skipped poison file as a warning");
++    assert!(
++        warning.message.contains("29990101000000.md"),
++        "warning message must name the skipped file: {}",
++        warning.message
++    );
++}
++
+ // --- SqlEngine-backed execute_sql tests ---
+ 
+ #[test]
+diff --git a/ddb-core/src/service/create.rs b/ddb-core/src/service/create.rs
+index 25fddde..8335d4d 100644
+--- a/ddb-core/src/service/create.rs
++++ b/ddb-core/src/service/create.rs
+@@ -1,4 +1,6 @@
+-use crate::app_contract::{AppOutput, AppWarning, CreateCommand, UnregisteredTypePolicy};
++use crate::app_contract::{
++    summarize_reindex_warnings, AppOutput, AppWarning, CreateCommand, UnregisteredTypePolicy,
++};
+ use crate::error::{DoogatError, Result};
+ use crate::git_ops;
+ use crate::parser;
+@@ -54,7 +56,16 @@ impl<G: GitBackend, I: IndexPort> DoogatService<G, I> {
+     /// title_template rendering, SINGLETON Ignore semantics, NOT_NULL_VIOLATION,
+     /// TYPE_NOT_REGISTERED, and field validation.
+     pub fn create(&self, cmd: CreateCommand) -> Result<AppOutput<ParsedDoogat>> {
+-        if let Some(output) = self.try_baseonly_unregistered(&cmd)? {
++        // Capture here (rather than relying on `batch_create_with_message`'s
++        // own internal `ensure_fresh`) so a skipped poison file discovered by
++        // this implicit reindex surfaces as a warning on the create's
++        // response instead of being silently dropped.
++        let reindex_warning = self
++            .ensure_fresh()?
++            .and_then(|r| summarize_reindex_warnings(r.warnings));
++
++        if let Some(mut output) = self.try_baseonly_unregistered(&cmd)? {
++            output.warnings.extend(reindex_warning);
+             return Ok(output);
+         }
+ 
+@@ -73,10 +84,11 @@ impl<G: GitBackend, I: IndexPort> DoogatService<G, I> {
+             .pop()
+             .ok_or_else(|| DoogatError::Validation("batch_create returned empty".into()))?;
+ 
+-        let warnings = self
++        let mut warnings: Vec<AppWarning> = self
+             .title_from_template_warning(caller_title.is_none(), doogat_type.as_deref(), &value)
+             .into_iter()
+             .collect();
++        warnings.extend(reindex_warning);
+ 
+         Ok(AppOutput { value, warnings })
+     }
+diff --git a/ddb-core/src/service/mock_index_tests.rs b/ddb-core/src/service/mock_index_tests.rs
+index 6cef119..239f6fe 100644
+--- a/ddb-core/src/service/mock_index_tests.rs
++++ b/ddb-core/src/service/mock_index_tests.rs
+@@ -8,9 +8,10 @@ use crate::error::{DoogatError, Result};
+ use crate::git_ops::GitRepo;
+ use crate::traits::{DoogatIndex, DoogatSource, GitHistory, IndexPort, NoopMirror, SqlBackend};
+ use crate::types::{
+-    BrokenSequence, LinkDensityEntry, OrphanDoogat, PaginatedSearchResult, ParsedDoogat,
+-    QueryValue, RebuildReport, RecentDoogat, SearchFilters, SearchResult, SequenceInfo,
+-    SequenceNode, StaleDoogat, Suggestion, TableSchema, TagEntry, TagQueryFilter, UnlinkedMention,
++    BrokenSequence, ConsistencyWarning, LinkDensityEntry, OrphanDoogat, PaginatedSearchResult,
++    ParsedDoogat, QueryValue, RebuildReport, RecentDoogat, SearchFilters, SearchResult,
++    SequenceInfo, SequenceNode, StaleDoogat, Suggestion, TableSchema, TagEntry, TagQueryFilter,
++    UnlinkedMention,
+ };
+ 
+ use super::DoogatService;
+@@ -22,6 +23,10 @@ struct MockIndex {
+     conn: Connection,
+     resolve_to: String,
+     updated_at: Option<String>,
++    /// Returned once (then cleared) by `rebuild_if_stale`, mimicking a real
++    /// index that only reports a rebuild's warnings on the call that
++    /// actually detects staleness.
++    rebuild_report: std::cell::RefCell<Option<RebuildReport>>,
+ }
+ 
+ impl MockIndex {
+@@ -30,8 +35,14 @@ impl MockIndex {
+             conn: Connection::open_in_memory().unwrap(),
+             resolve_to: resolve_to.to_string(),
+             updated_at: updated_at.map(str::to_string),
++            rebuild_report: std::cell::RefCell::new(None),
+         }
+     }
++
++    fn with_rebuild_report(self, report: RebuildReport) -> Self {
++        *self.rebuild_report.borrow_mut() = Some(report);
++        self
++    }
+ }
+ 
+ fn mock_unsupported() -> DoogatError {
+@@ -126,7 +137,7 @@ impl SqlBackend for MockIndex {
+ 
+ impl IndexPort for MockIndex {
+     fn rebuild_if_stale(&self, _repo: &impl DoogatSource) -> Result<Option<RebuildReport>> {
+-        Ok(None)
++        Ok(self.rebuild_report.borrow_mut().take())
+     }
+     fn rebuild(&self, _repo: &impl DoogatSource) -> Result<RebuildReport> {
+         Ok(RebuildReport::default())
+@@ -287,3 +298,52 @@ fn get_doogat_parsed_runs_against_mock_index() {
+         "updated_at must come from the injected index port's lookup_updated_at, not real SQLite"
+     );
+ }
++
++#[test]
++fn update_surfaces_reindex_skip_warning_from_ensure_fresh() {
++    let tmp = tempfile::TempDir::new().unwrap();
++    GitRepo::init(tmp.path()).unwrap();
++    let repo = GitRepo::open(tmp.path()).unwrap();
++
++    repo.commit_file(
++        "ddb/mock.md",
++        "---\ntitle: Mock Doc\n---\nMock body content",
++        "seed mock doc",
++    )
++    .unwrap();
++
++    let report = RebuildReport {
++        indexed: 1,
++        tables_materialized: 0,
++        types_inferred: Vec::new(),
++        warnings: vec![ConsistencyWarning::MalformedYaml {
++            path: "ddb/poison.md".to_string(),
++            error: "invalid frontmatter".to_string(),
++        }],
++    };
++    let mock = MockIndex::new("ddb/mock.md", Some("20260101000000")).with_rebuild_report(report);
++    let svc = DoogatService::from_parts(repo, mock, Box::new(NoopMirror), tmp.path().to_path_buf());
++
++    let output = svc
++        .update(crate::app_contract::UpdateCommand {
++            id: "ignored-id".to_string(),
++            title: Some("Updated Title".to_string()),
++            tags: None,
++            doogat_type: None,
++            body: None,
++            fields: Default::default(),
++            unset_fields: Vec::new(),
++        })
++        .unwrap();
++
++    let warning = output
++        .warnings
++        .iter()
++        .find(|w| w.code == crate::app_contract::REINDEX_SKIPPED_FILES)
++        .expect("update() must merge the RebuildReport's skip warning into AppOutput.warnings");
++    assert!(
++        warning.message.contains("ddb/poison.md"),
++        "warning message must name the skipped file: {}",
++        warning.message
++    );
++}
+diff --git a/ddb-core/src/service/mod.rs b/ddb-core/src/service/mod.rs
+index bcbccd2..701f21c 100644
+--- a/ddb-core/src/service/mod.rs
++++ b/ddb-core/src/service/mod.rs
+@@ -113,14 +113,17 @@ impl<G: GitBackend, I: IndexPort> DoogatService<G, I> {
+         self.skip_stale_check = skip;
+     }
+ 
+-    fn ensure_fresh(&self) -> Result<()> {
+-        if !self.skip_stale_check {
+-            self.index.rebuild_if_stale(&self.repo)?;
++    /// Refresh the index if stale, returning the `RebuildReport` (if a
++    /// rebuild ran) so callers can surface its `warnings` (e.g. skipped
++    /// poison files) to the caller instead of discarding them.
++    fn ensure_fresh(&self) -> Result<Option<crate::types::RebuildReport>> {
++        if self.skip_stale_check {
++            // skip_stale_check: ReadPool path — actor keeps the index
++            // current, so readers trust WAL visibility without querying
++            // _ddb_meta (avoids SQLite lock contention on Windows).
++            return Ok(None);
+         }
+-        // skip_stale_check: ReadPool path — actor keeps the index
+-        // current, so readers trust WAL visibility without querying
+-        // _ddb_meta (avoids SQLite lock contention on Windows).
+-        Ok(())
++        self.index.rebuild_if_stale(&self.repo)
+     }
+ }
+ 
+diff --git a/ddb-core/src/service/schema_apply.rs b/ddb-core/src/service/schema_apply.rs
+index 64b18aa..f09954a 100644
+--- a/ddb-core/src/service/schema_apply.rs
++++ b/ddb-core/src/service/schema_apply.rs
+@@ -5,7 +5,10 @@
+ //! The whole plan flushes as one git commit on success; a mid-plan failure rolls
+ //! the transaction back so nothing reaches git (PRD 00161 task 10 + task 11).
+ 
+-use crate::app_contract::{AppOutput, AppWarning, ApplySchemaCommand, SCHEMA_UNSUPPORTED_CHANGE};
++use crate::app_contract::{
++    summarize_reindex_warnings, AppOutput, AppWarning, ApplySchemaCommand,
++    SCHEMA_UNSUPPORTED_CHANGE,
++};
+ use crate::error::{codes, DoogatError, ErrorValue, Result};
+ use crate::schema_diff::{self, plan::SchemaApplyReport};
+ use crate::sql_engine::SqlEngine;
+@@ -45,6 +48,14 @@ impl<G: GitBackend, I: IndexPort> DoogatService<G, I> {
+         &mut self,
+         cmd: ApplySchemaCommand,
+     ) -> Result<AppOutput<SchemaApplyReport>> {
++        // Capture up front so a skipped poison file discovered by this
++        // implicit reindex surfaces as a warning on the apply's response.
++        // `describe_type`'s own per-type `ensure_fresh` calls below then see
++        // an already-fresh index.
++        let reindex_warning = self
++            .ensure_fresh()?
++            .and_then(|r| summarize_reindex_warnings(r.warnings));
++
+         let doc = schema_diff::desired::SchemaDoc::from_yaml(&cmd.schema_doc)?;
+         let live: Vec<Option<TableSchema>> = doc
+             .types
+@@ -53,7 +64,7 @@ impl<G: GitBackend, I: IndexPort> DoogatService<G, I> {
+             .collect::<Result<Vec<_>>>()?;
+         let plan = schema_diff::diff(&doc, &live);
+ 
+-        let warnings: Vec<AppWarning> = plan
++        let mut warnings: Vec<AppWarning> = plan
+             .unsupported
+             .iter()
+             .map(|m| AppWarning {
+@@ -61,6 +72,7 @@ impl<G: GitBackend, I: IndexPort> DoogatService<G, I> {
+                 message: m.clone(),
+             })
+             .collect();
++        warnings.extend(reindex_warning);
+ 
+         if cmd.dry_run {
+             return Ok(AppOutput {
+@@ -1051,4 +1063,32 @@ types:
+             report.value.ops
+         );
+     }
++
++    #[test]
++    fn apply_schema_surfaces_reindex_skip_warning_when_poison_file_present() {
++        // Poison a doogat directly via `GitRepo`, bypassing the parser, so
++        // the repo carries genuinely malformed frontmatter that `apply_schema`'s
++        // implicit reindex must skip (not fail on) and surface as a warning.
++        let (_tmp, mut svc) = fresh_svc();
++        svc.repo
++            .commit_file(
++                "ddb/29990101000000.md",
++                "---\n: invalid yaml [\n---\nbody",
++                "add poison doogat",
++            )
++            .unwrap();
++
++        let report = svc
++            .apply_schema(cmd(GADGET_ONE_COLUMN, false, false))
++            .unwrap();
++        assert!(report.value.applied, "apply must still succeed");
++        assert!(
++            report
++                .warnings
++                .iter()
++                .any(|w| w.code == "REINDEX_SKIPPED_FILES"),
++            "apply_schema's AppOutput must surface the skipped poison file, got: {:?}",
++            report.warnings
++        );
++    }
+ }
+diff --git a/ddb-core/src/service/update.rs b/ddb-core/src/service/update.rs
+index 7c8cd17..49d919b 100644
+--- a/ddb-core/src/service/update.rs
++++ b/ddb-core/src/service/update.rs
+@@ -1,4 +1,4 @@
+-use crate::app_contract::{AppOutput, UpdateCommand};
++use crate::app_contract::{summarize_reindex_warnings, AppOutput, UpdateCommand};
+ use crate::error::{DoogatError, Result};
+ use crate::parser;
+ use crate::sql_engine::apply_updates_to_doogat;
+@@ -119,10 +119,15 @@ impl<G: GitBackend, I: IndexPort> DoogatService<G, I> {
+ 
+     /// App facade entrypoint: update a doogat from an `UpdateCommand`.
+     /// Mirrors `DoogatService::create`. Delegates to `update_doogat_parsed`
+-    /// and wraps the result in `AppOutput`. Update emits no warnings today,
+-    /// so `warnings` is always empty; the envelope keeps the warning channel
+-    /// available for callers.
++    /// and wraps the result in `AppOutput`. Captures its own `ensure_fresh`
++    /// (ahead of `update_doogat_parsed`'s internal one, which will then see
++    /// an already-fresh index) so a skipped poison file discovered by the
++    /// implicit reindex surfaces as a warning here rather than being dropped.
+     pub fn update(&self, cmd: UpdateCommand) -> Result<AppOutput<ParsedDoogat>> {
++        let reindex_warning = self
++            .ensure_fresh()?
++            .and_then(|r| summarize_reindex_warnings(r.warnings));
++
+         let extra = ExtraFieldUpdates {
+             set: &cmd.fields,
+             unset: &cmd.unset_fields,
+@@ -137,7 +142,7 @@ impl<G: GitBackend, I: IndexPort> DoogatService<G, I> {
+         )?;
+         Ok(AppOutput {
+             value,
+-            warnings: Vec::new(),
++            warnings: reindex_warning.into_iter().collect(),
+         })
+     }
+ 

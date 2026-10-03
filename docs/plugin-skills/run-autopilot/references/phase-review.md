@@ -13,7 +13,7 @@ separate phases. Core `SKILL.md` (always loaded) carries the shared mechanics.
 
 **Skip the entire review-rework loop if:** `"review"` is in `phases_completed` — the loop already converged in a prior session and handed off (see "Hand off to the finalize session" in Phase 5). Skip Phases 4, 5, and 6, and resume directly at Phase 9 (`references/phase-done.md`).
 
-**Skip this cycle's review if:** A review file exists in `dev/local/reviews/` for the current cycle (filename pattern `{prd-name}-review-{cycle}.md`).
+**Skip this cycle's review if:** A review file exists in `docs/dev/project-management/reviews/` for the current cycle (filename pattern `{prd-name}-review-{cycle}.md`).
 
 Invoke `/review-work-completion` skill. Every cycle runs ALL lenses (its roster, PRD 00015): Alice (consensus), Blake (blind, PRD-only), Bob (doubt rubric D1-D5 + de-slop; Claude fallback when codex is down), Carl (UI, optional), plus Eve as a fifth lens when that skill's step 1 doubt-reviewer resolution rule activates her. That rule is the single home of the Codex doubt-roster guard; this phase only invokes it. The skill's consolidation records `state.doubts_rubric_verdicts` from Bob's rubric lines (replaced each cycle; the final cycle's verdicts are what Phase 9 renders).
 
@@ -130,7 +130,7 @@ Log every decision in the state file (`autonomous_decisions` or `deferred_decisi
 
 ### Settled-decisions ledger (PRD 00095)
 
-**Every deferral and every discard also appends to `dev/local/reviews/{prd-stem}-ledger.json`**, a JSON array created on first write (`{prd-stem}` = `state.prd` minus `.md`). It lives beside the review files rather than in `state.json` so it survives batch end and parked-PRD resumes, and dies with the PRD like the other review satellites.
+**Every deferral and every discard also appends to `docs/dev/project-management/reviews/{prd-stem}-ledger.json`**, a JSON array created on first write (`{prd-stem}` = `state.prd` minus `.md`). It lives beside the review files rather than in `state.json` so it survives batch end and parked-PRD resumes, and dies with the PRD like the other review satellites.
 
 ```json
 {"cycle": <state.cycle>, "disposition": "settled-deferral"|"discarded", "severity": ..., "issue": "<the finding text, verbatim>", "file": ..., "reason": "<why it was settled>"}
@@ -153,7 +153,7 @@ The first three rows describe a cycle that did NOT converge — the Cap check ab
 
 ### Convergence metric
 
-Both finalize paths append ONE line to `dev/local/autopilot/loop-metrics.jsonl` — the converged path (below, before the tail sweep is dispatched) and the loop-mode cap-out path (Cap check above). Cap-outs are the baseline failures, so a median computed only from clean convergences would flatter the gate:
+Both finalize paths append ONE line to `docs/dev/project-management/autopilot/loop-metrics.jsonl` — the converged path (below, before the tail sweep is dispatched) and the loop-mode cap-out path (Cap check above). Cap-outs are the baseline failures, so a median computed only from clean convergences would flatter the gate:
 
 ```json
 {"event": "review_converged", "prd": <state.prd>, "batch": <state.batch.id>, "cycles_to_converge": <state.cycle>, "outcome": "converged"|"cap_deferred", "ts": <epoch seconds>}
@@ -162,9 +162,9 @@ Both finalize paths append ONE line to `dev/local/autopilot/loop-metrics.jsonl` 
 `outcome` is `"converged"` on the converged path and `"cap_deferred"` on the cap-out path. Append it, then mirror it into the GC-exempt ledger the same way the wrapper mirrors its own rows (`loop-metrics.jsonl` is trashed at 14 days; `ledger/` is not):
 
 ```bash
-printf '%s\n' '<the json line>' >>dev/local/autopilot/loop-metrics.jsonl
-mkdir -p dev/local/autopilot/ledger
-printf '%s\n' '<the json line>' >>dev/local/autopilot/ledger/loop-metrics.jsonl
+printf '%s\n' '<the json line>' >>docs/dev/project-management/autopilot/loop-metrics.jsonl
+mkdir -p docs/dev/project-management/autopilot/ledger
+printf '%s\n' '<the json line>' >>docs/dev/project-management/autopilot/ledger/loop-metrics.jsonl
 ```
 
 The `mkdir -p` is not optional: `ledger/` is created lazily by whichever writer gets there first, and on a repo whose batch has not yet mirrored a session row the second append fails without it.
@@ -227,7 +227,7 @@ For each review-flagged original-plan task in the current cycle's review output:
    - terminal attempt with `implementor: "codex"` → re-dispatch Claude at the task's same tier; do not climb the tier. This branch takes precedence over the tier-only branches below: the codex rung's capability edge is codex → Claude at the task's own tier, so Claude-at-tier is the rung above codex.
    - **no prior attempt** (`state.tasks[i].attempts` empty or absent — covers both pre-PRD-00025 legacy plans and PRD-00025 tasks that crashed before the first attempt log wrote) → treat as `"sonnet"`; next is `"opus"`. **Metric caveat**: when this branch fires for a PRD-00025 task whose actual pass ran `haiku`, it inflates the apparent sonnet→opus escalation rate vs the PRD's ≤2% target. The branch is rare (crash before first attempt-log write) and the conservative jump-to-opus is the right correctness choice; just don't read sonnet→opus telemetry without accounting for it.
    - last attempt at any other tier → next is the next rung up per `references/model-ladder.md` § Capability ladders.
-   - last attempt at `"opus"` or `"fable"` → **escalation exhausted**: `opus` is the top rung of the capability ladder and `"fable"` means the human-gated rescue rung above it was already spent (`references/model-ladder.md` § Rungs), so the task cannot be reworked automatically. Do NOT continue to step 4 — **follow `references/recovery.md` → "Rework escalation exhausted"** (rewrites the last attempt's `outcome` to `"rework_failed"`, moves the PRD to `dev/local/prds/hold/`, advances to the next PRD). That handler runs its **Fable rescue gate** first: on a human-approved ledger entry it queues one `fable` retry through step 4's requeue mechanics and returns here to "Dispatch rework" instead of stalling.
+   - last attempt at `"opus"` or `"fable"` → **escalation exhausted**: `opus` is the top rung of the capability ladder and `"fable"` means the human-gated rescue rung above it was already spent (`references/model-ladder.md` § Rungs), so the task cannot be reworked automatically. Do NOT continue to step 4 — **follow `references/recovery.md` → "Rework escalation exhausted"** (rewrites the last attempt's `outcome` to `"rework_failed"`, moves the PRD to `docs/dev/project-management/prds/hold/`, advances to the next PRD). That handler runs its **Fable rescue gate** first: on a human-approved ledger entry it queues one `fable` retry through step 4's requeue mechanics and returns here to "Dispatch rework" instead of stalling.
 4. Otherwise (chain not exhausted), persist the escalated tier, then queue the task for rework:
    - `task-set-meta <task-id> <meta-json-file>` with payload `{"model": "<next_tier>", "escalation_reason": "review_flag", "escalated_from": "<prev_tier>"}` — canonical source `/work` reads directly from `state.tasks[i]` (see `work/SKILL.md` "Per-task model dispatch"). `<prev_tier>` is the tier step 3 escalated from. These two fields carry onto the new attempt entry `/work` writes at the escalated tier, keeping a review-driven escalation distinguishable from `/work`'s own in-loop `escalation_reason:"gate_failure"` in `attempts[]` (`references/state-schema.md`). `task-set-meta` writes `state.tasks[i].model` in the same call — there is no separate mirror write.
    - Append the task ID to `state.rework_task_ids` (create the array if absent).
@@ -244,7 +244,7 @@ Build the rework batch from two sources:
 1. **Review-flagged `[C{cycle}]` tasks** — `state.rework_task_ids` already contains their IDs (appended in step 4 above), and their `state.tasks[i].model` already carries the escalated tier.
 2. **Decision gate `[D{cycle}]` follow-ups** — for each new task created from a decision gate resolution:
    - **Transcribe the findings verbatim (PRD 00095).** The task description carries a `### Findings (verbatim)` block: one line per source finding, quoted exactly as consolidated — severity, text, file, consensus. N findings routed into a task produce N lines. **No paraphrase, no merging findings into a theme**, and the task's acceptance criterion is "every quoted finding no longer reproduces". This is the whole point: the measured failure was an orchestrator compressing five consensus themes into three tasks, after which the finding that survived was the one nobody had written down. It also costs nothing downstream — `/work` step 2.7 writes tests from the task description, so the tests bind to the finding's own words with no change to step 2.7, and step 5.7 checks closure against the same block.
-   - Compute the tier: start with the `/plan-tasks` Tier classifier output if the inputs are available (PRD slice, files-touched estimate); otherwise default to `sonnet`. Then apply the `default_model` floor **exactly as `/plan-tasks` step 4.7 defines it** (the single source of truth): `final_tier = max(tier, default_model)`; re-parse the PRD frontmatter from `dev/local/prds/wip/<state.prd>` at Phase 6 runtime, tolerating the same flat `key: value` block Phase 0 reads; absent frontmatter or unset field → silent pass-through of the classifier tier; malformed YAML or invalid value → warn one line and pass through. Read `default_model` yourself here — `autopilot frontmatter` deliberately does NOT recognize it, because Phase 0 must never write it to state (the PRD frontmatter is the single source of truth for this field). `default_model` is intentionally NOT persisted to state — the PRD frontmatter is the single source of truth.
+   - Compute the tier: start with the `/plan-tasks` Tier classifier output if the inputs are available (PRD slice, files-touched estimate); otherwise default to `sonnet`. Then apply the `default_model` floor **exactly as `/plan-tasks` step 4.7 defines it** (the single source of truth): `final_tier = max(tier, default_model)`; re-parse the PRD frontmatter from `docs/dev/project-management/prds/wip/<state.prd>` at Phase 6 runtime, tolerating the same flat `key: value` block Phase 0 reads; absent frontmatter or unset field → silent pass-through of the classifier tier; malformed YAML or invalid value → warn one line and pass through. Read `default_model` yourself here — `autopilot frontmatter` deliberately does NOT recognize it, because Phase 0 must never write it to state (the PRD frontmatter is the single source of truth for this field). `default_model` is intentionally NOT persisted to state — the PRD frontmatter is the single source of truth.
    - `task-add <task-json-file>` with a payload carrying `{"name": ..., "model": final_tier, ...}` plus any classifier-produced fields (`estimated_tokens`, `est_context_peak`) — this creates the `state.tasks[]` entry directly with `status: "pending"`. Append the printed id to `state.rework_task_ids`. The dashboard sees the new task and `/work` rework mode iterates it.
 
 After both sources are merged into `rework_task_ids`, update state (the sync hook maintains the task counts). Invoke `/work` — it reads `state.rework_task_ids` and enters **rework mode** (see `work/SKILL.md` "Rework-mode task filter"), processing only the listed IDs at the tier each task carries in `state.tasks[i].model`; non-listed completed tasks are skipped.

@@ -1,0 +1,58 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "high",
+    "issue": "Phase 2 task \"Run the funnel over one project with `--dry-run` and record the numbers in `dev/local/audit-results/`\" has no evidence of ever being executed. No `distil-memory-*.md` file exists anywhere under `dev/local/audit-results/` in the repo, nor under `~/.claude/dev/local/audit-results/`, and no commit references such a file. Both premises the task names as prerequisites were actually met in this environment (claude-checkup `0.2.2` installed, `~/.claude/projects/` populated - my own run found 122 transcripts for `agent-skills` alone), so the task was executable and simply wasn't done, not blocked.",
+    "file": "N/A",
+    "reason": "Contradicted by evidence. The dry run DID execute: its report exists on disk at skills/distil-memory/scripts/dev/local/audit-results/distil-memory-20260830T012747Z.md, with the exact timestamp dev/local/meta/assumptions.md records. Blake searched only the correct destination and the repo root, so he could not see it. The true residual - that the report is not at the required location - is the same defect as the cwd-relative-path finding raised by Alice and Bob, and is tracked there rather than as a separate 'never executed' finding."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: the recorded 532-test result, skill-validator result, and braid drift result without executing those checks",
+    "file": "N/A",
+    "reason": "Resolved by the orchestrator this cycle rather than deferred. `uv run pytest` was run in the foreground: 532 passed, 0 failed, 5 skipped. All 5 skips are pre-existing skills/survey/scripts/test_survey.py cases gated on the optional tree_sitter_language_pack, none from this diff. Alice independently re-ran the scripts/ suite (91 passed) and the skill validator ([OK]); Blake independently re-ran both suites (26 + 65 passed) and the validator. Bob's sandbox simply could not execute, which is his documented constraint, not a defect in the work."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`judge()`'s default implementation passes transcript-derived slice text as a literal CLI argument (`subprocess.run([\"claude\", \"--print\", \"--model\", tier, prompt], ...)`) rather than via a temp file with `-f`, departing from this codebase's own documented dispatch convention (`dispatch-contract.md`: \"IMPORTANT: Always use `-f` with a temp file for prompts to avoid shell escaping issues\"), which the PRD points at (\"the way the `use-sonnet` skill documents\"). Not a shell-injection risk here (list-form `subprocess.run`, no `shell=True`), but a long slice can hit OS `ARG_MAX` and crash unguarded.",
+    "file": "skills/distil-memory/scripts/funnel.py",
+    "reason": "Real but deliberately deferred to PRD 00008. The inline-argument shape is what this PRD's design doc signed verbatim (Interfaces & contracts, `judge`), and `judge`'s call shape is the one cross-PRD contract this design names: PRD 00008's distiller imports this exact function. Changing its subprocess I/O is a 00008-design decision, not a 00007 rework item. Blake is right that there is no injection risk (list-form argv, no shell=True); the residual is an ARG_MAX ceiling (~1 MB on macOS) against a single assistant text block, which is far below it in practice. Revisit when 00008 designs its strong-tier calls."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Phase 1's literal Exit Criteria command fails: the PRD's Structural Decomposition and \"Exit Criteria: `uv run --with pytest pytest scripts/test_funnel.py` passes with zero failures\" both name a single `test_funnel.py`, but that file no longer exists — it was split into `test_funnel_extraction.py`, `test_funnel_report.py`, `test_funnel_triage.py` (commit `0df9392`). Running the exact PRD-specified command produces \"file or directory not found\" (verified). The three split files individually still pass (79/79), so functional coverage is intact, but the literal deliverable the PRD names is gone.",
+    "file": "skills/distil-memory/scripts/test_funnel.py",
+    "reason": "Accepted divergence, not a defect. The split was mandated by cycle 1: test_funnel.py stood at 799 lines against this repo's 800-line hard cap, one line from breaking it, and Alice raised that as a cycle-1 finding routed into task 14. The PRD's Structural Decomposition was written before that cap bound the file. Substance is intact - all 79 funnel tests pass across the three split files - and editing a wip PRD's spec to match the code is the wrong direction. Recorded so the divergence stays visible in the PRD's completion record rather than being silently absorbed."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "`corpus.py`'s declared export `assert_contract(version)` does not match its actual signature `assert_contract(version: str, parser_module: ModuleType, minimum: str = _MIN_VERSION)` — a second positional argument is required. The fuller Behavior prose (\"the check also asserts the imported parser exposes what this skill calls\") justifies the extra parameter, but the terse Module Exports line in the PRD promises a one-argument function; a caller going only by that line's contract would hit `TypeError: missing 1 required positional argument`.",
+    "file": "skills/distil-memory/scripts/corpus.py",
+    "reason": "The PRD's own Behavior prose for this feature requires the extra parameter (\"The check also asserts the imported parser exposes what this skill calls, so a rename in the other repo surfaces as a named failure rather than a wrong result\"), and the design doc signed `assert_contract(version, parser_module, minimum=_MIN_VERSION)` verbatim. The terse Module Exports line is a summary of the same feature, not a competing contract. Giving parser_module a default would let the function silently re-resolve the parser, which is exactly the double-resolution defect cycle 1 fixed in task 12."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "`test_funnel_report.py` is 655 lines — under the 800 hard cap but well outside task 14's own \"200-400 where practical\" target for the split files; it inherited all of task 10-13's new `main()`-error-handling tests. A further split (e.g. `render_yield` tests vs. `main()` happy-path vs. `main()` error-handling/anchor-resolution tests) would bring it back into range.",
+    "file": "skills/distil-memory/scripts/test_funnel_report.py",
+    "reason": "Under the 800-line hard cap; 200-400 is a soft target. Cycle 1 already carried this forward knowingly, having just split a 799-line file into three. The file is one coherent surface - every main() and render_yield test lives there - and a third split would fragment it to satisfy a soft target. Churn not worth it."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`_write_report` names files with second-resolution UTC timestamps (`%Y%m%dT%H%M%SZ`) and calls `write_text` unconditionally with no existence check — two runs inside the same second would silently overwrite each other's report in `dev/local/audit-results/`. Not specified either way by the PRD, low likelihood given the tool's on-demand solo-maintainer usage, but worth naming under \"no unguarded file operations.\"",
+    "file": "skills/distil-memory/scripts/funnel.py",
+    "reason": "Speculative - error handling for a state that cannot occur. distil-memory is an on-demand tool whose runs take seconds to minutes (the recorded real run read 122 transcripts), so two completed runs landing inside the same UTC second is not reachable. Blake himself rates the likelihood low. Adding a uniquifier or an existence check would be defensive code for an impossible state."
+  }
+]

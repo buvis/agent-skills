@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "FIX: This 30-line two-build comparison duplicates the one-fewer-history-point assertion already established by the two-row fixture and `len(history) == 1`; delete the redundant test",
+    "file": "skills/brief-portfolio/scripts/test_build_page.py:162",
+    "reason": "test_a_torn_history_line_yields_one_fewer_trend_point is the only direct pin of the PRD Must-have \"the trend series has one point fewer\": it compares a healthy build against a torn one, while `len(history) == 1` in the sibling test proves that only implicitly. Deleting a test that binds to a stated requirement in order to save 30 lines is what rules/testing.md forbids, so the de-slop suggestion loses to the requirement. The two tests are not the same test: one pins tolerance (the page still builds, the WARN names the line), the other pins the trend-series consequence."
+  }
+]

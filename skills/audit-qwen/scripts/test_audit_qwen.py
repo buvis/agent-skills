@@ -19,7 +19,7 @@ def make_repo(
     state: str | None = None,
 ) -> Path:
     repo = tmp_path / name
-    auto = repo / "dev" / "local" / "autopilot"
+    auto = repo / "docs" / "dev" / "project-management" / "autopilot"
     (auto / "reports").mkdir(parents=True)
     for fixture in reports:
         shutil.copy(
@@ -105,7 +105,7 @@ def test_renamed_mix_heading_lands_in_unparsed(tmp_path):
 def test_undecodable_report_lands_in_unparsed_not_a_crash(tmp_path):
     repo = make_repo(tmp_path, "latin")
     (
-        repo / "dev" / "local" / "autopilot" / "reports" / "202601010000-report.md"
+        repo / "docs" / "dev" / "project-management" / "autopilot" / "reports" / "202601010000-report.md"
     ).write_bytes(
         b"# Autopilot Batch Report\xff\xfe broken bytes",
     )
@@ -242,7 +242,7 @@ def ledger_row(task_id: str, prd: str = LEDGER_PRD, **attempt) -> str:
 
 
 def write_ledger(repo: Path, *rows: str) -> Path:
-    path = repo / "dev" / "local" / "autopilot" / "ledger" / "attempts.jsonl"
+    path = repo / "docs" / "dev" / "project-management" / "autopilot" / "ledger" / "attempts.jsonl"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(rows) + "\n", encoding="utf-8")
     return path
@@ -250,7 +250,7 @@ def write_ledger(repo: Path, *rows: str) -> Path:
 
 def test_absent_ledger_reads_as_empty_and_leaves_the_card_unchanged(tmp_path):
     repo = make_repo(tmp_path, "noledger", state="state-chains.json")
-    auto = repo / "dev" / "local" / "autopilot"
+    auto = repo / "docs" / "dev" / "project-management" / "autopilot"
     assert aq.read_attempt_ledger(auto / "ledger" / "attempts.jsonl") == []
     record = aq.scan_repo(repo)
     assert record["ledger"] == [] and record["archived"] == 0
@@ -293,7 +293,7 @@ def test_malformed_ledger_row_is_skipped_loud_not_fatal(tmp_path, capsys):
     repo = make_repo(tmp_path, "torn")
     write_ledger(repo, ledger_row("t1"), "{not json", "[]", ledger_row("t2"))
     rows = aq.read_attempt_ledger(
-        repo / "dev" / "local" / "autopilot" / "ledger" / "attempts.jsonl",
+        repo / "docs" / "dev" / "project-management" / "autopilot" / "ledger" / "attempts.jsonl",
     )
     assert [r["task_id"] for r in rows] == ["t1", "t2"]
     err = capsys.readouterr().err
@@ -327,7 +327,7 @@ def test_ledger_group_superseded_by_live_state_for_same_prd(tmp_path):
 
 def test_report_section_superseded_by_state_for_same_prd(tmp_path):
     repo = tmp_path / "overlap"
-    auto = repo / "dev" / "local" / "autopilot"
+    auto = repo / "docs" / "dev" / "project-management" / "autopilot"
     (auto / "reports").mkdir(parents=True)
     (auto / "reports" / "202608140000-report.md").write_text(
         "# Autopilot Batch Report 202608140000\n\n"

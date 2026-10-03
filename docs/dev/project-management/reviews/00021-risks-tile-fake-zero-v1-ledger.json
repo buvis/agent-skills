@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "KNOWN — Fail-first verdict: the extended no-extract test would fail against the pre-change template; the added with-extract pin would pass, so R2 fails under its mandated definition. This pin is intentionally required by the PRD to prevent hard-coding `—`, so no corrective change is appropriate.",
+    "file": "skills/debrief-meeting/app/smoke.test.js",
+    "reason": "Not actionable by the reviewer's own statement: the PRD explicitly mandates this test as a pin against 'fixing' the guard by hard-coding the placeholder, so passing against pre-change code is the intended shape, not a defect. Alice and Carl reached the same factual conclusion and scored R2 pass; Bob scored it fail on the rule's literal wording only. The behavior the PRD actually needed pinned (the no-extract path) IS pinned by the extended not-run test, which does fail against pre-change code. No code change would improve this without deleting a test the PRD required."
+  }
+]

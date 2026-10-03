@@ -1,0 +1,6 @@
+   Building buvis-gems @ file:///private/tmp/qwen-eval-00010/2-route-tui-create-note-sonnet-a1-own
+      Built buvis-gems @ file:///private/tmp/qwen-eval-00010/2-route-tui-create-note-sonnet-a1-own
+Uninstalled 1 package in 0.96ms
+Installed 1 package in 3ms
+...................                                                      [100%]
+19 passed in 1.40s

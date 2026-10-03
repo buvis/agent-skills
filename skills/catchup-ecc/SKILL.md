@@ -11,14 +11,14 @@ Review new commits in `affaan-m/everything-claude-code` since last check and sur
 ## Dependencies
 
 - CLI: `gh`, authenticated - reads the `affaan-m/everything-claude-code` repo.
-- Path: `~/.claude/dev/local/meta/ecc-cursor` - cursor state (last SHA **and** its
+- Path: `~/.claude/docs/dev/project-management/meta/ecc-cursor` - cursor state (last SHA **and** its
   ISO 8601 commit date), created on first run. The aegis hook blocks shell
-  redirects into `dev/local/`, so write the cursor with the Write tool, never
+  redirects into `docs/dev/project-management/`, so write the cursor with the Write tool, never
   `>` or `tee`.
 
 ## Step 1 - Read cursor
 
-Read `~/.claude/dev/local/meta/ecc-cursor`. Format — SHA and its ISO 8601 commit date, space-separated:
+Read `~/.claude/docs/dev/project-management/meta/ecc-cursor`. Format — SHA and its ISO 8601 commit date, space-separated:
 
 ```
 <last_commit_sha> <last_commit_iso8601_date>
@@ -38,8 +38,8 @@ gh api "repos/affaan-m/everything-claude-code/commits?since=<cursor_date>" -q '.
 
 This is far cheaper than `--paginate` over all history, and robust to a force-push (a date cursor does not depend on the exact SHA still existing). `since` is inclusive, so the boundary commit (the cursor's own SHA) may be re-returned — drop it by matching the stored SHA. **No date available** (old-format cursor, or a `since` query that errors): fall back to `gh api repos/affaan-m/everything-claude-code/commits --paginate -q '.[].sha'`, take the last 30, and note the gap in the report.
 
-Save the command's output to `dev/local/tmp/ecc-commits.txt` with the **Write
-tool** (shell redirects into `dev/local/` are blocked by the aegis hook).
+Save the command's output to `docs/dev/tmp/ecc-commits.txt` with the **Write
+tool** (shell redirects into `docs/dev/project-management/` are blocked by the aegis hook).
 
 If no new commits (the result is empty, or holds only the boundary SHA), report "No new changes since last check" and stop.
 
@@ -76,7 +76,7 @@ Wait for user input before making any changes.
 
 ## Step 5 - Update cursor
 
-After review is complete (regardless of what the user adopts), write the new HEAD SHA **and its ISO 8601 committer date** (space-separated, the step-1 format) to `~/.claude/dev/local/meta/ecc-cursor` with the Write tool. Recording the date is what lets the next run use the `?since=` server-side cursor.
+After review is complete (regardless of what the user adopts), write the new HEAD SHA **and its ISO 8601 committer date** (space-separated, the step-1 format) to `~/.claude/docs/dev/project-management/meta/ecc-cursor` with the Write tool. Recording the date is what lets the next run use the `?since=` server-side cursor.
 
 ## Edge cases
 

@@ -19,7 +19,7 @@ Implement pending tasks one-by-one, committing after each completion.
 ## Dependencies
 
 - Personal skills: `run-autopilot` - this skill is a phase inside that loop and
-  shares its state contract, `dev/local/autopilot/state.json` (see run-autopilot's
+  shares its state contract, `docs/dev/project-management/autopilot/state.json` (see run-autopilot's
   state-schema and phase-review references).
 - Files read from other skill dirs:
   - `<autopilot-plugin-root>/skills/run-autopilot/scripts/statectl.py` - the sole `state.json`
@@ -117,7 +117,7 @@ Every Tess and Ivan dispatch prompt - initial and retry, regardless of mechanism
 
 Step 5 stages exactly the reported paths - an unreported file stays uncommitted and is surfaced by step 5's foreign-path rule, so an implementor that omits the footer fails loudly, not silently.
 
-Collect the returned lines: step 6 appends non-`none` entries to `dev/local/meta/assumptions.md` under a `## <task-id>: <task subject>` heading (Write/Edit tool, never shell redirects). On the first completed task of a full-plan pass, replace the file instead of appending - the ledger is per-plan. Step 7's phase report includes the ledger so the user and the review phase can examine what the implementors guessed in a 30-second read.
+Collect the returned lines: step 6 appends non-`none` entries to `docs/dev/project-management/meta/assumptions.md` under a `## <task-id>: <task subject>` heading (Write/Edit tool, never shell redirects). On the first completed task of a full-plan pass, replace the file instead of appending - the ledger is per-plan. Step 7's phase report includes the ledger so the user and the review phase can examine what the implementors guessed in a 30-second read.
 
 ## Dispatch prologue
 
@@ -165,7 +165,7 @@ Codex (`use-codex`) is an implementor rung — activated by PRD 00077, sitting b
 
 ## Dashboard State Sync
 
-The dashboard (tracon; `render_stream.py` fallback) reads `dev/local/autopilot/state.json` directly, so `state.tasks[].status` must stay accurate — set at task start (step 2) and task end (step 6) — with `tasks_completed` matching it. The pidash sync hooks are retired (PRD 00063); nothing else maintains these.
+The dashboard (tracon; `render_stream.py` fallback) reads `docs/dev/project-management/autopilot/state.json` directly, so `state.tasks[].status` must stay accurate — set at task start (step 2) and task end (step 6) — with `tasks_completed` matching it. The pidash sync hooks are retired (PRD 00063); nothing else maintains these.
 
 Apply every such change with `statectl`, never the editing tools — the sole-writer rule in `run-autopilot` SKILL.md § State Management, which also documents the one human fallback. **Use the compound task verbs for the lifecycle transitions**, not a sequence of field writes:
 
@@ -184,7 +184,7 @@ The generic `set|append|del <json-path>` forms remain for everything that is not
 
 ### 1. Get pending tasks
 
-Read `state.tasks` from `dev/local/autopilot/state.json` — it is the canonical,
+Read `state.tasks` from `docs/dev/project-management/autopilot/state.json` — it is the canonical,
 complete task store, so nothing needs hydrating first. Filter for:
 
 - `status == "pending"`
@@ -194,7 +194,7 @@ complete task store, so nothing needs hydrating first. Filter for:
 
 ### 1.5. Rework-mode task filter
 
-Read `state.rework_task_ids` from `dev/local/autopilot/state.json` (walk up from cwd to find the autopilot dir, same pattern as the cap-marker reset in step 2). Two modes:
+Read `state.rework_task_ids` from `docs/dev/project-management/autopilot/state.json` (walk up from cwd to find the autopilot dir, same pattern as the cap-marker reset in step 2). Two modes:
 
 | `rework_task_ids` | Mode | Iteration source |
 |-------------------|------|------------------|
@@ -228,7 +228,7 @@ For the first available task:
 Before dispatching the implementor, load relevant context into the prompt:
 
 - AGENTS.md / agent_docs/ architecture docs
-- Active PRD from `dev/local/prds/wip/`
+- Active PRD from `docs/dev/project-management/prds/wip/`
 - Key module interfaces relevant to the task
 
 1M context makes this practical — richer prompts produce better first-pass results.
@@ -255,17 +255,17 @@ Dispatch a separate agent to write tests from requirements only. This agent must
 Render: one Bash call. **Task-authored prose never crosses the shell** — write it to a scratch file with the Write tool and pass `--set-file`; see § Passing values to render_prompt.py. Every interpolated path is `shlex.quote()`-d (or bash's `printf '%q '`) before it lands inside a `--set-cmd` value:
 ```bash
 python3 <autopilot-plugin-root>/skills/work/scripts/render_prompt.py <autopilot-plugin-root>/skills/work/references/tess-prompt.md \
-  --out dev/local/tmp/dispatch-tess-<task-id>.txt \
-  --set-file TASK_SUBJECT=dev/local/tmp/tess-<task-id>-subject.txt \
+  --out docs/dev/tmp/dispatch-tess-<task-id>.txt \
+  --set-file TASK_SUBJECT=docs/dev/tmp/tess-<task-id>-subject.txt \
   --set-file TASK_DESCRIPTION=<scratch file: task description plus the exact file paths and symbol names to test> \
-  --set-file TASK_ACCEPTANCE_CRITERIA=dev/local/tmp/tess-<task-id>-acceptance.txt \
+  --set-file TASK_ACCEPTANCE_CRITERIA=docs/dev/tmp/tess-<task-id>-acceptance.txt \
   --set-file SAMPLE_TEST_FILE=<one representative existing test file> \
   --set-cmd PUBLIC_INTERFACES="cat $(printf '%q ' <interface files>)" \
   --set TEST_FRAMEWORK="<pytest/jest/vitest/etc>" \
   --require-file <each absolute path to an existing file the task touches, one flag per path> \
   --require-parent <each absolute path to a file the task creates, one flag per path>
 ```
-The stdout integer from this call **is** the Subagent Dispatch Budget measurement — no separate `wc -c`. `tess-prompt.md` bakes in the read-only-scope instruction, the dispatch prologue, and the Assumptions footer permanently (mirroring `ivan.md`), so nothing further needs adding to the prompt by hand — open-ended discovery is where subagents burn turns and stall, and keeping Tess scoped to the listed files/symbols is the template's job now. Dispatch the Agent tool with the file at `dev/local/tmp/dispatch-tess-<task-id>.txt` as the prompt source.
+The stdout integer from this call **is** the Subagent Dispatch Budget measurement — no separate `wc -c`. `tess-prompt.md` bakes in the read-only-scope instruction, the dispatch prologue, and the Assumptions footer permanently (mirroring `ivan.md`), so nothing further needs adding to the prompt by hand — open-ended discovery is where subagents burn turns and stall, and keeping Tess scoped to the listed files/symbols is the template's job now. Dispatch the Agent tool with the file at `docs/dev/tmp/dispatch-tess-<task-id>.txt` as the prompt source.
 
 **Tess does NOT receive:**
 - Implementation strategy or architecture docs (loaded in step 2.5 for the main session and Ivan only)
@@ -289,10 +289,10 @@ If any check fails, dispatch Tess again with specific feedback about what's weak
 
 ```bash
 python3 <autopilot-plugin-root>/skills/work/scripts/render_prompt.py <autopilot-plugin-root>/skills/work/references/tess-retry-prompt.md \
-  --out dev/local/tmp/dispatch-tess-<task-id>-retry-<n>.txt \
-  --set-file QUALITY_FEEDBACK=dev/local/tmp/tess-<task-id>-gate-<n>.txt \
+  --out docs/dev/tmp/dispatch-tess-<task-id>-retry-<n>.txt \
+  --set-file QUALITY_FEEDBACK=docs/dev/tmp/tess-<task-id>-gate-<n>.txt \
   --set-file TASK_DESCRIPTION=<the same scratch file step 2.7 used> \
-  --set-file TASK_ACCEPTANCE_CRITERIA=dev/local/tmp/tess-<task-id>-acceptance.txt
+  --set-file TASK_ACCEPTANCE_CRITERIA=docs/dev/tmp/tess-<task-id>-acceptance.txt
 ```
 
 Write the gate findings (one per line) to the `QUALITY_FEEDBACK` scratch file with the Write tool. Max 2 quality gate retries.
@@ -359,16 +359,16 @@ Ivan's job: make the failing tests pass. Tests ARE the spec.
 Render: one Bash call. **Task-authored prose never crosses the shell** — write it to a scratch file with the Write tool and pass `--set-file`; see § Passing values to render_prompt.py. Every interpolated path is `shlex.quote()`-d (or bash's `printf '%q '`) before it lands inside a `--set-cmd` value:
 ```bash
 python3 <autopilot-plugin-root>/skills/work/scripts/render_prompt.py <autopilot-plugin-root>/agents/ivan.md \
-  --out dev/local/tmp/dispatch-ivan-<task-id>.txt \
+  --out docs/dev/tmp/dispatch-ivan-<task-id>.txt \
   --set-cmd FAILING_TESTS="cat $(printf '%q ' <test_file_1> [test_file_2 ...])" \
   --set-file ARCHITECTURE_CONTEXT=<a single existing file, e.g. AGENTS.md, when one file covers it> \
-  --set-file FILE_PATHS=dev/local/tmp/ivan-<task-id>-files.txt \
+  --set-file FILE_PATHS=docs/dev/tmp/ivan-<task-id>-files.txt \
   --set RETRY_INSTRUCTION="" \
   --require-file <each absolute FILE_PATHS entry that exists today, one flag per path> \
   --require-parent <each absolute FILE_PATHS entry the task creates, one flag per path>
 ```
 `FILE_PATHS` is the newline-separated list from the task's Contract section, written to that scratch file — a Contract path can contain a space or a shell metacharacter, so it is never passed as a `--set` word. Every entry is absolute and every entry appears in a `--require-file`/`--require-parent` flag (§ Passing values to render_prompt.py, Dispatch-target preflight).
-When architecture context spans more than one file, use the same `--set-cmd ARCHITECTURE_CONTEXT="cat $(printf '%q ' <file_1> <file_2>)"` shape. `RETRY_INSTRUCTION` is the literal empty string on this, the initial dispatch. The stdout integer from this call **is** the Subagent Dispatch Budget measurement — no separate `wc -c`. If the printed size exceeds 50 000, trim per the existing one-pass rule in `references/subagent-dispatch.md`, then re-render (still one call). Dispatch the Agent tool with the file at `dev/local/tmp/dispatch-ivan-<task-id>.txt` as the prompt source, watchdog per the existing Subagent Watchdog section — unchanged. `ivan.md` bakes in the code-quality rules block, the abort-instruction line, the read-only-scope note, the dispatch prologue, and the Assumptions/FILES_TOUCHED footers permanently — nothing further needs adding to the prompt by hand.
+When architecture context spans more than one file, use the same `--set-cmd ARCHITECTURE_CONTEXT="cat $(printf '%q ' <file_1> <file_2>)"` shape. `RETRY_INSTRUCTION` is the literal empty string on this, the initial dispatch. The stdout integer from this call **is** the Subagent Dispatch Budget measurement — no separate `wc -c`. If the printed size exceeds 50 000, trim per the existing one-pass rule in `references/subagent-dispatch.md`, then re-render (still one call). Dispatch the Agent tool with the file at `docs/dev/tmp/dispatch-ivan-<task-id>.txt` as the prompt source, watchdog per the existing Subagent Watchdog section — unchanged. `ivan.md` bakes in the code-quality rules block, the abort-instruction line, the read-only-scope note, the dispatch prologue, and the Assumptions/FILES_TOUCHED footers permanently — nothing further needs adding to the prompt by hand.
 
 **If the task description is ambiguous** (multiple interpretations, unclear scope, unstated format/fields/location), stop before dispatching Ivan and surface the ambiguity to the user. See Example 1 in `references/code-quality-examples.md`. Do not dispatch with guessed-at requirements.
 
@@ -447,7 +447,7 @@ qwen never sees `opus`-tier or UI tasks — `state.tasks[i].qwen_eligible` is al
 The HOW of the codex rung lives in `references/codex-implementor.md` — the
 batch health probe (tool-exercising, nonce-verified, 300s watchdog), the
 dispatch checklist (no-edit porcelain captures, `-a`-never-`-y` sandbox grant,
-`-d` for dev/local, kill-before-fallback), and the TOOL-GATE NOTICE block every
+`-d` for docs/dev/project-management, kill-before-fallback), and the TOOL-GATE NOTICE block every
 codex prompt must end with. **Read that file in full before the first codex
 probe or dispatch of a batch** — the interception conditions above only decide
 WHETHER codex runs; every mechanical rule for probing and dispatching it is in
@@ -513,13 +513,13 @@ Run **only** the specific tests Tess wrote in step 2.7. Do NOT run the full proj
 - **Retry prompts** (feedback retry, repair re-dispatch, or escalation dispatch) re-render `ivan.md` in full. A render fills EVERY placeholder the persona carries or it exits 1 naming the first missing one, so a retry re-passes `ARCHITECTURE_CONTEXT` and `FILE_PATHS` exactly as the step-3 dispatch did — only `FAILING_TESTS` and `RETRY_INSTRUCTION` change:
   ```bash
   python3 <autopilot-plugin-root>/skills/work/scripts/render_prompt.py <autopilot-plugin-root>/agents/ivan.md \
-    --out dev/local/tmp/dispatch-ivan-<task-id>-retry-<n>.txt \
-    --set-file FAILING_TESTS=dev/local/tmp/ivan-retry-tests-<task-id>-<n>.md \
+    --out docs/dev/tmp/dispatch-ivan-<task-id>-retry-<n>.txt \
+    --set-file FAILING_TESTS=docs/dev/tmp/ivan-retry-tests-<task-id>-<n>.md \
     --set-file ARCHITECTURE_CONTEXT=<the same source step 3 used> \
-    --set-file FILE_PATHS=dev/local/tmp/ivan-<task-id>-files.txt \
+    --set-file FILE_PATHS=docs/dev/tmp/ivan-<task-id>-files.txt \
     --set RETRY_INSTRUCTION="Fix only what the failing test output points to. Do not refactor passing code, adjust unrelated files, or change style."
   ```
-  The code-quality rules block is already permanent in `ivan.md`, so there is nothing to re-include. `FAILING_TESTS` comes from **one** source on a retry: write the original failing tests plus the new failure output to `dev/local/tmp/ivan-retry-tests-<task-id>-<n>.md` once per retry and pass it with `--set-file`. Do not also pass `--set-cmd FAILING_TESTS` — the last flag would silently win, and the failure output is exactly what the retry needs to carry.
+  The code-quality rules block is already permanent in `ivan.md`, so there is nothing to re-include. `FAILING_TESTS` comes from **one** source on a retry: write the original failing tests plus the new failure output to `docs/dev/tmp/ivan-retry-tests-<task-id>-<n>.md` once per retry and pass it with `--set-file`. Do not also pass `--set-cmd FAILING_TESTS` — the last flag would silently win, and the failure output is exactly what the retry needs to carry.
 
 **Do not run here:** `cargo test --workspace`, `cargo clippy --workspace`, `./tests/smoke.sh`, `./tests/integration.sh`, `cargo test-full`, or any equivalent full-suite command. These are batched into step 7.
 
@@ -586,17 +586,17 @@ Dispatch the reviewer after commit and verification — a native lane, no plugin
 2. Render the review prompt with one Bash call, every interpolated path `shlex.quote()`-d (or bash's `printf '%q '`) before it lands inside a `--set-cmd` value:
    ```bash
    python3 <autopilot-plugin-root>/skills/work/scripts/render_prompt.py <autopilot-plugin-root>/agents/pat.md \
-     --out dev/local/tmp/review-task-<id>-prompt.md \
-     --set-file TASK_SUBJECT=dev/local/tmp/review-task-<id>-subject.txt \
-     --set-file TASK_DESCRIPTION=dev/local/tmp/review-task-<id>-description.txt \
-     --set-file TASK_ACCEPTANCE_CRITERIA=dev/local/tmp/review-task-<id>-acceptance.txt \
+     --out docs/dev/tmp/review-task-<id>-prompt.md \
+     --set-file TASK_SUBJECT=docs/dev/tmp/review-task-<id>-subject.txt \
+     --set-file TASK_DESCRIPTION=docs/dev/tmp/review-task-<id>-description.txt \
+     --set-file TASK_ACCEPTANCE_CRITERIA=docs/dev/tmp/review-task-<id>-acceptance.txt \
      --set-cmd DIFF="git diff BASE_SHA..HEAD_SHA" \
      --set-file SIMPLIFICATION_MANDATE=<autopilot-plugin-root>/skills/work/references/simplification-mandate.md
    ```
    The **Pat persona** (`<autopilot-plugin-root>/agents/pat.md`) already carries the read-only statement and the reporting contract — one finding per line as `SEVERITY | file:line | issue | fix` (severities CRITICAL/HIGH/MEDIUM/LOW), or the literal line `NO FINDINGS` — so do not restate them here. Conventions and the placeholder table: `review-work-completion/references/agent-registry.md`. If `pat.md` is missing or its frontmatter does not parse, treat it as a runner failure (step 4's retry-once branch) — never fall back to a hand-written prompt. The stdout integer from the render call **is** the Subagent Dispatch Budget measurement — no separate `wc -c`.
 3. Dispatch via the sonnet runner (helper-script dispatch — the **Subagent Watchdog** applies):
    ```bash
-   bash <autopilot-plugin-root>/skills/use-sonnet/scripts/sonnet-run.sh -f dev/local/tmp/review-task-<id>-prompt.md -o dev/local/tmp/review-task-<id>.md
+   bash <autopilot-plugin-root>/skills/use-sonnet/scripts/sonnet-run.sh -f docs/dev/tmp/review-task-<id>-prompt.md -o docs/dev/tmp/review-task-<id>.md
    ```
    No `-a`/`-y` — the reviewer needs no write access, and a read-only dispatch must never run with bypassed permissions.
 4. Read the output file and handle the result:
@@ -611,16 +611,16 @@ Skip for documentation-only or configuration-only tasks.
 ### 6. Mark complete and sync
 
 1. **Build the attempt record** per the "Attempt logging" section: `outcome: "completed"`, `model` from `state.tasks[i].model`, `pipeline` from `state.tasks[i].model` (`haiku` → `"minimal"`, `sonnet`/absent/legacy → `"lean"`, `opus` → `"full"`) plus `fable` → `"full"` (the rescue rung runs the deepest pipeline, like `opus`), `cause: null`, `review_cycle: null` on a Phase-3 first pass or the current `state.cycle` on a rework pass. When `state.tasks[i].escalation_reason` / `state.tasks[i].escalated_from` are present (set by `/run-autopilot` Phase 6 for a review-flag escalation), **copy both onto the entry** so `escalation_reason: "review_flag"` reaches `attempts[]`; absent → omit both.
-2. **Land the whole transition in ONE `statectl` call.** Write the record from point 1 to `dev/local/tmp/attempt-task-<id>.json` with the **Write tool** (never a shell redirect — an attempt record carries quotes and newlines), then:
+2. **Land the whole transition in ONE `statectl` call.** Write the record from point 1 to `docs/dev/tmp/attempt-task-<id>.json` with the **Write tool** (never a shell redirect — an attempt record carries quotes and newlines), then:
 
    ```bash
-   python3 <autopilot-plugin-root>/skills/run-autopilot/scripts/statectl.py <state.json> task-done <task-id> dev/local/tmp/attempt-task-<id>.json
+   python3 <autopilot-plugin-root>/skills/run-autopilot/scripts/statectl.py <state.json> task-done <task-id> docs/dev/tmp/attempt-task-<id>.json
    ```
 
    `task-done` sets `tasks[i].status = "completed"`, appends the record to `tasks[i].attempts`, and **recomputes `tasks_completed` from the task array** — all three inside one locked atomic write. Do NOT set `status`, append the attempt, or set `tasks_completed` separately here; the count is derived and is not passed in. The task is resolved by matching `tasks[].id`, so the `tasks[N]` index form is not used here (rework appends `[D{cycle}]` follow-ups, after which array position stops matching id).
 
    The matching call at task start (step 2) is `statectl <state.json> task-start <task-id>`.
-3. **Append `ASSUMPTIONS:` lines** from this task's Tess and Ivan reports (any entry beyond `none`) to `dev/local/meta/assumptions.md` per the **Assumptions footer** section
+3. **Append `ASSUMPTIONS:` lines** from this task's Tess and Ivan reports (any entry beyond `none`) to `docs/dev/project-management/meta/assumptions.md` per the **Assumptions footer** section
 4. Proceed to step 6.5 (task-boundary handoff check) — it routes to the next task, a clean handoff, or final verification.
 
 ### 6.5. Task-boundary handoff check
@@ -644,7 +644,7 @@ The autopilot context-cap hook (`autopilot_context_cap_hook.py`) writes a `.hand
       ── {completed} tasks done, {pending} pending — context near soft cap
       ── fresh session resumes the remaining tasks ───────────────────
       ```
-   d. **Write the contract card** (run-autopilot § Contract card): the current step, the active invariants, and the next gate, so a session compacted after this boundary re-anchors instead of drifting. Write the body to `dev/local/autopilot/contract-card.md` with the **Write tool**, then (autopilot only) load it with `statectl.py <state.json> set-contract-card dev/local/autopilot/contract-card.md`. Never pass the card as an inline shell argument — it carries quotes, newlines and `$`, and the inline form failed three times in a row on quoting in a real build session. Interactive runs stop after the file write. Then ensure `state.next_phase == "build"` (it already is during the build gate, since this is a mid-build task-boundary handoff with pending tasks remaining), then STOP — end the turn. In loop mode the wrapper reads the non-empty `next_phase: "build"` and relaunches a fresh session (the headless hand-off contract in `run-autopilot/SKILL.md` § Session Loop); the model writes no signal.
+   d. **Write the contract card** (run-autopilot § Contract card): the current step, the active invariants, and the next gate, so a session compacted after this boundary re-anchors instead of drifting. Write the body to `docs/dev/project-management/autopilot/contract-card.md` with the **Write tool**, then (autopilot only) load it with `statectl.py <state.json> set-contract-card docs/dev/project-management/autopilot/contract-card.md`. Never pass the card as an inline shell argument — it carries quotes, newlines and `$`, and the inline form failed three times in a row on quoting in a real build session. Interactive runs stop after the file write. Then ensure `state.next_phase == "build"` (it already is during the build gate, since this is a mid-build task-boundary handoff with pending tasks remaining), then STOP — end the turn. In loop mode the wrapper reads the non-empty `next_phase: "build"` and relaunches a fresh session (the headless hand-off contract in `run-autopilot/SKILL.md` § Session Loop); the model writes no signal.
 
    **Do NOT return to step 1, and do NOT run step 7.** `phases_completed` stays without `"work"` (this session did not finish the phase), so `/run-autopilot` re-enters Phase 3 and re-invokes `/work`, which reads the pending tasks directly from `state.tasks`.
 
@@ -654,7 +654,7 @@ After all tasks in the phase are marked completed, run the project's full verifi
 
 #### 7.0. Style-limit gate
 
-Before the suite, measure what this phase's diff introduced. Base = `state.work_start_sha` (`statectl get work_start_sha`; captured once per PRD before the first `/work` pass, so it survives task-boundary handoffs and a first task that wrote no tests); every git invocation below runs with the repo's own `--git-dir`/`--work-tree` flags in a bare-repo home. Write the diff with `git diff <base>..HEAD --output=dev/local/tmp/phase-diff.txt` and list the changed Python files with `git diff --name-only --diff-filter=d <base>..HEAD -- '*.py'` (deleted files excluded: the script reads every path it is given). No `.py` file changed: skip the script and record `style_gate: clean`. Otherwise run `python3 <autopilot-plugin-root>/skills/work/scripts/check_style_limits.py --diff dev/local/tmp/phase-diff.txt <those files as absolute paths>`; exit 0: record `style_gate: clean`. Exit 1: write the violation lines to the `FAILING_TESTS` scratch file and dispatch Ivan once with the full retry command shape from step 5.5 and `--set RETRY_INSTRUCTION="Fix only the listed style-limit violations; do not touch other code"`, commit per step 5, re-run the gate: clean -> `style_gate: fixed:<sha of the fix commit>`; still exit 1 -> `style_gate: failed:<the violation lines, joined by "; ">` and proceed to the suite anyway (fail loud, never silent). Exit 2 (or any other non-0/1 exit): the gate could not run at all, so there are no violation lines to hand a fix agent — record `style_gate: failed:<the script's stderr message>`, do NOT dispatch Ivan, and proceed to the suite anyway (fail loud, never silent, same as the still-failing exit-1 case). Function spans come from `review-work-completion/scripts/compute_mech_facts.py`, reused by import (see `## Dependencies`).
+Before the suite, measure what this phase's diff introduced. Base = `state.work_start_sha` (`statectl get work_start_sha`; captured once per PRD before the first `/work` pass, so it survives task-boundary handoffs and a first task that wrote no tests); every git invocation below runs with the repo's own `--git-dir`/`--work-tree` flags in a bare-repo home. Write the diff with `git diff <base>..HEAD --output=docs/dev/tmp/phase-diff.txt` and list the changed Python files with `git diff --name-only --diff-filter=d <base>..HEAD -- '*.py'` (deleted files excluded: the script reads every path it is given). No `.py` file changed: skip the script and record `style_gate: clean`. Otherwise run `python3 <autopilot-plugin-root>/skills/work/scripts/check_style_limits.py --diff docs/dev/tmp/phase-diff.txt <those files as absolute paths>`; exit 0: record `style_gate: clean`. Exit 1: write the violation lines to the `FAILING_TESTS` scratch file and dispatch Ivan once with the full retry command shape from step 5.5 and `--set RETRY_INSTRUCTION="Fix only the listed style-limit violations; do not touch other code"`, commit per step 5, re-run the gate: clean -> `style_gate: fixed:<sha of the fix commit>`; still exit 1 -> `style_gate: failed:<the violation lines, joined by "; ">` and proceed to the suite anyway (fail loud, never silent). Exit 2 (or any other non-0/1 exit): the gate could not run at all, so there are no violation lines to hand a fix agent — record `style_gate: failed:<the script's stderr message>`, do NOT dispatch Ivan, and proceed to the suite anyway (fail loud, never silent, same as the still-failing exit-1 case). Function spans come from `review-work-completion/scripts/compute_mech_facts.py`, reused by import (see `## Dependencies`).
 
 **What to run** (project-dependent — use the commands documented in `AGENTS.md` / `CLAUDE.md` / project README):
 
@@ -681,7 +681,7 @@ Max 3 fix cycles at this step before escalating to the user — regressions clus
 
 Only stop the work phase once step 7's test suite is fully green — a recorded `style_gate: failed:<violations>` from step 7.0 is a sanctioned way for the phase to complete, not a reason to keep looping or stall; the suite itself still has to pass.
 
-When reporting the phase result, include the `style_gate: <value>` line from step 7.0 and the contents of `dev/local/meta/assumptions.md` (if present) - the assumption ledger is input to the review phase and the user's 30-second examine pass.
+When reporting the phase result, include the `style_gate: <value>` line from step 7.0 and the contents of `docs/dev/project-management/meta/assumptions.md` (if present) - the assumption ledger is input to the review phase and the user's 30-second examine pass.
 
 ## Reference Files
 

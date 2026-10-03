@@ -38,7 +38,7 @@ git stash list
 git log --oneline -15
 ```
 
-Also list `dev/local/prds/wip/` and `dev/local/plans/` when they exist, and
+Also list `docs/dev/project-management/prds/wip/` and `docs/dev/project-management/plans/` when they exist, and
 the host's task list when it keeps one. If the project's verify command
 (tests, lint, build) runs in under a minute, run it now; otherwise report the
 last run with its time. A result not observed this session is "not run",
@@ -47,7 +47,7 @@ never "passing".
 ## Step 2 - Flush durable facts
 
 A fact that already has a durable home (project capsule,
-`dev/local/meta/decisions.md`, AGENTS.md, the host's memory when it keeps one)
+`docs/dev/project-management/meta/decisions.md`, AGENTS.md, the host's memory when it keeps one)
 goes there first, and the prompt points at it. Do not invent new documents
 for this.
 
@@ -128,10 +128,10 @@ Activate first: <mode or skill, e.g. `/ponytail full`, `/work`> | none
 
 ## Step 4 - Write the file
 
-Inside a repo: `dev/local/tmp/handoff-<YYYYMMDD-HHMM>.md` (stamp from
+Inside a repo: `docs/dev/tmp/handoff-<YYYYMMDD-HHMM>.md` (stamp from
 `date +%Y%m%d-%H%M`), prefixed with the 5-digit PRD number when the session
 works one
-(`dev/local/tmp/00123-handoff-20260905-1830.md`). Create `dev/local/tmp/` if
+(`docs/dev/tmp/00123-handoff-20260905-1830.md`). Create `docs/dev/tmp/` if
 absent. Outside a repo: `$TMPDIR/handoff-<YYYYMMDD-HHMM>.md`. The file is the
 prompt, byte for byte: it is what the clipboard step reads.
 

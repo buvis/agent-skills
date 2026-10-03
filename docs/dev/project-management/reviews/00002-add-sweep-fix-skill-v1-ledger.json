@@ -1,0 +1,42 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "An all-zero sweep is accepted when the control term is absent, contradicting the PRD requirement that an empty control abort as unverified",
+    "file": "skills/sweep-fix/scripts/sweep.py",
+    "reason": "Requirements ambiguity between the PRD's general prose ('an empty control result aborts the sweep as unverified') and the design doc's specific contract ('If the control term IS found but the pattern found nothing, raises SystemExit(1)'). The code matches the design doc, which is the more specific and already-reviewed statement. Aborting whenever the control term is absent would make the tool unusable for the common case the design's own review log names first: a fix that removed the pattern's only instance from the control repo's live tree. Resolved by simplest safe assumption in favour of the design doc; current behaviour kept."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "scan() and render_report() do not match the signatures the PRD's Structural Decomposition explicitly documents as sweep.py's exports: scan(pattern, repos, cap=20) vs the implemented scan(pattern, kind, repos, cap=20), and render_report(derivation, hits, gaps) vs the implemented render_report(derivation, hits, gaps, suppressed)",
+    "file": "skills/sweep-fix/scripts/sweep.py",
+    "reason": "The reporting reviewer says so himself: the extra parameters are functionally required to satisfy other literal PRD requirements (kind-based dispatch, suppressed-count reporting), so this is an internal inconsistency in the PRD's own Exports list, not an implementation defect. The design doc's Interfaces & contracts section carries the implemented signatures. Removing either parameter would break a stated Success Metric."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "rg/ast-grep invocation flags drift from the documented contract (design doc/Task 3 specify \"-n --no-heading\" and \"--json=compact\"; code uses \"--json\" for both)",
+    "file": "skills/sweep-fix/scripts/sweep.py",
+    "reason": "The code is strictly better than the documented shape: --json gives structured per-match records (path, line_number, lines.text) instead of text that must be split on colons, which is the same class of parsing fragility this PRD exists to hunt. The design doc is a per-PRD artifact that dies with the PRD, not a shipped contract, so reconciling its prose buys nothing. Keeping the more robust invocation."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "verify_control message uses '--' instead of PRD's em dash '—'",
+    "file": "skills/sweep-fix/scripts/sweep.py",
+    "reason": "Contradicts a standing project rule: rules/writing.md states 'Never use em dashes. Use regular dashes, commas, periods, or parentheses instead.' The code's '--' is correct and the design doc's em dash is the thing out of step."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: full pytest, skill-validator, and braid checks pass",
+    "file": "N/A",
+    "reason": "Not a finding, a sandbox limitation note from the static-only reviewer. The orchestrator ran the checks this cycle: uv run pytest -> 369 passed, 0 failed, 5 skipped (all 5 pre-existing in skills/survey/, gated on the optional tree_sitter_language_pack); validate_skill.py skills/sweep-fix -> OK; braid --check -> 0 drift at build end."
+  }
+]

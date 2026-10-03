@@ -1,0 +1,266 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "`vet` gained an undocumented `--shapes` CSV flag and a third CLI subcommand `verify` (plus a ~400-line `eval_harness/evidence.py` sealing/audit subsystem: `manifest.json`, `prompts/` dir, `dispatch-references.json`, `sealed-inputs.json`) that the PRD never specifies. The PRD's own repo-structure comment reads `run_eval_harness.py # CLI entry: vet | run (render arrives with PRD 00052)`, and the Overview explicitly defers \"the audit queue\" to PRD 00052. The CHANGELOG entry itself documents `verify` as if it were part of this PRD's deliverable.",
+    "file": "skills/use-qwen/scripts/eval_harness/evidence.py, skills/use-qwen/scripts/run_eval_harness.py",
+    "reason": "Scope decision adopted at the design gate (3 review dispatches) to close a post-vet input-substitution hole; keep-or-strip is a requirements call for the human at batch end, not the unattended loop. Deferred with the re-seal rmtree observation."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "`vetting.json`'s recorded schema has two extra top-level keys (`inputs_sha256`, `shapes`) beyond the PRD's literal \"vetting.json has exactly `template_sha`, `gate_bound_s`, `warmup`, `baseline`, `canonical`, `necessity`, `ready`\" contract. `VETTING_KEYS` in records.py lists 9 keys, not 7. This directly breaks the Phase 2 acceptance criterion \"every run, pretask, sealed, vetting and attempt record matches its complete contract\" and is a breaking-change risk for PRD 00052, which the Risks section says reads this contract verbatim.",
+    "file": "skills/use-qwen/scripts/eval_harness/records.py",
+    "reason": "Protocol C (High + data-model change): PRD l.119-122 fixes the key set to seven; the implementation writes nine; the design doc's claim that the PRD does not fix this key set is false. Verdict escalate; remedy (move inputs_sha256/shapes to a sibling seal file) noted for the batch-end decision."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "PRD Success Metric not met: `skills/use-qwen/scripts` test suite measured at 128.66s, more than 2x the PRD's \"under 60 seconds\" requirement; the build phase recorded this as a deferral rather than a fix",
+    "file": "N/A",
+    "reason": "[3/4] Alice, Blake, Bob. Not mechanical (a ~2x speed-up of 1452 tests), not additive; already recorded as a PRD-level deferral by the build phase. Formally deferred to batch end."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "FIX: With no explicit usage-limit command, detection immediately becomes unchecked even when the required autopilot checker is installed. Implement the documented fallback while retaining unchecked when no checker resolves.",
+    "file": "skills/use-qwen/scripts/eval_harness/engines.py:153",
+    "reason": "PRD l.244-246 requires the autopilot plugin-cache fallback; the AGENTS.md practice (and the design review's unresolved non-blocker) forbids skills reaching into plugin-cache paths. PRD vs standing rule: requirements ambiguity, human decides."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`evidence.py._write_seal` does `shutil.rmtree` on `template/`, `oracle/`, `prompts/` under a task directory on re-seal. Scoped to fixed subdirectory names so not a path-traversal risk, but it is a destructive operation belonging to the unspecified sealing subsystem noted above, not something the PRD's `vet` output contract calls for.",
+    "file": "skills/use-qwen/scripts/eval_harness/evidence.py",
+    "reason": "Travels with the sealing-subsystem scope deferral (same decision)."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Cannot statically verify: VERIFY native Windows execution; run uv run pytest skills/use-qwen/scripts -q on native Windows and confirm the child-writer and immediate-parent-exit tests execute without skips.",
+    "file": "N/A",
+    "reason": "This host is macOS; the Windows lane runs on windows-latest in CI once the commits are pushed (push is deferred to Phase 9 in loop mode). Deferred to: push, then watch the Windows CI lane."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "KNOWN: HEAD/status-only PREP_MISMATCH with an empty differing-path list already prevents dispatch. Adding synthetic paths or new diagnostic fields exceeds the fixed record contract; retain the current representation.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:189",
+    "reason": "Settled: the build phase escalated it, Alice ruled it acceptable this cycle (a sentinel path would be cross-PRD contract drift) and Bob's own KNOWN concurs. Not a defect."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "KNOWN: Basic-auth forwarding for /props is outside the stated support requirement. A credential-free HTTP 401 diagnostic satisfies the permitted unavailable-metadata behavior.",
+    "file": "skills/use-qwen/scripts/eval_harness/engines.py:219",
+    "reason": "Settled: the build phase escalated it, Alice ruled the no-Authorization fetch correct under \"no credentials enter records or argv\", Bob's own KNOWN concurs. Not a defect."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "critical",
+    "issue": "`run_eval_harness.py` ships a `verify` subcommand and an entire evidence-sealing/verification system (`eval_harness/evidence.py`, `evidence_verify.py`, plus `manifest.json`, `dispatch-references.json`, `sealed-inputs.json` artifacts) that is nowhere in PRD 00051's Functional Decomposition. Git history confirms it was added as a distinct commit (\"feat(use-qwen): seal the eval-harness vet inputs and verify an evidence bundle\", 2026-09-13) and CHANGELOG.md documents it under this PRD's release notes even though the PRD text explicitly scopes rendering/verification-adjacent work to PRD 00052 (\"Rendering the records ... is PRD 00052\").",
+    "file": "skills/use-qwen/scripts/eval_harness/evidence.py",
+    "reason": "Blake's blind re-raise of the cycle-1 F01 scope deferral (same subsystem, same argument); judgment match on issue text plus file, the mechanical matcher missed it because the file strings differ. Blake rated it Critical this cycle where cycle 1 settled it as High; the substance is unchanged (no rework commit touched the subsystem's scope) and the settled reason still holds: keep-or-strip is the human's batch-end requirements call. Not counted as an unresolved Critical."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "`vet` accepts an undocumented `--shapes` CLI flag, and `run` gained a new refusal path (`RefusalError` in `_admit`) that rejects a `--shape` not present in the task's vetted `shapes` list. Neither the flag nor this admission rule appears in the PRD's CLI signature (`vet <evidence-dir> [--gate-bound]`) or Prompt Rendering behavior (which ties rendering to the run's own `--shape`, not to a pre-vetted shape set).",
+    "file": "skills/use-qwen/scripts/run_eval_harness.py",
+    "reason": "Blake's blind re-raise of the `--shapes` half of the cycle-1 F01 scope deferral (the ledger entry names the flag verbatim); judgment match. Same batch-end decision."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "Success Metric violated: PRD states \"The test suite runs with no model server and no network, using a fake engine, in under 60 seconds.\" Measured `uv run pytest skills/use-qwen/scripts -q` twice: 171.4s and 172.4s, roughly 3x over budget.",
+    "file": "skills/use-qwen/scripts (test suite)",
+    "reason": "Blake's blind re-raise of the cycle-1 F17 suite-time deferral ([3/4] then); judgment match on issue text (the file string differs). The rework added ~1,750 tests, so the measured time grew from ~125 s to ~171 s; still the same PRD-level deferral for the human at batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Prompt rendering has moved from \"per run, per the run's `--shape`\" (PRD's Prompt rendering feature) to pre-rendering both possible shapes at `vet`/seal time and copying bytes at run time (`admission.copy_run_prompts`, `evidence.seal_inputs`). Functionally the run-time output filenames still match spec, but the architecture and failure surface (shape must have been vetted) differ from what the PRD describes.",
+    "file": "skills/use-qwen/scripts/eval_harness/admission.py",
+    "reason": "The `prompts/` directory rendered at seal time is one of the four artifacts the cycle-1 F01 ledger entry names as the sealing subsystem; Blake's architecture-divergence reading is the same scope decision seen from the prompt side. Travels with F01 to batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The one skipped test (`test_eval_tree_containment.py:442`, Win32 job-object failure path) is a legitimate platform gate on macOS, but the PRD's Phase 2 acceptance explicitly demands \"no platform-specific test omissions\" on POSIX and native Windows; this could not be independently verified on a Windows runner in this review.",
+    "file": "skills/use-qwen/scripts/test_eval_tree_containment.py",
+    "reason": "Blake's blind re-raise of the cycle-1 F44 native-Windows deferral; the CI windows-latest lane (3.13 only) is where it runs once Phase 9 pushes. Same decision."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "high",
+    "issue": "FIX: F03 remains incomplete: an OSError during waiting or reaping returns a started engine record without confirming containment, bypassing the survivor check and permitting snapshotting and gates beside surviving children. Guarantee cleanup on every post-creation exit and halt when cleanup cannot be confirmed; test a reap failure with a living descendant.",
+    "file": "skills/use-qwen/scripts/eval_harness/engines.py:109",
+    "reason": "Refuted by an executed adversarial verification: runner.py:312-317 orders _start -> ProcessTree -> _exit_within -> reap -> read_text, so the only post-creation OSError site (log.read_text) runs after reap has SIGTERM'd, SIGKILL'd and settled the group; Popen.wait swallows ChildProcessError and _probe/_signal catch ProcessLookupError/PermissionError, so waiting and reaping raise no OSError; Win32Error is a RuntimeError, not an OSError. A cmd engine that spawned a TERM-ignoring grandchild and then deleted its own out.txt returned launch=started with the grandchild gone and the process group empty. The existing test that reaches the branch monkeypatches reap itself. Residual (not a concrete input): a SIGKILL survivor plus a read_text failure is a double fault an unprivileged engine cannot produce."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "high",
+    "issue": "FIX: F14 remains incomplete: server sampling accepts any dictionary, including {} and {\"temperature\":\"hot\"}, despite the declared four-key nested contract. Validate temperature/top_k/top_p/min_p and their numeric-or-null domains; replace the partial sampling dictionaries currently treated as valid test fixtures.",
+    "file": "skills/use-qwen/scripts/eval_harness/records_domains.py:56",
+    "reason": "Refuted against the sources: PRD l.253-257 and design l.616-620 describe the four keys fetch_server_props WRITES (engines.py:40 _SAMPLING_KEYS, :253-254 always emits the four keys or None); design l.692-694 lists the nested contracts validate_record recurses into (prep, baseline, engine_run, usage, gates) and never names server/sampling; no source states a numeric domain; the cycle-1 task-17 contract said verbatim `sampling` object or null ... do not invent domains beyond those two sources, which records_domains.py:56-57 honours. Enforcing numeric-or-null would abort a run whenever a real llama-server reports a non-numeric param, contradicting PRD l.257's record-what-the-server-says rule."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "FIX: F16 remains incomplete: a completed cmd attempt can still verify successfully after losing out.txt, wrapper.txt, its captured session.jsonl, or progress.log. Require engine artifacts implied by launch/completion evidence and add missing-file cases for those artifacts.",
+    "file": "skills/use-qwen/scripts/eval_harness/evidence_verify.py:21",
+    "reason": "Refuted as satisfied-per-contract: evidence_verify.py:21-30 implements exactly the artifact set the cycle-1 gate pinned for F16 (prompt.txt, status.txt, baseline .txt/.rc, sealed.json when baseline ran, diff.patch when changed is non-null, <label>.txt/.rc per non-null gate; clones optional) and test_eval_evidence_verify.py:39-45,455-464 pins that set; the design's verify contract (l.1187-1212) names no engine-stage file, the PRD has no verify requirement, and session.jsonl is legitimately absent on a started run whose transcript was not found (engines.py:154-162 -> completion unknown). Bob's premise (launch started proves the files exist) is only true for wrapper.txt and cmd out.txt; that narrower check is an extension of the pinned contract, not F16 unresolved."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "FIX: F26 remains incomplete: the remaining warmup allowance is calculated before measure performs cloning and mise setup, then passed unchanged to the command. The final segment can therefore finish beyond the shared deadline and still pass. Recalculate the allowance immediately before dispatch against one absolute deadline; cover slow clone setup.",
+    "file": "skills/use-qwen/scripts/eval_harness/vetting.py:43",
+    "reason": "Refuted: the ordering is as claimed (vetting.py:43 computes left before measure clones at :29-31), but started is set once at :41 so every earlier segment's full setup is inside the elapsed time the next left subtracts; the list can overrun bound_s by at most one fresh_clone + mise_trust, a negative left times out at once (runner.py:287-292), and the runtime gate path is looser (gates.py:115-117 clones inside run_baseline and _run starts its clock at :98 after the clone, charging zero setup). PRD l.80-83 scopes the bound to the command list. test_run_eval_vet.py:367-382 pins the run-down across earlier segments including their setup."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "90 touched test(s) pass against the pre-change code: test_tdd_shape_renders_the_paths_it_was_given_and_no_others, test_refuses_leaked_solution_text_in_the_architecture_or_an_anchor +84 more",
+    "file": "skills/use-qwen/scripts/test_eval_prompts.py",
+    "reason": "Refuted by an executed replay (HEAD file on a b13912c worktree: 45 failed, 165 passed): the three render-as-given tests (36 cases) and the anchor-membership refusal (9 cases) that pin task 23's changes all FAIL at base; the 90 base-passing cases are the reworked reject-side test (84 cases asserting the architecture/anchor refusal base already keyed the same way, prompts.py:58-61 at base), two accept-side controls (5 cases) bounding the new membership check, and one fixture-adapted pre-existing test. The replay counts every test in a touched file."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "19 touched test(s) pass against the pre-change code: test_accepts_an_absolute_repo_in_posix_or_windows_form_on_every_host +13 more",
+    "file": "skills/use-qwen/scripts/test_eval_spec_contract.py",
+    "reason": "Refuted by an executed replay (HEAD file on a b13912c worktree, Python 3.10.20: 58 failed, 19 passed): every task-23 refusal (relative repo x22, illegal anchor x13, contradictory kind x5, UTF-8-on-every-host x2, bad task prefix x16) FAILS at base; the 19 base-passing cases are accept-side tests (absolute repo x8, slash-form anchor x3, kind-after-split/override x4, kind-never-consulted x2), one control (integer-prefix ordering base already had) and the two not-valid-utf8 companion guards whose refusal base produced through its pre-existing except (OSError, ValueError) wrap on a UTF-8-locale host (spec.py:76-78, prompts.py:119-121 at base)."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "18 touched test(s) pass against the pre-change code: test_build_template_refuses_a_link_chain_that_resolves_outside_the_tree, test_build_template_seals_a_link_chain_that_stays_inside_the_tree +12 more",
+    "file": "skills/use-qwen/scripts/test_eval_tree_links.py",
+    "reason": "Refuted by an executed replay (HEAD file on a b13912c worktree, Python 3.10.20 and the refusal subset re-run on 3.13: 20 failed, 18 passed; HEAD 38 passed): the 20 base-failing cases pin the task-18 chain-following fix (two-hop, back-out, eight-hop chains, three cycles, hash_paths refusals, all DID NOT RAISE TreeError or PermissionError at base); the 18 base-passing cases are 16 accept-side/control cases plus the three-hops-through-a-link-to-a-link fixture whose middle hop is a bare `..` that base's lexical _escapes already refused (posixpath.normpath('..') == '..'), a regression guard the test file itself annotates (line 43)."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "4 touched test(s) pass against the pre-change code: test_reads_is_error_by_its_value_and_not_by_its_presence",
+    "file": "skills/use-qwen/scripts/test_eval_events_usage.py",
+    "reason": "Verified by Alice against `git show b13912ce`: only _carries_claude_edit (the Claude side) had the presence-check bug pre-fix, so the 4 passing cases are the pi-side, true-flag and orphan-result controls; the 2 cases that fail at base (claude-7s, claude-13s) pin the fix."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "1 touched test(s) pass against the pre-change code: test_records_a_no_launch_attempt_whole_with_null_measurements",
+    "file": "skills/use-qwen/scripts/test_eval_engines.py",
+    "reason": "SUSPECTED, not executed: a pre-existing test whose fixture task 16 adapted; it pins the not-started path base already had, and the task-16 behaviours are pinned by test_eval_engine_halts.py (15 tests, uncollectable at base because the module it imports did not exist). Same pattern the three executed replay refutations above showed."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "2 touched test(s) pass against the pre-change code: test_a_child_that_outlives_the_bound_is_killed_with_the_tree_on_every_platform, test_the_windows_branch_puts_the_child_in_a_job_before_it_can_execute",
+    "file": "skills/use-qwen/scripts/test_eval_tree_containment.py",
+    "reason": "SUSPECTED, not executed: both are pre-existing tests; the first absorbed the folded POSIX hang test's wall-time assertion (task 24, coverage-preserving by design, no new behaviour), the second was adapted to the close_job fake (task 15); the task-15 behaviours are pinned by test_eval_runner_containment.py (new file, uncollectable at base). Same pattern as the executed refutations."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "1 touched test(s) pass against the pre-change code: test_commit_all_commits_every_change_and_returns_the_new_head",
+    "file": "skills/use-qwen/scripts/test_eval_tree_state.py",
+    "reason": "SUSPECTED, not executed: a pre-existing test touched by the task-21 edit; the new behaviour (an empty commit on an unchanged tree) is pinned by the sibling test_commit_all_lands_an_empty_commit_on_an_unchanged_tree, which the replay lists as failing at base."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "1 touched test(s) pass against the pre-change code: test_run_bounded_leaves_both_of_the_command_s_streams_at_the_path_it_was_given",
+    "file": "skills/use-qwen/scripts/test_eval_trees.py",
+    "reason": "SUSPECTED, not executed: a pre-existing test adapted to the task-16 stdout/stderr capture split; the new cmd out.txt behaviour is pinned by test_eval_engine_halts.py and test_eval_engines.py::test_splits_cmd_captures_by_stream_not_by_line_shape."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "FIX: On Python 3.13, PureWindowsPath.is_absolute() accepts \"1:/repo\" and \"?:/repo\"; the new spec tests explicitly require their rejection, and record validation rejects them. Use consistent drive-letter validation across supported Python versions so spec admission and the configured 3.13 test lane agree.",
+    "file": "skills/use-qwen/scripts/eval_harness/spec.py:123",
+    "reason": "CONFIRMED by execution (PureWindowsPath.is_absolute on 3.10/3.11 refuses 1:/repo and ?:/repo, on 3.12/3.13/3.14 accepts them; `uv run --python 3.13 ... test_eval_spec_contract.py -k refuses_a_relative_repo` -> 4 failed, 18 passed; same on 3.10 -> 22 passed; ci.yml:23 matrix is 3.10 and 3.13 and the windows-latest lane is 3.13 only). Rework cap (2) reached with this High unresolved: cap-overflow deferral to batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "FIX: F22 remains incomplete: message.id=[] raises TypeError in usage deduplication, while fractional token counts pass aggregation and later abort attempt publication during record validation. Validate message IDs and usage field domains, retaining valid measurements without allowing malformed payloads to abort the round.",
+    "file": "skills/use-qwen/scripts/eval_harness/events.py:144",
+    "reason": "CONFIRMED by execution (events.py:142-146 `message_id in seen` on a set with no hashability guard -> TypeError out of read_events for id []; events.py:155 accepts int|float so output_tokens 1.5 and -3 sum and then records._check_usage raises RecordError at attempt.py:363 before attempt.json is written; nothing up to run_round catches either). Rework cap reached: cap-overflow deferral to batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "FIX: F30 remains incomplete: raw-string membership lets an anchor \"./calc.py\" bypass writable membership for \"calc.py\"; repeated separators provide the same bypass. Normalize permitted path spellings before comparing membership, or reject noncanonical spellings, and test writable and oracle aliases.",
+    "file": "skills/use-qwen/scripts/eval_harness/prompts.py:77",
+    "reason": "CONFIRMED by execution (spec.py:128-132 only rejects a leading /, a backslash, a drive and `..` segments, and prompts.py:77 compares raw strings, so ./calc.py, calc.py/, a//calc.py, .//calc.py and ./tests/test_calc.py all load, classify and render as read-only anchors for a writable or oracle path; ILLEGAL_ANCHOR_PATHS has no `.`-segment, `//` or trailing-slash case). Rework cap reached: cap-overflow deferral to batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "FIX: Refused-launch cleanup can mask LaunchError: if a capture path is a directory or cannot be unlinked, cleanup raises another OSError before the structural launch exception is raised. Dispatch then records a child that never existed as started. Track captures actually created and preserve pre-creation classification when cleanup fails.",
+    "file": "skills/use-qwen/scripts/eval_harness/runner.py:281",
+    "reason": "CONFIRMED by execution (runner.py:280-283 cleanup is unguarded, log.unlink(missing_ok=True) swallows only FileNotFoundError; with attempt/out.txt a directory and a nonexistent executable, run_bounded escaped PermissionError instead of LaunchError and engines.dispatch recorded launch=started exit=None; reachable from an operator spec because the baseline runs test_cmd segments in the attempt dir before dispatch). Rework cap reached: cap-overflow deferral to batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "FIX: Both binary-diff exception cases replace every _git_bytes call, so they now fail during the preceding name-status listing and never exercise binary patch extraction. Restrict the injected failure to the --binary call and assert that this stage was reached.",
+    "file": "skills/use-qwen/scripts/test_eval_tree_patches.py:320",
+    "reason": "CONFIRMED by an argv trace (the fake _git_bytes saw exactly one call, `diff --name-status -z <sha>`, for both the-binary-diff params; trees.py:281 precedes :282). The test still proves the index reset for the listing stage; the two ids and the comment at 290-292 are mislabeled. Rework cap reached: cap-overflow deferral to batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "FIX: The returned=None assignment and subsequent assertion are tautological inside pytest.raises: a matching exception prevents assignment, while a normal return already fails the context manager. Remove the variable, assignment, and assertion; retain the exception and actual child-cleanup checks.",
+    "file": "skills/use-qwen/scripts/test_eval_runner_containment.py:174",
+    "reason": "CONFIRMED by reading (test_eval_runner_containment.py:174-181: assignment inside the raises block, assert after it, `returned` unused elsewhere; the real checks are lines 182-193). Rework cap reached: cap-overflow deferral to batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "FIX: The restore-fixture validation test repeats run_record() with its existing default run_id and never reads the restore fixture named in its comment. Remove this duplicate; the parameterized builder check and existing restore integration tests already cover its behavior.",
+    "file": "skills/use-qwen/scripts/test_eval_record_domains.py:75",
+    "reason": "CONFIRMED by reading (eval_harness_record_helpers.py:22,24 defaults run_id to r1; _build_run writes run_record(run_id=\"r1\") at eval_harness_evidence_helpers.py:250-252; the test's run_record(run_id=\"r1\") is dict-identical to the parametrized (\"run\", run_record()) case and reads no file; the written run.json is already contract-validated on the verify path). Rework cap reached: cap-overflow deferral to batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`runner.py` sits at exactly 400 lines against task 15's own contract of \"runner.py under 400\" (not the PRD/rubric's 800-line hard limit, which it satisfies)",
+    "file": "skills/use-qwen/scripts/eval_harness/runner.py",
+    "reason": "CONFIRMED (`wc -l` 400). The style gate's package cap is inclusive (it passed `clean` at 400); the task contract's wording was `under 400`. A one-line trim. Rework cap reached: cap-overflow deferral to batch end."
+  }
+]

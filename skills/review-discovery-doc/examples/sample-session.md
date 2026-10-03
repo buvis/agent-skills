@@ -4,7 +4,7 @@ A standard-depth discovery doc walked end to end. This anchors the output format
 
 ## The doc under review
 
-`dev/local/discovery/00007-notification-digest.md` (excerpt):
+`docs/dev/project-management/discovery/00007-notification-digest.md` (excerpt):
 
 ```markdown
 # Discovery: Notification Digest

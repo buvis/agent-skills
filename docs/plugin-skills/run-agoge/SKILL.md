@@ -88,8 +88,8 @@ specialists get the contract without reading any path of yours.
 
 ### 2. Profile
 
-The profile is `dev/local/meta/agoge-profile.md` in the **target** repo,
-falling back to `dev/local/agoge-profile.md` when `meta/` has none. It decides
+The profile is `docs/dev/project-management/meta/agoge-profile.md` in the **target** repo,
+falling back to `docs/dev/project-management/agoge-profile.md` when `meta/` has none. It decides
 who runs, so a wrong profile is a wasted run. Whichever one you read is *the
 resolved path*: every later step that names the profile names that path, not
 the other one.
@@ -100,7 +100,7 @@ the other one.
 - **Fresh**: read it and go to step 3.
 
 After a refresh, before anything else, prove the human-owned section survived.
-**Do not reach for `git diff`** — `dev/local/` is ignored almost everywhere, so
+**Do not rely only on `git diff`** — the audit target may include uncommitted or ignored temporary files, so
 that diff comes back empty whatever recon did, and a check that cannot fail is
 worse than none. Copy `## Pins and vetoes` to a scratch file *before* the
 dispatch, extract it again afterwards, and compare the bytes (`cksum` on both).
@@ -170,7 +170,7 @@ Each prompt is assembled from five parts, in this order:
 
    | Source | When | What her prompt carries |
    |---|---|---|
-   | `profile` | the profile's `Authorization:` line is asserted (not `not asserted`) | that line verbatim, plus `Asserted by: profile (<path>)` — `<path>` is the profile path that resolved in step 2, `dev/local/meta/agoge-profile.md` or the root fallback |
+   | `profile` | the profile's `Authorization:` line is asserted (not `not asserted`) | that line verbatim, plus `Asserted by: profile (<path>)` — `<path>` is the profile path that resolved in step 2, `docs/dev/project-management/meta/agoge-profile.md` or the root fallback |
    | `invocation` | `--authorized <source>` was passed | the contract's assertion line, plus `Asserted by: invocation (<source>)` |
    | none | neither of the above | nothing — **do not dispatch her**; report the lane `skipped`, reason "authorization not asserted" |
 
@@ -223,7 +223,7 @@ no finding survived step 4 as `verified`, or the target's tree is dirty.
 
 ### 7. Report
 
-Write both files into the target repo's `dev/local/audit-results/`:
+Write both files into the target repo's `docs/dev/project-management/audit-results/`:
 
 - `agoge-<YYYY-MM-DD>.md` — the human report, in the report contract's shape:
   summary header with per-lane verified / unverified / mocked / skipped counts
@@ -272,8 +272,8 @@ report with this line, exactly:
 That token is how a returning human and the resume path both find an unwalked
 report. A run that reaches step 9 removes the line.
 
-An unattended run writes **only** into `dev/local/audit-results/`. It never
-touches `dev/local/prds/`: a machine that files its own findings as work has
+An unattended run writes **only** into `docs/dev/project-management/audit-results/`. It never
+touches `docs/dev/project-management/prds/`: a machine that files its own findings as work has
 approved them on the human's behalf.
 
 ### 9. Walk the findings
@@ -310,7 +310,7 @@ This path exists so a headless build can prove the walk works; it is not a way
 to run a real walkthrough without a human.
 
 **Accepted findings become PRDs**, one per finding or per cluster the human
-approved, in the target repo's `dev/local/prds/backlog/`. Read
+approved, in the target repo's `docs/dev/project-management/prds/backlog/`. Read
 `references/prd-emission.md` and follow it. Emission happens on explicit
 acceptance and on nothing else: deferred and rejected findings stay in the
 report.
@@ -321,9 +321,9 @@ Dispatch `subagent_type: agoge:olivia` with:
 
 1. The absolute target repo path.
 2. The profile path, relative to that repo: the one that resolved in step 2 —
-   `dev/local/meta/agoge-profile.md`, or the root `dev/local/agoge-profile.md`
+   `docs/dev/project-management/meta/agoge-profile.md`, or the root `docs/dev/project-management/agoge-profile.md`
    when that is the existing profile being refreshed. A fresh profile is
-   always written to `dev/local/meta/`.
+   always written to `docs/dev/project-management/meta/`.
 3. The `## Strategy profile contract` section from
    `references/finding-contract.md`, pasted verbatim — it names the six sections
    and their order.
@@ -356,10 +356,10 @@ She writes the profile and returns a summary. She writes nothing else.
   manifest. The gym's manifests are the answer key and are never inside an armed
   repo.
 - **Scoring vocabulary never enters the target.** Seed ids belong to the gym.
-  Keep the scorecard in the gym's own `dev/local/audit-results/`; the report in
+  Keep the scorecard in the gym's own `docs/dev/project-management/audit-results/`; the report in
   the target says only that scoring happened elsewhere. `bin/verify-seeds`
   enforces this and will refuse a tree that names a seed.
 - **Re-arm between scored runs.** The report you just wrote sits in the target's
-  `dev/local/` and describes every defect found. `bin/arm` removes the whole
+  `docs/dev/project-management/` and describes every defect found. `bin/arm` removes the whole
   armed tree, so a fresh arm clears it — but a second run against the same arm
   lets its specialists read the first run's answers.

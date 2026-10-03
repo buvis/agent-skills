@@ -1,0 +1,744 @@
+{
+  "batch_id": "202608290848",
+  "items": [
+    {
+      "type": "cap-overflow",
+      "issue": "verify_control() wraps its fallback literal-search call in a broad except Exception that warns to stderr and returns None, so an unresolvable rg/ast-grep makes main() exit 0 with a report instead of the required loud unverified abort; it also discards the failed channel from its own control-repo scan (sweep.py:329-337). Reproduced live by Alice. A regression introduced by cycle 2 rework task D1-T2.",
+      "severity": "high",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00073-sweep-loud-failures-v1 (tool resolution hoisted into main; verify_control raises)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "enumerate_repos() compares --cwd to on-disk repo paths by exact equality with no walk-up to the git root, so invoking from any subdirectory of the current repo makes the repo root appear as a false registry gap while only the subdirectory is scanned. Reproduced live by Blake from skills/sweep-fix/scripts/. Contradicts the PRD rule that the current repo is always covered and gaps are never swept silently.",
+      "severity": "high",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00073-sweep-loud-failures-v1 (cwd walks up to its git root)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "verify_control() rescans control_repo with the same pattern after the portfolio scan already covered it, duplicating subprocess work (sweep.py:312). Carried over from cycle 1, where it was recorded as not swept this cycle; now at true 3/4 consensus after correcting the consolidator under-merge.",
+      "severity": "medium",
+      "consensus": "3/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "rejected",
+      "resolution": "negligible: verify_control runs only on the all-zero path and costs one rg over one repo"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "main() except RuntimeError handler (sweep.py:576-583) is dead code: scan() per-repo isolation and the verify_control() try/except now catch every RuntimeError the resolvers can raise before it reaches main(), and enumerate_repos() never raises one. Confirmed by Alice forcing all three resolutions to fail.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00073-sweep-loud-failures-v1 (the handler becomes live once resolution is hoisted)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "enumerate_repos() opens the registry CSV unguarded inside a list comprehension, so a missing or unreadable --registry path raises FileNotFoundError/OSError that main() does not catch, surfacing as a raw traceback rather than the loud-failure pattern used everywhere else in the module.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00073-sweep-loud-failures-v1 (registry guard, RuntimeError into main's handler)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "SKILL.md:40 still describes control verification before the portfolio scan, contradicting the corrected all-zero-only ordering that rework task D1-T5 landed in main().",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: docs(sweep-fix) commit on master (control check described after the scan, all-zero only)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "The brief-portfolio dependency reference at SKILL.md:62 remains repo-relative and does not resolve when the installed skill runs outside this checkout; it should use the ~/.agents/skills path and state that it is provenance rather than a runtime import.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: docs(sweep-fix) commit on master (collect.py named as provenance at its ~/.agents path, not a runtime import)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "Resolver tests remain host-dependent through real mise calls and assumptions about /usr/bin:/bin (test_sweep_resolvers.py:102). Note the reviewers disagree: Alice judged the same tests host-independent after the D1-T9 split, so this needs a check before it is acted on.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "settled",
+      "resolution": "CI installs rg and ast-grep through mise since 011d1ad and aaf190c; the tests run there unchanged"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "Conditional YAML scalar classification is needless complexity: _needs_yaml_quoting is 34 lines and _yaml_scalar 7 (computed, per the mechanical-facts block). Bob proposes always serializing caller values with stdlib json.dumps() instead (sweep.py:402).",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00073-sweep-loud-failures-v1 (json.dumps replaces both YAML helpers, round-trip tests are the equivalence check)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "YAML round-trip tests repeat the same render, parse and equality assertions across adjacent functions (test_sweep_render_report.py:429); they should be one parametrized test with descriptive ids.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "rejected",
+      "resolution": "1/4; the tests work and a parametrisation is a refactor of working tests (surgical changes)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "The dash-pattern regression test keeps a fail-first comment claiming the current code lacks the -- separator, which stopped being true when D1-T2 landed (test_sweep_scan.py:105); it should state the invariant the test protects instead.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: test_sweep_scan.py comment states the invariant (same docs(sweep-fix) commit)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "The PRD requirement that registry parsing reuses collect.py:429 is met by duplicating the shape rather than importing it, because that line is inline in a function body and not an importable helper. Documentation nuance, no functional defect (sweep.py:142).",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: docs(sweep-fix) commit on master (the reuse is described as a copied shape, kept in step by hand)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "_resolve_report_path builds the report path deterministically from --reason plus the date with no collision check, so rerunning a sweep with the same reason on the same day silently overwrites the earlier report. The PRD does not address this either way.",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00002-add-sweep-fix-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00073-sweep-loud-failures-v1 (default report path gets -2, -3 suffixes)"
+    },
+    {
+      "type": "requirements-ambiguity",
+      "issue": "Frontmatter dialect: PRD acceptance criterion pins the template to exactly six fields (title, date, tags, type, publish, processed) and the named reuse source (digest-github-repo/SKILL.md step 5 field guide) lists exactly those six, but the PRD Behavior clause says fields are copied verbatim from digest-github-repo, whose actual template in references/output-templates.md carries id: <zettelkasten-id> (and a digest-specific repo: field) on top of the six. Implementation matches the acceptance criterion and the named source exactly; adding id would violate the literal acceptance criterion. Needs a human call on which authority wins.",
+      "severity": "high",
+      "consensus": "1/4",
+      "reason": "PRD is internally inconsistent (exactly-six acceptance criterion vs verbatim-from-digest behavior clause); code satisfies the binding acceptance criterion, so this is a spec decision, not an implementation defect. Downstream consequence if id is genuinely wanted: a vault-wide query filtering on id misses every capture-experiment note.",
+      "found_by": "BLAKE",
+      "cycle": 1,
+      "prd": "00004-add-capture-experiment-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: feat(capture-experiment) commit on master (id added to the note template and SKILL.md; the verbatim clause wins)"
+    },
+    {
+      "type": "out-of-scope",
+      "issue": "Behavioral regression coverage is limited to the happy-path fixture; no retained test covers no-title, missing-vault, compacted-window, or no-dead-end behavior.",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "Bob raised this in his own KNOWN bucket with an out-of-scope justification. This is a docs-only PRD delivering a skill body; asserting these behaviors needs a model-behavior evaluation harness, which is cross-cutting and outside this PRD.",
+      "found_by": "BOB",
+      "cycle": 1,
+      "prd": "00004-add-capture-experiment-skill-v1.md",
+      "decision": "rejected",
+      "resolution": "docs-only skill; asserting model behaviour needs a harness this repo does not have"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "Title handling remains incomplete: YAML double-quoted scalars also require backslashes to be escaped, and the collapse/escape instruction applies YAML escaping to the Markdown heading too. Preserve a normalized plain title for the heading and YAML-escape both backslashes and quotes only for frontmatter. (skills/capture-experiment/SKILL.md:83)",
+      "severity": "high",
+      "consensus": "2/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "found_by": "ALICE, BOB",
+      "cycle": 2,
+      "prd": "00004-add-capture-experiment-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: feat(capture-experiment) commit on master (backslashes then quotes, frontmatter only, heading plain)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "Title-escaping fix only covers embedded double quotes, not backslashes - a title containing a literal backslash (e.g. a Windows path or regex in the title) still produces an invalid double-quoted YAML scalar, verified with PyYAML (ScannerError). (skills/capture-experiment/SKILL.md)",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "found_by": "ALICE",
+      "cycle": 2,
+      "prd": "00004-add-capture-experiment-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: feat(capture-experiment) commit on master (same edit as the previous item)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "“Advance to the next free second” is ambiguous timestamp arithmetic and may produce an invalid ID such as ...5960, violating the pinned date-generated ID scheme. Require waiting for the clock to advance, rerunning date +%Y%m%d%H%M%S, and repeating the existence check. (skills/capture-experiment/SKILL.md:112)",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "found_by": "BOB",
+      "cycle": 2,
+      "prd": "00004-add-capture-experiment-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: feat(capture-experiment) commit on master (sleep, regenerate from the clock, re-check; never arithmetic)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "The new dependency fallback prose repeatedly states “not invoked,” “nothing changes,” “capture proceeds,” and “not a runtime dependency.” Collapse each entry to one explicit absence sentence while preserving the required fallback behavior. (skills/capture-experiment/SKILL.md:16)",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "found_by": "BOB",
+      "cycle": 2,
+      "prd": "00004-add-capture-experiment-skill-v1.md",
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: feat(capture-experiment) commit on master (fallback prose collapsed to one sentence per entry)"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "Fixture note title is unquoted YAML (title: Reduce polling interval on sensor loop) though the template mandates a quoted scalar and SKILL.md explicitly calls out quoting/escaping; harmless here since the title has no special characters, but the fixture output did not follow the stated convention it was meant to demonstrate. (dev/local/tmp/20260829200518.md)",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "found_by": "BLAKE",
+      "cycle": 2,
+      "prd": "00004-add-capture-experiment-skill-v1.md",
+      "decision": "rejected",
+      "resolution": "throwaway fixture under dev/local/tmp; not a deliverable"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "test_collect.py is 819 lines, over the 800-line file-size limit (758->819 this PRD)",
+      "severity": "medium",
+      "file": "skills/brief-portfolio/scripts/test_collect.py",
+      "reason": "Ponytail mode is active (full). rules/coding-style.md's File Organization section states its own precedence explicitly: 'while ponytail mode is active, its minimalism wins on file count and size; the targets below govern normal mode.' The 800-line target is therefore not the governing standard for this run, and splitting the file to satisfy it would add a file to save 19 lines - exactly the ceremony that precedence clause exists to prevent. Recorded for the human at batch end rather than silently dropped.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "superseded",
+      "resolution": "PRD 00053-split-oversized-brief-suites-v1 splits test_collect.py"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "process_store is 65 lines, over the 50-line function limit (pre-existing at 64, this PRD added 1)",
+      "severity": "medium",
+      "file": "skills/purge-devlocal/scripts/purge_devlocal.py",
+      "reason": "Pre-existing at 64 lines before this PRD touched it; the one-line trash-stamp fix pushed it to 65. Fixing it means restructuring a function this PRD barely touched, which rules/operating-principles.md Surgical Changes forbids ('don't refactor things that work'). Both Bob and Eve independently filed it as KNOWN/out-of-scope for the same reason.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "rejected",
+      "resolution": "pre-existing 64-line function, one line added; surgical-changes rule"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "external.audit_cadence publishes every skill ever logged (~36 keys) while the PRD output spec says '{skill: newest ISO day} for the six machine-wide audits'; derive.js reads only 6 of them",
+      "severity": "medium",
+      "file": "skills/brief-portfolio/scripts/collect.py",
+      "reason": "The generic overlay is the design doc's explicit, reviewed contract: collect_audit_cadence's docstring in Interfaces & contracts says verbatim 'Also includes any OTHER skill name found in the log (e.g. purge-devlocal) at its newest day, for callers that want a generic lookup'. It is also load-bearing for the PRD's own Phase 0 acceptance criterion, which requires an unnamespaced key (purge-devlocal) to resolve alongside a namespaced one. The code matches the reviewed design; the extra keys are inert (derive.js reads six). Tightening it is a design change, not a defect fix.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "rejected",
+      "resolution": "the generic overlay is the reviewed design contract; extra keys are inert"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "Phase 0 task 3's literal acceptance criterion (rg claude_maintenance_last over scripts/ returns nothing, and test_collect.py has no test referring to it) is not met verbatim - test_collect.py still names the string twice in a regression test proving its absence",
+      "severity": "low",
+      "file": "skills/brief-portfolio/scripts/test_collect.py",
+      "reason": "The two surviving occurrences are the name and the assertion of test_main_external_carries_audit_cadence_and_drops_claude_maintenance_last, the negative regression guard that pins the key's removal. Production code is genuinely clean, which is the criterion's intent. Reviewers split on this: Bob wanted the test renamed and the assertion removed; Eve filed it KNOWN, noting deleting it 'would weaken the suite'. Eve is right - you cannot assert a key's absence without naming it, and trading a regression test for a grep result is a bad trade. Accepted at task 3 during the build and re-affirmed here.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "rejected",
+      "resolution": "settled at build: the surviving names are the negative regression guard"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "The prescribed HTML text search can find commands in the compiled bundle without executing JavaScript, so it cannot prove that rows rendered",
+      "severity": "low",
+      "file": "N/A",
+      "reason": "Already recorded in the design doc's Review log (dispatch 3) as a known, accepted open non-blocker, with the explicit note that a JSDOM render check 'requires understanding the existing smoke-test harness in more depth than a one-line clarification - a reasonable task for whoever plans/implements Phase 2, not a blocker'. Task 8 was told to run the text check and report the limitation, which it did. Mitigated in practice: the build session's live run derived 19 real maintenance rows from the real payload, and Eve independently inspected the rendered artifact.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "rejected",
+      "resolution": "accepted non-blocker in the design doc; mitigated by the live run and manual inspection"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "Rows fire at exactly the horizon (aged >= horizonDays) while PRD prose says 'older than its horizon'",
+      "severity": "low",
+      "file": "skills/brief-portfolio/app/src/lib/derive.js",
+      "reason": "Eve's own KNOWN justification stands: the PRD's success metric only pins horizon-1 / horizon+1, the >= choice matches the prior MAINT_DUE_DAYS behavior it replaces, and the design doc deliberately added exact-horizon tests to pin it. Changing it now would break tests written to the reviewed contract.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "rejected",
+      "resolution": "settled: >= matches the prior behaviour and is pinned by exact-horizon tests"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "Repos with no dev/local at all still get a 'Run /purge-devlocal' never row - the collector cannot distinguish 'no dev/local' from 'never purged'",
+      "severity": "low",
+      "file": "skills/brief-portfolio/scripts/collect.py",
+      "reason": "Explicitly accepted in the design doc's Risks & edge cases: 'Same accepted imprecision the PRD states for the brush cadence row today; not a regression this PRD introduces.' The existing brush nag has the identical behavior for never-brushed repos.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "rejected",
+      "resolution": "accepted imprecision, identical to the brush cadence row"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "Pre-migration or --offline-reused data.json (no audit_cadence, no purge_last_run) renders up to 6+N false 'never' rows until the next real collect",
+      "severity": "low",
+      "file": "skills/brief-portfolio/app/src/lib/derive.js",
+      "reason": "Eve's own KNOWN justification stands: transient by construction, and 'never' is the honest reading of a payload carrying no stamp. Snapshot migration is outside this PRD's scope.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "rejected",
+      "resolution": "transient by construction; never is the honest reading of a stampless payload"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "test_main_external_carries_audit_cadence drives main() without isolating $HOME, so it reads the developer's real skills.jsonl",
+      "severity": "low",
+      "file": "skills/brief-portfolio/scripts/test_collect.py",
+      "reason": "Eve's own KNOWN justification stands, and it is verified: the assertions only check seeded-key presence, so real log content cannot flake them. This is the pre-existing run_collector pattern that collect_claude_skill_adherence's own main-test already uses; hermetic main() isolation is a separate change.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "rejected",
+      "resolution": "assertions are immune to real log content; hermetic main() isolation is a separate change"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "purge-devlocal destroys files in the same run under `--apply --empty-trash-days 0` (any value < 1), defeating the trash-first safety net. process_store's loop calls trash_file() first, which creates .trash/<today>/ containing the moved files; the later empty_old_trash(store, now, 0) then matches that same batch, because batch_ts is midnight local so (now - batch_ts)/DAY is already > 0, and shutil.rmtree()s it. The file is gone from both the store and the trash, with no recovery window. The run's own summary line is actively misleading: it prints `trash=1 trash-batches-emptied=1`, and `trash=1` reads as 'recoverable in .trash/'.",
+      "severity": "high",
+      "file": "skills/purge-devlocal/scripts/purge_devlocal.py",
+      "reason": "PRE-EXISTING and OUT OF SCOPE for PRD 00006, deliberately not fixed here. It predates this PRD: the trash_file-then-empty_old_trash ordering in process_store's main loop was not touched by this work, and task 10's contract explicitly said 'Do NOT touch empty_old_trash's own comparison'. Task 10's one-line reorder fixed only the nothing-was-trashed case (the cadence stamp), which is all PRD 00006 needed; the with-content case remains broken. NOT escalated to a batch halt because nothing in this batch causes the loss, the default --empty-trash-days is 30 (safe), and it takes an explicit sub-1 flag value to reach; halting the batch would stop unrelated work without making anything safer. Confirmed by the decision gate with a live reproduction, not taken on the reviewer's word: a 400-day-old artifact in a temp store, run with `--apply --empty-trash-days 0`, ended up absent from the store AND absent from .trash/<today>/ while the tool reported trash=1. Suggested fix for a follow-up PRD: have empty_old_trash skip the current run's own batch name, so a retention pass can never delete what the same run just trashed. WORTH A FOLLOW-UP PRD - it breaks the skill's core trash-first guarantee.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00070-purge-trash-first-guarantee-v1 (empty_old_trash skips the current run's batch)"
+    },
+    {
+      "type": "review-deferral",
+      "severity": "low",
+      "cycle": 2,
+      "issue": "A valid-JSON skills.jsonl row whose ts is not a string (e.g. an int) raises TypeError in iso_day inside collect_audit_cadence; the new outer guard then degrades the ENTIRE cadence map to never instead of skipping that one row",
+      "file": "skills/brief-portfolio/scripts/collect.py",
+      "consensus": "1/5",
+      "reason": "Eve KNOWN, out of scope: the parsing loop pre-dates this diff range, the only writer (track_skills.py) always emits ISO strings, and the new guard already turns a crash into a graceful degrade. Tightening iso_day is a separate change.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "superseded",
+      "resolution": "PRD 00055-bad-metrics-ts-aborts-run-v1 validates ts in both readers"
+    },
+    {
+      "type": "review-deferral",
+      "severity": "low",
+      "cycle": 2,
+      "issue": "derive.test.js lines 119 and 237 are now assertion- and comment-identical duplicates of each other",
+      "file": "skills/brief-portfolio/app/src/lib/derive.test.js",
+      "consensus": "1/5",
+      "reason": "Eve KNOWN. Deduping would contradict a settled cycle-1 decision: the task spec behind cycle-1 finding #2 explicitly required the null-guard comment at BOTH externalTodos(null) regression sites. The duplication is the requested state, not drift.",
+      "prd": "00006-nag-audit-cadence-in-brief-portfolio-v1.md",
+      "decision": "rejected",
+      "resolution": "the duplication is the requested state from cycle-1 finding #2"
+    },
+    {
+      "type": "review-deferral",
+      "issue": "judge() passes slice text as a literal CLI argument rather than via a temp file with -f, departing from the dispatch-contract convention. No injection risk (list-form argv, no shell=True); residual is an ARG_MAX ceiling on a very long assistant text block.",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "Deferred to PRD 00008. The inline-argument shape is what this PRD design doc signed verbatim, and judge() is the one cross-PRD contract this design names (00008 imports it). Changing its subprocess I/O is an 00008 design decision, not a 00007 rework item.",
+      "prd": "00007-extract-memory-candidates-from-transcripts-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00072-distil-judge-no-persistence-v1 (prompt on stdin)"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "issue": "judge() passes slice text as a literal CLI argument rather than via a temp file with -f, departing from the dispatch-contract convention. No injection risk (list-form argv, no shell=True); the residual is an ARG_MAX ceiling on a very long assistant text block.",
+      "severity": "low",
+      "consensus": "1/4",
+      "found_by": "BLAKE",
+      "file": "skills/distil-memory/scripts/funnel.py",
+      "reason": "Cycle 1: deferred to PRD 00008. The inline-argument shape is what this PRD design doc signed verbatim, and judge() is the one cross-PRD contract this design names (00008 imports it and calls it with tier=strong). Changing its subprocess I/O is an 00008 design decision, not a 00007 rework item. Also recorded in the review ledger as a settled deferral so it is not re-argued next cycle.",
+      "prd": "00007-extract-memory-candidates-from-transcripts-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00072-distil-judge-no-persistence-v1 (same as the previous item)"
+    },
+    {
+      "type": "spec-divergence",
+      "cycle": 2,
+      "issue": "PRD Phase 1's literal Exit Criteria command `uv run --with pytest pytest scripts/test_funnel.py` no longer runs: the file was split into test_funnel_extraction.py, test_funnel_report.py and test_funnel_triage.py during cycle-1 rework. All 79 funnel tests pass across the three files, so coverage is intact.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "Accepted divergence, settled at the cycle-2 gate. The split was forced by the repo's 800-line hard cap (the file stood at 799), which the PRD's Structural Decomposition predates. Editing a wip PRD's spec to match the code is the wrong direction, so the divergence is surfaced here for the human instead.",
+      "source": "deferred",
+      "prd": "00007-extract-memory-candidates-from-transcripts-v1.md",
+      "decision": "accepted",
+      "resolution": "post-completion note on done PRD 00007 names the split test files"
+    },
+    {
+      "type": "spec-divergence",
+      "cycle": 2,
+      "issue": "PRD Module Exports names `assert_contract(version)`, but the shipped signature is `assert_contract(version, parser_module, minimum=_MIN_VERSION)`. A caller following only the terse Exports line would hit TypeError.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "Accepted divergence, settled at the cycle-2 gate. The PRD's own Behavior prose for this feature mandates the symbol assertion that needs parser_module, and the design doc signed the two-argument signature verbatim. Defaulting parser_module would reintroduce the double parser resolution cycle 1 fixed.",
+      "source": "deferred",
+      "prd": "00007-extract-memory-candidates-from-transcripts-v1.md",
+      "decision": "accepted",
+      "resolution": "post-completion note on done PRD 00007 records the shipped assert_contract signature"
+    },
+    {
+      "type": "assumed-ambiguity",
+      "task": "4",
+      "question": "write_proposals collision count: task Details say return it to the caller, verbatim contract signature returns Path only.",
+      "assumption": "Kept the verbatim -> Path signature; collision count is derived from proposals.json by comparing each records file stem against sanitise_name(name).",
+      "prd": "00008-distil-memory-proposals-v1.md",
+      "resolved": {
+        "note": "Superseded by the canonical, fuller-worded record in state.autonomous_decisions, already rendered under this PRD's Assumptions Made table."
+      },
+      "decision": "settled",
+      "resolution": "already resolved: canonical record in state.autonomous_decisions"
+    },
+    {
+      "type": "assumed-ambiguity",
+      "task": "8",
+      "question": "render_yield's new_vs_update key: does counts carry a pair (3, 1) or a pre-formatted string \"3/1\"? The design doc's contract pins the RENDERED form (new_vs_update: <int>/<int>, a literal slash, n/a replacing the whole field) and says each new line reads one counts.get(<key>), which admits both value shapes. The test author flagged it rather than guessing, because a mismatch between this task's tests and task 9's wiring would surface late.",
+      "assumption": "counts carries a 2-sequence (new_count, update_count); render_yield formats it as f\"{v[0]}/{v[1]}\" and renders n/a when the key is missing or None. Chosen because render_yield's own docstring calls it pure string formatting and the other four new keys are raw ints, so a pre-formatted \"3/1\" would move presentation into the caller and contradict that. Task 9 must produce the pair, not a string.",
+      "prd": "00008-distil-memory-proposals-v1.md",
+      "resolved": {
+        "note": "Superseded by the canonical, fuller-worded record in state.autonomous_decisions, already rendered under this PRD's Assumptions Made table."
+      },
+      "decision": "settled",
+      "resolution": "already resolved: canonical record in state.autonomous_decisions"
+    },
+    {
+      "type": "runtime-finding",
+      "severity": "HIGH",
+      "source": "task-11 end-to-end run",
+      "finding": "funnel.render_yield footer points readers at dev/local/audit-results/proposals/, which does not exist; the real dir is dev/local/audit-results/distil-memory-<stamp>-proposals/. Orchestrator confirmed the path is absent after the real run. Found statically at task 10, now runtime-confirmed. Not fixed: task 11 writes no code by contract.",
+      "prd": "00008-distil-memory-proposals-v1.md",
+      "resolved": {
+        "note": "No batch-report section renders type runtime-finding; kept here as the durable record of the task-11 live-run finding. Not fixed in this PRD (task 11 writes no code by contract) - a follow-up should either fix the footer path or move this into deferred_decisions."
+      },
+      "decision": "settled",
+      "resolution": "already fixed: render_yield takes proposals_dir and funnel.py:552 passes the real directory"
+    },
+    {
+      "type": "runtime-finding",
+      "severity": "MEDIUM",
+      "source": "task-11 end-to-end run",
+      "finding": "The funnel contaminates the corpus it scans: every claude --print call runs with the repo root as cwd, so each writes a session transcript into the same project directory select_transcripts reads. Measured 153 selectable transcripts before the run and 474 after (322 new .jsonl against 321 model calls). This run unaffected (selection precedes the first call); cost lands on the NEXT run as read volume.",
+      "prd": "00008-distil-memory-proposals-v1.md",
+      "resolved": {
+        "note": "Duplicate of the out-of-scope-high self-ingestion record above (same measurement), which IS rendered as a deferred decision for this PRD."
+      },
+      "decision": "accepted",
+      "resolution": "PRD 00072-distil-judge-no-persistence-v1 (--no-session-persistence)"
+    },
+    {
+      "type": "runtime-finding",
+      "severity": "LOW",
+      "source": "task-11 end-to-end run",
+      "finding": "--distil-limit bounds only the distil stage. Triage is uncapped and makes one cheap-tier call per kept slice: this run spent 315 triage calls (~58 min wall time) against 5 capped strong-tier calls. Neither SKILL.md nor the flag docs say the run cost is dominated by the uncapped stage.",
+      "prd": "00008-distil-memory-proposals-v1.md",
+      "resolved": {
+        "note": "No batch-report section renders type runtime-finding; kept here as the durable record of the task-11 live-run finding. Not fixed in this PRD (task 11 writes no code by contract) - a follow-up should either fix the doc gap or move this into deferred_decisions."
+      },
+      "decision": "accepted",
+      "resolution": "applied 2026-09-05: distil-memory SKILL.md says triage is uncapped and dominates cost (docs commit)"
+    },
+    {
+      "type": "out-of-scope-high",
+      "issue": "Judge calls persist session transcripts into the corpus future runs scan (self-ingestion): 153 -> 474 selectable transcripts across the task-11 run, 322 new .jsonl against 321 model calls.",
+      "severity": "high",
+      "consensus": "1/4",
+      "file": "skills/distil-memory/scripts/funnel.py:178",
+      "reason": "The fix belongs to funnel.judge, which this diff does not touch and which slice 1 (PRD 00007) shipped and triage shares. Changing how every stage invokes the claude CLI is outside PRD 00008 scope and needs its own PRD.",
+      "prd": "00008-distil-memory-proposals-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00072-distil-judge-no-persistence-v1 (--no-session-persistence)"
+    },
+    {
+      "type": "design-gate-known",
+      "issue": "The calibration-corpus contract test skips when the private memory plane is absent, so CI never exercises corpus compatibility.",
+      "severity": "low",
+      "consensus": "1/4",
+      "file": "skills/distil-memory/scripts/test_proposal.py:481",
+      "reason": "Decided at the design gate: an anonymised hermetic fixture that always runs was proposed and deliberately not built in this slice.",
+      "prd": "00008-distil-memory-proposals-v1.md",
+      "decision": "rejected",
+      "resolution": "decided at the design gate: the hermetic fixture was deliberately not built"
+    },
+    {
+      "type": "deferred_decision",
+      "cycle": 1,
+      "issue": "Judge calls persist session transcripts into the corpus future runs scan (self-ingestion): 153 -> 474 selectable transcripts across the task-11 run.",
+      "severity": "high",
+      "consensus": "1/4",
+      "file": "skills/distil-memory/scripts/funnel.py:178",
+      "reason": "The fix belongs to funnel.judge, untouched by this diff and shipped by slice 1 (PRD 00007); shared with triage. Out of PRD 00008 scope, needs its own PRD.",
+      "prd": "00008-distil-memory-proposals-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00072-distil-judge-no-persistence-v1 (duplicate of the out-of-scope-high record)"
+    },
+    {
+      "type": "deferred_decision",
+      "cycle": 1,
+      "issue": "The calibration-corpus contract test skips when the private memory plane is absent, so CI never exercises corpus compatibility.",
+      "severity": "low",
+      "consensus": "1/4",
+      "file": "skills/distil-memory/scripts/test_proposal.py:481",
+      "reason": "Decided at the design gate: an anonymised hermetic fixture was proposed and deliberately not built in this slice.",
+      "prd": "00008-distil-memory-proposals-v1.md",
+      "decision": "rejected",
+      "resolution": "decided at the design gate: the hermetic fixture was deliberately not built"
+    },
+    {
+      "type": "review-deferral",
+      "severity": "MEDIUM",
+      "task": "4",
+      "finding": "test_walkthrough_integration.py: reversed() in _keep_and_publish is inert indirection - every id in _PROPOSALS is unique, so first match and last match are the same entry. Raised by Pat at the end of the step-5.7 MEDIUM-retry loop, which ends after one Pat re-run, so it was not fixed in the build phase.",
+      "fix": "Drop reversed(): next(e for e in queue.load(path=queue_path)[entries] if e[id] == entry[id])",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "issue": "test_walkthrough_integration.py: reversed() in _keep_and_publish is inert indirection - every id in _PROPOSALS is unique, so first match and last match are the same entry. Raised by Pat at the end of the step-5.7 MEDIUM-retry loop, which ends after one Pat re-run, so it was not fixed in the build phase.",
+      "resolved": {
+        "commit": "ab4e946",
+        "note": "already dropped in a later commit before batch-end review; verified the lines no longer exist in the file"
+      },
+      "decision": "settled",
+      "resolution": "already resolved in ab4e946"
+    },
+    {
+      "type": "review-deferral",
+      "severity": "MEDIUM",
+      "task": "4",
+      "finding": "test_walkthrough_integration.py: the queue.advance() call in the middle of the scripted flow is inert. PER_RUN_CAP is 10 and only 2 of 5 decisions have been made at that point, so session_decided going 2 -> 0 changes nothing next_undecided() would have returned. The line reads as if it verified sitting-boundary resumption but does not. The PRD criterion it serves (stop after two of five, reload, resume at the third) IS still exercised, by the reload; the cap-boundary behaviour is covered separately in test_queue.py. Raised by Pat at the end of the step-5.7 MEDIUM-retry loop, which ends after one Pat re-run.",
+      "fix": "Either delete the advance() call, or drive session_decided to PER_RUN_CAP, assert next_undecided() returns None, call advance(), and assert it returns the next entry.",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "issue": "test_walkthrough_integration.py: the queue.advance() call in the middle of the scripted flow is inert. PER_RUN_CAP is 10 and only 2 of 5 decisions have been made at that point, so session_decided going 2 -> 0 changes nothing next_undecided() would have returned. The line reads as if it verified sitting-boundary resumption but does not. The PRD criterion it serves (stop after two of five, reload, resume at the third) IS still exercised, by the reload; the cap-boundary behaviour is covered separately in test_queue.py. Raised by Pat at the end of the step-5.7 MEDIUM-retry loop, which ends after one Pat re-run.",
+      "resolved": {
+        "commit": "ab4e946",
+        "note": "already dropped in a later commit before batch-end review; verified the lines no longer exist in the file"
+      },
+      "decision": "settled",
+      "resolution": "already resolved in ab4e946"
+    },
+    {
+      "type": "review-finding",
+      "severity": "high",
+      "issue": "Memory-file and MEMORY.md symlinks can escape the selected store and overwrite external files (write.py:39)",
+      "consensus": "1/5",
+      "reason": "The memory store is the operators own directory reached from the source transcripts location; it is not a trust boundary and takes no untrusted input. Containment checks would be defensive validation for a state that cannot occur (rules/coding-style.md). Deferred at review cycle 1.",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "rejected",
+      "resolution": "settled at review cycle 1: the store is not a trust boundary"
+    },
+    {
+      "type": "review-finding",
+      "severity": "low",
+      "issue": "RUBRIC_VERSION is hand-maintained and coupled to distil.py _DISTIL_PROMPT only by a code comment; nothing automated ties them (docket.py)",
+      "consensus": "1/5",
+      "reason": "Hand-maintenance is the specified design: the task contract says bump by hand when the prompt changes meaningfully. Automating the coupling would re-open every drop on any incidental prompt edit. Accepted limitation, deferred at review cycle 1.",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "rejected",
+      "resolution": "settled at review cycle 1: hand-maintained by design"
+    },
+    {
+      "type": "review-finding",
+      "cycle": 1,
+      "severity": "high",
+      "issue": "Memory-file and MEMORY.md symlinks can escape the selected store and overwrite external files (skills/distil-memory/scripts/write.py:39)",
+      "consensus": "1/5",
+      "reason": "Review cycle 1 settled deferral. The memory store is the operators own directory reached from the source transcripts location; not a trust boundary, no untrusted input. Containment checks would be defensive validation for a state that cannot occur (rules/coding-style.md).",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "rejected",
+      "resolution": "duplicate of the symlink finding; same disposition"
+    },
+    {
+      "type": "review-finding",
+      "cycle": 1,
+      "severity": "low",
+      "issue": "RUBRIC_VERSION is hand-maintained and coupled to distil.py _DISTIL_PROMPT only by a code comment (skills/distil-memory/scripts/docket.py)",
+      "consensus": "1/5",
+      "reason": "Review cycle 1 settled deferral. Hand-maintenance is the specified design; the task contract says bump by hand. Automating the coupling would re-open every drop on any incidental prompt edit.",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "rejected",
+      "resolution": "duplicate of the RUBRIC_VERSION finding; same disposition"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "high",
+      "issue": "SKILL.md already-exists recovery is non-functional: for a new kind entry, write.py _target_stem() derives the target stem from entry[\"name\"] and never reads the re-emitted frontmatter name, while the documented edit-path rename replaces only file_text, so the collision reproduces (skills/distil-memory/SKILL.md, ALICE, verified empirically)",
+      "consensus": "2/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00071-distil-publish-recovery-v1 (decide accepts --name on a kept entry; _target_stem unchanged)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "high",
+      "issue": "SKILL.md already-exists recovery is additionally unexecutable: the step-6 edit path it routes through ends in decide <id> kept --file, which raises no-undecided-entry for an already-kept entry (skills/distil-memory/SKILL.md:204, EVE). Independently fatal from the _target_stem defect; fixing one leaves the other",
+      "consensus": "2/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00071-distil-publish-recovery-v1 (decide re-decides a kept entry with --file and --name)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "high",
+      "issue": "Failed-publication retry is blocked after an index-write failure: the memory file is already on disk, so re-running write.py write stops at already-exists inside write_memory and never reaches append_pointer (skills/distil-memory/SKILL.md:191, BOB)",
+      "consensus": "1/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00071-distil-publish-recovery-v1 (write_memory is idempotent for an identical existing file)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "high",
+      "issue": "write.py main leaves the append_pointer call unguarded, so a MEMORY.md write failure escapes as a raw OSError or ProposalError traceback, contradicting the new SKILL.md:193 claim that write exits 1 and prints the reason to stderr instead of raising (skills/distil-memory/scripts/write.py:125, EVE)",
+      "consensus": "1/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00071-distil-publish-recovery-v1 (append_pointer guarded in main)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "high",
+      "issue": "Kept-before-published recovery is sitting-scoped only: a session dying between decide kept and a successful write strands the entry permanently, since next_undecided skips decided entries and save refuses to re-queue the slice_key, and the step-7 report can only name failures its own sitting witnessed (skills/distil-memory/SKILL.md:191, EVE)",
+      "consensus": "1/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00071-distil-publish-recovery-v1 (docket.py unpublished, run by the step 7 report)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "medium",
+      "issue": "test_walkthrough_integration _attempt_edit_then_publish validates with proposal.validate, not the proposal.validate_distil_output(proposal, index_has_names) that SKILL.md step 6 mandates, while its docstring claims to model the documented step-6 ordering; an edit failing only the distil-specific rules passes the test but is refused by the walkthrough (skills/distil-memory/scripts/test_walkthrough_integration.py:86)",
+      "consensus": "3/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00074-distil-tests-bind-intent-v1 (validate_distil_output with a derived index_has_names)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "medium",
+      "issue": "SKILL.md:223 index_has_names snippet passes a plain string to dedup.read_index, which does memory_dir / MEMORY.md and requires a Path, so the documented validation raises TypeError",
+      "consensus": "2/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00071-distil-publish-recovery-v1 (snippet passes Path(\"<store-path>\"))"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "medium",
+      "issue": "The four crash-safety tests assert pytest.raises(Exception), so a failure before the atomic move is reached also satisfies them, hollowing out the intact-after-the-move-fails proof (skills/distil-memory/scripts/test_write.py:483,508,533,557)",
+      "consensus": "2/5",
+      "reason": "rework cap reached with this finding unresolved. Consolidator printed BOB and EVE as two 1/5 rows because they anchored different lines; real consensus is 2/5",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00074-distil-tests-bind-intent-v1 (exact exception per crash-safety test)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "medium",
+      "issue": "test_main_start_returns_zero asserts only the exit code and cannot fail if start stops calling advance() (skills/distil-memory/scripts/test_docket.py:509, EVE)",
+      "consensus": "1/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00074-distil-tests-bind-intent-v1 (assert the advance() effect)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "low",
+      "issue": "PRD Phase 2 acceptance text names a temporary store under dev/local/tmp/, but test_walkthrough_integration.py uses pytest tmp_path (system TMPDIR); functionally equivalent, literal deviation (BLAKE)",
+      "consensus": "1/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "post-completion note on done PRD 00009 (tmp_path is equivalent)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "low",
+      "issue": "docket.py decide and advance carry keyword parameters (file_text, path, new_cursor) beyond the PRD Structural Decomposition Exports signatures; functionally required by the specs own re-emit-on-edit feature and temp-store testing, recorded as a literal deviation (BLAKE)",
+      "consensus": "1/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "post-completion note on done PRD 00009 (Exports corrected)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "low",
+      "issue": "docket.py load/save/decide perform a non-atomic read-modify-write across separate CLI invocations with no file lock, so concurrent use could lose an update (BLAKE). The design doc Risks section already scopes concurrency out for this solo-maintainer tool",
+      "consensus": "1/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "rejected",
+      "resolution": "concurrency scoped out by the design doc for a solo-maintainer tool"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "low",
+      "issue": "docket.load calls json.loads with no try/except, so a corrupted or hand-edited queue.json raises JSONDecodeError as a traceback rather than the clean stderr message QueueError and WriteError now get (skills/distil-memory/scripts/docket.py, BLAKE)",
+      "consensus": "1/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "settled",
+      "resolution": "already fixed by PRD 00017: docket.load catches JSONDecodeError (docket.py:50)"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "severity": "low",
+      "issue": "Unused capsys fixture parameters on the three new dedup_error CLI tests (skills/distil-memory/scripts/test_docket.py:638,663,688, EVE)",
+      "consensus": "1/5",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00009-walk-memory-proposal-queue-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00074-distil-tests-bind-intent-v1 (drop the three unused capsys parameters)"
+    }
+  ],
+  "walked": {
+    "on": "2026-09-05",
+    "by": "Claude, delegated by the operator (\"I trust your judgment\"); no packet was asked",
+    "minutes": "dev/local/audit-results/deferred-walk-202608290848-2026-09-05.md",
+    "prds_emitted": [
+      "00070",
+      "00071",
+      "00072",
+      "00073",
+      "00074"
+    ]
+  }
+}

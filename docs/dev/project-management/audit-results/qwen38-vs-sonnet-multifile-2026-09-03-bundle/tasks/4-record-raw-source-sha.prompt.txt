@@ -1,0 +1,19 @@
+- [ ] Record the raw source sha on triage (`pipeline.py:627`) and promote (`promote.py:236-237`) (depends on: Phase 0) — Acceptance: re-ingesting the same source PDF after promote is detected as duplicate, no second archive copy.
+
+You are working in the repository root: the current working directory.
+Files to edit (paths relative to it):
+- src/tools/bim/commands/doc/promote/promote.py
+- tests/tools/bim/doc/test_promote.py
+
+Names the acceptance gate binds to (use these exact identifiers, signatures,
+literals and values):
+- none - every name the gate binds to already exists in the tree.
+  `ProcessedRow` (with its `sha256`, `canonical_filename`, `issuer_slug`,
+  `doc_type`, `processed_at` and `extraction_method` fields), `StateDB.dedup`
+  and its `is_duplicate` / `existing_row` result fields, and
+  `TriageProposal.source.sha256` are all present and unchanged; the gate
+  compares the raw-source row against the filed row with
+  `model_dump(exclude={"sha256", "processed_at"})`, so it pins no literal of
+  its own.
+
+Edit only inside this repository. Do not commit.

@@ -1,0 +1,92 @@
+   Building buvis-gems @ file:///private/tmp/qwen-eval-00010/4-record-raw-source-sha-qwen-a1-ablate
+      Built buvis-gems @ file:///private/tmp/qwen-eval-00010/4-record-raw-source-sha-qwen-a1-ablate
+Uninstalled 1 package in 1ms
+Installed 1 package in 3ms
+....F..........                                                          [100%]
+=================================== FAILURES ===================================
+_ TestCommandPromote.test_promote_files_ocr_result_pdf_when_full_ocr_branch_ran _
+
+self = <doc.test_promote.TestCommandPromote object at 0x1088195b0>
+settings = DocSettings(paths=DocPaths(business_root=PosixPath('/private/var/folders/m6/1mnc9pdn28d5vdxy4hxyr1m40000gn/T/pytest-of...ettel=ZettelSettings(ocr_text_in_body=True, ocr_text_collapsible=True, ocr_text_max_chars=0), claim_max_age_minutes=60)
+registry_path = PosixPath('/private/var/folders/m6/1mnc9pdn28d5vdxy4hxyr1m40000gn/T/pytest-of-bob/pytest-5031/test_promote_files_ocr_result_0/issuers.yml')
+lock_path = PosixPath('/private/var/folders/m6/1mnc9pdn28d5vdxy4hxyr1m40000gn/T/pytest-of-bob/pytest-5031/test_promote_files_ocr_result_0/issuers.lock')
+state_db = <bim.commands.doc.shared.state_db.StateDB object at 0x107f1fa80>
+mocker = <pytest_mock.plugin.MockerFixture object at 0x107838510>
+
+    def test_promote_files_ocr_result_pdf_when_full_ocr_branch_ran(
+        self,
+        settings: DocSettings,
+        registry_path: Path,
+        lock_path: Path,
+        state_db: StateDB,
+        mocker: MockerFixture,
+    ) -> None:
+        """Regression: promote must file the OCR'd PDF, not the original sibling, when full OCR fired."""
+        from bim.commands.doc.shared.ocr import OCRRunner
+    
+        triage_dir = settings.paths.business_root / "_triage"
+        sibling_pdf, yml = _stage_triage_pair(triage_dir, "20210311083422-cez-as-7102105594.invoice")
+        sibling_bytes = b"%PDF-1.4\nold sibling without ocr layer\n"
+        sibling_pdf.write_bytes(sibling_bytes)
+        # Full-OCR branch produces a separate file with embedded text layer.
+        ocr_pdf = triage_dir / "ocr-output.pdf"
+        ocr_bytes = b"%PDF-1.4\nfreshly ocr'd content\n"
+        ocr_pdf.write_bytes(ocr_bytes)
+    
+        sha_of_sibling = hashlib.sha256(sibling_bytes).hexdigest()
+        sha_of_ocr = hashlib.sha256(ocr_bytes).hexdigest()
+        assert sha_of_sibling != sha_of_ocr  # sanity: bytes truly differ
+    
+        write_proposal(yml, _build_proposal(sha256=sha_of_sibling, triage_pdf=sibling_pdf))
+    
+        registry = load_registry(registry_path)
+        ocr_runner = OCRRunner(settings=settings, state_dir=settings.paths.state_dir)
+        mocker.patch.object(
+            ocr_runner,
+            "run",
+            return_value=OCRResult(
+                ocr_text="fresh ocr text",
+                pdf_path=ocr_pdf,
+                was_redone=False,
+                original_backup_path=None,
+                mean_confidence=0.91,
+                pages=2,
+            ),
+        )
+        zettel_writer = ZettelWriter(
+            repo=None,
+            vault_root=settings.paths.vault_root,
+            vault_documents_subdir=settings.paths.vault_documents_subdir,
+        )
+        services = PromoteServices(
+            registry=registry,
+            registry_path=registry_path,
+            lock_path=lock_path,
+            state_db=state_db,
+            ocr_runner=ocr_runner,
+            zettel_writer=zettel_writer,
+        )
+        cmd = CommandPromote(
+            params=PromoteParams(proposed_yml_path=yml),
+            settings=settings,
+            services=services,
+        )
+        result = cmd.execute()
+    
+        assert result.success is True
+        target_pdf = Path(result.metadata["pdf_path"])
+        # Filed PDF must be the OCR'd bytes, not the original sibling bytes.
+        assert target_pdf.read_bytes() == ocr_bytes
+        # state_db records the raw source sha (stamped on the proposal at
+        # triage), not the OCR'd bytes' sha: re-ingesting the same source
+        # PDF must be detected as a duplicate even though full OCR rewrote
+        # the filed PDF's bytes.
+        dedup = state_db.dedup(sha_of_sibling)
+>       assert dedup.is_duplicate is True
+E       assert False is True
+E        +  where False = DedupResult(is_duplicate=False, existing_row=None).is_duplicate
+
+tests/tools/bim/doc/test_promote.py:264: AssertionError
+=========================== short test summary info ============================
+FAILED tests/tools/bim/doc/test_promote.py::TestCommandPromote::test_promote_files_ocr_result_pdf_when_full_ocr_branch_ran
+1 failed, 14 passed in 0.39s

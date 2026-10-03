@@ -1,0 +1,21 @@
+error: unknown option '- [ ] Repoint `bim/commands/doc/shared/` callers to `pybase.filesystem`; delete `doc/shared/atomic_write.py` (depends on: Phase 0) — Acceptance: the only `atomic_write` references under `src/tools/bim` import from `buvis.pybase.filesystem`; bim doc tests pass.
+
+You are working in the repository root: the current working directory.
+Files to edit (paths relative to it):
+- src/tools/bim/commands/doc/shared/atomic_write.py
+- src/tools/bim/commands/doc/shared/zettel_writer.py
+- src/tools/bim/commands/doc/shared/issuers.py
+- src/tools/bim/commands/doc/shared/ocr.py
+- src/tools/bim/commands/doc/shared/triage.py
+- src/tools/bim/commands/doc/shared/pipeline.py
+- src/tools/bim/commands/doc/audit/reporter.py
+- tests/tools/bim/doc/test_atomic_write.py
+
+Names the acceptance gate binds to (use these exact identifiers, signatures,
+literals and values):
+- none - every name the gate binds to already exists in the tree. The
+  replacement functions `atomic_write_text(path, text)` and
+  `atomic_write_bytes(path, data)` are already exported from
+  `buvis.pybase.filesystem`; the gate reads no name this task has to invent.
+
+Edit only inside this repository. Do not commit.'

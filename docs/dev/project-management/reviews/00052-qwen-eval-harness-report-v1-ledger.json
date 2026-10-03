@@ -1,0 +1,58 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The runbook provides placeholders without fixture/spec preparation or accepted engine values, so a fresh session cannot run the fixture from these instructions alone.",
+    "file": "skills/use-qwen/references/eval-runbook.md:105",
+    "reason": "verified false: conflates pytest's internal test fixtures with the runbook's own evidence-directory-preparation coverage in existing sections 1-6; section 7 correctly limits itself to naming the three harness commands per its ~25-line PRD budget"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: the two additional shell regression suites required by Task 3 pass (F16); their results are not recorded.",
+    "file": null,
+    "reason": "verified false: already run and recorded passing by task 3's own implementor (test_qwen_run.sh 78 passed, test_eval_automation.sh 24 passed), visible in the review context Bob's sandboxed inputs did not surface"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Commit eceb591 is typed `fix(use-qwen)` with no CHANGELOG.md entry in the same commit (rules/changelog.md); the diff range touches no CHANGELOG line",
+    "file": "CHANGELOG.md:12",
+    "reason": "the fixed behavior belongs to the unreleased `render` feature whose `### Added` line (CHANGELOG.md:12) already covers it; a `### Fixed` line would describe a bug no release shipped (Bob's own KNOWN bucket)"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Order-dependent test state: `test_f_is_pending_k_of_n_with_a_partial_audit_file` (test_report.py:271), `test_f_is_a_plain_number...` (:283), `test_f_counts_only_flagged...` (:295) and `test_audit_queue_shows_the_stored_verdict_once_a_row_exists` (:393) write audit.jsonl into the module-shared r1 round and never remove it; `test_audit_queue_lists_every_valid_attempt_pending_where_no_row_exists` (:381) passes only because the malformed-line test (:323) unlinked the file first, and the stricter validation now means any later test that mutates a referenced attempt into non-VALID would refuse render. The new test_report_audit.py helpers clean up correctly",
+    "file": "skills/use-qwen/scripts/test_report.py:271",
+    "reason": "pre-existing cycle-1 test functions the [D1] rework did not touch; suite green; recorded in state.deferred_decisions (type known-limitation) for the batch-end review"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "3 touched test(s) pass against the pre-change code: test_render_rejects_a_malformed_audit_line_naming_it_and_leaves_output_unchanged, test_render_rejects_a_duplicate_attempt_dir_in_audit_jsonl_naming_it, test_render_rejects_a_contradictory_stored_outcome_via_classify_rederivation",
+    "file": "skills/use-qwen/scripts/test_report.py",
+    "reason": "fail-first replay: these are the three pytest.raises(Exception) -> pytest.raises(ValueError) narrowings the cycle-1 gate asked for; the base code already raised ValueError on those inputs, so the narrowed expectation cannot fail against base, and the tests now bind to the intended exception type"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "7 touched test(s) pass against the pre-change code: test_render_accepts_a_review_effort_s_of_zero_null_or_any_finite_nonnegative_number, test_render_accepts_a_fully_populated_flagged_and_blocking_row +1 more",
+    "file": "skills/use-qwen/scripts/test_report_audit.py",
+    "reason": "fail-first replay: acceptance-side pins of the new validator; a permissive base accepts every row by construction so an accepts-X test cannot fail there; each fails if the validator is ever over-tightened"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "14 touched test(s) pass against the pre-change code: test_evidence_tree_line_renders_the_records_clone_path, test_evidence_engine_identity_line_renders_the_records_identity, test_evidence_dispatch_line_renders_the_records_argv_shlex_joined, test_evidence_baseline_line_renders_baseline_rc_and_first_failure_from_the_record, test_evidence_own_gate_ablate_exit_codes_line_renders_the_records_gate_rcs, test_evidence_result_line_renders_bare_outcome_or_outcome_colon_class_for_real_records +8 more",
+    "file": "skills/use-qwen/scripts/test_report_content.py",
+    "reason": "fail-first replay: task 6 is the PRD-requested coverage backfill of rendering behavior that predates the rework, so passing against base is by design for 13 of the 14; the 14th (the shlex dispatch test) is redundant with test_report.py:488 and is swept via Bob's finding in the cycle-2 tail sweep"
+  }
+]

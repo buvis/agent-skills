@@ -26,7 +26,7 @@ Transform a plan or design document into an RPG-compliant PRD and save to the ba
 
 Before proceeding, check whether requirements were elicited:
 
-1. If the user passed a file from `dev/local/discovery/`, or a converged spike spec from `dev/local/spikes/<slug>/SPEC.md`, requirements were elicited (the spike loop is elicitation by building). Proceed to step 1.
+1. If the user passed a file from `docs/dev/project-management/discovery/`, or a converged spike spec from `docs/dev/project-management/spikes/<slug>/SPEC.md`, requirements were elicited (the spike loop is elicitation by building). Proceed to step 1.
 2. Otherwise (different file, conversation context, or no argument), warn:
 
 > No discovery doc provided. Run `/elicit-requirements` first to validate requirements, or say "skip" to proceed without one.
@@ -39,7 +39,7 @@ This gate is advisory, not blocking. The user can always skip it for simple, wel
 
 Look for plan/design content in this order:
 
-1. **Discovery doc** - file from `dev/local/discovery/` (produced by `/elicit-requirements`)
+1. **Discovery doc** - file from `docs/dev/project-management/discovery/` (produced by `/elicit-requirements`)
 2. **Explicit file reference** - user points to a specific markdown file (e.g. a plan file in the repo)
 3. **Current conversation context** - a plan just produced by brainstorming or plan mode
 
@@ -179,10 +179,10 @@ This is authoring guidance, not structure - the `assets/` templates carry no fro
 
 ```bash
 # Create directory if needed
-mkdir -p dev/local/prds/backlog
+mkdir -p docs/dev/project-management/prds/backlog
 
 # Determine next sequence number
-# Scan ALL prds in dev/local/prds (backlog, wip, done, hold) AND dev/local/discovery for highest existing sequence
+# Scan ALL prds in docs/dev/project-management/prds (backlog, wip, done, hold) AND docs/dev/project-management/discovery for highest existing sequence
 # Extract 5-digit prefix from filenames matching pattern NNNNN-*.md
 # Increment by 1, pad to 5 digits
 
@@ -198,7 +198,7 @@ mkdir -p dev/local/prds/backlog
 
 Where:
 - sequence: 5-digit zero-padded number (00001, 00002, ...)
-- Sequence determined across ALL subdirs in dev/local/prds/
+- Sequence determined across ALL subdirs in docs/dev/project-management/prds/
 
 Examples:
 - 00001-user-auth-v1.md
@@ -208,7 +208,7 @@ Examples:
 
 ## Sequence Number Logic
 
-1. List all `.md` files in `dev/local/prds/**` and `dev/local/discovery/`
+1. List all `.md` files in `docs/dev/project-management/prds/**` and `docs/dev/project-management/discovery/`
 2. Extract leading 5-digit prefixes matching `^[0-9]{5}-`
 3. Find max sequence number (default 0 if none exist)
 4. New sequence = max + 1, zero-padded to 5 digits
@@ -226,7 +226,7 @@ The version suffix never changes the sequence scan (it keys on `NNNNN`), so a `-
 ## Directory Structure
 
 ```text
-dev/local/prds/
+docs/dev/project-management/prds/
 ├── backlog/    # Planned but not started
 ├── wip/        # Currently being implemented
 ├── hold/       # Parked (human HOLD verdicts + machine stalls); autopilot never reads it

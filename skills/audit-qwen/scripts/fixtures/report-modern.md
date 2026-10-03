@@ -38,7 +38,7 @@ no implementor data
 
 - Stalled: 2026-08-12T03:00:00Z
 - Detail: fixture stalled section
-- Resume: move back to dev/local/prds/wip/ and re-run
+- Resume: move back to docs/dev/project-management/prds/wip/ and re-run
 
 ## Batch Summary
 

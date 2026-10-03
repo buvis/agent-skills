@@ -1,0 +1,138 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "test_collect.py is 901 lines, over the 800-line file-size limit (758 before this PRD, 819 after the build phase, 901 after cycle 1's three new regression tests)",
+    "file": "skills/brief-portfolio/scripts/test_collect.py",
+    "reason": "Ponytail mode is active (full). rules/coding-style.md's File Organization section states its own precedence explicitly: 'while ponytail mode is active, its minimalism wins on file count and size; the targets below govern normal mode.' The 800-line target is therefore not the governing standard for this run, and splitting the file to satisfy it would add a file to save 19 lines - exactly the ceremony that precedence clause exists to prevent. Recorded for the human at batch end rather than silently dropped. Re-checked after cycle 1 rework: the file grew from 819 to 901 because the cycle added three genuine regression tests (two for the unreadable-metrics guard, one for the main() call site). Those tests are the point of the cycle, so the growth is warranted; the deferral stands on the same precedence reasoning, now against a larger number. If the user wants the 800 limit enforced, the natural split is a separate test_collect_cadence.py for the audit-cadence and purge-devlocal collectors."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "process_store is 65 lines, over the 50-line function limit (pre-existing at 64, this PRD added 1)",
+    "file": "skills/purge-devlocal/scripts/purge_devlocal.py",
+    "reason": "Pre-existing at 64 lines before this PRD touched it; the one-line trash-stamp fix pushed it to 65. Fixing it means restructuring a function this PRD barely touched, which rules/operating-principles.md Surgical Changes forbids ('don't refactor things that work'). Both Bob and Eve independently filed it as KNOWN/out-of-scope for the same reason."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "external.audit_cadence publishes every skill ever logged (~36 keys) while the PRD output spec says '{skill: newest ISO day} for the six machine-wide audits'; derive.js reads only 6 of them",
+    "file": "skills/brief-portfolio/scripts/collect.py",
+    "reason": "The generic overlay is the design doc's explicit, reviewed contract: collect_audit_cadence's docstring in Interfaces & contracts says verbatim 'Also includes any OTHER skill name found in the log (e.g. purge-devlocal) at its newest day, for callers that want a generic lookup'. It is also load-bearing for the PRD's own Phase 0 acceptance criterion, which requires an unnamespaced key (purge-devlocal) to resolve alongside a namespaced one. The code matches the reviewed design; the extra keys are inert (derive.js reads six). Tightening it is a design change, not a defect fix."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Phase 0 task 3's literal acceptance criterion (rg claude_maintenance_last over scripts/ returns nothing, and test_collect.py has no test referring to it) is not met verbatim - test_collect.py still names the string twice in a regression test proving its absence",
+    "file": "skills/brief-portfolio/scripts/test_collect.py",
+    "reason": "The two surviving occurrences are the name and the assertion of test_main_external_carries_audit_cadence_and_drops_claude_maintenance_last, the negative regression guard that pins the key's removal. Production code is genuinely clean, which is the criterion's intent. Reviewers split on this: Bob wanted the test renamed and the assertion removed; Eve filed it KNOWN, noting deleting it 'would weaken the suite'. Eve is right - you cannot assert a key's absence without naming it, and trading a regression test for a grep result is a bad trade. Accepted at task 3 during the build and re-affirmed here."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The prescribed HTML text search can find commands in the compiled bundle without executing JavaScript, so it cannot prove that rows rendered",
+    "file": "N/A",
+    "reason": "Already recorded in the design doc's Review log (dispatch 3) as a known, accepted open non-blocker, with the explicit note that a JSDOM render check 'requires understanding the existing smoke-test harness in more depth than a one-line clarification - a reasonable task for whoever plans/implements Phase 2, not a blocker'. Task 8 was told to run the text check and report the limitation, which it did. Mitigated in practice: the build session's live run derived 19 real maintenance rows from the real payload, and Eve independently inspected the rendered artifact."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Rows fire at exactly the horizon (aged >= horizonDays) while PRD prose says 'older than its horizon'",
+    "file": "skills/brief-portfolio/app/src/lib/derive.js",
+    "reason": "Eve's own KNOWN justification stands: the PRD's success metric only pins horizon-1 / horizon+1, the >= choice matches the prior MAINT_DUE_DAYS behavior it replaces, and the design doc deliberately added exact-horizon tests to pin it. Changing it now would break tests written to the reviewed contract."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Repos with no dev/local at all still get a 'Run /purge-devlocal' never row - the collector cannot distinguish 'no dev/local' from 'never purged'",
+    "file": "skills/brief-portfolio/scripts/collect.py",
+    "reason": "Explicitly accepted in the design doc's Risks & edge cases: 'Same accepted imprecision the PRD states for the brush cadence row today; not a regression this PRD introduces.' The existing brush nag has the identical behavior for never-brushed repos."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Pre-migration or --offline-reused data.json (no audit_cadence, no purge_last_run) renders up to 6+N false 'never' rows until the next real collect",
+    "file": "skills/brief-portfolio/app/src/lib/derive.js",
+    "reason": "Eve's own KNOWN justification stands: transient by construction, and 'never' is the honest reading of a payload carrying no stamp. Snapshot migration is outside this PRD's scope."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "test_main_external_carries_audit_cadence drives main() without isolating $HOME, so it reads the developer's real skills.jsonl",
+    "file": "skills/brief-portfolio/scripts/test_collect.py",
+    "reason": "Eve's own KNOWN justification stands, and it is verified: the assertions only check seeded-key presence, so real log content cannot flake them. This is the pre-existing run_collector pattern that collect_claude_skill_adherence's own main-test already uses; hermetic main() isolation is a separate change."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: required pytest, Node, build, validator, and braid --check checks pass",
+    "file": "N/A",
+    "reason": "Not a defect - a declaration of Bob's own sandbox limits, which his persona instructs him to emit. The orchestrator ran the checks this cycle: uv run pytest 435 passed / 5 skipped (all 5 skips pre-existing in skills/survey, gated on the optional tree_sitter_language_pack), npm test 16/16. Alice and Blake independently ran the same suites green. braid --check remains unrun (warden blocks it) and is carried separately as its own deferred item."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: the live collect/build pipeline completes non-interactively and emits due or never-run audit rows",
+    "file": "N/A",
+    "reason": "Not a defect - Bob's sandbox limitation. Task 8 ran the live pipeline during the build and it completed with no prompt; Eve independently inspected the resulting dev/local/tmp/brief-check.html artifact this cycle and confirmed the new derivation is present."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Rebuilt template carries the expected symbols but full build fidelity against current app/src was not proven in-range",
+    "file": "skills/brief-portfolio/assets/template.html",
+    "reason": "Resolved by verification this cycle, so it is not an open finding. Blake independently ran the full SPA rebuild and reported app/dist/index.html byte-identical to assets/template.html; the orchestrator then confirmed git status --porcelain is empty after that rebuild, which is independent proof the committed template is a faithful build of current app/src. Eve's VERIFY item is answered."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "purge-devlocal destroys files in the same run under `--apply --empty-trash-days 0` (any value < 1), defeating the trash-first safety net. process_store's loop calls trash_file() first, which creates .trash/<today>/ containing the moved files; the later empty_old_trash(store, now, 0) then matches that same batch, because batch_ts is midnight local so (now - batch_ts)/DAY is already > 0, and shutil.rmtree()s it. The file is gone from both the store and the trash, with no recovery window. The run's own summary line is actively misleading: it prints `trash=1 trash-batches-emptied=1`, and `trash=1` reads as 'recoverable in .trash/'.",
+    "file": "skills/purge-devlocal/scripts/purge_devlocal.py",
+    "reason": "PRE-EXISTING and OUT OF SCOPE for PRD 00006, deliberately not fixed here. It predates this PRD: the trash_file-then-empty_old_trash ordering in process_store's main loop was not touched by this work, and task 10's contract explicitly said 'Do NOT touch empty_old_trash's own comparison'. Task 10's one-line reorder fixed only the nothing-was-trashed case (the cadence stamp), which is all PRD 00006 needed; the with-content case remains broken. NOT escalated to a batch halt because nothing in this batch causes the loss, the default --empty-trash-days is 30 (safe), and it takes an explicit sub-1 flag value to reach; halting the batch would stop unrelated work without making anything safer. Confirmed by the decision gate with a live reproduction, not taken on the reviewer's word: a 400-day-old artifact in a temp store, run with `--apply --empty-trash-days 0`, ended up absent from the store AND absent from .trash/<today>/ while the tool reported trash=1. Suggested fix for a follow-up PRD: have empty_old_trash skip the current run's own batch name, so a retention pass can never delete what the same run just trashed. WORTH A FOLLOW-UP PRD - it breaks the skill's core trash-first guarantee."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "Pre-existing, out-of-scope for this PRD but data-safety relevant: `purge-devlocal`'s `process_store` loop can destroy freshly trashed files in the same run under `--apply --empty-trash-days 0`, bypassing the trash-first safety net (documented and reproduced in the c1 review ledger, not touched by PRD 00006's one-line cadence-stamp fix). Flagged for awareness only since this PRD's cadence rows point users at `/purge-devlocal` as the remediation command.",
+    "file": "skills/purge-devlocal/scripts/purge_devlocal.py",
+    "reason": "Blake's cycle-2 re-raise of cycle-1 ledger entry 13 (the same defect). Recorded verbatim here because `--ledger-dismiss BLAKE` did NOT auto-dismiss it: Blake rewrote the text substantially, so the matcher saw a different string, and the decision gate had to exclude it by judgment instead. This entry gives the matcher Blake's own wording for any later cycle. The defect itself is unchanged and its cycle-1 reasoning stands in full - pre-existing, out of scope for PRD 00006, reproduced live, default --empty-trash-days 30 is safe, worth a follow-up PRD. Blake himself files it 'for awareness only'. Excluded from the convergence test as a settled deferral per the Cap check's settled-deferral rule."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Filtering the brief to a single org sets `external={null}` (App.svelte `ext = org === 'all' ? external : null`), which is passed straight into `Todos`/`Matrix`. Because `auditTodos()` is wired through `externalTodos()` (as the PRD's own structural decomposition mandates), this silently suppresses the per-repo `purge-devlocal` cadence rows for that org's own repos whenever the view is filtered - the one row scope that is genuinely repo-local.",
+    "file": "skills/brief-portfolio/app/src/App.svelte",
+    "reason": "REFUTED BY EXECUTION, not by reading. The decision gate ran the real module: `externalTodos(null, repos)` with two repos returns 2 rows - `buvis/agent-skills:audit:purge-devlocal:never` and `buvis/other:audit:purge-devlocal:2020-01-01` - so the repo-scope branch emits normally with a null `external`. auditTodos's `scope === 'repo'` branch iterates `repos` unconditionally and never reads `external`; only the `else if (external)` machine-scope branch is gated. That gate is the deliberate, task-5-specified design and is load-bearing for two existing tests. What the org filter does suppress is the six `~/.claude` machine-scope rows, which is correct: `~/.claude` is not a gita repo and belongs to no org, and the whole external channel (review_requested, authored PRs) is suppressed the same way in a filtered view. Not a defect."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "A valid-JSON log row whose `ts` is not a string (e.g. an int) raises TypeError in `iso_day` inside `collect_audit_cadence`, and the new outer guard then degrades the ENTIRE cadence map to 'never' instead of skipping that one row",
+    "file": "skills/brief-portfolio/scripts/collect.py",
+    "reason": "Eve's own KNOWN item, filed with an out-of-scope justification the gate checked and accepts. The parsing loop pre-dates this diff range (cycle-1 reviewed), the only writer of the log (~/.claude/hooks/track_skills.py) always emits ISO strings, and this range's new guard already converts what would have been a crash into a graceful degrade. Tightening iso_day's input handling is a separate change to a collector this PRD only extended."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "derive.test.js lines 119 and 237 are now assertion- and comment-identical duplicates of each other",
+    "file": "skills/brief-portfolio/app/src/lib/derive.test.js",
+    "reason": "Eve's own KNOWN item, and acting on it would contradict a settled cycle-1 decision: the task spec behind cycle-1 finding #2 explicitly required the machine-scope null-guard comment at BOTH `externalTodos(null)` regression sites, and cycle 1 flagged the missing one as a 3/5-consensus finding. The duplication is the requested state, not drift."
+  }
+]

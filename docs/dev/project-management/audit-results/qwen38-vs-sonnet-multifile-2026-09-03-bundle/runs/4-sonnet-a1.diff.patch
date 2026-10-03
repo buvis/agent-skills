@@ -1,0 +1,67 @@
+diff --git a/src/tools/bim/commands/doc/promote/promote.py b/src/tools/bim/commands/doc/promote/promote.py
+index 1b1155c..92d66e0 100644
+--- a/src/tools/bim/commands/doc/promote/promote.py
++++ b/src/tools/bim/commands/doc/promote/promote.py
+@@ -268,16 +268,24 @@ class CommandPromote:
+             ctx.sibling_pdf.unlink(missing_ok=True)
+ 
+         try:
+-            self._services.state_db.record_processed(
+-                ProcessedRow(
+-                    sha256=sha,
+-                    canonical_filename=plan.canonical_filename,
+-                    issuer_slug=ctx.proposal.issuer.slug,
+-                    doc_type=ctx.proposal.document.type,
+-                    processed_at=datetime.now(timezone.utc),
+-                    extraction_method="manual",
+-                )
++            filed_row = ProcessedRow(
++                sha256=sha,
++                canonical_filename=plan.canonical_filename,
++                issuer_slug=ctx.proposal.issuer.slug,
++                doc_type=ctx.proposal.document.type,
++                processed_at=datetime.now(timezone.utc),
++                extraction_method="manual",
+             )
++            self._services.state_db.record_processed(filed_row)
++            # When full OCR embedded a new text layer, the filed PDF's sha
++            # differs from the raw source sha stamped at triage (pipeline.py).
++            # Re-record under the raw sha too, otherwise the raw-sha row is
++            # left pointing at the deleted _triage PDF and re-ingesting the
++            # same source is never recognized as a duplicate of the filed doc.
++            if ctx.proposal.source.sha256 != sha:
++                self._services.state_db.record_processed(
++                    filed_row.model_copy(update={"sha256": ctx.proposal.source.sha256})
++                )
+             # Refresh rule freshness when this triage came from a rule-engine
+             # match (``applied_rule_id`` set by the pipeline). Pre-existing
+             # proposals without the field skip the refresh and behave as before.
+diff --git a/tests/tools/bim/doc/test_promote.py b/tests/tools/bim/doc/test_promote.py
+index 03fdbc8..a1d7028 100644
+--- a/tests/tools/bim/doc/test_promote.py
++++ b/tests/tools/bim/doc/test_promote.py
+@@ -257,11 +257,23 @@ class TestCommandPromote:
+         # Filed PDF must be the OCR'd bytes, not the original sibling bytes.
+         assert target_pdf.read_bytes() == ocr_bytes
+         # state_db sha must match the OCR'd bytes.
+-        assert state_db.dedup(sha_of_ocr).is_duplicate is True
++        filed_dedup = state_db.dedup(sha_of_ocr)
++        assert filed_dedup.is_duplicate is True
+         # Original sibling and OCR temp paths are both gone.
+         assert not sibling_pdf.exists()
+         assert not ocr_pdf.exists()
+ 
++        # Regression: re-ingesting the same raw source PDF (sha_of_sibling)
++        # after promote must also be detected as a duplicate of the filed
++        # doc, not the stale pending-review row from triage.
++        raw_dedup = state_db.dedup(sha_of_sibling)
++        assert raw_dedup.is_duplicate is True
++        assert raw_dedup.existing_row is not None
++        assert filed_dedup.existing_row is not None
++        assert raw_dedup.existing_row.model_dump(exclude={"sha256", "processed_at"}) == (
++            filed_dedup.existing_row.model_dump(exclude={"sha256", "processed_at"})
++        )
++
+     def test_missing_sibling_pdf_returns_failure(
+         self,
+         settings: DocSettings,

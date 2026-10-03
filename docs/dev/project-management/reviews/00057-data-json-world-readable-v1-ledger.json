@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: VERIFY — confirm `uv run pytest skills/brief-portfolio/scripts -q` passes in both Linux and native Windows CI jobs at `0183537`",
+    "file": null,
+    "reason": "Sandbox artifact, not a code defect. agents/bob.md mandates a `Cannot statically verify` line for any criterion needing runtime verification, and this one was already satisfied: the named command ran green at this exact HEAD (dev/local/autopilot/last-verification.json — `uv run pytest -q` exit 0, 3451 passed, 0 failed, 6 skipped) and again independently under ALICE, BLAKE and CARL (83 passed, 4 pre-existing unrelated xfails in test_build_page.py / test_collect_pipeline.py). The native-Windows leg cannot be observed from this host at all; it is the design doc's own recorded open risk (Risks & edge cases: \"Windows ACL parsing in assert_owner_only ... must be proven on the native windows-latest CI job\"), and .github/workflows/ci.yml runs the full suite on windows-latest with no platform skip. Do not re-raise: the only thing that would change this is a real CI result."
+  }
+]

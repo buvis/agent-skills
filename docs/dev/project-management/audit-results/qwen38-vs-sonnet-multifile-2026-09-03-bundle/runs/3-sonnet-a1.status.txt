@@ -1,0 +1,2 @@
+M	src/lib/buvis/pybase/zettel/infrastructure/persistence/markdown_zettel_repository/markdown_zettel_repository.py
+M	tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py

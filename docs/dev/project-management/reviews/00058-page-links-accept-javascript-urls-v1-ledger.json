@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The new test hardcodes the personal repository identifier `buvis/demo`, contrary to the public-repository convention",
+    "file": "skills/brief-portfolio/app/smoke.work.test.js:150",
+    "reason": "Verified false on both halves of its own rationale. (1) Not newly hardcoded: `buvis/demo` is the pre-existing fixture convention in this app's sibling smoke test, `skills/brief-portfolio/app/smoke.repos.test.js:59` (`payload.epics.repos['buvis/demo']`), which this diff does not touch — the new test reused the established fixture name rather than inventing one. (2) Not a convention breach: AGENTS.md bans personal paths, usernames, hostnames, employer names and PRIVATE project names; `buvis` is this repository's own public GitHub org (github.com/buvis/agent-skills), and `buvis/demo` is a fictional demo repo under it, so it leaks nothing the public repo does not already publish. Changing it would also diverge the new fixture from the existing one. Settled: do not re-raise."
+  }
+]

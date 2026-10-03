@@ -1,0 +1,18 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "is_file() then a separate .open() in load_repo_paths is a check-then-act TOCTOU (file could vanish between the two calls, resurfacing the original raw traceback) — this is the exact code the PRD's Solution section specifies verbatim, so it is not a deviation, just a residual fragility worth a mental note",
+    "file": "skills/brief-portfolio/scripts/collect.py:575",
+    "reason": "Fixing it would break the PRD contract. The PRD's Solution section specifies this exact line verbatim ('if not GITA_CSV.is_file(): sys.exit(f\"no repos found in gita registry: {GITA_CSV} is missing\")'), and its Must-have list pins that message; the work phase already spent one retry (ed62fd5) making the guard contract-exact after an earlier shape drifted. Replacing the check-then-act with try/except FileNotFoundError would deviate from the pinned contract, so the fix is out of scope for this PRD, not merely deferred for effort. Blake, who raised it, classifies it himself as informational and 'not a deviation'. The race window is microseconds and its worst outcome is the pre-existing traceback, i.e. no regression against the behavior this PRD replaced. Deferred to batch end rather than discarded, because the fragility is real and should stay visible."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: required end-to-end CLI reproduction exits 1 with the exact message and no traceback",
+    "file": null,
+    "reason": "The named check was executed this same cycle, twice, by two independent reviewers with repo access, and both confirm the asserted outcome. Blake ran both documented scenarios (missing registry -> 'no repos found in gita registry: <path>/repos.csv is missing', exit 1, no traceback; control registry with no valid repo rows -> the unchanged 'no repos found in gita registry', exit 1). Carl independently ran the same two reproductions with a scratch HOME and reports the same results. Bob's line is a sandbox limitation ('Cannot statically verify'), not evidence of a defect: his codex lane cannot execute, which is exactly what the other lanes are for. It was also NOT queued as a verification check, because the command he composed is a compound shell pipeline (; and && chaining, a | pipe, $() substitution, 2>&1 redirection) that the queue's one-runnable-command rule excludes; that refusal is recorded in the review file. Discarded as resolved by live evidence, not carried forward."
+  }
+]

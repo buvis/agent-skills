@@ -1,0 +1,66 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The relative asset path violates this repository’s cross-host path convention; use `~/.agents/skills/plan-port/assets/port-plan-template.md`",
+    "file": "skills/plan-port/SKILL.md:80",
+    "reason": "Contradicts the repo's dominant convention for prose asset references: create-prd and create-skill both use bare relative `assets/...`. The `~/.agents/skills/...` form appears only in shell `cp` commands (brief-portfolio, debrief-meeting) where an absolute path is required. rules/claude-tooling.md also forbids hardcoded `~/.claude/skills/` style paths in skills."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`rules/communication.md` is an unresolved host-relative reference; inline the required packet protocol or use a universally resolvable dependency",
+    "file": "skills/plan-port/SKILL.md:53",
+    "reason": "The PRD mandates this exact reference verbatim: 'each `drop` gets an individual packet with evidence, per `rules/communication.md`'. Removing or inlining it would violate the spec this review judges against."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "dev/local/prds/wip/00003-add-plan-port-skill-v1.md still has every task checkbox unchecked ([ ]) for Phase 0, Phase 1, and Phase 2, even though the corresponding artifacts (template, SKILL.md, fixture run) are present and match their acceptance criteria — the PRD's own tracking is stale relative to the delivered work",
+    "file": "dev/local/prds/wip/00003-add-plan-port-skill-v1.md",
+    "reason": "No consumer reads the PRD's checkboxes. Task completion is tracked in state.json (all 5 tasks completed) and by the wip->done lifecycle move at Phase 9. Ticking them changes nothing downstream."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The Phase 2 fixture (dev/local/tmp/plan-port-fixture-skill.md) has no code file to cross-check against docs, so the PRD's first \"Happy path\" critical scenario (\"a behavior present in code but absent from the docs → a row flagged code-only\") is asserted in prose only and was never actually exercised end to end, unlike the no-drop edge case which was",
+    "file": "dev/local/tmp/plan-port-fixture-plan.md",
+    "reason": "Contradicts the PRD's own Phase 2 task, which requires a fixture that 'must document every command/flag it has (so the docs-first inventory captures everything, leaving nothing for the code cross-check to catch as code-only)'. The code-only path is deliberately out of Phase 2's scope."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: repository tests, plan-port validation, and braid checks pass",
+    "file": "N/A",
+    "reason": "Verified by Alice this cycle: `uv run pytest` 421 passed / 5 skipped (skips pre-existing), `validate_skill.py skills/plan-port` OK, `braid --check` 0 drift. Bob's codex sandbox cannot execute commands by design."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: the no-drop fixture emitted a complete plan without prompting because the fixture, output, and interaction transcript are not inlined",
+    "file": "N/A",
+    "reason": "Verified by Alice this cycle: she read dev/local/tmp/plan-port-fixture-skill.md and plan-port-fixture-plan.md and confirmed one matrix row per documented command/flag, a reason on every row, a stated deletion condition, and no prompt raised."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The rework adds no regression coverage for named-row refusal, dependency-order refusal, portfolio consumer discovery, drop-ruling output, or retirement hand-off timing",
+    "file": "N/A",
+    "reason": "plan-port ships no executable code — it is SKILL.md plus a markdown template. Every one of the 16 test files in this repo tests a script (skills/*/scripts/test_*.py); no prose-only skill carries a test, because the only thing testable about prose is that a given sentence is still present. rules/testing.md reserves snapshot/golden tests for output whose shape is the contract, which a skill body's wording is not. The repo's actual gate for a prose skill is create-skill's validate_skill.py, which Alice ran green in cycle 1 and which passes on the reworked file. Adding a bespoke prose-assertion suite for this one skill would introduce a test class the repo deliberately does not have."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Every hard invariant the PRD demands (reasonless-row refusal, phase-order-contradiction refusal, no-question-on-no-drops) is enforced only by prose instructing the executing agent, with no deterministic script backing it — unlike sibling skills in this repo (e.g. create-skill's `validate_skill.py`), so an agent that skips a refusal step has nothing else to catch it",
+    "file": "skills/plan-port/SKILL.md",
+    "reason": "Same root as the cycle-2 regression-coverage discard, and not achievable as stated. The cited comparison does not hold: validate_skill.py checks a skill FILE's structure (frontmatter, description length) — a static artifact — and plan-port already passes it. The invariants here are runtime behaviors of an agent following prose ('refused to emit the plan and named the row'); no script can observe an agent's refusal after the fact. Enforcing them deterministically would mean rebuilding plan-port as an executable pipeline, which is a different product from the one this PRD specifies."
+  }
+]

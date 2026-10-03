@@ -91,7 +91,7 @@ finding points at rather than guessing. Do not propose deletions for INFO
 ## Step 4: Save the report
 
 Write the dashboard + remediation plan to
-`dev/local/audit-results/{YYYY-MM-DD}.md`, ending with a summary line
+`docs/dev/project-management/audit-results/{YYYY-MM-DD}.md`, ending with a summary line
 (`{total} findings: {crit} critical, {high} high, {med} medium, {low} low`).
 Saving the dated report is enough — do not try to diff against previous reports
 (free-text findings have no stable IDs, so the diff is unreliable).

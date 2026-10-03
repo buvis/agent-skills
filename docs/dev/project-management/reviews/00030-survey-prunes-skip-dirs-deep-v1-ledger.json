@@ -1,0 +1,90 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "File size drift: test_survey.py was already over the 800-line project max before this diff (855 lines) and now sits at 1022 lines after it, worsened by the out-of-scope tests noted above.",
+    "file": "skills/survey/scripts/test_survey.py",
+    "reason": "Pre-existing: the file was already 855 lines (over the 800 cap) at the pre-change commit 927e700, so this diff did not create the violation. Splitting a 1022-line pre-existing suite is a separate refactor outside this traversal PRD's scope (surgical-changes rule). Bob independently placed the same finding in his KNOWN bucket with the same justification."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The changed test module exceeds the 800-line limit",
+    "file": "skills/survey/scripts/test_survey.py:987",
+    "reason": "Same defect as the medium-severity file-size drift entry above; deferred for the same reason (pre-existing at 855 lines, splitting is out of scope)."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Three overlapping pruning tests and lengthy restating docstrings add substantial redundant coverage",
+    "file": "skills/survey/scripts/test_survey.py:184",
+    "reason": "Partly addressed this cycle: task D1-A rewrites test_skip_dirs_pruned_at_every_depth_under_top_level_dir into the PRD-mandated test_skip_dirs_are_pruned_at_every_depth, removing the near-duplicate. The residual parametrized tests (every _SKIP_DIRS name, two dot-dir names) are broader real coverage, not duplication: Blake independently judged them 'arguably more thorough'. Deleting passing regression tests to reduce line count trades real coverage for style, and only 1 of 4 reviewers raised it."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Tautological tests: `test_scan_layers_returns_dict_of_path_lists_and_bool_flag` (line 311) and `test_scan_layers_caps_each_layer_at_50_files` (line 331) both pass unchanged against the pre-change code (confirmed by the pack's fail-first replay), so they pin no behavior this diff changes.",
+    "file": "skills/survey/scripts/test_survey.py",
+    "reason": "The PRD's Must-have #3 explicitly requires `_scan_layers` keep its (layers, truncated) shape, its 50-file _FILE_CAP and Path values. A test pinning an invariant the PRD requires PRESERVED passes against pre-change code by design; the fail-first replay block states this caveat itself ('a behavior-preserving refactor's tests pass by design, so weigh the PRD's intent'). Bob and Carl both reached this conclusion independently."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Two touched preservation tests pass against pre-change code and therefore do not pin the traversal change",
+    "file": "skills/survey/scripts/test_survey.py:311",
+    "reason": "Same two tests as the tautological-tests entry above; discarded for the same reason (PRD Must-have #3 requires those invariants be preserved)."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Scope creep: task 2 asked for one test function but commit a034696 added five, two of which (`test_scan_layers_returns_dict_of_path_lists_and_bool_flag`, `test_scan_layers_caps_each_layer_at_50_files`) test pre-existing return-shape/cap behavior unrelated to the depth-pruning fix this PRD is about.",
+    "file": "skills/survey/scripts/test_survey.py",
+    "reason": "The two named tests cover PRD Must-have #3 (the (layers, truncated) shape, the 50-file cap and Path values, all of which the PRD requires preserved), so they are in scope for the PRD even though task 2's text named only one test. Blake's blind lens found no scope creep against the spec (B6/B7/B8 all pass)."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`os.walk` silently ignores directory-scanning errors because no `onerror` handler is supplied",
+    "file": "skills/survey/scripts/run.py:64",
+    "reason": "Not introduced by this diff: the pre-change `d.rglob(\"*\")` comprehension had identical silent-skip semantics for unreadable directories, so os.walk's default onerror=None preserves existing behavior rather than regressing it. Adding a re-raising onerror would be a deliberate behavior change beyond the PRD, and would make a brief-generation tool crash on one unreadable directory."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: pytest, skill validation, and braid checks pass",
+    "file": "N/A",
+    "reason": "Resolved in-cycle with recorded evidence at this exact HEAD (1f70ca5b): `uv run pytest` exit 0 (1086 passed, 0 failed, 5 skipped) and `validate_skill.py skills/survey` exit 0, both from dev/local/autopilot/last-verification.json; `braid --check` run this cycle at /Users/bob/.agents/bin/braid reported '0 linked, 76 current, 20 ignored, 0 removed, 0 backed up, 0 drift'. The work phase's recorded exit 127 for a bare `braid --check` was PATH resolution, not a repo fault."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Two pre-existing functions exceed the 50-line limit",
+    "file": "N/A",
+    "reason": "`_build_brief` (63 lines) and `test_extension_points_uses_file_path_not_layer_name` (57 lines) both predate this diff and neither is touched by it; the mechanical-facts block confirms every function this diff added or changed is under 50 lines. Out of scope per the surgical-changes rule, and Bob placed it in his own KNOWN bucket."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`test_skip_dirs_are_pruned_at_every_depth` passes against the pre-change code at base `1f70ca5b`, so it pins no behavior *this* diff changes",
+    "file": "skills/survey/scripts/test_survey.py",
+    "reason": "Artifact of the incremental base, not a tautology. The replay base 1f70ca5b is cycle-1 HEAD, which already carries the os.walk pruning fix, so any pruning test passes there by construction. Cycle 2's task 4 was a rename plus refixture of an already-passing test to the PRD-mandated name/fixture/assertion - a spec-compliance fix with no behavior change, so a fail-first replay cannot be red for it. The one cycle-2 test that pins new behavior (test_only_regular_files_enter_a_layer, task 5) does fail against base, which is the evidence the replay exists to produce."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: cycle-2 tests, skill validation, and braid checks pass",
+    "file": "N/A",
+    "reason": "Resolved in-cycle with recorded evidence at this exact reviewed HEAD (0c02b2fe, dev/local/autopilot/last-verification.json): `uv run pytest` exit 0 (1087 passed, 0 failed, 5 skipped), `validate_skill.py skills/survey` exit 0, `/Users/bob/.agents/bin/braid --check` exit 0. Carl independently re-ran all three during his own review and reported them green. Bob raises this line every cycle because his sandbox forbids execution; it is a sandbox limitation, not a defect."
+  }
+]

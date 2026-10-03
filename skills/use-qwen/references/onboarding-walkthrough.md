@@ -50,7 +50,7 @@ Illustrative output shape (the real 2026-07-14 eval of this id scored 6/6;
 evidence file as named):
 
 ```
-Evidence: /Users/you/dev/local/audit-results/qwen-eval-unsloth-Qwen3.6-27B-MTP-GGUF-UD-Q6_K_XL-2026-07-14.md
+Evidence: /Users/you/docs/dev/project-management/audit-results/qwen-eval-unsloth-Qwen3.6-27B-MTP-GGUF-UD-Q6_K_XL-2026-07-14.md
 Score: 6/6, verdict: PASS
 Appended 'unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q6_K_XL' to ~/.agents/skills/use-qwen/scripts/approved-models.txt.
 ```

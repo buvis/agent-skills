@@ -1,0 +1,22 @@
+[llama-cpp] failed to reach http://localhost:8080/v1/models: fetch failed
+Done. Summary of the change:
+
+**Repointed 6 callers** — each now imports from `buvis.pybase.filesystem` (placed in the existing `buvis.*` import group per repo convention):
+- `src/tools/bim/commands/doc/shared/zettel_writer.py` — `atomic_write_text`
+- `src/tools/bim/commands/doc/shared/issuers.py` — `atomic_write_text`
+- `src/tools/bim/commands/doc/shared/ocr.py` — `atomic_write_bytes`
+- `src/tools/bim/commands/doc/shared/triage.py` — `atomic_write_text`
+- `src/tools/bim/commands/doc/shared/pipeline.py` — `atomic_write_text` (merged into its existing `buvis.pybase` group)
+- `src/tools/bim/commands/doc/audit/reporter.py` — `atomic_write_text`
+
+**Deleted:**
+- `src/tools/bim/commands/doc/shared/atomic_write.py`
+- `tests/tools/bim/doc/test_atomic_write.py` — its 6 tests are a strict subset of `tests/lib/pybase/filesystem/test_atomic_write.py`, which already covers the same behaviors (plus more: fsync ordering, BaseException cleanup, permission preservation) against the pybase implementation
+
+**Verification:**
+- `grep atomic_write src/tools/bim` — every remaining reference imports from `buvis.pybase.filesystem` (acceptance criterion met)
+- `uv run pytest tests/tools/bim/doc` — 977 passed
+- `uv run pytest tests/tools/bim` — 1204 passed, 5 skipped
+- `mypy` on all 6 touched files — clean
+
+Side benefit: the pybase version is strictly stronger than the local copy — it cleans up the temp file on `BaseException` (e.g. `KeyboardInterrupt`, matching the repo's claim/lifecycle invariant) and preserves existing file permission bits on overwrite.

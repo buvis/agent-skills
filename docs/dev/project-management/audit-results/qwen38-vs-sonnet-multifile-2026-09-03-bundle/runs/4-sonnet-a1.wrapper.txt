@@ -1,0 +1,1 @@
+`promote.py:_finalize` now also records the raw source sha (`ctx.proposal.source.sha256`) under a copy of the filed `ProcessedRow` when full OCR produced a different-content PDF, so dedup on the original file matches the filed doc instead of a stale pending-review row. Added a regression assertion to the existing full-OCR test; all 14 promote tests and mypy pass.

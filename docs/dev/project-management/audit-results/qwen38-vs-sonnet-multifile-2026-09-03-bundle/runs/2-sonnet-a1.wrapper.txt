@@ -1,0 +1,7 @@
+All green. Done, not committing per instructions.
+
+**Summary:**
+- `src/lib/buvis/pybase/result.py`: added `notify_result(result, notify)` — warnings first (severity `"warning"`), then success `output` (`"information"`, skipped if empty) or failure `error`/`"Failed"` fallback (`"error"`).
+- `src/tools/bim/tui/create_note.py`: `_create` now builds `CreateNoteParams`/`CommandCreateNote` (same class the CLI uses) instead of calling `CreateZettelUseCase` directly, filters empty question answers so `CommandCreateNote`'s own required/default logic applies, and reports the result via `notify_result`.
+- Tests added in both `tests/lib/pybase/test_result.py` and `tests/tools/bim/tui/test_create_note.py` (routing through `CommandCreateNote`, rejection of an empty required answer).
+- Found and worked around a pre-existing bug in `_on_template_selected` (unawaited `widget.remove()` causes duplicate-ID crash when `preselected_type` is combined with template questions) — not fixed, since it's out of scope; flagging it here as a separate latent bug worth a follow-up.

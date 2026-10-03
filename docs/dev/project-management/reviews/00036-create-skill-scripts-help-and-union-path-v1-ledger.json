@@ -1,0 +1,26 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "VERIFY: Cannot statically verify: run `uv run pytest skills/create-skill/scripts -q`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/create-skill`, `braid --check`, and the PRD's `--help`, `skills/survey/`, and `skills/sweep-fix/` commands",
+    "file": null,
+    "reason": "Sandbox artifact, not a defect: Bob runs static-only and cannot execute commands. Not queued to the verification-check queue (command shape: six commands on one line). Every named command ran green at the reviewed HEAD a1b972ab5e40d33b9af37754bc0798dd97115e04 - dev/local/autopilot/last-verification.json records `uv run pytest` (1100 passed, 0 failed, 5 skipped), `uv run python3 skills/create-skill/scripts/validate_skill.py skills/create-skill` and `uv run braid --check` all exit 0; Alice and Blake each independently executed `--help`, the no-argument case, `skills/survey/` and `skills/sweep-fix/` with the exits the PRD's success criteria name. Do not re-raise."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "1 touched test(s) pass against the pre-change code: test_printed_validate_step_names_the_union_path",
+    "file": "skills/create-skill/scripts/test_init_skill.py",
+    "reason": "Contradicts computed facts about its own base: this is an INCREMENTAL cycle, so replay_tests_against_base.py ran against a1b972ab5e40 (cycle 1's HEAD), at which init_skill.py's union-path fix had ALREADY landed. Cycle 2's diff for this file is a pure test refactor - two overlapping tests folded into one - so the kept test passing against that base is the expected shape of a behavior-preserving refactor, not an unpinned test. Cycle 1's replay against the true pre-PRD base 35d6a6c538ae reported 2 touched tests run and 2 FAILED against base with 0 passing, which is the measurement that proves these tests pin the change. Do not re-raise: re-running the replay from an incremental base will reproduce this row every cycle."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "3 touched test(s) pass against the pre-change code: test_help_flag_prints_usage_and_exits_zero, test_short_help_flag_exits_zero_with_usage_line, test_missing_skill_path_argument_exits_two",
+    "file": "skills/create-skill/scripts/test_validate_skill.py",
+    "reason": "Same measurement artifact as the test_init_skill.py row, plus one deliberate case. The incremental base a1b972ab5e40 already carries validate_skill.main()'s argparse rewrite, so all three tests pass there by construction. Two of them (the -h alias test and the `skill_path` stderr assert) are cycle-1 review findings closed on purpose: they pin production behavior that argparse already provided but nothing tested, which is coverage backfill and passes against its own base by definition. Cycle 1's replay against the real pre-PRD base 35d6a6c538ae showed the --help test failing there. Do not re-raise."
+  }
+]

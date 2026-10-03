@@ -1,0 +1,2 @@
+Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'
+[llama-cpp] failed to reach http://localhost:8080/v1/models: fetch failed

@@ -1,0 +1,26 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "high",
+    "issue": "`--version` still has no `help=` text, violating the success criterion that all ten options and every parser action have nonempty descriptions; the test’s five-option allowlist misses this.",
+    "file": "src/agent_skills_braid/cli.py",
+    "reason": "Refuted by direct measurement at the gate. `argparse._VersionAction` supplies a non-empty default help string, so `--version` carries \"show program's version number and exit\" without an explicit `help=`. Dumping every parser action shows all ten options with non-empty help, and `python3 bin/braid.py --help` exits 0 printing a description for each. The PRD success criterion is therefore satisfied. The test's five-option scope is exactly what the PRD's Phase 0 task specifies (\"a headless parser-action assertion checks the five newly described options\"), so the allowlist is per spec, not a gap."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "PRD success criterion \"no product code is touched\" is self-contradictory with its own Phase 0 task, which modifies cli.py; implementation correctly follows the task (help= only, no behavior change) so this is a spec wording issue, not a defect",
+    "file": null,
+    "reason": "Accepted as a PRD wording defect, not an implementation defect. Blake verified the intent (no behavioral change) holds: the diff touches only argparse metadata. Editing a wip PRD's success criteria mid-review to match the code would erase the audit trail of what was actually asked for, so no code and no PRD change is made for it."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The CHANGELOG's second new bullet documents task 2/3's README changes (flag table, backup paths), which shipped as `docs` commits (4420a09, a2cf29c) exempt from the mandatory-CHANGELOG-entry rule per `rules/changelog.md`; task 4's stated scope was only the two cli.py findings (ruff format + env-var text), so this bullet is backfill beyond what task 4's acceptance criteria required. Harmless and accurate, flagged for scope discipline only.",
+    "file": "CHANGELOG.md",
+    "reason": "Discarded on a checked premise, not waved through. `rules/changelog.md` says docs commits do NOT *require* an entry; it does not forbid one. The bullet also landed in commit 2bca306, whose type is `fix(braid)`, and a `fix` commit DOES require an entry, so no rule is violated either way. Substantively the bullet documents a genuine user-visible fix - the README named a backup path that did not exist, which is the PRD's whole premise (an operator hunting a displaced skill finds an empty directory). Deleting accurate user-facing changelog content to satisfy per-task scope purity would make the changelog worse and lose the record of a real fix. Alice herself rates it \"harmless and accurate, flagged for scope discipline only\". No code change."
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "finding": "Runtime acceptance and success criteria — run `uv run pytest skills/brief-portfolio/scripts -q` and confirm 0 failing; then rerun the agoge shim reproduction (`run.sh metanonjson` from `dev/local/audit-results/agoge-2026-09-05.md` finding 1) and confirm exit 0, `data.json` present, and that repo's `errors` holding one `meta: Expecting value...` entry",
+    "file": null,
+    "command": "uv run pytest skills/brief-portfolio/scripts -q",
+    "source": "bob",
+    "result": {"exit": 0}
+  }
+]

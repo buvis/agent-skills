@@ -67,12 +67,12 @@ At every task exit — success in `SKILL.md` step 6, abort in step 4 (timeout / 
 | `escalation_reason:"gate_failure"` | the rung escalated INTO (higher)'s entry |
 | `escalated_from` | the rung escalated INTO (higher)'s entry |
 
-**Append procedure**: write the entry object to `dev/local/tmp/attempt-task-<id>.json` with the **Write tool** (never a shell redirect, and never an inline shell argument — an attempt record carries quotes and newlines), then pick the call by exit path:
+**Append procedure**: write the entry object to `docs/dev/tmp/attempt-task-<id>.json` with the **Write tool** (never a shell redirect, and never an inline shell argument — an attempt record carries quotes and newlines), then pick the call by exit path:
 
 | Exit path | Call |
 |---|---|
-| **Task completed** (`SKILL.md` step 6) | `statectl.py <state.json> task-done <task-id> dev/local/tmp/attempt-task-<id>.json` |
-| **Abort or escalate-away** (step 4 timeout / context exceeded / error after debug, Subagent Dispatch Budget overrun, an `"escalated"` rung entry) | `statectl.py <state.json> append-attempt <task-id> dev/local/tmp/attempt-task-<id>.json` |
+| **Task completed** (`SKILL.md` step 6) | `statectl.py <state.json> task-done <task-id> docs/dev/tmp/attempt-task-<id>.json` |
+| **Abort or escalate-away** (step 4 timeout / context exceeded / error after debug, Subagent Dispatch Budget overrun, an `"escalated"` rung entry) | `statectl.py <state.json> append-attempt <task-id> docs/dev/tmp/attempt-task-<id>.json` |
 
 `task-done` is the **only** call the success path makes: it appends the entry, sets `tasks[i].status = "completed"`, and recomputes `tasks_completed` in one locked atomic write, resolving the task by `tasks[].id` rather than array position. Do not pair it with a separate status write or a `tasks_completed` write — the count is derived and must never be passed in.
 

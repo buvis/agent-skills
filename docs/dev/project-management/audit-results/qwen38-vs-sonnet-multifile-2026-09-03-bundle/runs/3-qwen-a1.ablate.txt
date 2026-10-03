@@ -1,0 +1,32 @@
+   Building buvis-gems @ file:///private/tmp/qwen-eval-00010/3-repoint-zettel-save-qwen-a1-ablate
+      Built buvis-gems @ file:///private/tmp/qwen-eval-00010/3-repoint-zettel-save-qwen-a1-ablate
+Uninstalled 1 package in 1ms
+Installed 1 package in 3ms
+..F....                                                                  [100%]
+=================================== FAILURES ===================================
+____________ TestSave.test_interrupted_save_leaves_original_intact _____________
+
+self = <tests.lib.zettel.infrastructure.persistence.test_markdown_zettel_repository_writer.TestSave object at 0x10a60e2c0>
+repository = <buvis.pybase.zettel.infrastructure.persistence.markdown_zettel_repository.markdown_zettel_repository.MarkdownZettelRepository object at 0x10a622990>
+tmp_path = PosixPath('/private/var/folders/m6/1mnc9pdn28d5vdxy4hxyr1m40000gn/T/pytest-of-bob/pytest-5017/test_interrupted_save_leaves_o0')
+
+    def test_interrupted_save_leaves_original_intact(self, repository, tmp_path) -> None:
+        file_path = tmp_path / "zettel.md"
+        original = "original note content"
+        file_path.write_text(original, encoding="utf-8")
+        zettel_data = ZettelData(file_path=str(file_path))
+        zettel = MagicMock(spec=Zettel)
+        zettel.get_data.return_value = zettel_data
+    
+        with patch(
+            "buvis.pybase.filesystem.atomic_write.os.replace",
+            side_effect=OSError("simulated crash during rename"),
+        ):
+>           with pytest.raises(OSError, match="simulated crash during rename"):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE OSError
+
+tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py:58: Failed
+=========================== short test summary info ============================
+FAILED tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py::TestSave::test_interrupted_save_leaves_original_intact
+1 failed, 6 passed in 0.80s

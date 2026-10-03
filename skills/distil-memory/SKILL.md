@@ -97,7 +97,7 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
    cues, and only the shortlisted memory files are then read. Reading every
    memory file on every proposal is the cost this two-step avoids.
 5. **Report** (`funnel.py:render_yield`): prints the yield report and
-   writes it to `dev/local/audit-results/distil-memory-<UTC timestamp>.md`
+   writes it to `docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>.md`
    (`%Y%m%dT%H%M%SZ`).
 
 ## Yield report
@@ -123,9 +123,9 @@ Nine counts, in order - four from stages 1-3, then five from the distil stage:
 All five distil lines render `n/a` when the distil stage did not run; a stage
 that ran and yielded nothing reports `0`.
 
-Written to `dev/local/audit-results/distil-memory-<UTC timestamp>.md`. The
+Written to `docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>.md`. The
 distil stage writes
-`dev/local/audit-results/distil-memory-<UTC timestamp>-proposals/` beside it,
+`docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>-proposals/` beside it,
 sharing the run's one timestamp: one `<name>.md` per proposal (the complete
 memory file) plus `proposals.json` and `discards.json`. That directory is
 published atomically - a reader sees a complete directory or none at all,
@@ -257,7 +257,7 @@ approval or rejection:
    completed decision.
 
 7. When `next` exits 1 (drained or capped), write a sitting report under
-   `dev/local/audit-results/`. A `next` that produces exit 2 means the queue
+   `docs/dev/project-management/audit-results/`. A `next` that produces exit 2 means the queue
    file is unreadable; stop and report the failure instead of writing a
    sitting report. Include counts of kept without edit, edited, and
    dropped entries, the lifetime cursor printed by:
@@ -273,7 +273,7 @@ approval or rejection:
    at the cap. End with this verbatim block:
 
    ```text
-   How to proceed: this report was also written to dev/local/audit-results/. Review the survivors and promote durable facts into memory.
+   How to proceed: this report was also written to docs/dev/project-management/audit-results/. Review the survivors and promote durable facts into memory.
    ```
 
 ## Out of scope

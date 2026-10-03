@@ -1,0 +1,39 @@
+   Compiling ddb-core v0.2.7 (/private/tmp/qwen-eval-00010/6-cap-frontmatter-size-qwen-a1-ablate/ddb-core)
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:192:13
+    |
+192 |     let n = MAX_FRONTMATTER_BYTES - 6;
+    |             ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:194:28
+    |
+194 |     assert_eq!(yaml.len(), MAX_FRONTMATTER_BYTES);
+    |                            ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:203:13
+    |
+203 |     let n = MAX_FRONTMATTER_BYTES - 5;
+    |             ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:205:28
+    |
+205 |     assert_eq!(yaml.len(), MAX_FRONTMATTER_BYTES + 1);
+    |                            ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:211:27
+    |
+211 |     assert!(msg.contains(&MAX_FRONTMATTER_BYTES.to_string()));
+    |                           ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find value `MAX_FRONTMATTER_BYTES` in this scope
+   --> ddb-core/src/parser/tests.rs:212:28
+    |
+212 |     assert!(msg.contains(&(MAX_FRONTMATTER_BYTES + 1).to_string()));
+    |                            ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `ddb-core` (lib test) due to 6 previous errors

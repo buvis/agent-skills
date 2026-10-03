@@ -1,0 +1,26 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`test_a_403_on_actions_runs_still_reads_as_actions_disabled` passes against pre-change code too (mech fail-first replay), since old and new code both return `ci: []` for a 403 message; it pins the PRD-required preserved-behavior branch, not the new re-raise path, so this is informational only, not a rework item",
+    "file": "skills/brief-portfolio/scripts/test_collect_repo.py:187",
+    "reason": "The PRD names this test in its acceptance criterion as the 403 preservation control ('HTTP 403 and 404 on that call still yield ci: [] with no error'); a control that pins unchanged behavior passes on both sides of the change by design. The 500 test is the fail-first regression and fails at base (replay confirmed). Bob files the same row as KNOWN; the shadow rubric lane passes R2 on the same reasoning."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "PRD 00056 task checkbox is unchecked and the PRD file is still in wip/ despite the implementation being complete and tested, which could cause downstream automation (this repo's own PRD-lifecycle rules) to treat the work as unfinished",
+    "file": "dev/local/prds/wip/00056-ci-failure-fakes-no-ci-v1.md",
+    "reason": "Autopilot lifecycle, not a code defect: wip/ is the PRD's correct home while the review gate runs, and Phase 9 finalize performs the verified wip/ -> done/ move after convergence. The folder is the lifecycle signal in this batch, not the checkbox: the done/ PRDs 00054 and 00055 keep their `- [ ]` lines unticked."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: end-to-end success criterion (VERIFY: repeat the one-repo HTTP 500 Actions shim reproduction; confirm `1 with warnings` and the built Work tab names the repo as \"not collected this run\")",
+    "file": null,
+    "reason": "Not queued (a procedure over an audit-results shim, not one project verification command) and verified by reading this cycle: collect.py:552-556 builds `failed` from every repo with a non-empty `errors` list and prints `{len(failed)} with warnings`, and a re-raised 500 lands `ci: <msg>` there via collect.py:451; Blake traced the page side at app/src/components/Work.svelte:31 (`ciMissing`), :141-142 (empty-state text) and :159-164 (the coexisting 'not collected this run' line), which PRD 00026 shipped and this PRD leaves untouched."
+  }
+]

@@ -1,0 +1,23 @@
+Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'
+[llama-cpp] failed to reach http://localhost:8080/v1/models: fetch failed
+Done. All four files are modified, nothing committed, and everything is green (4090 tests passed, mypy clean on 462 files).
+
+## Changes
+
+**`src/lib/buvis/pybase/result.py`** — added module-level `notify_result(result: CommandResult, notify: Callable[..., None]) -> None`:
+- Forwards every `result.warnings` entry first via `notify(w, severity="warning")`
+- On success: `notify(result.output, severity="information")` — skipped when `output` is empty (nothing notified)
+- On failure: `notify(result.error or "Failed", severity="error")` — exact `"Failed"` fallback when `error` is empty/None
+
+**`src/tools/bim/tui/create_note.py`** — `_create` now routes through `CommandCreateNote` (same command class as the CLI):
+- Builds `CreateNoteParams` from the form; empty answers are dropped from `extra_answers` so the command applies the same defaults and required-answer validation as the CLI (an empty required question → `Missing required answer: {key}` error, notified with `severity="error"`, app stays open)
+- `FileNotFoundError` from the command constructor (missing zettelkasten dir) is caught and notified as an error
+- Result is rendered via `notify_result(result, self.notify)`; app exits only on success
+- Removed the now-unused `CreateZettelUseCase` import
+- Fixed a latent bug the new tests exposed: `Select` posts a `Changed` event for a preset value on mount, so a preselected template with questions was built twice → `DuplicateIds` crash. `_on_template_selected` is now idempotent for the same template name
+
+**`tests/lib/pybase/test_result.py`** — new `TestNotifyResult` covering: information on success, nothing on empty output, error on failure, `"Failed"` fallback (None and `""`), and warning-first ordering for both success and failure paths.
+
+**`tests/tools/bim/tui/test_create_note.py`** — two new tests:
+- `test_create_routes_through_command_create_note`: asserts `CommandCreateNote` is constructed with the exact `CreateNoteParams` from the form, `execute()` is called, success is notified, and the app exits
+- `test_create_rejects_empty_required_answer`: real `CommandCreateNote` against a `tmp_path` vault with a required question left blank → `notify("Missing required answer: author", severity="error")` and no exit

@@ -1,0 +1,239 @@
+diff --git a/ddb-core/src/git_ops/mod.rs b/ddb-core/src/git_ops/mod.rs
+index 6f8d7ac..786c209 100644
+--- a/ddb-core/src/git_ops/mod.rs
++++ b/ddb-core/src/git_ops/mod.rs
+@@ -3,7 +3,7 @@ mod merge;
+ mod read;
+ mod remote;
+ mod rename;
+-pub(crate) mod write_lock;
++mod write_lock;
+ 
+ pub use rename::rename_doogat;
+ 
+@@ -312,7 +312,7 @@ impl GitRepo {
+             // Already holding the process lock on this repo — re-entrant call.
+             return f();
+         }
+-        let _os_guard = write_lock::acquire(&self.path.join(".git"), "ddb-write.lock", WRITE_LOCK_TIMEOUT)?;
++        let _os_guard = write_lock::acquire(&self.path, WRITE_LOCK_TIMEOUT)?;
+         self.write_lock_depth.set(1);
+         // Reset the depth on scope exit (incl. panic unwind) before the OS
+         // guard drops, so the re-entrant flag never outlives the held lock.
+diff --git a/ddb-core/src/git_ops/tests.rs b/ddb-core/src/git_ops/tests.rs
+index 87a941e..d6c9312 100644
+--- a/ddb-core/src/git_ops/tests.rs
++++ b/ddb-core/src/git_ops/tests.rs
+@@ -1127,12 +1127,7 @@ fn merge_blocks_while_write_lock_held() {
+ 
+     let handle = std::thread::spawn(move || {
+         // Hold the repo's raw OS write guard across the whole critical window.
+-        let guard = super::write_lock::acquire(
+-            &dir_b_path.join(".git"),
+-            "ddb-write.lock",
+-            Duration::from_secs(10),
+-        )
+-        .unwrap();
++        let guard = super::write_lock::acquire(&dir_b_path, Duration::from_secs(10)).unwrap();
+ 
+         // Commit a NEW distinct file with raw git2 on refs/heads/master. Raw
+         // git2 on purpose: GitRepo's own write methods would block on the very
+@@ -1312,12 +1307,7 @@ fn commit_merge_blocks_while_write_lock_held() {
+ 
+     let handle = std::thread::spawn(move || {
+         // Hold the repo's raw OS write guard across the whole critical window.
+-        let guard = super::write_lock::acquire(
+-            &dir_b_path.join(".git"),
+-            "ddb-write.lock",
+-            Duration::from_secs(10),
+-        )
+-        .unwrap();
++        let guard = super::write_lock::acquire(&dir_b_path, Duration::from_secs(10)).unwrap();
+         tx.send(()).unwrap();
+ 
+         // Hold the guard for a bounded window well under the 10s timeout. An
+diff --git a/ddb-core/src/git_ops/write_lock.rs b/ddb-core/src/git_ops/write_lock.rs
+index 74fa019..54877c6 100644
+--- a/ddb-core/src/git_ops/write_lock.rs
++++ b/ddb-core/src/git_ops/write_lock.rs
+@@ -6,14 +6,11 @@
+ //! firing two `ddb create`s, or several threads in one process — cannot lose
+ //! commits by resolving a stale parent and force-updating `HEAD`.
+ //!
+-//! The lock is an exclusive advisory lock on `<lock_dir>/<lock_name>`, taken via
+-//! [`fs2`], which speaks both Unix `flock` and Windows `LockFileEx`. (`rustix`'s
+-//! `flock` is Unix-only and would leave the Windows CI matrix unguarded.)
+-//!
+-//! The git write lock (`.git/ddb-write.lock`) and the index rebuild lock
+-//! (`.ddb/ddb-rebuild.lock`) are never held simultaneously by the same call
+-//! stack. If a future change needs both, fully release one before acquiring the
+-//! other — never acquire the second while the first is still held.
++//! The lock is an exclusive advisory lock on `<repo_root>/.git/ddb-write.lock`,
++//! taken via [`fs2`], which speaks both Unix `flock` and Windows `LockFileEx`.
++//! (`rustix`'s `flock` is Unix-only and would leave the Windows CI matrix
++//! unguarded.) `.git/` is never tracked, so the lock file is a pure runtime
++//! artifact that survives `git gc` and is never committed.
+ 
+ use std::fs::{File, OpenOptions};
+ use std::path::Path;
+@@ -23,6 +20,9 @@ use fs2::FileExt;
+ 
+ use crate::error::{DoogatError, Result};
+ 
++/// Advisory lock file name, created inside the repo's `.git/` directory.
++const LOCK_FILE_NAME: &str = "ddb-write.lock";
++
+ /// Poll cadence while blocked on a contended lock. Uncontended acquires take
+ /// the fast path (first `try_lock_exclusive` succeeds, no sleep).
+ const POLL_INTERVAL: Duration = Duration::from_millis(5);
+@@ -43,15 +43,15 @@ impl Drop for WriteLockGuard {
+     }
+ }
+ 
+-/// Acquire an exclusive advisory lock on `<lock_dir>/<lock_name>`,
+-/// creating the lock file (and its parent directory) if absent.
++/// Acquire an exclusive advisory lock on `<repo_root>/.git/ddb-write.lock`,
++/// creating the lock file (and its parent `.git/` directory) if absent.
+ ///
+ /// Blocks up to `timeout`, polling with `try_lock_exclusive`, then fails loud
+ /// with a retryable [`DoogatError::Conflict`] rather than hanging forever.
+-pub fn acquire(lock_dir: &Path, lock_name: &str, timeout: Duration) -> Result<WriteLockGuard> {
+-    let lock_path = lock_dir.join(lock_name);
+-    // Create `lock_dir` (including nested ancestors) if absent, so callers
+-    // never have to pre-create it and a fresh checkout never trips here.
++pub fn acquire(repo_root: &Path, timeout: Duration) -> Result<WriteLockGuard> {
++    let lock_path = repo_root.join(".git").join(LOCK_FILE_NAME);
++    // A real repo already has `.git/`; create it if missing so the primitive
++    // is usable on a bare path (and so a fresh checkout never trips here).
+     if let Some(parent) = lock_path.parent() {
+         std::fs::create_dir_all(parent)?;
+     }
+@@ -90,30 +90,27 @@ mod tests {
+     use std::sync::Arc;
+     use tempfile::TempDir;
+ 
+-    /// Name used by tests that only care about mutual exclusion, not identity.
+-    const TEST_LOCK_NAME: &str = "test.lock";
+-
+     /// The lock must exclude a second acquirer from the critical section until
+     /// the first guard is released — the core mutual-exclusion guarantee.
+     #[test]
+     fn second_acquire_blocks_until_first_guard_released() {
+         let dir = TempDir::new().unwrap();
+-        let lock_dir = dir.path().to_path_buf();
++        let root = dir.path().to_path_buf();
+ 
+         // `in_section` is true exactly while thread 1 holds the lock. If the
+         // lock is broken, thread 2 enters its section while this is still true.
+         let in_section = Arc::new(AtomicBool::new(false));
+         let violated = Arc::new(AtomicBool::new(false));
+ 
+-        let g1 = acquire(&lock_dir, TEST_LOCK_NAME, Duration::from_secs(5)).unwrap();
++        let g1 = acquire(&root, Duration::from_secs(5)).unwrap();
+         in_section.store(true, SeqCst);
+ 
+-        let lock_dir2 = lock_dir.clone();
++        let root2 = root.clone();
+         let in_section2 = in_section.clone();
+         let violated2 = violated.clone();
+         let t2 = std::thread::spawn(move || {
+             // Must block here until g1 is released below.
+-            let _g2 = acquire(&lock_dir2, TEST_LOCK_NAME, Duration::from_secs(5)).unwrap();
++            let _g2 = acquire(&root2, Duration::from_secs(5)).unwrap();
+             if in_section2.load(SeqCst) {
+                 violated2.store(true, SeqCst);
+             }
+@@ -137,12 +134,12 @@ mod tests {
+     #[test]
+     fn acquire_times_out_when_lock_held() {
+         let dir = TempDir::new().unwrap();
+-        let lock_dir = dir.path().to_path_buf();
++        let root = dir.path().to_path_buf();
+ 
+-        let _g1 = acquire(&lock_dir, TEST_LOCK_NAME, Duration::from_secs(5)).unwrap();
++        let _g1 = acquire(&root, Duration::from_secs(5)).unwrap();
+ 
+         let start = Instant::now();
+-        let err = acquire(&lock_dir, TEST_LOCK_NAME, Duration::from_millis(100)).unwrap_err();
++        let err = acquire(&root, Duration::from_millis(100)).unwrap_err();
+         let elapsed = start.elapsed();
+ 
+         assert!(
+@@ -163,74 +160,11 @@ mod tests {
+     #[test]
+     fn acquire_succeeds_after_release() {
+         let dir = TempDir::new().unwrap();
+-        let lock_dir = dir.path().to_path_buf();
++        let root = dir.path().to_path_buf();
+ 
+-        let g1 = acquire(&lock_dir, TEST_LOCK_NAME, Duration::from_secs(5)).unwrap();
++        let g1 = acquire(&root, Duration::from_secs(5)).unwrap();
+         std::mem::drop(g1);
+         // Same-path re-acquire must succeed immediately now that it is free.
+-        let _g2 = acquire(&lock_dir, TEST_LOCK_NAME, Duration::from_millis(200)).unwrap();
+-    }
+-
+-    /// Two different lock names inside the same directory are independent
+-    /// locks: holding one must not exclude an acquirer of the other. This is
+-    /// the whole point of generalizing `acquire` to take an explicit name.
+-    #[test]
+-    fn different_lock_names_in_same_directory_do_not_exclude() {
+-        let dir = TempDir::new().unwrap();
+-        let lock_dir = dir.path().to_path_buf();
+-
+-        let _g1 = acquire(&lock_dir, "a.lock", Duration::from_secs(5)).unwrap();
+-
+-        let start = Instant::now();
+-        // Must succeed promptly, not wait out the timeout: "b.lock" is a
+-        // distinct lock from "a.lock" in the same directory.
+-        let _g2 = acquire(&lock_dir, "b.lock", Duration::from_secs(2)).unwrap();
+-        let elapsed = start.elapsed();
+-
+-        assert!(
+-            elapsed < Duration::from_secs(1),
+-            "acquiring a different lock name blocked as if it shared the held lock ({elapsed:?})"
+-        );
+-    }
+-
+-    /// The same lock name in two different directories does not exclude:
+-    /// the lock's identity is `<lock_dir>/<lock_name>`, not the name alone.
+-    #[test]
+-    fn same_lock_name_in_different_directories_does_not_exclude() {
+-        let dir_a = TempDir::new().unwrap();
+-        let dir_b = TempDir::new().unwrap();
+-
+-        let _g1 = acquire(dir_a.path(), TEST_LOCK_NAME, Duration::from_secs(5)).unwrap();
+-
+-        let start = Instant::now();
+-        // Same name, different directory — must not contend with `_g1`.
+-        let _g2 = acquire(dir_b.path(), TEST_LOCK_NAME, Duration::from_secs(2)).unwrap();
+-        let elapsed = start.elapsed();
+-
+-        assert!(
+-            elapsed < Duration::from_secs(1),
+-            "acquiring the same lock name in a different directory blocked as if it shared \
+-             the held lock ({elapsed:?})"
+-        );
+-    }
+-
+-    /// `acquire` creates `lock_dir` — including nested, not-yet-existing
+-    /// ancestors — rather than erroring when it is absent.
+-    #[test]
+-    fn acquire_creates_lock_dir_when_absent() {
+-        let dir = TempDir::new().unwrap();
+-        let lock_dir = dir.path().join("nested").join("does-not-exist-yet");
+-        assert!(!lock_dir.exists());
+-
+-        let _g1 = acquire(&lock_dir, TEST_LOCK_NAME, Duration::from_secs(5)).unwrap();
+-
+-        assert!(
+-            lock_dir.is_dir(),
+-            "acquire did not create the (nested) lock directory"
+-        );
+-        assert!(
+-            lock_dir.join(TEST_LOCK_NAME).is_file(),
+-            "acquire did not create the lock file inside the created directory"
+-        );
++        let _g2 = acquire(&root, Duration::from_millis(200)).unwrap();
+     }
+ }

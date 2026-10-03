@@ -1,0 +1,15 @@
+[llama-cpp] failed to reach http://localhost:8080/v1/models: fetch failed
+Done. Two changes:
+
+**`src/lib/buvis/pybase/zettel/infrastructure/persistence/markdown_zettel_repository/markdown_zettel_repository.py`**
+- `save` now writes via `atomic_write_text(Path(data.file_path), formatted)` instead of the bare `Path.write_text`. The import comes from `buvis.pybase.filesystem`, matching the convention used throughout `src/tools/bim/` (tempfile + fsync + `os.replace`, with temp-file cleanup on any `BaseException`). `utf-8` is `atomic_write_text`'s default encoding, so behavior is unchanged on the happy path.
+
+**`tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py`**
+- New `TestSave::test_interrupted_save_leaves_original_intact`: writes an original note, then patches `os.replace` inside `buvis.pybase.filesystem.atomic_write` (the exact module the gate binds to) to raise `OSError`, simulating a crash at the rename step. It asserts the exception propagates, the original note content is byte-for-byte intact, and no `.tmp` debris is left in the directory. This test is discriminating — against the old bare `write_text` it would fail, since no `OSError` would ever be raised.
+
+Verification:
+- Target file: 7/7 passed (including the new regression case)
+- Full `tests/lib/zettel` suite: 595 passed
+- `mypy` on the changed file: clean
+
+Nothing committed, per instructions.

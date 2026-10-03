@@ -1,0 +1,106 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "FIX: The required index snapshot is missing. `write_memory()` mutates the target before index readability is checked; capture index bytes or absence before mutation and test an index snapshot failure.",
+    "file": "skills/distil-memory/scripts/write.py:148",
+    "reason": "Refuted by reading the code. The index needs no snapshot: `_atomic_write` (write.py:31-38) writes a temp file and `replace`s it, unlinking the temp on OSError, so a failed index write leaves MEMORY.md holding its previous bytes, or its original absence when it did not exist. The only index writes are append_pointer's two `_atomic_write` calls (write.py:99, 103), and nothing can fail after them. write.py:159-162 already documents this reasoning; Alice traced the same control flow and confirmed the all-or-nothing property holds."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "FIX: `assert exit_code != 2` duplicates the preceding `assert exit_code == 1`. Remove the redundant assertion; the exit-code contract remains fully checked.",
+    "file": "skills/distil-memory/scripts/test_docket_exit_codes.py:240",
+    "reason": "Logically redundant but deliberately kept. The test is named test_main_decide_does_not_report_a_missing_file_argument_as_an_unreadable_queue and the `!= 2` assertion is the rule it enforces (PRD 00015's exit-2 boundary), written where a reader meets it. rules/testing.md: name and bind tests to the rule they enforce. Removing the line would trade intent-binding for one line of brevity."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: fail-first results for three uncollected write-test modules. VERIFY: overlay their supporting `write_test_helpers.py` onto the base replay checkout and run `uv run pytest skills/distil-memory/scripts/test_write*.py`, distinguishing assertion failures from collection errors.",
+    "file": null,
+    "reason": "A sandbox artifact, not a defect, and already answered by the computed fail-first replay block appended to this cycle's context file: 16 touched tests ran, 12 failed against base, 4 passed, 3 files uncollectable at base. The three uncollectable modules are new files that do not exist at base, so 'they fail there' is the expected result, not an unknown."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: tests and repository checks pass. VERIFY: run `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/distil-memory`, and `braid --check`; the supplied record reports success.",
+    "file": null,
+    "reason": "A sandbox artifact, not a defect. Already answered by dev/local/autopilot/last-verification.json at this exact reviewed HEAD (be34106): all three named commands exited 0, 1059 passed / 0 failed / 5 skipped. Alice independently re-ran `uv run pytest` and reported the same counts."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "FIX: Both docket read handlers omit `UnicodeDecodeError`, so undecodable proposal files and `decide --file` inputs still produce tracebacks. Handle decoding failures as exit 1 and add byte-corruption cases.",
+    "file": "skills/distil-memory/scripts/docket.py:223",
+    "reason": "Out of contract for this PRD, which pins the exception tuple verbatim: 'guard docket.py's two remaining read sites with except (OSError, json.JSONDecodeError) returning 1'. The named routes are a missing proposals dir, invalid JSON, an absent record sibling, and a missing --file, none of which raise UnicodeDecodeError. Widening the tuple here would deviate from a stated Must-have. Real gap, genuinely worth a follow-up PRD (docket.load() already guards its own read with the wider (OSError, UnicodeDecodeError, json.JSONDecodeError), so the codebase is inconsistent), but changing it needs a PRD amendment rather than a review-driven widening. Note the contrast with write.py: the PRD pins no tuple for append_pointer's failure, only 'returns 1 with the reason on stderr', so widening THAT handler is in-contract and is being fixed this cycle."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`except (OSError, json.JSONDecodeError)` guarding the plain-text `Path(args.file).read_text()` includes `json.JSONDecodeError`, which a text read can never raise (dead branch); matches the PRD's literal contract text verbatim so not a functional defect, just copy-pasted from the JSON-reading guard rather than tailored to this read site.",
+    "file": "skills/distil-memory/scripts/docket.py:251",
+    "reason": "Alice's own line concedes it: the tuple is the PRD's verbatim contract text for both read sites. Narrowing it to `except OSError` at this one site would make the implementation stop matching the Must-have it was written from. Same contract as the UnicodeDecodeError deferral above; both belong to one follow-up PRD that revisits the pinned tuple, not to this cycle."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "save()'s own _save_queue write (docket.py:30-34) is called outside the try in _save_from_proposals_dir (docket.py:226) and stays unguarded against OSError; out of this PRD's explicit four-route scope but worth a follow-up ticket",
+    "file": "skills/distil-memory/scripts/docket.py",
+    "reason": "Blake states the scope call himself and is right: this PRD enumerates exactly four open routes and a queue-write failure is none of them. The PRD also warns explicitly against widening the guard over the save() call, because save() raises QueueError for a corrupt queue and that must keep leaving as exit 2 (PRD 00015's code). Fixing it inside this cycle risks the exit-1/exit-2 boundary the PRD spends three bullets protecting. Follow-up ticket, as Blake proposes."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "`docket.py`'s queue write (`_save_queue`, invoked from `save`/`decide`/`advance`) is unguarded: a write failure (disk full, permission denied, unwritable parent dir) during `docket.py save` or `decide` raises a raw `OSError` traceback instead of exiting 1/2 with a stderr reason — reproduced live by monkeypatching `Path.write_text` to raise, which propagated uncaught out of `docket.main` — contradicting the \"print the reason to stderr instead of raising\" guarantee `SKILL.md:203-207` states for this CLI",
+    "file": "skills/distil-memory/scripts/docket.py",
+    "reason": "Re-affirms the cycle-1 settled deferral of the same defect, with Blake's evidence widened: he now shows it reaches save, decide AND advance (not only _save_from_proposals_dir) and reproduced it live rather than by reading. The settled reason still holds unchanged and Blake still states the scope call himself: this PRD enumerates exactly four open routes and a queue-write failure is none of them, and the PRD warns explicitly against widening the guard over the save() call because save() raises QueueError for a corrupt queue, which must keep leaving as exit 2 (PRD 00015's code). Widening it here would put the exit-1/exit-2 boundary the PRD spends three bullets protecting at risk for a route the PRD never opened. Recorded this cycle as a deferred decision as well, so it survives past this PRD's ledger into the batch report and a follow-up PRD, together with the two cycle-1 docket deferrals it belongs beside."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Phase 0 acceptance test path is stale: `uv run pytest skills/distil-memory/scripts/test_write.py::test_an_index_that_cannot_be_read_leaves_no_memory_file_behind -q` errors \"not found\" (pytest exit 4); the test was relocated to `test_write_crash_safety.py` by a later split commit (`04c6a04`) without updating the PRD's literal acceptance command or its Module manifest",
+    "file": "skills/distil-memory/scripts/test_write_crash_safety.py",
+    "reason": "Real observation, not a defect in the delivered work. The behaviour the criterion names is implemented and passing in its current home: Blake located and read it himself, Alice verified it and ran `uv run pytest skills/distil-memory/scripts -q` (617 passed) and the repo-wide suite (1071 passed, 0 failed). The stale path sits in an implementor instruction that has already been consumed, not in any shipping artifact, and the PRD's own Success Criteria — the criteria that gate completion — name the whole-directory run `uv run pytest skills/distil-memory/scripts -q`, which passes. The file move was mandated by this PRD's own cycle-1 task-6 contract (\"Keep the split-file layout\"), so the drift is a consequence of a decision already taken. Rewriting a PRD's acceptance criteria after the fact to match the code is the wrong reflex; the drift is recorded here and in the audit log instead."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Phase 0 Task 1's CLI-level scenario (feeding `write.main([\"write\", \"--store\", ...])` an entry whose `file_text` is `\"no frontmatter here\\n\"`) lives in `test_write_cli.py`, not `test_write.py` as the acceptance criterion names; `uv run pytest skills/distil-memory/scripts/test_write.py -q` alone never exercises it",
+    "file": "skills/distil-memory/scripts/test_write_cli.py",
+    "reason": "Same class and same reason as the Phase 0 acceptance-path discard above: the named scenario exists and passes in test_write_cli.py, verified by Blake reading it and by both suite runs. Stale path in a consumed implementor instruction, not a gap in the work; the PRD's whole-directory Success Criterion covers it."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Phase 1 acceptance criteria name `test_docket.py` as the pytest target, but every new save/decide refusal test lives in `test_docket_refusals.py` (split out by `be34106`); `uv run pytest skills/distil-memory/scripts/test_docket.py -q` passes trivially (35 passed) without containing either required assertion",
+    "file": "skills/distil-memory/scripts/test_docket_refusals.py",
+    "reason": "Same class and same reason as the two Phase 0 acceptance-path discards above. Both required assertions exist and pass in test_docket_refusals.py — the split was made by be34106, which is inside this PRD's own work range and was made to keep the oversized test_docket.py under the 800-line cap. Blake verified the assertions are present; Alice and Carl both ran the directory suite green. The PRD's whole-directory Success Criterion covers it."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "3 touched test(s) pass against the pre-change code: test_main_save_refuses_the_whole_batch_when_one_record_names_an_absent_file, test_main_save_keeps_exit_2_for_the_queue_alone_and_answers_a_bad_proposals_dir_with_exit_1, test_main_save_still_returns_zero_and_prints_added_n_of_m_for_a_readable_proposals_dir",
+    "file": "skills/distil-memory/scripts/test_docket_refusals.py",
+    "reason": "The behavior-preserving-refactor case the fail-first replay block itself names. This cycle's entire diff for test_docket_refusals.py is the `_record(...)` helper de-duplication that cycle-1 finding asked for (verified by reading `git diff be34106 -- test_docket_refusals.py`: one added helper, three call sites collapsed, no assertion added, changed or weakened). All three tests already existed and passed at base; passing there is what a pure refactor is supposed to do, and requiring them to fail would mean weakening them. The tests that DO pin this cycle's production change are in test_write_crash_safety.py, and Alice independently confirmed they fail at the pre-fix commit c90f427."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "test_write_crash_safety.py is now 799 lines, 1 line under the 800-line hard cap in rules/coding-style.md. Not a violation and Task 6's contract explicitly keeps this two-file layout, but the next addition to this file will require a further split.",
+    "file": "skills/distil-memory/scripts/test_write_crash_safety.py",
+    "reason": "Alice's own line concedes it is not a violation, and rubric rule R13 (file sizes respect the 800-line limit) passed for all four reviewers. Splitting a compliant file now to buy headroom for a hypothetical future addition is exactly the speculative work rules/coding-style.md forbids. The next change that pushes it over the cap will trip R13 and be split then, on real evidence."
+  }
+]

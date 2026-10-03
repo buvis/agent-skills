@@ -1,0 +1,143 @@
+diff --git a/src/tools/bim/commands/doc/promote/promote.py b/src/tools/bim/commands/doc/promote/promote.py
+index 1b1155c..715d8d7 100644
+--- a/src/tools/bim/commands/doc/promote/promote.py
++++ b/src/tools/bim/commands/doc/promote/promote.py
+@@ -26,7 +26,6 @@ from typing import TYPE_CHECKING, get_args
+ 
+ from buvis.pybase.result import CommandResult
+ 
+-from bim.commands.doc.shared.hashing import sha256_file
+ from bim.commands.doc.shared.issuers import register_issuer
+ from bim.commands.doc.shared.naming import resolve_collision, slugify
+ from bim.commands.doc.shared.pipeline_helpers import PromoteFrontmatterContext, build_promote_frontmatter
+@@ -231,14 +230,21 @@ class CommandPromote:
+ 
+     def _finalize(self, ctx: _PromoteContext, ocr_result: OCRResult, plan: _NamePlan) -> CommandResult:
+         # Use the OCR'd PDF (which carries the freshly-derived text layer) as
+-        # the source of truth for both the recorded sha and the file we move.
+-        # When OCR ran in skip/redo mode in place, ocr_result.pdf_path equals
+-        # ctx.sibling_pdf and this is a no-op. When the full-OCR branch fired,
+-        # ocr_result.pdf_path is a new temp file with the embedded text layer
+-        # and we file that instead, otherwise the zettel body would describe
+-        # OCR text that the filed PDF does not contain.
++        # the file we move. When OCR ran in skip/redo mode in place,
++        # ocr_result.pdf_path equals ctx.sibling_pdf and this is a no-op. When
++        # the full-OCR branch fired, ocr_result.pdf_path is a new temp file
++        # with the embedded text layer and we file that instead, otherwise the
++        # zettel body would describe OCR text that the filed PDF does not
++        # contain.
+         source_pdf = ocr_result.pdf_path
+-        sha = sha256_file(source_pdf)
++        # Record the raw source sha stamped on the proposal at triage time,
++        # not the sha of the bytes we move: full OCR rewrites the file, so
++        # the filed PDF's sha would not match the source document and a
++        # re-ingest of that source would slip past dedup and file a second
++        # archive copy. Mirrors the ingest path, which records the staging
++        # sha. The INSERT OR REPLACE below also retires the pending-triage
++        # row triage stamped under this same sha.
++        sha = ctx.proposal.source.sha256
+ 
+         frontmatter_or_err = self._build_frontmatter(ctx, ocr_result, plan, sha)
+         if isinstance(frontmatter_or_err, CommandResult):
+diff --git a/tests/tools/bim/doc/test_promote.py b/tests/tools/bim/doc/test_promote.py
+index 03fdbc8..188c722 100644
+--- a/tests/tools/bim/doc/test_promote.py
++++ b/tests/tools/bim/doc/test_promote.py
+@@ -9,7 +9,7 @@ from bim.commands.doc.promote.promote import CommandPromote, PromoteServices
+ from bim.commands.doc.shared.issuers import load_registry
+ from bim.commands.doc.shared.ocr import OCRResult
+ from bim.commands.doc.shared.settings_models import DocSettings
+-from bim.commands.doc.shared.state_db import StateDB
++from bim.commands.doc.shared.state_db import ProcessedRow, StateDB
+ from bim.commands.doc.shared.triage import write_proposal
+ from bim.commands.doc.shared.zettel_writer import ZettelWriter
+ from bim.params.doc_promote import PromoteParams
+@@ -256,12 +256,86 @@ class TestCommandPromote:
+         target_pdf = Path(result.metadata["pdf_path"])
+         # Filed PDF must be the OCR'd bytes, not the original sibling bytes.
+         assert target_pdf.read_bytes() == ocr_bytes
+-        # state_db sha must match the OCR'd bytes.
+-        assert state_db.dedup(sha_of_ocr).is_duplicate is True
++        # state_db records the raw source sha (stamped on the proposal at
++        # triage), not the OCR'd bytes' sha: re-ingesting the same source
++        # PDF must be detected as a duplicate even though full OCR rewrote
++        # the filed PDF's bytes.
++        dedup = state_db.dedup(sha_of_sibling)
++        assert dedup.is_duplicate is True
++        assert dedup.existing_row is not None
++        assert dedup.existing_row.extraction_method == "manual"
++        assert dedup.existing_row.canonical_filename == result.metadata["canonical_filename"]
++        # Only the source document is tracked as a dedup key (mirrors the
++        # ingest path's staging-sha convention); the OCR'd bytes' sha is not.
++        assert state_db.dedup(sha_of_ocr).is_duplicate is False
+         # Original sibling and OCR temp paths are both gone.
+         assert not sibling_pdf.exists()
+         assert not ocr_pdf.exists()
+ 
++    def test_promote_records_raw_source_sha_replacing_pending_triage_row(
++        self,
++        settings: DocSettings,
++        registry_path: Path,
++        lock_path: Path,
++        state_db: StateDB,
++        mocker: MockerFixture,
++    ) -> None:
++        """Promote must record the filed row under the raw source sha.
++
++        The pipeline stamps a ``pending-triage`` row under the raw source sha
++        when it parks a document in ``_triage/``. Promote retires that row by
++        recording the filed row under the same sha (``INSERT OR REPLACE``), so
++        re-ingesting the same source PDF after promote is detected as a
++        duplicate and no second archive copy is filed.
++        """
++        triage_dir = settings.paths.business_root / "_triage"
++        pdf, yml = _stage_triage_pair(triage_dir, "20210311083422-cez-as-7102105594.invoice")
++        sha = hashlib.sha256(pdf.read_bytes()).hexdigest()
++
++        # Simulate the pipeline's triage stamp for this source document.
++        state_db.record_processed(
++            ProcessedRow(
++                sha256=sha,
++                canonical_filename="_triage/20210311083422-cez-as-7102105594.invoice.pdf (pending review)",
++                issuer_slug="cez-as",
++                doc_type="invoice",
++                processed_at=datetime.now(timezone.utc),
++                extraction_method="pending-triage",
++            )
++        )
++
++        write_proposal(yml, _build_proposal(sha256=sha, triage_pdf=pdf))
++
++        cmd, _ = _build_command(
++            settings=settings,
++            registry_path=registry_path,
++            lock_path=lock_path,
++            state_db=state_db,
++            proposal_yml=yml,
++            mocker=mocker,
++            ocr_pdf=pdf,
++        )
++
++        result = cmd.execute()
++        assert result.success is True
++
++        # Re-ingest of the same source is a duplicate: the row keyed by the
++        # raw source sha now carries the filed document's attributes.
++        dedup = state_db.dedup(sha)
++        assert dedup.is_duplicate is True
++        assert dedup.existing_row is not None
++        expected_filed = ProcessedRow(
++            sha256=sha,
++            canonical_filename=result.metadata["canonical_filename"],
++            issuer_slug="cez-as",
++            doc_type="invoice",
++            processed_at=datetime.now(timezone.utc),
++            extraction_method="manual",
++        )
++        assert dedup.existing_row.model_dump(exclude={"sha256", "processed_at"}) == expected_filed.model_dump(
++            exclude={"sha256", "processed_at"}
++        )
++
+     def test_missing_sibling_pdf_returns_failure(
+         self,
+         settings: DocSettings,

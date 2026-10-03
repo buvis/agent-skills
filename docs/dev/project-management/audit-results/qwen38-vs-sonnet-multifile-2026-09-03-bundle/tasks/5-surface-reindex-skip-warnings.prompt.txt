@@ -1,0 +1,31 @@
+- [ ] Capture the `RebuildReport` in `ensure_fresh` and merge its skip warnings into the verb `AppOutput.warnings` via the facade; add a `warnings` field to the FFI `RebuildReport` record (`ddb-core/src/ffi/records.rs:173-177`) (depends on: mapping) - Acceptance: after a poison file lands, a create AND a search both succeed and each carries a skip `AppWarning`; the warning reaches CLI stderr (`write_warnings`) and the GraphQL warnings extension (`forward_warnings`); the FFI reindex report exposes the skip.
+
+You are working in the repository root: the current working directory.
+Files to edit (paths relative to it):
+- ddb-core/src/service/create.rs
+- ddb-core/src/service/update.rs
+- ddb-core/src/service/schema_apply.rs
+- ddb-core/src/service/mod.rs
+- ddb-core/src/ffi/records.rs
+- ddb-core/src/ffi/driver.rs
+- ddb-core/src/ffi/mod.rs
+- ddb-core/src/ddb.udl
+- ddb-cli/src/commands/crud.rs
+- ddb-core/src/service/mock_index_tests.rs
+- ddb-core/src/ffi/tests.rs
+
+Names the acceptance gate binds to (use these exact identifiers, signatures,
+literals and values):
+- none beyond the ledger line - the FFI `RebuildReport` record's new field is
+  called `warnings` (named in the ledger line) and its entries carry `code` and
+  `message`, which `AppWarning` already models in the tree. The record type
+  behind those entries is never named by the gate, so it may be called anything.
+- Everything else the gate reads already exists in the tree:
+  `crate::app_contract::REINDEX_SKIPPED_FILES`, `summarize_reindex_warnings`,
+  `describe_consistency_warning`, `describe_consistency_warning_code`,
+  `ConsistencyWarning` with its stable code string `"MALFORMED_YAML"`, the core
+  `RebuildReport` with its `warnings: Vec<ConsistencyWarning>` field,
+  `IndexPort::rebuild_if_stale -> Result<Option<RebuildReport>>`,
+  `DoogatDriver::reindex`, and the summarising suffix `"more, see ddb doctor"`.
+
+Edit only inside this repository. Do not commit.

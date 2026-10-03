@@ -125,7 +125,7 @@ def test_render_yield_ends_with_how_to_proceed_line_naming_the_audit_results_dir
 
     last_line = result.rstrip("\n").splitlines()[-1]
     assert last_line.startswith("How to proceed:")
-    assert "dev/local/audit-results/" in last_line
+    assert "docs/dev/project-management/audit-results/" in last_line
 
 
 _DISTIL_LABELS = ["proposals", "discards", "new_vs_update", "skipped_by_limit", "dedup_errors"]
@@ -243,7 +243,7 @@ def test_render_yield_joins_a_populated_new_vs_update_pair_with_a_slash(pair, ex
 def test_render_yield_names_no_proposals_path_when_the_distil_stage_did_not_run():
     """A five-key caller ran no distil stage, so there is no published
     proposals directory for the paragraph to point at. It used to name a fixed
-    `dev/local/audit-results/proposals/` here whatever the run did - a
+    `docs/dev/project-management/audit-results/proposals/` here whatever the run did - a
     directory nothing ever creates, so a reader who follows the report finds
     nothing. The report destination is still named, because that file was
     written, but no path-shaped token may claim a proposals directory.
@@ -258,6 +258,6 @@ def test_render_yield_names_no_proposals_path_when_the_distil_stage_did_not_run(
     assert len(how_to_proceed) == 1
     line = how_to_proceed[0]
     path_tokens = {token.strip(".,;:()'\"") for token in line.split() if "/" in token}
-    assert any("dev/local/audit-results" in token for token in path_tokens)
+    assert any("docs/dev/project-management/audit-results" in token for token in path_tokens)
     assert [token for token in path_tokens if "proposal" in token.lower()] == []
     assert "audit-results/proposals" not in result

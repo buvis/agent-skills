@@ -1,0 +1,18 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "FIX — The fresh-clone promise is still false for the brief-portfolio Tests block: `test:browser` runs without an executable Chromium-install step; the trailing `npx playwright install chromium` is only a comment, and the lockfile shows Playwright has no install script. Insert `npm --prefix ~/.agents/skills/brief-portfolio/app exec -- playwright install chromium` before `test:browser`.",
+    "file": "skills/brief-portfolio/SKILL.md:137",
+    "reason": "Out of PRD scope, verified against the files. PRD 00022 covers the npm MODULE install (the ERR_MODULE_NOT_FOUND / jsdom failure); `test:browser` needs a browser BINARY, a different concern. Verified: `app/package.json` defines `test` (`node --test src/lib/derive.test.js smoke.test.js smoke.a11y.test.js`) and `test:browser` (`playwright test`) as separate scripts, so the PRD's contract command `npm --prefix ... test` is unaffected, and CI runs only `test` (the four `npm --prefix skills/` lines, ci.yml:120-129). The `test:browser` line already documents its own remedy inline on the same line as a ONE-TIME step (`# ... once: npx playwright install chromium`). Bob's proposed fix would make every Tests run attempt a ~150MB chromium download, which is worse for the reader than the existing 'once' note. The PRD's own Test Strategy edge case is about node_modules and ERR_MODULE_NOT_FOUND, which is satisfied."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: VERIFY — run the node job's four npm commands on a clean Node 24 Ubuntu checkout and confirm every command exits 0; runtime execution was prohibited.",
+    "file": ".github/workflows/ci.yml:118",
+    "reason": "Not a defect: this is the sandbox-limitation line `agents/bob.md` mandates for any criterion needing runtime verification, emitted because codex cannot execute commands. It is answered by the other three lenses, which each ran both suites from the repo root at this HEAD (portfolio 44/44, debrief 48/48, both exit 0), and by the work phase's recorded verification at the same sha. The residual part it names, behavior on a hosted Node 24 Ubuntu runner, cannot be checked locally by any command and is explicitly assigned to human follow-up by the PRD's own Risks section: 'read the first GitHub Actions run after merge and open a separate PRD for anything that only appears on a hosted runner. Nothing here is gated on that run.' Not queued as a verification check: it names no single runnable local command."
+  }
+]

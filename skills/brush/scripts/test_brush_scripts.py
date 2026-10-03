@@ -37,7 +37,7 @@ def repo(tmp_path: Path) -> Path:
 
 
 @pytest.mark.parametrize("rel,expected", [
-    ("dev/local/tmp/x.bin", "devlocal"),
+    ("docs/dev/tmp/x.bin", "development"),
     (".env.local", "secret"),
     ("a/__pycache__/m.pyc", "junk-dir"),
     (".DS_Store", "os-junk"),
@@ -115,12 +115,12 @@ def test_veto_doc_suffix(repo: Path) -> None:
     assert "documentation" in _veto(repo, "notes.md")
 
 
-def test_veto_devlocal_protected(repo: Path) -> None:
-    p = repo / "dev/local/keep.bin"
+def test_veto_development_paths_protected(repo: Path) -> None:
+    p = repo / "docs/dev/project-management/keep.bin"
     p.parent.mkdir(parents=True)
     p.write_text("k")
     os.utime(p, (OLD, OLD))
-    assert "protected" in _veto(repo, "dev/local/keep.bin")
+    assert "protected" in _veto(repo, "docs/dev/project-management/keep.bin")
 
 
 def test_veto_fresh_file(repo: Path) -> None:
@@ -141,7 +141,7 @@ def test_relocate_writes_manifest_row(repo: Path) -> None:
     trash_rel = tu.relocate(repo, "old_junk.log", date)
     tu.note_manifest(repo, date, "brush-junk", "old_junk.log", trash_rel)
     assert (repo / trash_rel).is_file()
-    row = (repo / "dev/local/.trash/manifest.tsv").read_text().strip().split("\t")
+    row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
     assert row == [date, "brush-junk", "old_junk.log", trash_rel]
 
 
@@ -158,20 +158,20 @@ def test_tracked_junk_pathspec_finds_nested(repo: Path) -> None:
     assert "charts/sub/.DS_Store" in out.split("\0")
 
 
-def test_veto_devlocal_protected_through_a_dotdot_segment(repo: Path) -> None:
-    p = repo / "dev/local/keep.bin"
+def test_veto_development_paths_through_a_dotdot_segment(repo: Path) -> None:
+    p = repo / "docs/dev/project-management/keep.bin"
     p.parent.mkdir(parents=True)
     p.write_text("k")
     os.utime(p, (OLD, OLD))
     (repo / "sub").mkdir()
 
-    assert "protected" in _veto(repo, "sub/../dev/local/keep.bin")
+    assert "protected" in _veto(repo, "sub/../docs/dev/project-management/keep.bin")
 
 
 def test_main_refuses_a_protected_path_spelled_through_dotdot(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
-    p = repo / "dev/local/keep.bin"
+    p = repo / "docs/dev/project-management/keep.bin"
     p.parent.mkdir(parents=True)
     p.write_text("k")
     os.utime(p, (OLD, OLD))
@@ -180,14 +180,14 @@ def test_main_refuses_a_protected_path_spelled_through_dotdot(
     monkeypatch.setattr(
         "sys.argv",
         ["trash_untracked.py", "--repo", str(repo),
-         "sub/../dev/local/keep.bin"])
+         "sub/../docs/dev/project-management/keep.bin"])
     tu.main()
     out = json.loads(capsys.readouterr().out)
 
     assert out["moved"] == []
     assert out["refused"] == [{
-        "path": "dev/local/keep.bin",
-        "reason": "protected path (dev/local, docs, .git)",
+        "path": "docs/dev/project-management/keep.bin",
+        "reason": "protected path (docs/dev/project-management, docs, .git)",
     }]
     assert p.exists()
 
@@ -203,7 +203,7 @@ def test_manifest_row_names_the_file_that_was_moved(
         ["trash_untracked.py", "--repo", str(repo), "sub/../old_junk.log"])
     tu.main()
 
-    row = (repo / "dev/local/.trash/manifest.tsv").read_text().strip().split("\t")
+    row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
     assert row[2] == "old_junk.log"
     assert (repo / row[3]).is_file()
 
@@ -238,10 +238,10 @@ def test_an_untracked_nested_file_of_the_same_shape_is_permitted(
 
 
 @pytest.mark.parametrize("parts", [
-    ("dev", "local", "keep.bin"),
+    ("docs", "dev", "project-management", "keep.bin"),
     ("docs", "keep.bin"),
     (".git", "keep.bin"),
-    ("dev", "local", "old_junk.log"),
+    ("docs", "dev", "tmp", "old_junk.log"),
     ("docs", "old_junk.log"),
 ])
 def test_veto_refuses_each_protected_prefix_by_slash_form_identity(
@@ -281,7 +281,9 @@ def test_normalise_rel_reads_a_backslash_as_a_separator_only_on_nt(
     """Windows spells a separator there; POSIX spells a name character."""
     monkeypatch.setattr(tu.os, "name", "nt")
 
-    assert tu.normalise_rel(r"dev\local\keep.bin") == "dev/local/keep.bin"
+    assert tu.normalise_rel(
+        r"docs\dev\project-management\keep.bin"
+    ) == "docs/dev/project-management/keep.bin"
     assert tu.normalise_rel(r"sub\..\old_junk.log") == "old_junk.log"
 
     monkeypatch.setattr(tu.os, "name", "posix")
@@ -292,18 +294,20 @@ def test_normalise_rel_reads_a_backslash_as_a_separator_only_on_nt(
 
 def test_normalise_rel_resolves_dot_and_dotdot_to_the_plain_name() -> None:
     assert tu.normalise_rel(
-        "sub/../dev/local/keep.bin") == "dev/local/keep.bin"
+        "sub/../docs/dev/project-management/keep.bin") == "docs/dev/project-management/keep.bin"
     assert tu.normalise_rel("./sub/./../old_junk.log") == "old_junk.log"
 
 
 def test_main_refuses_a_protected_path_that_contains_spaces(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
-    p = repo / "dev" / "local" / "keep me" / "notes copy.bin"
+    p = repo / "docs" / "dev" / "project-management" / "keep me" / "notes copy.bin"
     p.parent.mkdir(parents=True)
     p.write_text("k")
     os.utime(p, (OLD, OLD))
-    spelled = str(Path("dev") / "local" / "keep me" / "notes copy.bin")
+    spelled = str(
+        Path("docs") / "dev" / "project-management" / "keep me" / "notes copy.bin"
+    )
 
     monkeypatch.setattr(
         "sys.argv",
@@ -313,8 +317,8 @@ def test_main_refuses_a_protected_path_that_contains_spaces(
 
     assert out["moved"] == []
     assert out["refused"] == [{
-        "path": "dev/local/keep me/notes copy.bin",
-        "reason": "protected path (dev/local, docs, .git)",
+        "path": "docs/dev/project-management/keep me/notes copy.bin",
+        "reason": "protected path (docs/dev/project-management, docs, .git)",
     }]
     assert p.exists()
 
@@ -336,12 +340,12 @@ def test_main_reports_one_identity_for_a_moved_path_with_spaces(
     tu.main()
     out = json.loads(capsys.readouterr().out)
 
-    row = (repo / "dev/local/.trash/manifest.tsv").read_text().strip().split("\t")
+    row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
     assert out["refused"] == []
     assert out["moved"] == [{"path": "old logs/run one.log",
                              "trash": row[3]}]
     assert row[2] == "old logs/run one.log"
-    assert row[3].startswith("dev/local/.trash/")
+    assert row[3].startswith("docs/dev/tmp/.trash/")
     assert (repo / row[3]).is_file()
     assert not p.exists()
 
@@ -422,7 +426,7 @@ def test_as_git_rel_spells_a_path_the_way_git_ls_files_prints_it(
 
 @pytest.mark.parametrize("os_name", ["nt", "posix"])
 @pytest.mark.parametrize("rel", [
-    "dev/local/",
+    "docs/dev/project-management/",
     ".",
     "../old_junk.log",
     "sub/../../old_junk.log",

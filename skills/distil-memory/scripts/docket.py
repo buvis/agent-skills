@@ -16,11 +16,11 @@ class QueueError(ValueError):
 
 
 def _report_dir() -> Path:
-    """dev/local/audit-results under the nearest ancestor of the cwd that
+    """docs/dev/project-management/audit-results under the nearest ancestor of the cwd that
     contains a .git entry, falling back to the cwd itself when none do."""
     cwd = Path.cwd()
     root = next((p for p in (cwd, *cwd.parents) if (p / ".git").exists()), cwd)
-    return root / "dev" / "local" / "audit-results"
+    return root / "docs" / "dev" / "project-management" / "audit-results"
 
 
 def _resolve_path(path) -> Path:

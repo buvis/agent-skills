@@ -2,9 +2,9 @@
 
 Prime rule: **untracked does not mean disposable.** Default for any untracked
 path is KEEP. Only the narrow junk classes below ever become candidates;
-class `other` is never touched, only counted. `dev/local` is important
-local-only support material: brush never hand-cleans it, only purge-devlocal's
-coded rules may move anything there.
+class `other` is never touched, only counted. Tracked
+`docs/dev/project-management/` records are never cleanup targets;
+`purge-devtmp` owns temporary assets under `docs/dev/tmp/`.
 
 Safety taxonomy. Every candidate action falls in exactly one class:
 
@@ -26,19 +26,19 @@ Safety taxonomy. Every candidate action falls in exactly one class:
 | append `.gitignore` gaps | `gitignore_missing` from facts | `git revert` |
 | `git rm --cached` + ignore | facts `tracked_junk` (os-junk, `*.pyc`) | `git revert` |
 | `git maintenance run --auto` | always | none needed |
-| purge-devlocal skill (dry, sanity-check, apply) | dev/local exists | its own manifest |
+| purge-devtmp skill (dry, sanity-check, apply) | docs/dev/tmp exists | its own manifest |
 
 ## Phase-2 order (facts go stale)
 
 1. `git fetch --prune` (and `git fetch upstream` when that remote exists).
 2. Re-run collect_facts in full: `[gone]`, merged, and upstream state are
    fetch-dependent, so the preflight JSON is stale for ref decisions.
-3. Gitignore fixes: ensure `dev/local/` is ignored BEFORE the first trash
+3. Gitignore fixes: ensure `docs/dev/tmp/` is ignored BEFORE the first trash
    move ever creates it.
 4. Trash moves; then worktree removals and `git worktree prune` (run from
    the main root; a branch checked out in any worktree refuses deletion);
    then branch deletions; then `git maintenance run --auto`; then
-   purge-devlocal.
+   purge-devtmp.
 5. Commit tracked fixes only while on the default branch; on any other
    branch queue them as BR-items (keeps feature-PR diffs clean).
 
@@ -72,7 +72,7 @@ Safety taxonomy. Every candidate action falls in exactly one class:
 report counts unpushed commits), tag deletion, `git gc --aggressive`
 (disruptive; maintenance covers it), touching dirty tracked files, stashing or
 staging user WIP, docs (`*.md`, `*.rst`, `*.txt`, `docs/`, README, LICENSE,
-CHANGELOG), anything under `dev/local/` (purge-devlocal owns it), `.env*` and
+CHANGELOG), anything under `docs/dev/project-management/`, `.env*` and
 key material.
 
 ## Guards (apply to every candidate)
@@ -82,7 +82,7 @@ key material.
 - Current and default branch: untouchable. Default branch detection is master-first per house rule.
 - Detached HEAD in the main worktree: skip every branch action; flag it in the report as leftover state.
 - Heavy dirs (node_modules, target, dist, build, venv): never moved; the fix is a `.gitignore` entry only.
-- dev/local content: owned by purge-devlocal; brush never hand-cleans it.
+- docs/dev/project-management content: tracked work management; never hand-clean it.
 - Apply mode re-verifies each item's recorded sha/path before executing; mismatch means the repo moved on: mark STALE, skip, note.
 
 Junk patterns live in `scripts/collect_facts.py` (code is the source of truth); this file owns only the action classes.

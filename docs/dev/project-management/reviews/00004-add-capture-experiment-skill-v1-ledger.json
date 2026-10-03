@@ -1,0 +1,74 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "note-template.md/SKILL.md frontmatter is not verbatim with digest-github-repo's current dialect: digest-github-repo/references/output-templates.md (pre-existing, unchanged since the repo's first commit) carries a live `id: <zettelkasten-id>` field that capture-experiment's six-field copy omits, and no re-check or reported difference exists anywhere (per the Phase 0 task's explicit \"re-check at execution... report the difference\" instruction).",
+    "file": "skills/capture-experiment/assets/note-template.md",
+    "reason": "Deferred to batch end as a requirements ambiguity, verified at the gate. The PRD's binding acceptance criterion says the template's frontmatter fields are 'exactly' title/date/tags/type/publish/processed, and the reuse source the task names (digest-github-repo/SKILL.md step 5 field guide) lists exactly those six with no id. digest-github-repo's own references/output-templates.md does carry id (plus a digest-specific repo: field), so the two authorities inside digest-github-repo disagree and the PRD inherits that. The implementation matches the acceptance criterion and the named source exactly; adding id would violate the literal acceptance criterion. This is a spec decision for the human, not an implementation defect."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Behavioral regression coverage is limited to the reported happy-path fixture; no retained test covers no-title, missing-vault, compacted-window, or no-dead-end behavior.",
+    "file": "N/A",
+    "reason": "Bob raised this in his own KNOWN bucket with an out-of-scope justification. Docs-only PRD delivering a skill body; asserting these behaviors needs a model-behavior evaluation harness, which is cross-cutting and outside this PRD."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Cannot statically verify: the test suite, create-skill validator, and braid checks passed for this change.",
+    "file": "N/A",
+    "reason": "Not a defect - Bob's codex sandbox blocks execution, so he correctly emitted the prescribed 'Cannot statically verify' line. The gate ran his named checks directly: `uv run pytest -q` gave 422 passed / 5 skipped / 0 failed (the 5 skips pre-existing and unrelated, needing the optional tree_sitter_language_pack), and the create-skill validator returned '[OK] Skill is valid!'. `braid --check` could not be run because warden blocks the binary in this session; that one check is recorded as unverified in the review file rather than claimed green."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "PRD is still parked in dev/local/prds/wip/ rather than moved to done/, despite the implementation appearing verified-complete per the user's own workflow rule",
+    "file": "dev/local/prds/wip/00004-add-capture-experiment-skill-v1.md",
+    "reason": "Verified non-defect. The PRD sits in wip/ precisely because the autopilot done gate (Phase 9) has not run yet - moving wip/ to done/ IS a Phase 9 step, executed after the review-rework loop closes. Blake is blind to the orchestration state by design, so he read normal mid-run lifecycle state as a process lapse. Nothing in the implementation is wrong and no code change is implied."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "Title handling remains incomplete: YAML double-quoted scalars also require backslashes to be escaped, and the instruction applies YAML escaping to the Markdown heading too. Preserve a normalized plain title for the heading and YAML-escape both backslashes and quotes only for frontmatter.",
+    "file": "skills/capture-experiment/SKILL.md:83",
+    "reason": "Cycle 2 is the rework cap (rework_cap: 2). Raised by ALICE and BOB at 2/4 consensus and confirmed real (Alice reproduced the ScannerError with PyYAML), but the cap is reached, so it is deferred to batch end as a cap-overflow rather than reworked. The cycle-1 fix it extends did land and did close the reported colon-space and embedded-quote cases; this is the residual backslash case plus the heading-escaping overreach."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Title-escaping fix only covers embedded double quotes, not backslashes — a title containing a literal `\\` (e.g. a Windows path or regex in the title) still produces an invalid double-quoted YAML scalar, verified with PyYAML (`ScannerError`).",
+    "file": "skills/capture-experiment/SKILL.md",
+    "reason": "Cycle 2 cap-overflow. Same defect area as the high finding above; deferred to batch end with it."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "“Advance to the next free second” is ambiguous timestamp arithmetic and may produce an invalid ID such as `...5960`, violating the pinned `date`-generated ID scheme. Require waiting for the clock to advance, rerunning `date +%Y%m%d%H%M%S`, and repeating the existence check.",
+    "file": "skills/capture-experiment/SKILL.md:112",
+    "reason": "Cycle 2 cap-overflow. Real wording weakness in the cycle-1 collision fix, deferred to batch end rather than reworked past the cap."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "The new dependency fallback prose repeatedly states “not invoked,” “nothing changes,” “capture proceeds,” and “not a runtime dependency.” Collapse each entry to one explicit absence sentence while preserving the required fallback behavior.",
+    "file": "skills/capture-experiment/SKILL.md:16",
+    "reason": "Cycle 2 cap-overflow. A de-slop wording finding, not a behavior defect; the required absence behavior is stated. Deferred to batch end."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Fixture note's title is unquoted YAML (`title: Reduce polling interval on sensor loop`) though the template mandates a quoted scalar (`title: \"<experiment title>\"`) and SKILL.md explicitly calls out quoting/escaping; harmless here since the title has no special characters, but the fixture output didn't follow the stated convention it was meant to demonstrate",
+    "file": "dev/local/tmp/20260829200518.md",
+    "reason": "Cycle 2 cap-overflow. The fixture was written by task 4 before task 5's quoting fix landed, and it is an untracked dev/local artifact rather than a shipped deliverable; its own acceptance criteria do not require a quoted title and the value parses as valid YAML. Deferred to batch end."
+  }
+]

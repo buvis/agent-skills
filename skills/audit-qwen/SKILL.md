@@ -1,7 +1,7 @@
 ---
 name: audit-qwen
 description: Use when producing the qwen utilization report card - dispatch rate, preflight/exclusion histograms, gate pass rate, and a WIDEN/NARROW/HOLD fence verdict from batch telemetry. Triggers on "audit qwen", "qwen report card", "qwen utilization".
-compatibility: "Portable; a stdlib-only read-only sweep needing python3, and gita for repo discovery. Telemetry is read per repo under dev/local/autopilot, so it reports on any repo an autopilot-style loop has run in."
+compatibility: "Portable; a stdlib-only read-only sweep needing python3, and gita for repo discovery. Telemetry is read per repo under docs/dev/project-management/autopilot, so it reports on any repo an autopilot-style loop has run in."
 ---
 
 # Audit Qwen
@@ -12,7 +12,7 @@ One deterministic script computes every number; the model only narrates.
 
 - Script: `scripts/audit_qwen.py` (stdlib-only, read-only sweep).
 - CLI: `gita` (repo discovery; falls back to the working directory with a loud
-  note). A config directory carrying its own `dev/local/autopilot` joins the
+  note). A config directory carrying its own `docs/dev/project-management/autopilot` joins the
   scan either way.
 - Data owned elsewhere, parse targets pinned in the script's constants block:
   `run-autopilot/cli/render_report.py` + `cli/golden/expected/report-section.md`
@@ -26,7 +26,7 @@ python3 ~/.agents/skills/audit-qwen/scripts/audit_qwen.py
 ```
 
 Optional: `--repo PATH` (repeatable) restricts the scan; `--output FILE`
-writes the card to a file (use `dev/local/audit-results/` when the user
+writes the card to a file (use `docs/dev/project-management/audit-results/` when the user
 wants it kept).
 
 ## Step 2: Show the card verbatim

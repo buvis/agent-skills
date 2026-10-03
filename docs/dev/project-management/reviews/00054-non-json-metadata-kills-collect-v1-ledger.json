@@ -1,0 +1,18 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "[MECH] `test_collect_repo_records_meta_http_403_without_raising` passes against the pre-change code; it is the PRD-required 403 control (\"existing 403 path is unchanged\"), so passing at base is its purpose, not a gap",
+    "file": "skills/brief-portfolio/scripts/test_collect_repo.py:154",
+    "reason": "The PRD acceptance criterion explicitly asks for an HTTP-403 control that preserves today's `meta:` error behavior; a control pins unchanged behavior and passes on both sides of the change by design. It would fail if RuntimeError left the except tuple, so it is not tautological. Alice, Bob (KNOWN bucket) and the shadow rubric lane (R2) concur."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Catching `AttributeError` at the call site is broader than the failure it targets, and the empty-body row reads `meta: 'NoneType' object has no attribute 'get'`, which tells the digest reader nothing about an empty gh body; the PRD chose symptom-at-one-site over normalising `gh_json`",
+    "file": "skills/brief-portfolio/scripts/collect.py:406",
+    "reason": "Settled by the PRD's Solution section: the symptom-at-one-site option was chosen over normalising inside `gh_json` because `collect_ci` reads RuntimeError as 'Actions disabled' and PRD 00056 owns that branch. The recorded text is `gh_json`'s own exception text, which this PRD forbids changing; nothing is swallowed (the entry lands in `errors` and main prints a WARN line). Bob filed it under KNOWN with the same justification."
+  }
+]

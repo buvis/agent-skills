@@ -68,7 +68,7 @@ cannot evaluate (insufficient context, blocked by sandbox, etc.) counts as a
 > `[{AGENT}] {emoji} ... | File: ... | Task: ...` issue format and silently
 > drops everything else. So `R`/`B`/`D` verdict lines do NOT survive
 > consolidation into the findings table — they live only in the raw
-> per-agent output files at `dev/local/tmp/{agent}-output-{id}.txt` (the
+> per-agent output files at `docs/dev/tmp/{agent}-output-{id}.txt` (the
 > location SKILL.md step 6 saves them to). Step 6 reads the doubt lens's
 > verdict lines from those raw outputs (into `state.doubts_rubric_verdicts`
 > on autopilot runs), and Bob's section in the saved review file keeps them.
@@ -162,13 +162,13 @@ When consolidation yields no issues:
 
 ## Review File Format
 
-Location: `dev/local/reviews/<prd-filename-without-ext>-review-<NN>.md`
+Location: `docs/dev/project-management/reviews/<prd-filename-without-ext>-review-<NN>.md`
 
 Example: PRD `00004-exchanger-web-ui-v1.md` → review `00004-exchanger-web-ui-v1-review-01.md`
 
 ```yaml
 ---
-prd: dev/local/prds/wip/<prd-filename>
+prd: docs/dev/project-management/prds/wip/<prd-filename>
 review: 1
 date: YYYY-MM-DD
 head_sha: <git HEAD sha at review time>

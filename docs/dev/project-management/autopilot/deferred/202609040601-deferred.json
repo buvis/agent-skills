@@ -1,0 +1,109 @@
+{
+  "batch_id": "202609040601",
+  "walked": {
+    "on": "2026-09-05",
+    "by": "human, interactive, alongside the agoge-2026-09-05 walkthrough",
+    "minutes": "dev/local/audit-results/agoge-2026-09-05.md, section 'Minutes'"
+  },
+  "items": [
+    {
+      "type": "deferred_decision",
+      "issue": "PRD Success Criteria states the suite should report 18 passing tests, up from 16; the actual run reports 20 passing, 0 failing. Two extra regression tests for task 2 (the render url option) were added beyond the ones named in the acceptance criteria.",
+      "severity": "medium",
+      "cycle": 1,
+      "consensus": "2/3",
+      "reason": "Reaching 18 would mean deleting passing regression coverage that pins the task 2 contract. The suite is green at 20 passed / 0 failed. Deferred for a human call on amending the criterion. Full text and rationale in dev/local/reviews/00019-storage-failure-blanks-page-v1-ledger.json",
+      "prd": "00019-storage-failure-blanks-page-v1.md",
+      "decision": "accepted",
+      "resolution": "post-completion note appended to done PRD 00019; create-prd gained a metric rule forbidding pinned suite totals (commit on master, 2026-09-05)"
+    },
+    {
+      "type": "out-of-scope",
+      "issue": "smoke.test.js is now 785 lines, close to the 800-line file ceiling in rules/coding-style.md, after this diff added 38 lines. Splitting it is a refactor beyond this PRD surgical diff.",
+      "severity": "low",
+      "consensus": "1/3",
+      "file": "skills/brief-portfolio/app/smoke.test.js",
+      "reason": "out of scope for PRD 00026 - splitting the file touches lines unrelated to the CI wall change; raise it as its own PRD before the next lane PRD extends the file further",
+      "prd": "00026-ci-wall-blank-empty-state-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00053-split-oversized-brief-suites-v1 emitted to backlog; drains before the brief-portfolio agoge PRDs 00054-00069"
+    },
+    {
+      "type": "preexisting-suite-failure",
+      "issue": "uv run pytest fails 1 of 1010 tests: skills/distil-memory/scripts/test_proposal.py::test_validate_accepts_every_memory_file_in_the_calibration_corpus. The corpus file /Users/bob/.claude/projects/-Users-bob--claude/memory/project_gemini_copilot_reenabled.md has an unquoted colon in its description value, so its frontmatter is not valid YAML. The file lives outside this repo and predates this batch (dated 2026-09-03); no PRD 00026 commit touches distil-memory.",
+      "severity": "medium",
+      "file": "skills/distil-memory/scripts/test_proposal.py",
+      "reason": "Pre-existing host-environment failure, not a PRD 00026 regression - the offending input is a hand-written memory file outside the repo. Fixing it means quoting the description value in that memory file, which is out of scope for this PRD and outside the unattended write fence. Recorded so the red suite is visible at batch end rather than lost.",
+      "prd": "00026-ci-wall-blank-empty-state-v1.md",
+      "decision": "accepted",
+      "resolution": "description value double-quoted in the memory file on 2026-09-05; skills/distil-memory/scripts/test_proposal.py reports 116 passed"
+    },
+    {
+      "type": "settled-deferral",
+      "issue": "skills/brief-portfolio/scripts/test_collect.py (951 lines) and skills/brief-portfolio/app/smoke.test.js (835 lines) exceed the 800-line file-size guideline; both were already over before PRD 00028 (911 and 814) and its regression tests push them further over",
+      "severity": "low",
+      "consensus": "2/3",
+      "reason": "Pre-existing overrun; splitting either suite is an unrelated refactor of legacy tests, out of scope per the surgical-changes rule. Raised independently by Alice and Bob (Bob filed it in his KNOWN bucket with the same justification). Worth a future cleanup PRD.",
+      "prd": "00028-history-records-fabricated-zeros-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00053-split-oversized-brief-suites-v1 covers both files"
+    },
+    {
+      "type": "requirements-ambiguity",
+      "issue": "PRD acceptance/success criteria demand \"16 passing tests and 0 failing\" but the suite reports 41 passing, both before and after this change; the bar was already stale at cc39e7e~1 and no change in this diff could satisfy it.",
+      "severity": "medium",
+      "consensus": "1/3",
+      "cycle": 1,
+      "reason": "PRD text defect, not a code defect. Blake verified the baseline was stale before this PRD began; the work phase recorded it in dev/local/meta/assumptions.md. Editing the success metric now would rewrite the spec to match the build. Same disposition as PRD 00026 cycle 1.",
+      "prd": "00033-smoke-sleep-becomes-poll-v1.md",
+      "decision": "accepted",
+      "resolution": "post-completion note appended to done PRD 00033; create-prd metric rule"
+    },
+    {
+      "type": "out-of-scope",
+      "issue": "skills/brief-portfolio/app/smoke.test.js is 849 lines, past the 800-line guideline; it was already 835 before this diff and grew by 14 with no split.",
+      "severity": "low",
+      "consensus": "2/3",
+      "cycle": 1,
+      "reason": "Pre-existing and out of scope for PRD 00033. Splitting the suite would touch lines unrelated to the polling change, which the surgical-changes rule forbids; Bob filed it as KNOWN with his own out-of-scope justification. PRD 00026 deferred the same file at 785 lines - it has now crossed the ceiling, so raise it as its own PRD.",
+      "prd": "00033-smoke-sleep-becomes-poll-v1.md",
+      "decision": "accepted",
+      "resolution": "PRD 00053-split-oversized-brief-suites-v1"
+    },
+    {
+      "type": "assumed-ambiguity",
+      "issue": "PRD success criterion \"the suite total drops below 2050ms from 2090ms\" is not met: the suite is now 44 tests / ~4543ms, dominated by an unrelated real-time-sleeping test this PRD never touched. The 2090ms baseline was measured against a 16-test suite that no longer exists.",
+      "severity": "high",
+      "consensus": "1/3",
+      "cycle": 2,
+      "reason": "Stale success metric, same class as the already-settled \"16 passing tests\" bar. The criterion this PRD actually governs - its own test under 1600ms - is met (1617ms to ~1524ms). Fixing the suite total means rewriting an unrelated test another PRD owns. The 2221ms sleeping test is the real target and belongs in its own PRD.",
+      "prd": "00033-smoke-sleep-becomes-poll-v1.md",
+      "decision": "accepted",
+      "resolution": "stale criterion: post-completion note on done PRD 00033; the 2.2 s sleeping test: PRD 00069-announcement-window-injectable-v1 emitted to backlog"
+    },
+    {
+      "type": "assumed-ambiguity",
+      "issue": "PRD must-have is self-contradictory: it names the signature waitFor(predicate, { timeout = 3000, interval = 25 }) while the same sentence requires the helper to await flush(). flush is a per-render closure, so a module-level helper cannot reach it unless it is passed in.",
+      "severity": "medium",
+      "consensus": "1/3",
+      "cycle": 2,
+      "reason": "Resolved by the simplest safe assumption: the flush clause wins, since a poller that never flushes fails the PRDs stated purpose, while one extra optional option breaks nothing. Both documented defaults survive unchanged. The PRD text should be corrected to name the flush option, rather than the code changed back.",
+      "prd": "00033-smoke-sleep-becomes-poll-v1.md",
+      "decision": "accepted",
+      "resolution": "post-completion note on done PRD 00033 names the { timeout, interval, flush } option; code unchanged"
+    },
+    {
+      "type": "deferred_decision",
+      "original_type": "review-finding",
+      "issue": "Commit a5d9c48 is conventionally typed fix(brief-portfolio) but touches only test code with no user-visible effect; no CHANGELOG.md entry accompanies it.",
+      "severity": "low",
+      "consensus": "1/3",
+      "file": "CHANGELOG.md",
+      "cycle": 3,
+      "prd": "00033-smoke-sleep-becomes-poll-v1.md",
+      "reason": "Not actionable as raised. The PRD is explicitly test-only (no production source changes), and rules/changelog.md exempts test commits from a CHANGELOG entry - so adding one would break the rule the finding invokes. The real defect is the commit type on a landed commit (fix where test was correct), correctable only by rewriting history, which needs force-push approval and is unrelated to this PRD. Deferred to batch end.",
+      "decision": "rejected",
+      "resolution": "left as is, no CHANGELOG bullet; master is published, so a reword would need a force push (agoge-2026-09-05 finding 18, same decision)"
+    }
+  ]
+}

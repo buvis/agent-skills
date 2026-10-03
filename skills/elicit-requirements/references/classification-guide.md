@@ -40,7 +40,7 @@ Is the solution obvious, or are there competing approaches?
 
 | Score | Signal | Example |
 |-------|--------|---------|
-| Low | Obvious solution, no real alternatives | "Add a .gitignore entry for dev/local/" |
+| Low | Obvious solution, no real alternatives | "Add a .gitignore entry for docs/dev/project-management/" |
 | Medium | 2-3 viable approaches, tradeoffs are clear | "Monitor CI status - poll vs webhook vs GitHub Actions API" |
 | High | Research needed, architectural implications, or no clear best path | "Integrate external development framework concepts into our pipeline" |
 

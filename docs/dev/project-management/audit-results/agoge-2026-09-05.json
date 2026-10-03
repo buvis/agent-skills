@@ -1,0 +1,218 @@
+{
+  "fixture": "agent-skills-lane-brief",
+  "target": "/Users/bob/git/src/github.com/buvis/agent-skills-lane-brief",
+  "head": "4a96fb5f0cc19d2e57a2d53c4685c1ca5d4e41e0",
+  "date": "2026-09-05",
+  "authorization": {"route": "invocation", "source": "autoclaude-drain"},
+  "lanes": {
+    "walter": {"armed": true, "verified": 2, "unverified": 0, "mocked": 2, "skipped": 0},
+    "heidi": {"armed": true, "verified": 2, "unverified": 0, "mocked": 6, "skipped": 0},
+    "judy": {"armed": false, "reason": "no @playwright/test resolvable from the app's node_modules, no serve script", "verified": 0, "unverified": 0, "mocked": 0, "skipped": 0, "lane_status": "skipped"},
+    "wendy": {"armed": true, "verified": 6, "unverified": 0, "mocked": 0, "skipped": 0},
+    "peggy": {"armed": true, "verified": 1, "unverified": 0, "mocked": 1, "skipped": 0},
+    "trudy": {"armed": true, "verified": 1, "unverified": 1, "mocked": 4, "skipped": 0}
+  },
+  "authored": {
+    "branch": "agoge/authored-tests-2026-09-05",
+    "commit": "3b43163",
+    "tests": 5,
+    "findings_with_test": [6, 10, 11, 14],
+    "findings_with_existing_test": [13]
+  },
+  "findings": [
+    {
+      "n": 1,
+      "domain": "integration",
+      "severity": "HIGH",
+      "paths": ["skills/brief-portfolio/scripts/collect.py"],
+      "status": "mocked",
+      "title": "One repo answering non-JSON to `gh api repos/<o>/<n>` kills the whole collect and nothing is written"
+    },
+    {
+      "n": 2,
+      "domain": "integration",
+      "severity": "HIGH",
+      "paths": ["skills/brief-portfolio/scripts/collect.py"],
+      "status": "mocked",
+      "title": "One non-string `ts` in skills.jsonl aborts the run after every GitHub call, and the run writes nothing"
+    },
+    {
+      "n": 3,
+      "domain": "integration",
+      "severity": "HIGH",
+      "paths": ["skills/brief-portfolio/scripts/collect.py", "skills/brief-portfolio/app/src/components/Work.svelte"],
+      "status": "mocked",
+      "title": "A failed actions/runs call is reported as \"no CI\" with zero warnings"
+    },
+    {
+      "n": 4,
+      "domain": "security",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/scripts/collect.py", "skills/brief-portfolio/app/src/components/RepoDetail.svelte", "skills/brief-portfolio/app/src/components/Work.svelte", "skills/brief-portfolio/app/src/components/Todos.svelte"],
+      "status": "mocked",
+      "title": "A credential printed by gh/git on stderr is stored in data.json and shown on three page surfaces"
+    },
+    {
+      "n": 5,
+      "domain": "security",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/src/components/Work.svelte", "skills/brief-portfolio/app/src/components/Todos.svelte", "skills/brief-portfolio/app/src/components/Matrix.svelte", "skills/brief-portfolio/app/src/components/RepoDetail.svelte", "skills/brief-portfolio/app/src/lib/derive.js"],
+      "status": "mocked",
+      "title": "Page links take `javascript:` and `data:` URLs verbatim from data.json and epics.json"
+    },
+    {
+      "n": 6,
+      "domain": "integration",
+      "lanes": ["walter", "heidi"],
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/scripts/build.py", "skills/brief-portfolio/SKILL.md"],
+      "status": "verified",
+      "title": "build.py dies with a raw traceback on a torn history.jsonl line, a truncated data.json, or an invalid epics.json"
+    },
+    {
+      "n": 7,
+      "domain": "integration",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/scripts/collect.py"],
+      "status": "mocked",
+      "title": "After a torn history.jsonl line, the next collect appends onto it and loses its own row"
+    },
+    {
+      "n": 8,
+      "domain": "integration",
+      "lanes": ["walter", "heidi"],
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/app/src/components/Brief.svelte", "skills/brief-portfolio/app/src/components/Work.svelte"],
+      "status": "mocked",
+      "title": "Collection failures are invisible on the Brief and Work tabs; failed fetches render as empty lists"
+    },
+    {
+      "n": 9,
+      "domain": "journey",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/scripts/collect.py", "skills/brief-portfolio/app/src/lib/derive.js"],
+      "status": "mocked",
+      "title": "A repo whose GitHub metadata call fails gets \"never brushed\" and \"purge never run\" todos"
+    },
+    {
+      "n": 10,
+      "domain": "journey",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/scripts/collect.py", "skills/brief-portfolio/app/src/components/RepoDetail.svelte", "skills/brief-portfolio/app/src/components/Brief.svelte"],
+      "status": "verified",
+      "title": "Busy repos are reported as exactly \"200 commits\" with no sign of the cap; the Brief headline understates the portfolio by 572 commits"
+    },
+    {
+      "n": 11,
+      "domain": "release",
+      "severity": "MEDIUM",
+      "paths": ["skills/brief-portfolio/SKILL.md", "skills/brief-portfolio/scripts/collect.py"],
+      "status": "verified",
+      "title": "Missing gita registry produces a Python traceback, not the exit message SKILL.md promises"
+    },
+    {
+      "n": 12,
+      "domain": "release",
+      "severity": "MEDIUM",
+      "paths": [".github/workflows/ci.yml", "skills/sweep-fix/scripts/sweep.py", "skills/sweep-fix/scripts/test_sweep_scan.py", "skills/sweep-fix/scripts/test_sweep_resolvers.py"],
+      "status": "verified",
+      "title": "Branch cannot get a green CI check: master's test jobs fail on 21 sweep-fix tests that need rg/ast-grep/mise"
+    },
+    {
+      "n": 13,
+      "domain": "integration",
+      "severity": "LOW",
+      "paths": ["src/agent_skills_braid/cli.py"],
+      "status": "verified",
+      "title": "braid: unwritable state file ends in a bare traceback and (directory case) leaves a temp file behind"
+    },
+    {
+      "n": 14,
+      "domain": "security",
+      "severity": "LOW",
+      "paths": ["src/agent_skills_braid/cli.py"],
+      "status": "verified",
+      "title": "braid follows a symlinked skill directory to a target outside the source tree"
+    },
+    {
+      "n": 15,
+      "domain": "performance",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/scripts/build.py", "skills/brief-portfolio/scripts/collect.py"],
+      "status": "verified",
+      "title": "Every build.py run reads the whole history.jsonl, which collect.py grows forever (no budget stated)"
+    },
+    {
+      "n": 16,
+      "domain": "release",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/SKILL.md", "skills/brief-portfolio/scripts/collect.py"],
+      "status": "verified",
+      "title": "`compatibility:` frontmatter names gita, which the code never runs, and omits gh"
+    },
+    {
+      "n": 17,
+      "domain": "release",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/SKILL.md", "skills/brief-portfolio/scripts/test_build_page.py"],
+      "status": "verified",
+      "title": "Test docs point at 61 of the 64 Python tests, and the omitted file's docstring names a file that does not exist"
+    },
+    {
+      "n": 18,
+      "domain": "release",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/app/smoke.test.js", "CHANGELOG.md"],
+      "status": "verified",
+      "title": "Commit a5d9c48 is typed fix but changes only a test file; there is no CHANGELOG bullet for it"
+    },
+    {
+      "n": 19,
+      "domain": "release",
+      "severity": "LOW",
+      "paths": ["CHANGELOG.md", "pyproject.toml"],
+      "status": "verified",
+      "title": "CHANGELOG promises Keep a Changelog and SemVer but holds one [Unreleased] heading over the whole history"
+    },
+    {
+      "n": 20,
+      "domain": "integration",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/scripts/collect.py", "skills/brief-portfolio/app/src/lib/derive.js"],
+      "status": "mocked",
+      "title": "audit_cadence records unparseable and future ts values as the last-run day"
+    },
+    {
+      "n": 21,
+      "domain": "security",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/app/src/components/Todos.svelte"],
+      "status": "mocked",
+      "title": "\"Copy open as markdown\" emits hostile todo text unescaped: a newline in an action injects an extra checklist line"
+    },
+    {
+      "n": 22,
+      "domain": "security",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/scripts/collect.py"],
+      "status": "mocked",
+      "title": "`?` and `/../` in a remote URL pass into gh api paths and page hrefs"
+    },
+    {
+      "n": 23,
+      "domain": "security",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/scripts/collect.py", "skills/brief-portfolio/SKILL.md"],
+      "status": "unverified",
+      "title": "A commit subject carrying an instruction lands verbatim in the digest the model reads"
+    },
+    {
+      "n": 24,
+      "domain": "performance",
+      "severity": "LOW",
+      "paths": ["skills/brief-portfolio/scripts/collect.py"],
+      "status": "mocked",
+      "title": "collect.py spawns one redundant `git rev-parse --abbrev-ref HEAD` per repo (no budget stated)"
+    }
+  ]
+}

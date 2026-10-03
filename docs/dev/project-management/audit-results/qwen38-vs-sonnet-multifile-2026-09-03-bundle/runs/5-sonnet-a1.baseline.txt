@@ -1,0 +1,114 @@
+   Compiling memchr v2.8.0
+   Compiling rustix v1.1.4
+   Compiling indexmap v2.13.0
+   Compiling getrandom v0.4.1
+   Compiling smallvec v1.15.1
+   Compiling num-traits v0.2.19
+   Compiling serde v1.0.228
+   Compiling percent-encoding v2.3.2
+   Compiling icu_normalizer v2.1.1
+   Compiling tracing v0.1.44
+   Compiling clap_builder v4.5.60
+   Compiling object v0.37.3
+   Compiling aho-corasick v1.1.4
+   Compiling uniffi_internal_macros v0.29.5
+   Compiling tempfile v3.26.0
+   Compiling regex-automata v0.4.14
+   Compiling serde_json v1.0.149
+   Compiling uniffi_pipeline v0.29.5
+   Compiling digest v0.11.2
+   Compiling form_urlencoded v1.2.2
+   Compiling ar_archive_writer v0.5.1
+   Compiling bytes v1.11.1
+   Compiling rusty-fork v0.3.1
+   Compiling plotters v0.3.7
+   Compiling toml_edit v0.22.27
+   Compiling uniffi_core v0.29.5
+   Compiling psm v0.1.30
+   Compiling matchers v0.2.0
+   Compiling regex v1.12.3
+   Compiling sha2 v0.11.0
+   Compiling uniffi_meta v0.29.5
+   Compiling cargo_metadata v0.19.2
+   Compiling tinytemplate v1.2.1
+   Compiling toml v0.5.11
+   Compiling clap v4.5.60
+   Compiling xattr v1.6.1
+   Compiling automerge v0.7.4
+   Compiling rusqlite v0.32.1
+   Compiling uniffi_macros v0.29.5
+   Compiling toml v0.8.23
+   Compiling stacker v0.1.23
+   Compiling recursive v0.1.1
+   Compiling serde_yaml v0.9.34+deprecated
+   Compiling tracing-subscriber v0.3.22
+   Compiling idna_adapter v1.2.1
+   Compiling idna v1.1.0
+   Compiling criterion v0.5.1
+   Compiling proptest v1.10.0
+   Compiling url v2.5.8
+   Compiling sqlparser v0.55.0
+   Compiling uniffi v0.29.5
+   Compiling git2 v0.21.0
+   Compiling tar v0.4.45
+   Compiling chrono v0.4.44
+   Compiling uuid v1.21.0
+   Compiling ddb-core v0.2.7 (/private/tmp/qwen-eval-00010/5-surface-reindex-skip-warnings-sonnet-a1-baseline/ddb-core)
+error[E0609]: no field `warnings` on type `records::RebuildReport`
+   --> ddb-core/src/ffi/tests.rs:973:16
+    |
+973 |         report.warnings.is_empty(),
+    |                ^^^^^^^^ unknown field
+    |
+    = note: available fields are: `indexed`, `tables_materialized`, `types_inferred`
+
+error[E0609]: no field `warnings` on type `records::RebuildReport`
+   --> ddb-core/src/ffi/tests.rs:975:16
+    |
+975 |         report.warnings.len()
+    |                ^^^^^^^^ unknown field
+    |
+    = note: available fields are: `indexed`, `tables_materialized`, `types_inferred`
+
+error[E0609]: no field `warnings` on type `records::RebuildReport`
+   --> ddb-core/src/ffi/tests.rs:988:10
+    |
+988 |         .warnings
+    |          ^^^^^^^^ unknown field
+    |
+    = note: available fields are: `indexed`, `tables_materialized`, `types_inferred`
+
+error[E0609]: no field `warnings` on type `records::RebuildReport`
+    --> ddb-core/src/ffi/tests.rs:1004:38
+     |
+1004 |     let messages: Vec<&str> = report.warnings.iter().map(|w| w.message.as_str()).collect();
+     |                                      ^^^^^^^^ unknown field
+     |
+     = note: available fields are: `indexed`, `tables_materialized`, `types_inferred`
+
+error[E0609]: no field `warnings` on type `records::RebuildReport`
+    --> ddb-core/src/ffi/tests.rs:1013:16
+     |
+1013 |         report.warnings.len() > 1,
+     |                ^^^^^^^^ unknown field
+     |
+     = note: available fields are: `indexed`, `tables_materialized`, `types_inferred`
+
+error[E0609]: no field `warnings` on type `records::RebuildReport`
+    --> ddb-core/src/ffi/tests.rs:1015:16
+     |
+1015 |         report.warnings.len()
+     |                ^^^^^^^^ unknown field
+     |
+     = note: available fields are: `indexed`, `tables_materialized`, `types_inferred`
+
+error[E0609]: no field `warnings` on type `records::RebuildReport`
+    --> ddb-core/src/ffi/tests.rs:1048:17
+     |
+1048 |         !report.warnings.is_empty(),
+     |                 ^^^^^^^^ unknown field
+     |
+     = note: available fields are: `indexed`, `tables_materialized`, `types_inferred`
+
+For more information about this error, try `rustc --explain E0609`.
+error: could not compile `ddb-core` (lib test) due to 7 previous errors

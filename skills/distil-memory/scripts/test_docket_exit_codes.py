@@ -49,7 +49,7 @@ _CORRUPT_QUEUE_SHAPES = {
 
 
 def _the_working_directory_queue_path(tmp_path):
-    return tmp_path / "dev" / "local" / "audit-results" / "distil-memory-queue.json"
+    return tmp_path / "docs" / "dev" / "project-management" / "audit-results" / "distil-memory-queue.json"
 
 
 def _write_the_working_directory_queue_bytes(tmp_path, data):

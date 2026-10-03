@@ -96,8 +96,8 @@ def classify_path(rel: str) -> str:
     """Order matters: protective classes win before junk classes."""
     parts = rel.split("/")
     name = parts[-1]
-    if rel.startswith("dev/local/"):
-        return "devlocal"  # kept local on purpose; purge-devlocal owns it
+    if rel.startswith("docs/dev/"):
+        return "development"  # managed by project-management/tmp policy
     if any(fnmatch.fnmatch(name, g) for g in SECRETS):
         return "secret"
     if any(seg in JUNK_DIRS for seg in parts[:-1]) or name in JUNK_DIRS:
@@ -147,7 +147,7 @@ def gather_untracked(root: Path, fast: bool) -> dict:
         if cls == "heavy":
             heavy.add(rel.split("/")[0])
             continue
-        if cls in ("devlocal", "doc", "other"):
+        if cls in ("development", "doc", "other"):
             continue  # keep by default; never candidates
         if cls == "junk-dir":  # collapse to the topmost junk dir
             parts = rel.split("/")
@@ -284,8 +284,8 @@ def probe_gitignore(root: Path) -> list[str]:
         probes.append("node_modules/x")
     if (root / "Cargo.toml").exists():
         probes.append("target/debug/x")
-    if (root / "dev/local").is_dir():
-        probes.append("dev/local/x")
+    if (root / "docs/dev/tmp").is_dir():
+        probes.append("docs/dev/tmp/x")
     return [p for p in probes if git_rc(root, "check-ignore", "-q", p) != 0]
 
 

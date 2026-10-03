@@ -44,7 +44,7 @@ every registered repo, and only when the whole sweep found zero hits checks
 that the control term is present in `--control-repo` (aborting loud if it is,
 because a pattern that misses a known-present term is broken, and an
 unverified empty sweep is not a clean sweep). It then renders the report and
-writes it under `dev/local/audit-results/`.
+writes it under `docs/dev/project-management/audit-results/`.
 
 ### 3. Report
 

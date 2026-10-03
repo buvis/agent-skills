@@ -1,0 +1,79 @@
+diff --git a/ddb-core/src/parser/mod.rs b/ddb-core/src/parser/mod.rs
+index a90b079..4c36554 100644
+--- a/ddb-core/src/parser/mod.rs
++++ b/ddb-core/src/parser/mod.rs
+@@ -6,6 +6,14 @@ use std::sync::OnceLock;
+ use crate::error::{DoogatError, Result};
+ use crate::types::{Doogat, DoogatId, DoogatMeta, InlineField, Link, Value, Zone};
+ 
++/// Hard cap on frontmatter block size, in bytes.
++///
++/// An oversized frontmatter (e.g. a corrupted or malicious synced file) is
++/// rejected at the parse boundary as an ordinary parse error, so the existing
++/// parse-error → `ConsistencyWarning::MalformedYaml` classification carries it
++/// into the lenient skip path instead of an unbounded YAML parse.
++pub const MAX_FRONTMATTER_BYTES: usize = 256 * 1024;
++
+ /// Shared regex for fenced code block markers (``` or ~~~).
+ fn fence_regex() -> &'static Regex {
+     static FENCE_RE: OnceLock<Regex> = OnceLock::new();
+@@ -214,6 +222,12 @@ fn find_separators_after(lines: &[&str], fm_end: usize) -> Vec<usize> {
+ /// Parse YAML frontmatter string into DoogatMeta.
+ /// Falls back to filename-based ID when `id` field is missing.
+ pub fn parse_frontmatter(yaml: &str, path: &str) -> Result<DoogatMeta> {
++    if yaml.len() > MAX_FRONTMATTER_BYTES {
++        return Err(DoogatError::Parse(format!(
++            "frontmatter exceeds {MAX_FRONTMATTER_BYTES}-byte cap (actual: {} bytes) at {path}",
++            yaml.len()
++        )));
++    }
+     let raw: RawDoogatMeta = if yaml.trim().is_empty() {
+         RawDoogatMeta::default()
+     } else {
+diff --git a/ddb-core/src/parser/tests.rs b/ddb-core/src/parser/tests.rs
+index 45b8627..ac68e6b 100644
+--- a/ddb-core/src/parser/tests.rs
++++ b/ddb-core/src/parser/tests.rs
+@@ -186,6 +186,42 @@ fn frontmatter_explicit_id_overrides_stem_fallback() {
+     assert_eq!(meta.id, Some(DoogatId("20260226120000".into())));
+ }
+ 
++#[test]
++fn frontmatter_at_cap_still_parses() {
++    // "key: " (5 bytes) + n 'a's + "\n" (1 byte) == exactly MAX_FRONTMATTER_BYTES
++    let n = MAX_FRONTMATTER_BYTES - 6;
++    let yaml = format!("key: {}\n", "a".repeat(n));
++    assert_eq!(yaml.len(), MAX_FRONTMATTER_BYTES);
++    let meta = parse_frontmatter(&yaml, "20260226120000.md").unwrap();
++    assert_eq!(meta.id, Some(DoogatId("20260226120000".into())));
++    assert!(meta.extra.contains_key("key"));
++}
++
++#[test]
++fn frontmatter_one_byte_over_cap_is_parse_error() {
++    // Same shape as the at-cap case, one byte longer → rejected at the boundary
++    let n = MAX_FRONTMATTER_BYTES - 5;
++    let yaml = format!("key: {}\n", "a".repeat(n));
++    assert_eq!(yaml.len(), MAX_FRONTMATTER_BYTES + 1);
++    let err = parse_frontmatter(&yaml, "ddb/20260226120000.md").unwrap_err();
++    // Ordinary parse error, so the parse-error → MalformedYaml classification carries it
++    assert!(matches!(err, DoogatError::Parse(_)));
++    let msg = err.to_string();
++    // Message names the cap and the actual byte length, both as decimal numbers
++    assert!(msg.contains(&MAX_FRONTMATTER_BYTES.to_string()));
++    assert!(msg.contains(&(MAX_FRONTMATTER_BYTES + 1).to_string()));
++    // Message names the path
++    assert!(msg.contains("ddb/20260226120000.md"));
++}
++
++#[test]
++fn frontmatter_normal_size_unaffected_by_cap() {
++    let yaml = "id: 20260226120000\ntitle: Normal size";
++    let meta = parse_frontmatter(yaml, "20260226120000.md").unwrap();
++    assert_eq!(meta.id, Some(DoogatId("20260226120000".into())));
++    assert_eq!(meta.title.as_deref(), Some("Normal size"));
++}
++
+ // -- inline field extraction tests --
+ 
+ #[test]

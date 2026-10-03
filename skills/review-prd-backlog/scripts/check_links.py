@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Check working-document references for rot (PRD 00081).
 
-Scans dev/local/**/*.md (minus .trash/) — plus the project auto-memory dir
+Scans docs/dev/project-management/**/*.md plus the project auto-memory dir
 when run in ~/.claude — for three reference kinds and verifies each resolves:
 
-  1. explicit paths:   dev/local/..., ~/.claude/..., /Users/...
+  1. explicit paths:   docs/dev/project-management/..., ~/.claude/..., /Users/...
   2. PRD/discovery citations: five-digit `NNNNN-` tokens, resolved against
-     dev/local/prds/** (all buckets incl. hold/) and dev/local/discovery/**
-     (unlike purge_devlocal.prd_numbers, which splits live/done for GC —
-     here a hold-parked PRD is still a valid citation target)
+     docs/dev/project-management/prds/** (all buckets incl. hold/) and docs/dev/project-management/discovery/**
+     (a hold-parked PRD is still a valid citation target)
   3. memory links:     [[memory-name]], resolved against the memory dir
 
 A line containing the literal token `link-ok:` is exempt (prose naming
@@ -23,7 +22,7 @@ import re
 import sys
 from pathlib import Path
 
-PATH_RE = re.compile(r"(?:~/\.claude/|/Users/|dev/local/)[\w@%+=./-]*")
+PATH_RE = re.compile(r"(?:~/\.claude/|/Users/|docs/dev/project-management/)[\w@%+=./-]*")
 PRD_RE = re.compile(r"(?<![\d/.-])(\d{5})-")
 MEM_RE = re.compile(r"\[\[([\w-]+)\]\]")
 WAIVER = "link-ok:"
@@ -55,7 +54,7 @@ def memory_names(mem_dir: Path) -> set[str]:
 def resolvable_numbers(root: Path) -> set[str]:
     """Five-digit citation targets: any file under prds/** or discovery/**."""
     nums: set[str] = set()
-    for base in (root / "dev/local/prds", root / "dev/local/discovery"):
+    for base in (root / "docs/dev/project-management/prds", root / "docs/dev/project-management/discovery"):
         if base.is_dir():
             for f in base.rglob("*"):
                 m = re.match(r"(\d{5})-", f.name)
@@ -66,7 +65,7 @@ def resolvable_numbers(root: Path) -> set[str]:
 
 @functools.cache
 def resolve_path(token: str, root: Path) -> bool:
-    if token.startswith("dev/local/"):
+    if token.startswith("docs/dev/project-management/"):
         p = root / token
     else:
         p = Path(token.replace("~", str(Path.home()), 1))
@@ -84,7 +83,7 @@ def scan_file(path: Path, root: Path, prds: set[str], memories: set[str]):
             continue
         for m in PATH_RE.finditer(line):
             token = m.group(0).rstrip(".,;:!?)")
-            if PLACEHOLDER.search(token) or token.rstrip("/").endswith(("dev/local", ".claude")):
+            if PLACEHOLDER.search(token) or token.rstrip("/").endswith(("docs/dev/project-management", ".claude")):
                 continue
             if not resolve_path(token, root):
                 findings.append((path, ln, token, line.strip()))
@@ -103,9 +102,9 @@ def run(root: Path):
     mem_dir = project_memory_dir(root)
     memories = memory_names(mem_dir)
     sources = []
-    devlocal = root / "dev/local"
-    if devlocal.is_dir():
-        sources += [p for p in devlocal.rglob("*.md") if ".trash" not in p.parts]
+    project_management = root / "docs/dev/project-management"
+    if project_management.is_dir():
+        sources += list(project_management.rglob("*.md"))
     if mem_dir.is_dir():
         sources += sorted(mem_dir.glob("*.md"))
     for src in sources:

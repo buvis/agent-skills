@@ -255,7 +255,7 @@ def render_yield(counts: dict[str, object], proposals_dir: Path | None = None) -
         f"claude_checkup_version: {counts['claude_checkup_version']}",
         "",
         "How to proceed: this report was also written to "
-        "dev/local/audit-results/. Review the survivors and promote "
+        "docs/dev/project-management/audit-results/. Review the survivors and promote "
         "durable facts into memory."
         + (f" This run's proposals are in {proposals_dir}." if proposals_dir is not None else ""),
     ]
@@ -283,13 +283,13 @@ def _run_triage(kept_slices: list[Slice]) -> tuple[list[Slice], int | None, str 
 
 
 def _report_dir() -> Path:
-    """dev/local/audit-results under the nearest ancestor of the cwd that
+    """docs/dev/project-management/audit-results under the nearest ancestor of the cwd that
     contains a .git entry, falling back to the cwd itself when none do.
     Computed at call time (not a module constant) so it reflects the
     caller's cwd rather than the cwd at import time."""
     cwd = Path.cwd()
     root = next((p for p in (cwd, *cwd.parents) if (p / ".git").exists()), cwd)
-    return root / "dev" / "local" / "audit-results"
+    return root / "docs" / "dev" / "project-management" / "audit-results"
 
 
 def _write_report(report: str, report_dir: Path, timestamp: str) -> Path:
