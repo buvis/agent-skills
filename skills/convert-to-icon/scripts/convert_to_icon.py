@@ -216,15 +216,21 @@ def find_plate(rgb: np.ndarray, solid: np.ndarray) -> tuple[RGB | None, bool, bo
     return colour, bool(flat), not all(solid[p] for p in corners)
 
 
+def edge_ring(h: int, w: int) -> np.ndarray:
+    """The outer frame of a canvas, 2% deep: where a page shows, if there is one."""
+    frame = max(2, min(w, h) // 50)
+    ring = np.ones((h, w), bool)
+    ring[frame:-frame, frame:-frame] = False
+    return ring
+
+
 def measure_art(img: Image.Image) -> dict:
     """Facts the checks and the layout rules need, in canvas-relative units."""
     data = np.asarray(img)
     rgb, solid = data[..., :3], data[..., 3] >= 128
     h, w = solid.shape
     side = max(w, h)
-    frame = max(2, min(w, h) // 50)
-    ring = np.ones((h, w), bool)
-    ring[frame:-frame, frame:-frame] = False
+    ring = edge_ring(h, w)
     background, plate, picture, rounded = None, None, None, False
     if not solid[ring].any():
         background = "transparent"
@@ -311,7 +317,53 @@ def trace_shaded(img: Image.Image, removed: np.ndarray, fringe: bool, fine: bool
         return re.sub(r"^.*?<svg[^>]*>|</svg>\s*$", "", svg.read_text(encoding="utf-8"), flags=re.S).strip()
 
 
-def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int | None, fine: bool) -> dict:
+def tone_map(rgb: np.ndarray, page: RGB) -> np.ndarray:
+    """How far each pixel has moved from the page colour towards the art's strongest colour:
+    0 on the page, 1 at full strength."""
+    wide = rgb.astype(np.float32)
+    away = np.abs(wide - page).sum(axis=-1)
+    peak = wide[away >= np.percentile(away, 99.5)].mean(axis=0)
+    axis = peak - np.array(page, np.float32)
+    return np.clip(((wide - page) @ axis) / max(float(axis @ axis), 1.0), 0, 1)
+
+
+def stroke_level(tone: np.ndarray) -> tuple[float, bool]:
+    """Where haze ends and stroke begins (an Otsu split of the art's tones), and whether the art
+    is soft: most of it lies below that split, spread over many tones rather than a few flat ones."""
+    values = tone[tone >= 0.08]
+    if len(values) < 100:
+        return 1.0, False
+    hist, edges = np.histogram(values, bins=64, range=(0, 1))
+    mids = (edges[:-1] + edges[1:]) / 2
+    weight, total = hist.cumsum(), hist.sum()
+    mean = (hist * mids).cumsum()
+    between = (mean[-1] * weight - mean * total) ** 2 / (weight * (total - weight) + 1e-9)
+    core = float(mids[between.argmax()])
+    soft = (values < core).mean() >= 0.5 and np.sort(hist)[-3:].sum() / total <= 0.3
+    return core, bool(soft)
+
+
+def trace_glow(rgb: np.ndarray, tone: np.ndarray, core: float, side: float) -> str:
+    """Soft, luminous art: its strokes as crisp shapes in three tones, its fade redrawn as a blur
+    behind them. Tracing the fade itself only ever yields bands."""
+    speck = max(2, (max(tone.shape) // 150) ** 2)  # light dust is noise at icon sizes
+    levels = [core, core + 0.45 * (1 - core), core + 0.8 * (1 - core), 2.0]
+    shapes = []
+    for low, high in zip(levels, levels[1:]):
+        band = (tone >= low) & (tone < high)
+        if band.any():
+            shapes.append((to_hex(np.median(rgb[band], axis=0)), outline(tone >= low, speck)))
+    if not shapes:
+        sys.exit("the glow style found no strokes to trace")
+    fade = (
+        '<filter id="glow" x="-30%" y="-30%" width="160%" height="160%">'
+        f'<feGaussianBlur stdDeviation="{side * 0.015:.1f}"/></filter>'
+        f'<path filter="url(#glow)" fill="{shapes[0][0]}" fill-rule="evenodd" d="{shapes[0][1]}"/>'
+    )
+    return fade + "".join(f'<path fill="{c}" fill-rule="evenodd" d="{d}"/>' for c, d in shapes)
+
+
+def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int | None, fine: bool, style: str) -> dict:
     img = Image.open(src).convert("RGBA")
     zoom = 2 if max(img.size) < 1024 else 1  # small sources trace into lumpy curves
     if zoom > 1:
@@ -326,7 +378,8 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
     wide = rgb.astype(np.int16)
     labels = np.stack([np.abs(wide - np.array(c)).sum(axis=-1) for c in palette]).argmin(axis=0)
     removed = ~solid
-    paper = from_hex(facts["background"]) if remove and (facts["background"] or "").startswith("#") else None
+    page = from_hex(facts["background"]) if (facts["background"] or "").startswith("#") else None
+    paper = page if remove else None
     if paper:
         index = min(range(len(palette)), key=lambda i: sum(abs(a - b) for a, b in zip(palette[i], paper)))
         sheet = solid & (labels == index)
@@ -338,14 +391,24 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
     side = max(x1 - x0, y1 - y0) * (1.0 if filled(footprint) >= 0.85 else 1.12)
     x, y = (x0 + x1 - side) / 2, (y0 + y1 - side) / 2
     speck = max(2, (max(img.size) // 300) ** 2)
-    flat = count <= 2
-    detail = "fine" if fine else "normal"
-    body = trace_flat(labels, footprint, palette, speck) if flat else trace_shaded(img, removed, bool(paper), fine)
+    tone = tone_map(rgb, page) if page else None
+    core, soft = stroke_level(tone) if page else (1.0, False)
+    if style == "glow" and not page:
+        sys.exit("the glow style needs a uniform page behind the art")
+    # Soft art is settled before the colour count: a thin glow spreads over so many tones
+    # that none of them counts as a colour, and it would pass for two-colour line art.
+    if style == "glow" or (style == "auto" and soft and colours is None):
+        board = "" if paper else f'<rect x="{x:.1f}" y="{y:.1f}" width="{side:.1f}" height="{side:.1f}" fill="{to_hex(page)}"/>'
+        style, body = "glow", board + trace_glow(rgb, tone, core, side)
+    elif count <= 2:
+        style, body = "flat", trace_flat(labels, footprint, palette, speck)
+    else:
+        style, body = "layers", trace_shaded(img, removed, bool(paper), fine)
     attrs = f'viewBox="{x:.1f} {y:.1f} {side:.1f} {side:.1f}"'
     attrs += f' data-source-box="{x / zoom:.1f} {y / zoom:.1f} {side / zoom:.1f}"'
-    attrs += f' data-source="{html.escape(src.name, quote=True)}"'
-    if not flat:
-        attrs += f' data-detail="{detail}"'
+    attrs += f' data-source="{html.escape(src.name, quote=True)}" data-style="{style}"'
+    if style == "layers":
+        attrs += f' data-detail="{"fine" if fine else "normal"}"'
     if paper:
         attrs += f' data-background="{to_hex(paper)}"'
     svg.parent.mkdir(parents=True, exist_ok=True)
@@ -357,12 +420,12 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
     return {
         "svg": str(svg),
         "original": str(original),
-        "tracer": "potrace" if flat else "vtracer",
+        "style": style,
         "colours": count,
         "background": f"removed {to_hex(paper)}" if paper else "kept",
         "enclosed": enclosed if paper else "n/a",
         "photo": facts["photo"],
-        "detail": "n/a" if flat else detail,
+        "detail": ("fine" if fine else "normal") if style == "layers" else "n/a",
     }
 
 
@@ -680,8 +743,8 @@ def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int]
     return 0
 
 
-def resemblance(svg: Path, source: Path, px: int = 512) -> tuple[float, float, Image.Image]:
-    """Mean channel error, percent of pixels clearly off, and the source framed like the SVG."""
+def framed_pair(svg: Path, source: Path, px: int = 512) -> tuple[Image.Image, Image.Image]:
+    """The source framed the way the SVG frames it, and the SVG drawn at the same size."""
     text = svg.read_text(encoding="utf-8")
     src = Image.open(source).convert("RGBA")
     side = float(max(src.size))
@@ -693,8 +756,33 @@ def resemblance(svg: Path, source: Path, px: int = 512) -> tuple[float, float, I
     paper = (*(from_hex(declared.group(1)) if declared else (255, 255, 255)), 255)
     pair = [crop.resize((px, px), Image.Resampling.LANCZOS), centred(rasterise(svg, px), px)]
     flat = [Image.alpha_composite(Image.new("RGBA", (px, px), paper), im).convert("RGB") for im in pair]
-    delta = np.abs(np.asarray(flat[0]).astype(np.int16) - np.asarray(flat[1]))
-    return float(delta.mean()), float((delta.max(axis=-1) > 40).mean() * 100), flat[0]
+    return flat[0], flat[1]
+
+
+def compare_with_source(svg: Path, source: Path) -> tuple[dict, list[str], list[str], Image.Image]:
+    """Measures, doubts and notes from setting a trace beside the raster it came from."""
+    framed, shot = framed_pair(svg, source)
+    truth, drawn = np.asarray(framed), np.asarray(shot)
+    delta = np.abs(truth.astype(np.int16) - drawn)
+    error, off = float(delta.mean()), float((delta.max(axis=-1) > 40).mean() * 100)
+    measures = {"mean_error": round(error, 2), "percent_off": round(off, 2)}
+    text = svg.read_text(encoding="utf-8")
+    if 'data-style="glow"' in text:
+        # Pixel error is the wrong yardstick here, since the haze is left out on purpose.
+        # What must hold is that the traced strokes sit on the source's strokes.
+        page = tuple(int(v) for v in np.median(truth[edge_ring(*truth.shape[:2])], axis=0))
+        theirs = tone_map(truth, page)
+        core, _ = stroke_level(theirs)
+        mine = tone_map(drawn, page) >= core
+        overlap = float((mine & (theirs >= core)).sum() / max((mine | (theirs >= core)).sum(), 1))
+        notes = ["glow style: the strokes are paths and the fade is a blur; haze inside the art is left out on purpose"]
+        doubts = [f"the traced strokes match only {overlap:.0%} of the source's strokes"] if overlap < 0.7 else []
+        return {**measures, "stroke_overlap": round(overlap, 2)}, doubts, notes, framed
+    if error > 6 or off > 3:
+        retry = "; retrace with --detail fine for a closer match" if 'data-detail="normal"' in text else ""
+        weak = f"weak resemblance to the source: mean error {error:.1f}, {off:.1f}% of pixels off{retry}"
+        return measures, [weak], [], framed
+    return measures, [], [], framed
 
 
 def review_svg(svg: Path, source: Path | None, override: RGB | None) -> dict:
@@ -746,14 +834,8 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None) -> dict:
         ("32 px", tiny),
     ]
     if source:
-        error, off, framed = resemblance(svg, source)
-        facts = {**facts, "mean_error": round(error, 2), "percent_off": round(off, 2)}
-        if error > 6 or off > 3:
-            retry = 'data-detail="normal"' in svg.read_text(encoding="utf-8")
-            doubts.append(
-                f"weak resemblance to the source: mean error {error:.1f}, {off:.1f}% of pixels off"
-                + ("; retrace with --detail fine for a closer match" if retry else "")
-            )
+        measures, found, remarks, framed = compare_with_source(svg, source)
+        facts, doubts, notes = {**facts, **measures}, doubts + found, notes + remarks
         panels.insert(0, ("source", framed.resize((cell, cell))))
     span = 1.0 if look.picture else max(facts["glyph_radius" if look.plate else "radius"], 0.01)
     notes.append(
@@ -778,6 +860,7 @@ def main() -> int:
     tracer.add_argument("--colors", type=int, choices=range(1, 9))
     tracer.add_argument("--name", type=plain_name)
     tracer.add_argument("--detail", choices=("normal", "fine"), default="normal")
+    tracer.add_argument("--style", choices=("auto", "glow", "layers"), default="auto")
     reviewer = commands.add_parser("review")
     reviewer.add_argument("svg", type=existing_file)
     reviewer.add_argument("--source", type=existing_file)
@@ -804,7 +887,8 @@ def main() -> int:
             sys.exit(f"{svg} exists; --force replaces it")
         remove = args.background == "remove"
         fine = args.detail == "fine"
-        print(json.dumps(trace_raster(args.raster, svg, remove, args.enclosed, args.colors, fine), indent=2))
+        traced = trace_raster(args.raster, svg, remove, args.enclosed, args.colors, fine, args.style)
+        print(json.dumps(traced, indent=2))
         return 0
     bundle = bundle_for(args.svg, args.out)
     if args.command == "review":

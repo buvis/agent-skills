@@ -273,17 +273,51 @@ def soft_glow(x: int, y: int) -> tuple[int, int, int]:
     return tuple(round(dark + (bright - dark) * reach) for dark, bright in zip((17, 23, 39), (240, 150, 40)))
 
 
-def test_fine_detail_traces_soft_art_closer_to_its_source(tmp_path):
+def neon_ring(x: int, y: int) -> tuple[int, int, int]:
+    """A bright ring whose light fades slowly into navy: a stroke with a long soft tail."""
+    spread = 1 / (1 + ((((x - 128) ** 2 + (y - 128) ** 2) ** 0.5 - 80) / 6) ** 2)
+    return tuple(round(dark + (bright - dark) * spread) for dark, bright in zip((17, 23, 39), (255, 190, 80)))
+
+
+def test_glow_art_is_traced_as_strokes_over_its_page(tmp_path):
+    source = write_png(tmp_path / "neon.png", 256, neon_ring)
+    page = json_of("inspect", source)["background"]
+    traced = json_of("trace", source)
+    assert traced["style"] == "glow"
+    text = Path(traced["svg"]).read_text(encoding="utf-8")
+    # The page is one plain rectangle in its own colour, the strokes are a handful of paths
+    # and the fade is a blur: no stack of bands approximating the light.
+    assert f'<rect x="0.0" y="0.0" width="512.0" height="512.0" fill="{page}"/>' in text
+    assert "feGaussianBlur" in text
+    assert text.count("<path") <= 4
+    verdict = json_of("review", traced["svg"])
+    assert verdict["verdict"] == "PASS", verdict["doubts"]
+    assert verdict["facts"]["stroke_overlap"] >= 0.7
+
+
+def test_layers_style_can_be_forced_on_soft_art(tmp_path):
+    traced = json_of("trace", write_png(tmp_path / "neon.png", 256, neon_ring), "--style", "layers")
+    assert traced["style"] == "layers"
+    assert "feGaussianBlur" not in Path(traced["svg"]).read_text(encoding="utf-8")
+
+
+def test_glow_style_is_refused_without_a_uniform_page(tmp_path):
+    done = run_script("trace", write_png(tmp_path / "photo.png", 96, noisy), "--style", "glow")
+    assert done.returncode != 0
+    assert "uniform page" in done.stderr
+
+
+def test_fine_detail_traces_layered_art_closer_to_its_source(tmp_path):
     source = write_png(tmp_path / "glow.png", 256, soft_glow)
     errors = {}
     for detail in ("normal", "fine"):
-        traced = json_of("trace", source, "--name", detail, "--detail", detail)
+        traced = json_of("trace", source, "--name", detail, "--style", "layers", "--detail", detail)
         errors[detail] = json_of("review", traced["svg"])["facts"]["mean_error"]
     assert errors["fine"] < errors["normal"]
 
 
 def test_review_points_a_weak_multi_colour_trace_at_fine_detail(tmp_path):
-    traced = json_of("trace", write_png(tmp_path / "glow.png", 256, soft_glow))
+    traced = json_of("trace", write_png(tmp_path / "glow.png", 256, soft_glow), "--style", "layers")
     other = write_png(tmp_path / "plate.png", 256, plate_on_page)
     verdict = json_of("review", traced["svg"], "--source", other)
     assert any("resemblance" in doubt and "--detail fine" in doubt for doubt in verdict["doubts"]), verdict["doubts"]

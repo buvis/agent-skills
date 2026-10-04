@@ -57,15 +57,27 @@ An SVG input skips to step 3.
 uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py trace IMAGE --name NAME --background remove
 ```
 
-One or two flat colours go through potrace, more through vtracer. A source
-that inspect marks `photo: true` is traced all the same: expect a posterised
-look, an SVG of megabytes, a `DOUBT` at review and no Android themed layer
-(40 files instead of 45), and tell the user so before going on. Overrides, for when the review shows the default was wrong:
+The trace picks a style and reports it as `style`:
 
+- `flat`: one or two flat colours, traced as clean shapes.
+- `glow`: soft, luminous art on a uniform page (neon, light trails, a logo
+  with a halo). Its strokes become crisp paths in three tones over the plain
+  page colour, and the fade is redrawn as a blur behind them. Never let a
+  glow be traced as it looks: that yields stacked bands and a heavy file.
+- `layers`: everything else, one layer per colour.
+
+A source that inspect marks `photo: true` is traced all the same: expect a
+posterised look, an SVG of megabytes, a `DOUBT` at review and no Android
+themed layer (40 files instead of 45), and tell the user so before going on.
+
+Overrides, for when the review shows the default was wrong:
+
+- `--style glow|layers`: the other treatment for art with more than two
+  colours. `glow` needs a uniform page behind the art.
 - `--colors N`: `colours` in the inspect output miscounts what you see.
-- `--detail fine`: soft art (glows, gradients, shading) that came out flat or
-  banded. More colour steps, a closer match, about twice the file size. No
-  effect on one or two flat colours. The review names it when it would help.
+- `--detail fine`: for the `layers` style only. Shading that came out flat
+  or banded gets more colour steps, a closer match and about twice the file
+  size. The review names it when it would help.
 - `--enclosed keep|clear`: page-coloured areas fully surrounded by art. `keep`
   draws them (a white glyph on a plate), `clear` makes them see-through (the
   gaps in line art).
@@ -85,6 +97,7 @@ white, SVG on magenta, circle cut (two for a picture: cropped, extended),
 32 px. Look for:
 
 - resemblance: a shape, colour or proportion that differs from the source
+- soft light drawn as stacked bands or blobs (retrace with `--style glow`)
 - overcut: magenta where art should be, or art cut off at the canvas edge
 - leftover page: a halo, or page-coloured patches that should be see-through
 - holes that should be filled (a glyph that vanished from its plate)

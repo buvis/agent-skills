@@ -16,8 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   square or round, is extended to the corners so the platform rounds it once;
   a gradient or picture plate is cropped to each circle cut, or kept whole
   with `--picture extend`; a photo is traced with a warning that names it as
-  the cause of a poor result, and gets no Android themed layer; soft art can
-  be retraced closer to its source with `trace --detail fine`; a raster
+  the cause of a poor result, and gets no Android themed layer; glowing art
+  is traced as crisp strokes over its page with the fade redrawn as a blur,
+  and other shading can be retraced with `trace --detail fine`; a raster
   source is kept in the bundle under its own file name; the check sheets go
   to the temp folder, not the bundle.
 - **graduate**: convert PRDs and legacy intake into specflow requirements, design and tasks; preserve completed-work evidence, record approval gates, and support manual conversion without inventing runtime state.

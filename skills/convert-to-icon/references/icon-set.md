@@ -94,13 +94,35 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
 
 ## Soft artwork
 
-Glows, gradients and shaded illustrations are not photos, but a tracer can
-only approximate them with flat bands. `trace --detail fine` keeps more colour
-steps and smaller shapes. On a 1408 px glow logo that took the mean error
-from 7.0 to 5.5 and the clearly-off pixels from 1.65% to 0.5%, and the SVG
-from 3.3 to 6.4 MB. A background that is itself a gradient (a vignette) still
-comes out as one flat colour: the average of the page, which measures closer
-to the source than the colour at its edge does.
+A tracer turns a soft fade into flat bands. Stacked finely enough they
+measure close to the source and still look like a posterised picture, in a
+file of megabytes. So a glow is not traced as it looks.
+
+**Glow style.** Each pixel gets a tone: how far it has moved from the page
+colour towards the art's strongest colour. An Otsu split of the art's tones
+marks where haze ends and stroke begins. Art counts as soft when at least
+half of it lies below that split and its tones are spread out rather than
+sitting in a few flat ones (the measured glow logo: 73% haze; flat icons: 1
+to 5%; a shaded illustration: 33%). Soft art on a uniform page is then built
+from parts:
+
+- the page, one rectangle in its exact colour;
+- the strokes, traced at three tone levels (the split, and 45% and 80% of
+  the way from there to full strength), each one clean shape in the median
+  colour of its band;
+- the fade, a Gaussian blur of the lowest stroke level, 1.5% of the canvas
+  wide, drawn behind the strokes.
+
+Haze inside the art is left out on purpose. On the measured 1408 px logo
+this gave a 0.5 MB file where the layered trace took 6.4 MB, and a B that
+is still readable at 32 px. The review does not judge it by pixel error,
+which the missing haze inflates; it checks that the traced strokes sit on
+the source's strokes (at least 70% overlap; the logo scored 85%).
+
+**Layers style with `--detail fine`.** For shading that is not a glow: more
+colour steps and smaller shapes, a closer match, about twice the file size.
+A background that is itself a gradient still comes out as one flat colour,
+the average of the page.
 
 ## Photos
 
