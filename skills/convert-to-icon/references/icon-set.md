@@ -69,16 +69,17 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
   the canvas it was drawn on. Under a rounded-square cut (iOS, Apple touch
   icon, Play Store) it keeps its full size. Under a circle cut there are two
   treatments, chosen with `--picture`:
-  - `crop` (default): the picture fills everything the platform can show and
-    the cut removes its corners and whatever else falls outside. Nothing is
-    invented. On the Android adaptive layer, which is half again as large as
+  - `crop` (default): the picture fills everything the platform can show,
+    covering it by its short side when it is not square, and the cut removes
+    its corners and whatever else falls outside. Nothing is invented. On the Android adaptive layer, which is half again as large as
     what a launcher shows, the picture stands alone at 72 of 108 dp over the
     plain background colour; a sliver of that colour can show during launcher
     motion effects.
   - `extend`: the whole picture is kept, fitted inside the circle, and the
-    band around it is grown outward from its edge colours. The band is
-    synthesized: seamless for a gradient, a soft trailing streak where the
-    subject runs off the picture's edge.
+    band around it is grown outward from its edge colours. The growth starts
+    a few pixels inside the edge, so a stray border row is not smeared across
+    the band. The band is synthesized: seamless for a gradient, a soft
+    trailing streak where the subject runs off the picture's edge.
   The picture's own rounded corners are filled by the same growth in both
   treatments; they are small and mostly cut away. `--background` with a
   colour skips all of this and keeps the picture's shape on a flat field.
@@ -90,6 +91,16 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
   is whatever differs clearly from the plate's edge colour, so a
   many-coloured subject comes out uneven. Draw that layer by hand when it
   matters.
+
+## Photos
+
+A photo is detected by its fine detail: the share of pixels that step sharply
+away from a neighbour is about 0.05 in flat art and 0.3 in a photo, and the
+line is drawn at 0.2. It is traced like anything else, because the master
+must be an SVG. The result is a posterised approximation of several
+megabytes, and no tracer setting changes that: a photo has no flat shapes to
+find. The review says so and leaves the decision to the user. Flat artwork is
+the real fix.
 
 ## Not generated, on purpose
 

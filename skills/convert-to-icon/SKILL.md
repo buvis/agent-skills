@@ -57,8 +57,10 @@ An SVG input skips to step 3.
 uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py trace IMAGE --name NAME --background remove
 ```
 
-One or two flat colours go through potrace, more through vtracer. Overrides,
-for when the review shows the default was wrong:
+One or two flat colours go through potrace, more through vtracer. A source
+that inspect marks `photo: true` is traced all the same: expect a posterised
+look, an SVG of megabytes and a `DOUBT` at review, and tell the user so
+before going on. Overrides, for when the review shows the default was wrong:
 
 - `--colors N`: `colours` in the inspect output miscounts what you see.
 - `--enclosed keep|clear`: page-coloured areas fully surrounded by art. `keep`
@@ -94,6 +96,8 @@ the sheet, name each doubt in plain words, and ask which fix to apply:
 
 - a trace that looks wrong: retrace with another `--enclosed`, `--colors` or
   background answer, then review again
+- a photo: accept the posterised trace, or stop and ask for flat artwork;
+  no setting makes a photo trace cleanly
 - a pre-rounded flat plate: extend its colour to the corners, or keep its
   shape on another colour
 - a picture plate (a gradient or scene filling a square): crop it, extend

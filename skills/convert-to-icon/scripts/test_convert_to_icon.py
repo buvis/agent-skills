@@ -238,6 +238,47 @@ def test_cropped_picture_fills_the_cut_even_when_drawn_inside_margins(tmp_path):
     assert mask["glyph_radius"] == pytest.approx(0.76 * 2**0.5, abs=0.03)
 
 
+def test_cropped_wide_picture_covers_the_cut_by_its_short_side(tmp_path):
+    # Twice as wide as tall, two colours side by side, a white square (0.76 of the height) in the middle.
+    wide = (
+        '<rect width="100" height="100" fill="#103060"/><rect x="100" width="100" height="100" fill="#e0a040"/>'
+        '<rect x="62" y="12" width="76" height="76" fill="#fff"/>'
+    )
+    assert run_script("build", write_svg(tmp_path / "wide.svg", wide, "0 0 200 100")).returncode == 0
+    mask = json_of("inspect", tmp_path / "wide.icons/web/icon-mask.png")
+    white = dict(mask["colours"]).get("#ffffff", 0.0)
+    # Covering the square by the picture's height, the white square takes 0.76 squared of it.
+    # Fitted by its width instead, with strips above and below, it would take a quarter of that.
+    assert white == pytest.approx(0.76**2, abs=0.05)
+
+
+def test_extended_picture_ignores_a_stray_line_along_its_edge(tmp_path):
+    # SCENE with a thin white line along the top edge, as a screenshot border leaves behind.
+    dirty = SCENE + '<rect x="14" width="72" height="1" fill="#fff"/>'
+    done = run_script("build", write_svg(tmp_path / "scene.svg", dirty), "--picture", "extend")
+    assert done.returncode == 0, done.stderr
+    mask = json_of("inspect", tmp_path / "scene.icons/web/icon-mask.png")
+    # The band above the picture stays navy: one dirty edge row is not smeared across it.
+    assert mask["background"] == "#103060"
+
+
+def noisy(x: int, y: int) -> tuple[int, int, int]:
+    """Every pixel far from its neighbours, the way a photo's fine detail is."""
+    return ((x * 97 + y * 57) % 256, (x * 31 + y * 139) % 256, (x * 173 + y * 11) % 256)
+
+
+def test_inspect_tells_a_photo_from_flat_art(tmp_path):
+    assert json_of("inspect", write_png(tmp_path / "photo.png", 96, noisy))["photo"] is True
+    assert json_of("inspect", write_png(tmp_path / "ring.png", 256, ring_on_page))["photo"] is False
+
+
+def test_review_names_a_photo_as_the_cause_of_a_poor_trace(tmp_path):
+    traced = json_of("trace", write_png(tmp_path / "photo.png", 96, noisy))
+    assert traced["photo"] is True
+    verdict = json_of("review", traced["svg"])
+    assert any("photo" in doubt for doubt in verdict["doubts"]), verdict["doubts"]
+
+
 def test_solid_one_colour_glyph_is_not_mistaken_for_a_plate(tmp_path):
     # A filled disc must stay a disc on its field, not dissolve into a square of its own colour.
     assert run_script("build", write_svg(tmp_path / "disc.svg", DISC)).returncode == 0

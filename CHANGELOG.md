@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an SVG it writes only the files the bundle is missing. A pre-rounded plate,
   square or round, is extended to the corners so the platform rounds it once;
   a gradient or picture plate is cropped to each circle cut, or kept whole
-  with `--picture extend`; a raster source is kept in the bundle beside its
-  trace; the check sheets go to the temp folder, not the bundle.
+  with `--picture extend`; a photo is traced with a warning that names it as
+  the cause of a poor result; a raster source is kept in the bundle beside
+  its trace; the check sheets go to the temp folder, not the bundle.
 - **graduate**: convert PRDs and legacy intake into specflow requirements, design and tasks; preserve completed-work evidence, record approval gates, and support manual conversion without inventing runtime state.
 - **use-qwen**: render eval rounds into evidence, scoreboard and audit queue from attempt records (`run_eval_harness.py render`); a refused render exits 1 with one `render refused:` line naming the malformed `run.json`, `vetting.json`, `attempt.json` or `audit.jsonl` row instead of a traceback
 - **capture-experiment**: notes carry an `id` frontmatter field holding the

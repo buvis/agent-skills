@@ -36,6 +36,7 @@ RGB = tuple[int, int, int]
 
 TOLERANCE = 40  # channel distance still read as one flat colour; absorbs JPEG noise
 MIN_SHARE = 0.03  # below this share a colour is an edge blend, not a colour of the art
+PHOTO_DETAIL = 0.2  # fine detail above this share means a photo; flat art measured 0.02 to 0.07
 MAC_BODY = 824 / 1024  # macOS icon grid: the body inside the canvas
 MAC_ROUNDNESS = 0.2237  # its corner radius, as a share of the body
 ICONSET = "macos/AppIcon.iconset"
@@ -144,6 +145,16 @@ def reach(mask: np.ndarray) -> float:
     return float(np.hypot(xs + 0.5 - w / 2, ys + 0.5 - h / 2).max() / (max(w, h) / 2))
 
 
+def fine_detail(img: Image.Image) -> float:
+    """Share of pixels that step sharply away from a neighbour: about 0.05 in flat art, 0.3 in a photo."""
+    small = img.convert("RGB")
+    small.thumbnail((512, 512), Image.Resampling.BOX)
+    pixels = np.asarray(small).astype(np.int16)
+    right = np.abs(pixels[:-1, 1:] - pixels[:-1, :-1]).max(axis=-1)
+    down = np.abs(pixels[1:, :-1] - pixels[:-1, :-1]).max(axis=-1)
+    return float((np.maximum(right, down) > 16).mean())
+
+
 def dominant_colours(rgb: np.ndarray) -> list[tuple[RGB, float]]:
     """Flat colours among N pixels, largest first, with their share."""
     if not len(rgb):
@@ -234,6 +245,7 @@ def measure_art(img: Image.Image) -> dict:
         "edge": to_hex(picture) if picture else None,
         "plate_rounded": rounded,
         "aspect": round(max(x1 - x0, y1 - y0) / min(x1 - x0, y1 - y0), 2),
+        "photo": fine_detail(img) > PHOTO_DETAIL,
         "extent": round(max(x1 - x0, y1 - y0) / side, 3),
         "margin": round(min(gaps) / side, 3),
         "radius": round(reach(solid), 3),
@@ -342,6 +354,7 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
         "colours": count,
         "background": f"removed {to_hex(paper)}" if paper else "kept",
         "enclosed": enclosed if paper else "n/a",
+        "photo": facts["photo"],
     }
 
 
@@ -378,9 +391,14 @@ def bleed(icon: Image.Image) -> Image.Image:
     """
     work = min(icon.width, 256)
     data = np.asarray(icon.resize((work, work), Image.Resampling.BOX)).astype(np.float32)
-    rgb, known = data[..., :3].copy(), data[..., 3] >= 250
-    if not known.any():
+    rgb, solid = data[..., :3].copy(), data[..., 3] >= 250
+    if not solid.any():
         return icon
+    # Start a few pixels inside the edge: the outermost rows are often dirty (a screenshot
+    # border, JPEG ringing) and one stray row would otherwise be smeared across the whole band.
+    rim = 2 * max(2, work // 64) + 1
+    core = np.asarray(Image.fromarray(solid.astype(np.uint8) * 255).filter(ImageFilter.MinFilter(rim))) > 0
+    known = core if core.any() else solid
     while not known.all():
         ink = np.pad(rgb * known[..., None], ((1, 1), (1, 1), (0, 0)))
         seen = np.pad(known, 1).astype(np.float32)
@@ -423,8 +441,10 @@ def compose(svg: Path, spec: Png, look: Look) -> Image.Image:
         # A picture has no glyph to measure. Cropped, it covers all the platform can show and
         # loses what the cut removes. Extended, its box is fitted inside the circle and the
         # band around it is grown from its edge colours. A rounded-square cut needs neither.
-        # Either way the measure is the picture's own box, not the canvas it was drawn on.
-        scale = (spec.window if look.crop or spec.squircle else spec.zone) / max(facts["extent"], 0.01)
+        # Either way the measure is the picture's own box, not the canvas it was drawn on:
+        # its short side when cropping (cover the cut), its long side otherwise (keep it whole).
+        side = facts["extent"] / facts["aspect"] if look.crop else facts["extent"]
+        scale = (spec.window if look.crop or spec.squircle else spec.zone) / max(side, 0.01)
     elif spec.zone:  # keep the art inside the circle a launcher may cut
         scale = min(1.0, spec.zone / max(facts["glyph_radius" if look.plate else "radius"], 0.01))
     if spec.body:
@@ -660,6 +680,12 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None) -> dict:
         notes.append("canvas is not square: every icon pads it to a square, never stretches it")
     if facts["extent"] < 0.6:
         doubts.append(f"art fills only {facts['extent']:.0%} of the canvas: it will look tiny")
+    busy = fine_detail(Image.open(source) if source else rasterise(svg, 1024))
+    if busy > PHOTO_DETAIL:
+        doubts.append(
+            f"the art is as busy as a photo ({busy:.0%} fine detail): a trace of it is a posterised "
+            f"approximation, and this SVG weighs {svg.stat().st_size / 1e6:.1f} MB"
+        )
     if facts["aspect"] > 2:
         doubts.append(f"art is {facts['aspect']:.1f} times longer one way: a square icon shows it as a thin strip")
     if facts["margin"] < 0.01 and not facts["plate"] and not facts["picture"]:
