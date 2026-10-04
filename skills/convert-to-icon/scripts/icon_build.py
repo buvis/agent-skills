@@ -54,13 +54,14 @@ def look_of(svg: Path, facts: dict, override: RGB | None, crop: bool = True) -> 
     elif declared:
         fill = from_hex(declared.group(1))
     else:
-        # Nothing known: white or near-black, whichever the art does not already use, since a
-        # field in the colour of the outlines would swallow them. Failing that, the one that
-        # contrasts with the art's main colour.
-        used = [from_hex(colour) for colour, _ in facts["colours"]] or [(0, 0, 0)]
-        dark, light = any(max(c) <= TOLERANCE for c in used), any(min(c) >= 255 - TOLERANCE for c in used)
-        r, g, b = used[0]
-        on_white = dark if dark != light else 0.299 * r + 0.587 * g + 0.114 * b < 160
+        # Nothing known: white or near-black, whichever the art uses less of, since a field in
+        # the colour of the outlines would swallow them. Failing that, the one that contrasts
+        # with the art's main colour.
+        used = [(from_hex(colour), share) for colour, share in facts["colours"]] or [((0, 0, 0), 1.0)]
+        dark = sum(share for c, share in used if max(c) <= TOLERANCE)
+        light = sum(share for c, share in used if min(c) >= 255 - TOLERANCE)
+        r, g, b = used[0][0]
+        on_white = dark > light if dark != light else 0.299 * r + 0.587 * g + 0.114 * b < 160
         fill = (255, 255, 255) if on_white else (17, 17, 17)
     # An explicit colour means "keep the plate's own shape on this field".
     return Look(facts, fill, plate if fill == plate else None, facts["picture"] and override is None, crop)

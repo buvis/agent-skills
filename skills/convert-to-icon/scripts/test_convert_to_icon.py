@@ -395,9 +395,10 @@ def test_review_names_a_photo_as_the_cause_of_a_poor_trace(tmp_path):
 
 OUTLINED_DISC = '<circle cx="50" cy="50" r="42" fill="#9cc5f9" stroke="#000" stroke-width="5"/>'
 OUTLINED_SPIKE = '<path d="M50 8L92 88L8 88Z" fill="#f5e165" stroke="#000" stroke-width="6" stroke-linejoin="round"/>'
+OUTLINED_SHINE = OUTLINED_SPIKE.replace("#f5e165", "#9cc5f9") + '<circle cx="50" cy="62" r="11" fill="#eef2f8"/>'
 
 
-@pytest.mark.parametrize("body", [OUTLINED_DISC, OUTLINED_SPIKE], ids=["disc", "spike"])
+@pytest.mark.parametrize("body", [OUTLINED_DISC, OUTLINED_SPIKE, OUTLINED_SHINE], ids=["disc", "spike", "shine"])
 def test_light_art_with_dark_outlines_gets_a_white_field(tmp_path, body):
     assert run_script("build", write_svg(tmp_path / "art.svg", body)).returncode == 0
     ios = json_of("inspect", tmp_path / "art.icons/ios/AppIcon.appiconset/icon-1024.png")

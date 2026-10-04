@@ -52,8 +52,8 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
 - A non-square master is padded to a square. Nothing is ever stretched.
 - Where a platform forbids transparency, the canvas is filled first. The fill
   is `--background`, else the icon's plate colour, else the page colour
-  removed during tracing, else white or near-black: whichever the art does
-  not already use (a field in the colour of the outlines would swallow
+  removed during tracing, else white or near-black: whichever the art uses
+  less of (a field in the colour of the outlines would swallow
   them), or failing that the one that contrasts with its main colour.
 - Where a platform cuts its own shape, the art is shrunk until its farthest
   pixel sits inside a centred circle: 90% of the canvas for iOS, the Apple

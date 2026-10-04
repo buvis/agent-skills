@@ -154,10 +154,9 @@ Existing files are kept; only missing ones are written. Options:
 
 - `--background "#rrggbb"`: the fill wherever a platform forbids
   transparency. Default: the plate colour, else the page colour that was
-  removed, else white or near-black, whichever the art does not already
-  use. A pre-rounded plate is extended
-  to the corners by default; another colour here keeps its shape on a field
-  of that colour instead.
+  removed, else white or near-black, whichever the art uses less of.
+  A pre-rounded plate is extended to the corners by default; another colour
+  here keeps its shape on a field of that colour instead.
 - `--picture crop|extend`: how a picture plate meets a circle cut. `crop`
   (default) fills the cut with the picture, sharp, and loses what falls
   outside; nothing is invented. `extend` keeps the whole picture, smaller,
