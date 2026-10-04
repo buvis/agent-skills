@@ -320,8 +320,12 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
     svg.parent.mkdir(parents=True, exist_ok=True)
     document = f'<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" {attrs}>{body}</svg>\n'
     svg.write_text(document, encoding="utf-8")
+    original = svg.with_name(svg.name.replace(".icon.svg", f".original{src.suffix.lower()}"))
+    if src.resolve() != original.resolve():
+        shutil.copyfile(src, original)
     return {
         "svg": str(svg),
+        "original": str(original),
         "tracer": "potrace" if flat else "vtracer",
         "colours": count,
         "background": f"removed {to_hex(paper)}" if paper else "kept",
@@ -348,20 +352,28 @@ def look_of(svg: Path, facts: dict, override: RGB | None) -> Look:
 
 
 def bleed(icon: Image.Image) -> Image.Image:
-    """Make an icon opaque by continuing its nearest colours into every see-through pixel.
+    """Make an icon opaque by growing its edge colours outward into every see-through pixel.
 
-    Push-pull: halve the image down to one pixel, then come back up, letting each coarser
-    level show through wherever the finer one is see-through.
+    Each pass fills the see-through pixels that touch a filled one with the average of those
+    neighbours, so a colour travels straight out from the edge it came from. (Averaging the
+    picture at coarser and coarser scales instead washes the far band out to a pale haze.)
+    Worked out on a small copy, since the fill is smooth anyway, then laid under the icon.
     """
-    levels = [icon]
-    while levels[-1].width > 1:
-        half = max(1, levels[-1].width // 2)
-        levels.append(levels[-1].resize((half, half), Image.Resampling.BOX))
-    filled = levels[-1].copy()
-    filled.putalpha(255)
-    for level in reversed(levels[:-1]):
-        filled = Image.alpha_composite(filled.resize(level.size, Image.Resampling.BILINEAR), level)
-    return filled
+    work = min(icon.width, 256)
+    data = np.asarray(icon.resize((work, work), Image.Resampling.BOX)).astype(np.float32)
+    rgb, known = data[..., :3].copy(), data[..., 3] >= 250
+    if not known.any():
+        return icon
+    while not known.all():
+        ink = np.pad(rgb * known[..., None], ((1, 1), (1, 1), (0, 0)))
+        seen = np.pad(known, 1).astype(np.float32)
+        total = sum(ink[y : y + work, x : x + work] for y in range(3) for x in range(3))
+        count = sum(seen[y : y + work, x : x + work] for y in range(3) for x in range(3))
+        grow = ~known & (count > 0)
+        rgb[grow] = total[grow] / count[grow][:, None]
+        known = known | grow
+    under = Image.fromarray(rgb.round().astype(np.uint8)).resize(icon.size, Image.Resampling.BILINEAR)
+    return Image.alpha_composite(under.convert("RGBA"), icon)
 
 
 def shape_mask(px: int, share: float, roundness: float) -> Image.Image:
@@ -698,7 +710,9 @@ def main() -> int:
         return 0
     bundle = bundle_for(args.svg, args.out)
     if args.command == "review":
-        print(json.dumps(review_svg(args.svg, args.source, args.background, bundle / "review.png"), indent=2))
+        kept = sorted(bundle.glob(f"{icon_name(args.svg)}.original.*"))
+        source = args.source or (kept[0] if kept else None)
+        print(json.dumps(review_svg(args.svg, source, args.background, bundle / "review.png"), indent=2))
         return 0
     return build_bundle(args.svg, bundle, args.background, args.png, args.force)
 

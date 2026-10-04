@@ -178,6 +178,16 @@ def test_gradient_plate_reaches_the_corners_on_masked_platforms(tmp_path):
     assert ios["background"] is None
 
 
+def test_picture_is_continued_with_its_own_edge_colour(tmp_path):
+    # A picture (the white subject covers most of it) whose edge is navy all the way round.
+    scene = '<rect width="100" height="100" rx="14" fill="#103060"/><rect x="12" y="12" width="76" height="76" fill="#fff"/>'
+    assert run_script("build", write_svg(tmp_path / "scene.svg", scene)).returncode == 0
+    mask = json_of("inspect", tmp_path / "scene.icons/web/icon-mask.png")
+    # The band around the shrunken picture must be that navy out to the canvas edge,
+    # not a pale average of the navy and the white subject.
+    assert mask["background"] == "#103060"
+
+
 def test_gradient_plate_keeps_its_shape_on_a_field_when_a_colour_is_given(tmp_path):
     done = run_script("build", write_svg(tmp_path / "sky.svg", GRADIENT_PLATE), "--background", "#101010")
     assert done.returncode == 0, done.stderr
@@ -217,6 +227,22 @@ def test_trace_names_bundle_and_master_as_name_dot_type(tmp_path):
     source = write_png(tmp_path / "logo.icon.png", 256, ring_on_page)
     traced = json_of("trace", source, "--background", "remove")
     assert Path(traced["svg"]) == tmp_path / "logo.icons" / "logo.icon.svg"
+
+
+def test_trace_keeps_the_original_raster_in_the_bundle(tmp_path):
+    source = write_png(tmp_path / "logo.icon.png", 256, ring_on_page)
+    traced = json_of("trace", source, "--background", "remove")
+    kept = tmp_path / "logo.icons" / "logo.original.png"
+    assert Path(traced["original"]) == kept
+    assert kept.read_bytes() == source.read_bytes()
+    assert source.is_file()
+
+
+def test_review_compares_against_the_kept_original_without_being_told(tmp_path):
+    source = write_png(tmp_path / "logo.icon.png", 256, ring_on_page)
+    traced = json_of("trace", source, "--background", "remove")
+    verdict = json_of("review", traced["svg"])
+    assert "mean_error" in verdict["facts"]
 
 
 def test_trace_removes_the_page_but_keeps_the_glyph_a_plate_encloses(tmp_path):

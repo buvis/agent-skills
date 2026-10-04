@@ -11,9 +11,9 @@ Turn one image into a bundle of platform icons. A raster source is traced to
 a master SVG first; every icon is then drawn from that SVG. Pointed at an
 SVG, the skill writes whatever the bundle is missing.
 
-The bundle is `<name>.icons/` beside the source: `<name>.icon.svg`,
-`review.png`, `preview.png`, and `web/`, `windows/`, `macos/`, `ios/`,
-`android/`. What each file is for, where it goes, the HTML tags and what is
+The bundle is `<name>.icons/` beside the source: `<name>.icon.svg`, a copy
+of a raster source as `<name>.original.<ext>`, `review.png`, `preview.png`,
+and `web/`, `windows/`, `macos/`, `ios/`, `android/`. What each file is for, where it goes, the HTML tags and what is
 deliberately not generated: `references/icon-set.md`.
 
 ## Dependencies
@@ -70,8 +70,9 @@ for when the review shows the default was wrong:
 uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py review SVG --source IMAGE
 ```
 
-Leave out `--source` for an SVG input. The command prints `PASS` or `DOUBT`
-with reasons and writes `review.png`. Read that image. Panels, left to
+`--source` can be left out: the review compares against the original kept in
+the bundle, and an SVG input, which has none, is judged on its own. The
+command prints `PASS` or `DOUBT` with reasons and writes `review.png`. Read that image. Panels, left to
 right: source, SVG on white, SVG on magenta, circle cut, 32 px. Look for:
 
 - resemblance: a shape, colour or proportion that differs from the source

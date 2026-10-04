@@ -9,6 +9,7 @@ macOS and iOS rows rest on secondary sources (listed at the end).
 | Path in the bundle | Size (px) | Transparency | Goes to |
 |---|---|---|---|
 | `<name>.icon.svg` | vector | as drawn | the master; keep it |
+| `<name>.original.<ext>` | as given | as given | the raster the master was traced from; absent for an SVG input |
 | `web/favicon.ico` | 16, 32, 48 | yes | site root |
 | `web/icon.svg` | vector | yes | site root |
 | `web/apple-touch-icon.png` | 180 | no | site root |
@@ -63,9 +64,9 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
   scene. It has no glyph to measure, so it keeps its full size where the
   platform cuts a rounded square (iOS, Apple touch icon, Play Store) and its
   box is fitted to the circle elsewhere, losing only its corners. Every
-  see-through pixel around it is filled by continuing the nearest colours
-  outward. That continuation is synthesized: smooth for a gradient, smeared
-  where the subject runs off the picture's edge. `--background` with a colour
+  see-through pixel around it is filled by growing the picture's edge colours
+  outward. That continuation is synthesized: seamless for a gradient, a soft
+  trailing streak where the subject runs off the picture's edge. `--background` with a colour
   turns this off and keeps the picture's shape on a field of that colour.
 - A round badge is not recognised as a plate. It is treated as plain art and
   shrunk onto the fill.
