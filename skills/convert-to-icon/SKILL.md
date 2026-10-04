@@ -12,7 +12,7 @@ a master SVG first; every icon is then drawn from that SVG. Pointed at an
 SVG, the skill writes whatever the bundle is missing.
 
 The bundle is `<name>.icons/` beside the source: `<name>.icon.svg`, a copy
-of a raster source as `<name>.original.<ext>`, and `web/`, `windows/`,
+of a raster source under its own file name, and `web/`, `windows/`,
 `macos/`, `ios/`, `android/`. The two check sheets go to the temp folder,
 never into the bundle; each command prints where. What each file is for, where it goes, the HTML tags and what is
 deliberately not generated: `references/icon-set.md`.
@@ -59,8 +59,8 @@ uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py trace IMAGE -
 
 One or two flat colours go through potrace, more through vtracer. A source
 that inspect marks `photo: true` is traced all the same: expect a posterised
-look, an SVG of megabytes and a `DOUBT` at review, and tell the user so
-before going on. Overrides, for when the review shows the default was wrong:
+look, an SVG of megabytes, a `DOUBT` at review and no Android themed layer
+(40 files instead of 45), and tell the user so before going on. Overrides, for when the review shows the default was wrong:
 
 - `--colors N`: `colours` in the inspect output miscounts what you see.
 - `--enclosed keep|clear`: page-coloured areas fully surrounded by art. `keep`

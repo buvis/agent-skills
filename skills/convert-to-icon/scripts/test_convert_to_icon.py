@@ -313,18 +313,31 @@ def test_trace_names_bundle_and_master_as_name_dot_type(tmp_path):
     assert Path(traced["svg"]) == tmp_path / "logo.icons" / "logo.icon.svg"
 
 
-def test_trace_keeps_the_original_raster_in_the_bundle(tmp_path):
+def test_trace_keeps_the_original_raster_under_its_own_name(tmp_path):
     source = write_png(tmp_path / "logo.icon.png", 256, ring_on_page)
-    traced = json_of("trace", source, "--background", "remove")
-    kept = tmp_path / "logo.icons" / "logo.original.png"
+    traced = json_of("trace", source, "--background", "remove", "--name", "brand")
+    kept = tmp_path / "brand.icons" / "logo.icon.png"
     assert Path(traced["original"]) == kept
     assert kept.read_bytes() == source.read_bytes()
     assert source.is_file()
 
 
+def test_photo_gets_no_themed_layer(tmp_path):
+    traced = json_of("trace", write_png(tmp_path / "photo.png", 96, noisy))
+    done = run_script("build", traced["svg"])
+    assert done.returncode == 0, done.stdout + done.stderr
+    bundle = tmp_path / "photo.icons"
+    # A photo has no clean outline: specks would ship as the themed icon, so it is left out
+    # and Android falls back to the normal icon.
+    assert "themed icon left out" in done.stdout
+    assert not list(bundle.rglob("ic_launcher_monochrome.png"))
+    assert "<monochrome" not in (bundle / "android/res/mipmap-anydpi-v26/ic_launcher.xml").read_text(encoding="utf-8")
+    assert "icon set complete: 40 files" in done.stdout
+
+
 def test_review_compares_against_the_kept_original_without_being_told(tmp_path):
     source = write_png(tmp_path / "logo.icon.png", 256, ring_on_page)
-    traced = json_of("trace", source, "--background", "remove")
+    traced = json_of("trace", source, "--background", "remove", "--name", "brand")
     verdict = json_of("review", traced["svg"])
     assert "mean_error" in verdict["facts"]
 

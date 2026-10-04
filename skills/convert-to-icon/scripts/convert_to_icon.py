@@ -16,6 +16,7 @@ convert_image_to_svg_py.
 from __future__ import annotations
 
 import argparse
+import html
 import io
 import json
 import re
@@ -339,12 +340,13 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
     body = trace_flat(labels, footprint, palette, speck) if flat else trace_shaded(img, removed, bool(paper))
     attrs = f'viewBox="{x:.1f} {y:.1f} {side:.1f} {side:.1f}"'
     attrs += f' data-source-box="{x / zoom:.1f} {y / zoom:.1f} {side / zoom:.1f}"'
+    attrs += f' data-source="{html.escape(src.name, quote=True)}"'
     if paper:
         attrs += f' data-background="{to_hex(paper)}"'
     svg.parent.mkdir(parents=True, exist_ok=True)
     document = f'<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" {attrs}>{body}</svg>\n'
     svg.write_text(document, encoding="utf-8")
-    original = svg.with_name(svg.name.replace(".icon.svg", f".original{src.suffix.lower()}"))
+    original = svg.parent / src.name  # the kept copy carries the source's own file name
     if src.resolve() != original.resolve():
         shutil.copyfile(src, original)
     return {
@@ -469,7 +471,14 @@ def compose(svg: Path, spec: Png, look: Look) -> Image.Image:
     return icon.convert("RGB") if spec.opaque and not spec.circle else icon
 
 
-def plan_pngs(extra: list[int]) -> list[Png]:
+def kept_original(svg: Path) -> Path | None:
+    """The raster a traced SVG came from, when it still sits beside it."""
+    named = re.search(r'data-source="([^"]+)"', svg.read_text(encoding="utf-8"))
+    original = svg.parent / html.unescape(named.group(1)) if named else None
+    return original if original and original.is_file() else None
+
+
+def plan_pngs(extra: list[int], themed: bool) -> list[Png]:
     pngs = [
         Png("web/apple-touch-icon.png", 180, zone=0.9, opaque=True, squircle=True),
         Png("web/icon-192.png", 192),
@@ -488,19 +497,21 @@ def plan_pngs(extra: list[int]) -> list[Png]:
             Png(f"{folder}/ic_launcher.png", launcher),
             Png(f"{folder}/ic_launcher_round.png", launcher, zone=0.9, opaque=True, circle=True),
             Png(f"{folder}/ic_launcher_foreground.png", layer, zone=66 / 108, window=72 / 108),
-            Png(f"{folder}/ic_launcher_monochrome.png", layer, zone=66 / 108, window=72 / 108, mono=True),
         ]
+        if themed:
+            mono = f"{folder}/ic_launcher_monochrome.png"
+            pngs.append(Png(mono, layer, zone=66 / 108, window=72 / 108, mono=True))
     return pngs + [Png(f"png/icon-{px}.png", px) for px in extra]
 
 
-def companion_texts(fill: RGB) -> dict[str, str]:
+def companion_texts(fill: RGB, themed: bool) -> dict[str, str]:
     adaptive = (
         '<?xml version="1.0" encoding="utf-8"?>\n'
         '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
         '    <background android:drawable="@color/ic_launcher_background"/>\n'
         '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n'
-        '    <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>\n'
-        "</adaptive-icon>\n"
+        + ('    <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>\n' if themed else "")
+        + "</adaptive-icon>\n"
     )
     colour = (
         '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
@@ -572,7 +583,7 @@ def save_sheet(panels: list[tuple[str, Image.Image]], path: Path) -> None:
     page.save(path)
 
 
-def preview_bundle(bundle: Path, look: Look) -> Path:
+def preview_bundle(bundle: Path, look: Look, themed: bool) -> Path:
     """One sheet of the finished icons, cut the way each platform shows them."""
     cell, grey = 256, (128, 128, 128, 255)
     fit = Image.Resampling.LANCZOS
@@ -593,9 +604,10 @@ def preview_bundle(bundle: Path, look: Look) -> Path:
         ("maskable, circle cut", cut(Image.open(bundle / "web/icon-mask.png"), 0.5)),
         ("macos", centred(Image.open(bundle / ICONSET / "icon_128x128@2x.png").convert("RGBA"), cell, grey)),
         ("android adaptive", launcher("ic_launcher_foreground", look.fill)),
-        ("android themed", launcher("ic_launcher_monochrome", (32, 40, 56))),
         ("launcher 48 px", centred(small, 48, grey).resize((cell, cell), Image.Resampling.NEAREST)),
     ]
+    if themed:
+        panels.insert(4, ("android themed", launcher("ic_launcher_monochrome", (32, 40, 56))))
     sheet = sheet_path(bundle.stem, "preview")
     save_sheet(panels, sheet)
     return sheet
@@ -620,7 +632,12 @@ def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int]
         created.append(rel)
         return path
 
-    pngs = plan_pngs(extra)
+    # A photo has no clean outline: its themed layer would be specks, so Android gets none
+    # and falls back to the normal icon. Judged on the original where one was kept, because
+    # tracing smooths a photo's detail away.
+    original = kept_original(master)
+    themed = fine_detail(Image.open(original) if original else rasterise(master, 1024)) <= PHOTO_DETAIL
+    pngs = plan_pngs(extra, themed)
     for spec in pngs:
         if path := missing(spec.path):
             compose(master, spec, look).save(path)
@@ -630,7 +647,7 @@ def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int]
             frames[-1].save(path, sizes=[(px, px) for px in sizes], append_images=frames[:-1])
     if path := missing("macos/AppIcon.icns"):
         write_icns(bundle / ICONSET, path)
-    texts = companion_texts(look.fill)
+    texts = companion_texts(look.fill, themed)
     for rel, text in texts.items():
         if path := missing(rel):
             path.write_text(text, encoding="utf-8")
@@ -645,12 +662,14 @@ def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int]
     print(f"created {len(created)}, kept {len(kept)}; fill colour {to_hex(look.fill)}")
     if stale:
         print(f"stale: {len(stale)} kept files are older than the master SVG (--force rebuilds them)")
+    if not themed:
+        print("themed icon left out: a photo has no clean outline, so Android falls back to the normal icon")
     for problem in problems:
         print(f"problem: {problem}")
     if problems:
         print(f"icon set INCOMPLETE: {len(problems)} problems")
         return 1
-    print(f"preview: {preview_bundle(bundle, look)}")
+    print(f"preview: {preview_bundle(bundle, look, themed)}")
     print(f"icon set complete: {len(expected)} files")
     return 0
 
@@ -777,8 +796,7 @@ def main() -> int:
         return 0
     bundle = bundle_for(args.svg, args.out)
     if args.command == "review":
-        kept = sorted(bundle.glob(f"{icon_name(args.svg)}.original.*"))
-        source = args.source or (kept[0] if kept else None)
+        source = args.source or kept_original(args.svg)
         print(json.dumps(review_svg(args.svg, source, args.background), indent=2))
         return 0
     return build_bundle(args.svg, bundle, args.background, args.png, args.force, args.picture == "crop")

@@ -9,7 +9,7 @@ macOS and iOS rows rest on secondary sources (listed at the end).
 | Path in the bundle | Size (px) | Transparency | Goes to |
 |---|---|---|---|
 | `<name>.icon.svg` | vector | as drawn | the master; keep it |
-| `<name>.original.<ext>` | as given | as given | the raster the master was traced from; absent for an SVG input |
+| the source raster, under its own file name | as given | as given | what the master was traced from; absent for an SVG input. The SVG names it in `data-source`, which is how the review finds it. |
 | `web/favicon.ico` | 16, 32, 48 | yes | site root |
 | `web/icon.svg` | vector | yes | site root |
 | `web/apple-touch-icon.png` | 180 | no | site root |
@@ -101,6 +101,11 @@ must be an SVG. The result is a posterised approximation of several
 megabytes, and no tracer setting changes that: a photo has no flat shapes to
 find. The review says so and leaves the decision to the user. Flat artwork is
 the real fix.
+
+A photo also has no clean outline, so its Android themed layer would be
+scattered specks. The build leaves that layer out (no
+`ic_launcher_monochrome.png`, no `<monochrome>` in the adaptive XML, 40 files
+instead of 45) and Android shows the normal icon in themed mode.
 
 ## Not generated, on purpose
 
