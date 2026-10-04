@@ -37,6 +37,7 @@ export _CLAUDE_NOTIFY_QUIET=1
 # model id or a different tier.
 DEFAULT_MODEL="sonnet"
 MODEL="$DEFAULT_MODEL"
+EFFORT=""
 
 MODE="prompt"  # prompt, interactive, resume, continue
 PERM=""        # -a = acceptEdits (edits auto-approved, Bash still gated); -y = full bypass
@@ -53,6 +54,7 @@ usage() {
     echo ""
     echo "Options:"
     echo "  -m, --model MODEL      Override model (default: $DEFAULT_MODEL; e.g. opus, claude-sonnet-5)"
+    echo "  --effort LEVEL         Explicit effort (default: sonnet/medium, opus/high, fable/xhigh)"
     echo "  -i, --interactive      Interactive mode with initial prompt"
     echo "  -a, --allow-edits      Auto-approve file edits (--permission-mode acceptEdits; other tools stay gated)"
     echo "  -y, --yolo             Full permissions (--permission-mode bypassPermissions); required for unattended agentic runs"
@@ -77,6 +79,11 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -m|--model)
             MODEL="$2"
+            shift 2
+            ;;
+        --effort)
+            [ $# -ge 2 ] || { echo "ERROR: --effort requires a level" >&2; exit 1; }
+            EFFORT="$2"
             shift 2
             ;;
         -i|--interactive)
@@ -145,6 +152,19 @@ if [ -n "$PROMPT_FILE" ]; then
     PROMPT=$(cat "$PROMPT_FILE")
 fi
 
+if [ -z "$EFFORT" ]; then
+    case "$MODEL" in
+        *fable*) EFFORT=xhigh ;;
+        *opus*) EFFORT=high ;;
+        *haiku*) EFFORT=low ;;
+        *) EFFORT=medium ;;
+    esac
+fi
+case "$EFFORT" in
+    low|medium|high|xhigh|max) ;;
+    *) echo "ERROR: invalid effort: $EFFORT" >&2; exit 1 ;;
+esac
+
 # Build and run command
 run_cmd() {
     if [ -n "$OUTPUT_FILE" ]; then
@@ -164,13 +184,13 @@ fi
 case $MODE in
     resume)
         if [ -n "$PROMPT" ]; then
-            run_cmd claude --model "$MODEL" $PERM --resume "$PROMPT"
+            run_cmd claude --model "$MODEL" --effort "$EFFORT" $PERM --resume "$PROMPT"
         else
-            run_cmd claude --model "$MODEL" $PERM --resume
+            run_cmd claude --model "$MODEL" --effort "$EFFORT" $PERM --resume
         fi
         ;;
     continue)
-        run_cmd claude --model "$MODEL" $PERM --continue
+        run_cmd claude --model "$MODEL" --effort "$EFFORT" $PERM --continue
         ;;
     interactive)
         if [ -z "$PROMPT" ]; then
@@ -178,7 +198,7 @@ case $MODE in
             usage >&2
             exit 1
         fi
-        run_cmd claude --model "$MODEL" $PERM "${ADD_DIRS[@]}" "$PROMPT"
+        run_cmd claude --model "$MODEL" --effort "$EFFORT" $PERM "${ADD_DIRS[@]}" "$PROMPT"
         ;;
     prompt)
         if [ -z "$PROMPT" ]; then
@@ -198,10 +218,10 @@ case $MODE in
         # prompt from stdin byte-verbatim when no positional prompt is given.
         case "$PROMPT" in
             -*)
-                printf '%s' "$PROMPT" | run_cmd claude --print --model "$MODEL" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}"
+                printf '%s' "$PROMPT" | run_cmd claude --print --model "$MODEL" --effort "$EFFORT" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}"
                 ;;
             *)
-                run_cmd claude --print --model "$MODEL" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}" "$PROMPT" < /dev/null
+                run_cmd claude --print --model "$MODEL" --effort "$EFFORT" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}" "$PROMPT" < /dev/null
                 ;;
         esac
         ;;

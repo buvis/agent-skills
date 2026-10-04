@@ -37,6 +37,14 @@ Background dispatch and waiting (TaskOutput-only waiting), following up, error h
 
 **On a hit:** mark the run **FAILED**, report the reset time in the run report (`usage limit; resets <time>`), and do NOT retry before the reset — a retry re-fails identically. Under autopilot the `autoclaude` wrapper already sleeps-until-reset at the loop boundary; a standalone `use-sonnet` run cannot wait, so it stops and surfaces the reset for the user.
 
+## Effort Policy
+
+The wrapper passes `--effort` explicitly in every mode. Defaults follow the
+selected model: Haiku/low, Sonnet/medium, Opus/high, Fable/xhigh. Use
+`--effort high` for reviews regardless of the selected model. An explicit
+`--effort` overrides the tier default; invalid levels fail before launching.
+Session and user-global effort settings are not used as wrapper defaults.
+
 ## Model Policy
 
 - **Default:** `sonnet` (latest base Sonnet). Use unless the user asks for a different model.

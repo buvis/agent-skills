@@ -140,13 +140,13 @@ else
 fi
 
 # 2. Argv regression lock for the plain -f run (adding the stdin guard must
-#    not perturb argv): claude --print --model sonnet <PROMPT>.
+#    not perturb argv): claude --print --model sonnet --effort medium <PROMPT>.
 EXPECTED_ARGV_FILE="$WORK/t1.expected"
-printf '%s\n' "--print" "--model" "sonnet" "$PROMPT_TEXT" > "$EXPECTED_ARGV_FILE"
+printf '%s\n' "--print" "--model" "sonnet" "--effort" "medium" "$PROMPT_TEXT" > "$EXPECTED_ARGV_FILE"
 if diff -q "$EXPECTED_ARGV_FILE" "$CLAUDE_ARGV_FILE" >/dev/null 2>&1; then
-    PASS "plain -f argv is exactly: --print --model sonnet <PROMPT>"
+    PASS "plain -f argv is exactly: --print --model sonnet --effort medium <PROMPT>"
 else
-    FAIL "plain -f argv is exactly: --print --model sonnet <PROMPT>" \
+    FAIL "plain -f argv is exactly: --print --model sonnet --effort medium <PROMPT>" \
          "got: $(tr '\n' ' ' < "$CLAUDE_ARGV_FILE" 2>/dev/null || echo '<no claude invocation>')"
 fi
 
@@ -456,6 +456,16 @@ else
     FAIL "-h: usage text documents -S/--session-id" \
          "rc=$RC; stdout: $(cat "$STDOUT_F" 2>/dev/null || echo '<empty>')"
 fi
+
+# Explicit effort controls the actual child argv.
+run_sonnet effort-default "test"
+if argv_has_pair "$CLAUDE_ARGV_FILE" --effort medium; then PASS "Sonnet medium"; else FAIL "Sonnet medium" "wrong effort"; fi
+run_sonnet effort-opus -m opus "test"
+if argv_has_pair "$CLAUDE_ARGV_FILE" --effort high; then PASS "Opus high"; else FAIL "Opus high" "wrong effort"; fi
+run_sonnet effort-review --effort high "test"
+if argv_has_pair "$CLAUDE_ARGV_FILE" --effort high; then PASS "review override"; else FAIL "review override" "wrong effort"; fi
+run_sonnet effort-invalid --effort typo "test"
+if [ "$RC" -ne 0 ] && [ ! -f "$CLAUDE_ARGV_FILE" ]; then PASS "invalid effort refuses launch"; else FAIL "invalid effort refuses launch" "launched"; fi
 
 # ══ summary ═══════════════════════════════════════════════════════════════════
 echo ""
