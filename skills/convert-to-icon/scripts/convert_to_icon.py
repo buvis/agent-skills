@@ -84,6 +84,7 @@ def main() -> int:
         command.add_argument("--out", type=Path)
     for command in (tracer, builder):
         command.add_argument("--force", action="store_true")
+        command.add_argument("--move", action="store_true")
     for command in (reviewer, builder):
         command.add_argument("--background", type=from_hex)
     args = parser.parse_args()
@@ -105,6 +106,7 @@ def main() -> int:
             fine=args.detail == "fine",
             style=args.style,
             keep=args.keep,
+            move=args.move,
         )
         print(json.dumps(trace_raster(args.raster, svg, options), indent=2))
         return 0
@@ -113,7 +115,7 @@ def main() -> int:
         source = args.source or kept_original(args.svg)
         print(json.dumps(review_svg(args.svg, source, args.background), indent=2))
         return 0
-    return build_bundle(args.svg, bundle, args.background, args.png, args.force, args.picture == "crop", args.fit)
+    return build_bundle(args.svg, bundle, args.background, args.png, args.force, args.picture == "crop", args.fit, args.move)
 
 
 if __name__ == "__main__":

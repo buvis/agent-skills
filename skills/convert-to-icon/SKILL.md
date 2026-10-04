@@ -40,7 +40,10 @@ against that sentence, not against the pixels: the subject must read at
 once, what surrounds it must still be there, and nothing else needs to
 survive. A faithful copy of a busy picture is a failed icon.
 
-Add `--out DIR` to any step to put the bundle somewhere else.
+Add `--out DIR` to any step to put the bundle somewhere else. Add `--move`
+to `trace` (raster) or `build` (SVG) when the user wants no loose file left
+beside the bundle: the source goes into the bundle instead of a copy of it.
+A source the bundle does not hold as it is stays where it was, with a note.
 
 ### 1. Inspect
 

@@ -84,6 +84,7 @@ class TraceOptions:
     fine: bool = False  # more colour steps in the layers style
     style: str = "auto"  # auto, glow or layers
     keep: float | None = None  # share of a line drawing's weight to keep; None lets the measures decide
+    move: bool = False  # the source goes into the bundle instead of a copy of it
 
 
 def cut_page(solid: np.ndarray, labels: np.ndarray, palette: list[RGB], paper: RGB, plain: bool, enclosed: str):
@@ -151,6 +152,8 @@ def trace_raster(src: Path, svg: Path, options: TraceOptions) -> dict:
     original = svg.parent / src.name  # the kept copy carries the source's own file name
     if src.resolve() != original.resolve():
         shutil.copyfile(src, original)
+        if options.move:  # only once the copy is written
+            src.unlink()
     return {
         "svg": str(svg),
         "original": str(original),

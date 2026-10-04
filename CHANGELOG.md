@@ -27,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   circle cut, or kept whole with `--picture extend`; `build --fit` tightens
   a half-empty canvas to its art; `trace --page` names a page that art
   running off the edge hides; a tiny source is traced at no less than
-  512 px, so its curves come out smooth; a photo is traced with a warning that names it as
+  512 px, so its curves come out smooth; `--move` on `trace` and `build`
+  puts the source into the bundle instead of a copy of it; a photo is traced with a warning that names it as
   the cause of a poor result, and gets no Android themed layer; glowing art
   is traced as crisp strokes over its page with the fade redrawn as a blur,
   and other shading can be retraced with `trace --detail fine`; a raster

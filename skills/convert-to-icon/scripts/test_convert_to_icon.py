@@ -533,6 +533,28 @@ def test_fit_tightens_a_half_empty_canvas_to_its_art(tmp_path):
     assert 'viewBox="0 0 100 100"' in dot.read_text(encoding="utf-8")
 
 
+def test_move_leaves_the_source_in_the_bundle_only(tmp_path):
+    raster = write_png(tmp_path / "ring.png", 256, ring_on_page)
+    traced = json_of("trace", raster, "--background", "remove", "--move")
+    assert not raster.exists()
+    assert Path(traced["original"]).is_file()
+    loose = write_svg(tmp_path / "disc.svg", DISC)
+    assert run_script("build", loose, "--move").returncode == 0
+    assert not loose.exists()
+    assert (tmp_path / "disc.icons/disc.icon.svg").is_file()
+
+
+def test_move_keeps_a_source_the_bundle_does_not_hold(tmp_path):
+    loose = write_svg(tmp_path / "disc.svg", DISC)
+    assert run_script("build", loose).returncode == 0
+    write_svg(loose, CROSS)  # redrawn after the bundle was built: the master is the old drawing
+    done = run_script("build", loose, "--move")
+    assert done.returncode == 0, done.stderr
+    # Removing it would lose the new drawing, which exists nowhere else.
+    assert loose.exists()
+    assert "left in place" in done.stdout
+
+
 def test_trace_clears_page_gaps_enclosed_by_line_art(tmp_path):
     source = write_png(tmp_path / "ring.png", 256, ring_on_page)
     traced = json_of("trace", source, "--background", "remove")
