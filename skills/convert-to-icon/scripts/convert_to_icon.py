@@ -23,7 +23,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
@@ -48,6 +48,7 @@ class Png:
     path: str
     px: int
     zone: float = 0.0  # diameter of the circle the art must stay inside, as a share of px
+    window: float = 1.0  # the most of the canvas a platform ever shows, as a share of px
     body: bool = False  # laid out on the macOS grid
     opaque: bool = False  # the platform forbids transparency
     squircle: bool = False  # the platform cuts a rounded square, so a picture can stay full size
@@ -61,6 +62,7 @@ class Look:
     fill: RGB  # colour behind the art wherever transparency is not allowed
     plate: RGB | None  # set when that fill continues the icon's own flat plate
     picture: bool  # the plate is a gradient or picture: its edge colours are continued instead
+    crop: bool  # under a circle cut a picture fills the cut and loses the rest, instead of shrinking
 
 
 def to_hex(rgb) -> str:
@@ -170,9 +172,10 @@ def dominant_colours(rgb: np.ndarray) -> list[tuple[RGB, float]]:
 
 
 def find_plate(rgb: np.ndarray, solid: np.ndarray) -> tuple[RGB | None, bool, bool]:
-    """A plate is a box-shaped block the art sits on. Returns its edge colour (None when the art
-    is not a plate), whether that colour is flat across the plate, and whether its corners are
-    rounded. A plate that is not flat is a picture: a gradient, a photo, a scene."""
+    """A plate is a block the art sits on: a square, sharp or rounded, or a disc. Returns its edge
+    colour (None when the art is not on a plate), whether that colour is flat across the plate, and
+    whether the plate stops short of its box's corners. A plate that is not flat is a picture: a
+    gradient, a photo, a scene."""
     x0, y0, x1, y1 = bounds(solid)
     bw, bh = x1 - x0, y1 - y0
     inset = max(1, min(bw, bh) // 25)
@@ -183,11 +186,19 @@ def find_plate(rgb: np.ndarray, solid: np.ndarray) -> tuple[RGB | None, bool, bo
         (y0 + bh // 2, x1 - 1 - inset),
     ]
     box = (slice(y0, y1), slice(x0, x1))
-    # Box-shaped means it covers its own box: a rounded square does (over 0.94), a disc does not (0.79).
-    if not all(solid[p] for p in mids) or solid[box].mean() < 0.85:
+    patch = solid[box]
+    yy, xx = np.ogrid[:bh, :bw]
+    disc = ((xx + 0.5) / bw * 2 - 1) ** 2 + ((yy + 0.5) / bh * 2 - 1) ** 2 <= 1
+    # A square covers its own box (a rounded one over 0.94); a disc matches the box's ellipse.
+    blocky = patch.mean() >= 0.85 or (patch & disc).sum() / (patch | disc).sum() >= 0.9
+    if not blocky or not all(solid[p] for p in mids):
         return None, False, False
     colour = tuple(int(v) for v in np.median([rgb[p] for p in mids], axis=0))
-    flat = all(near(rgb[p], colour) for p in mids) and (near(rgb[box], colour) & solid[box]).mean() >= 0.5
+    share = (near(rgb[box], colour) & patch).sum() / patch.sum()
+    even = all(near(rgb[p], colour) for p in mids)
+    if even and share > 0.995:  # one colour with nothing on it is the art itself, not a plate
+        return None, False, False
+    flat = even and share >= 0.5
     nick = max(1, min(bw, bh) // 100)
     corners = [(y, x) for y in (y0 + nick, y1 - 1 - nick) for x in (x0 + nick, x1 - 1 - nick)]
     return colour, bool(flat), not all(solid[p] for p in corners)
@@ -222,6 +233,7 @@ def measure_art(img: Image.Image) -> dict:
         "picture": picture is not None,
         "edge": to_hex(picture) if picture else None,
         "plate_rounded": rounded,
+        "aspect": round(max(x1 - x0, y1 - y0) / min(x1 - x0, y1 - y0), 2),
         "extent": round(max(x1 - x0, y1 - y0) / side, 3),
         "margin": round(min(gaps) / side, 3),
         "radius": round(reach(solid), 3),
@@ -333,7 +345,12 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
     }
 
 
-def look_of(svg: Path, facts: dict, override: RGB | None) -> Look:
+def sheet_path(name: str, kind: str) -> Path:
+    """Check sheets are for looking at once: they live in the temp folder, never in the bundle."""
+    return Path(tempfile.gettempdir()) / "convert-to-icon" / f"{name}.{kind}.png"
+
+
+def look_of(svg: Path, facts: dict, override: RGB | None, crop: bool = True) -> Look:
     plate = from_hex(facts["plate"]) if facts["plate"] else None
     declared = re.search(r'data-background="(#[0-9a-fA-F]{6})"', svg.read_text(encoding="utf-8"))
     if override:
@@ -348,7 +365,7 @@ def look_of(svg: Path, facts: dict, override: RGB | None) -> Look:
         r, g, b = from_hex(facts["colours"][0][0]) if facts["colours"] else (0, 0, 0)
         fill = (255, 255, 255) if 0.299 * r + 0.587 * g + 0.114 * b < 160 else (17, 17, 17)
     # An explicit colour means "keep the plate's own shape on this field".
-    return Look(facts, fill, plate if fill == plate else None, facts["picture"] and override is None)
+    return Look(facts, fill, plate if fill == plate else None, facts["picture"] and override is None, crop)
 
 
 def bleed(icon: Image.Image) -> Image.Image:
@@ -403,15 +420,20 @@ def compose(svg: Path, spec: Png, look: Look) -> Image.Image:
     facts = look.facts
     scale = 1.0
     if spec.zone and look.picture:
-        # A picture has no glyph to measure. Under a rounded-square cut it keeps its size;
-        # under a circle its box is fitted to the circle and only its corners are lost.
-        scale = 1.0 if spec.squircle else spec.zone
+        # A picture has no glyph to measure. Cropped, it covers all the platform can show and
+        # loses what the cut removes. Extended, its box is fitted inside the circle and the
+        # band around it is grown from its edge colours. A rounded-square cut needs neither.
+        # Either way the measure is the picture's own box, not the canvas it was drawn on.
+        scale = (spec.window if look.crop or spec.squircle else spec.zone) / max(facts["extent"], 0.01)
     elif spec.zone:  # keep the art inside the circle a launcher may cut
         scale = min(1.0, spec.zone / max(facts["glyph_radius" if look.plate else "radius"], 0.01))
     if spec.body:
         scale = min(1.0, MAC_BODY / facts["extent"])
     shaped = spec.body and (look.plate is not None or look.picture)
-    continued = look.picture and (bool(spec.zone) or shaped)
+    # Cropped onto a layer larger than what a launcher shows, a picture stands alone: the plain
+    # background colour lies behind it and nothing is invented around it.
+    alone = look.crop and spec.window < 1.0
+    continued = look.picture and (shaped or (bool(spec.zone) and not alone))
     backdrop = (*look.fill, 255) if (spec.opaque or shaped) and not continued else (0, 0, 0, 0)
     icon = centred(rasterise(svg, max(1, round(spec.px * scale))), spec.px, backdrop)
     if continued:
@@ -445,8 +467,8 @@ def plan_pngs(extra: list[int]) -> list[Png]:
         pngs += [
             Png(f"{folder}/ic_launcher.png", launcher),
             Png(f"{folder}/ic_launcher_round.png", launcher, zone=0.9, opaque=True, circle=True),
-            Png(f"{folder}/ic_launcher_foreground.png", layer, zone=66 / 108),
-            Png(f"{folder}/ic_launcher_monochrome.png", layer, zone=66 / 108, mono=True),
+            Png(f"{folder}/ic_launcher_foreground.png", layer, zone=66 / 108, window=72 / 108),
+            Png(f"{folder}/ic_launcher_monochrome.png", layer, zone=66 / 108, window=72 / 108, mono=True),
         ]
     return pngs + [Png(f"png/icon-{px}.png", px) for px in extra]
 
@@ -554,11 +576,12 @@ def preview_bundle(bundle: Path, look: Look) -> Path:
         ("android themed", launcher("ic_launcher_monochrome", (32, 40, 56))),
         ("launcher 48 px", centred(small, 48, grey).resize((cell, cell), Image.Resampling.NEAREST)),
     ]
-    save_sheet(panels, bundle / "preview.png")
-    return bundle / "preview.png"
+    sheet = sheet_path(bundle.stem, "preview")
+    save_sheet(panels, sheet)
+    return sheet
 
 
-def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int], force: bool) -> int:
+def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int], force: bool, crop: bool) -> int:
     master = bundle / f"{icon_name(svg)}.icon.svg"
     bundle.mkdir(parents=True, exist_ok=True)
     if svg.resolve() != master.resolve():
@@ -566,7 +589,7 @@ def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int]
             shutil.copyfile(svg, master)
         elif master.read_bytes() != svg.read_bytes():
             print(f"note: {master} differs from {svg}; the bundle's copy was used (--force replaces it)")
-    look = look_of(master, measure_art(rasterise(master, 1024)), override)
+    look = look_of(master, measure_art(rasterise(master, 1024)), override, crop)
     created: list[str] = []
 
     def missing(rel: str) -> Path | None:
@@ -629,7 +652,7 @@ def resemblance(svg: Path, source: Path, px: int = 512) -> tuple[float, float, I
     return float(delta.mean()), float((delta.max(axis=-1) > 40).mean() * 100), flat[0]
 
 
-def review_svg(svg: Path, source: Path | None, override: RGB | None, sheet: Path) -> dict:
+def review_svg(svg: Path, source: Path | None, override: RGB | None) -> dict:
     facts = measure_art(rasterise(svg, 1024))
     look = look_of(svg, facts, override)
     doubts, notes = [], []
@@ -637,23 +660,38 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None, sheet: Path
         notes.append("canvas is not square: every icon pads it to a square, never stretches it")
     if facts["extent"] < 0.6:
         doubts.append(f"art fills only {facts['extent']:.0%} of the canvas: it will look tiny")
+    if facts["aspect"] > 2:
+        doubts.append(f"art is {facts['aspect']:.1f} times longer one way: a square icon shows it as a thin strip")
     if facts["margin"] < 0.01 and not facts["plate"] and not facts["picture"]:
         doubts.append("art touches the canvas edge: part of it may be cut off")
-    if facts["plate_rounded"]:
-        how = f"extend {facts['plate']}" if facts["plate"] else "continue the picture's edge colours"
+    if look.picture:
         doubts.append(
-            f"pre-rounded plate: masked icons {how} to the corners so the platform rounds it once; "
-            "confirm, or pass --background with another colour to keep the plate's own shape"
+            f"{'pre-rounded ' if facts['plate_rounded'] else ''}picture plate: under a circle cut choose "
+            "--picture crop (sharp; what falls outside the circle is lost) or --picture extend (whole "
+            "picture kept, inside a soft band grown from its edge colours); --background with a colour "
+            "keeps its shape on a flat field instead"
+        )
+    elif facts["plate_rounded"] and facts["plate"]:
+        doubts.append(
+            f"pre-rounded plate: masked icons extend {facts['plate']} to the corners so the platform "
+            "rounds it once; confirm, or pass --background with another colour to keep the plate's own shape"
         )
     cell = 384
+
+    def circle_cut(crop: bool) -> Image.Image:
+        cut = compose(svg, Png("", cell, zone=0.8, opaque=True), replace(look, crop=crop)).convert("RGBA")
+        cut.putalpha(shape_mask(cell, 1.0, 0.5))
+        return centred(cut, cell, (128, 128, 128, 255))
+
     shot = centred(rasterise(svg, cell), cell)
-    cut = compose(svg, Png("", cell, zone=0.8, opaque=True), look).convert("RGBA")
-    cut.putalpha(shape_mask(cell, 1.0, 0.5))
     tiny = centred(rasterise(svg, 32), 32, (255, 255, 255, 255)).resize((cell, cell), Image.Resampling.NEAREST)
+    cuts = [("circle cut", circle_cut(False))]
+    if look.picture:
+        cuts = [("circle cut, crop", circle_cut(True)), ("circle cut, extend", circle_cut(False))]
     panels = [
         ("svg on white", centred(shot, cell, (255, 255, 255, 255))),
         ("svg on magenta", centred(shot, cell, (255, 0, 255, 255))),
-        ("circle cut", centred(cut, cell, (128, 128, 128, 255))),
+        *cuts,
         ("32 px", tiny),
     ]
     if source:
@@ -666,7 +704,9 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None, sheet: Path
     notes.append(
         f"circular cut: art drawn at {min(1.0, 0.8 / span):.0%} in the maskable icon "
         f"and at {min(1.0, 66 / 108 / span):.0%} of the Android adaptive layer"
+        + (" when extended; at full size and 67% when cropped" if look.picture else "")
     )
+    sheet = sheet_path(icon_name(svg), "review")
     save_sheet(panels, sheet)
     verdict = "DOUBT" if doubts else "PASS"
     return {"verdict": verdict, "doubts": doubts, "notes": notes, "facts": facts, "sheet": str(sheet)}
@@ -688,6 +728,7 @@ def main() -> int:
     builder = commands.add_parser("build")
     builder.add_argument("svg", type=existing_file)
     builder.add_argument("--png", type=pixel_size, action="append", default=[])
+    builder.add_argument("--picture", choices=("crop", "extend"), default="crop")
     for command in (tracer, reviewer, builder):
         command.add_argument("--out", type=Path)
     for command in (tracer, builder):
@@ -712,9 +753,9 @@ def main() -> int:
     if args.command == "review":
         kept = sorted(bundle.glob(f"{icon_name(args.svg)}.original.*"))
         source = args.source or (kept[0] if kept else None)
-        print(json.dumps(review_svg(args.svg, source, args.background, bundle / "review.png"), indent=2))
+        print(json.dumps(review_svg(args.svg, source, args.background), indent=2))
         return 0
-    return build_bundle(args.svg, bundle, args.background, args.png, args.force)
+    return build_bundle(args.svg, bundle, args.background, args.png, args.force, args.picture == "crop")
 
 
 if __name__ == "__main__":

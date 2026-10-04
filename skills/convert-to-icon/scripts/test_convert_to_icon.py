@@ -88,7 +88,6 @@ def test_build_delivers_every_platform_file(disc_bundle):
     assert "icon set complete: 45 files" in report
     for rel in (
         "disc.icon.svg",
-        "preview.png",
         "web/favicon.ico",
         "web/icon.svg",
         "web/apple-touch-icon.png",
@@ -105,6 +104,16 @@ def test_build_delivers_every_platform_file(disc_bundle):
         "android/play-store-512.png",
     ):
         assert (bundle / rel).stat().st_size > 0, rel
+
+
+def test_check_sheets_are_written_outside_the_bundle(disc_bundle):
+    bundle, report = disc_bundle
+    preview = Path(next(line for line in report.splitlines() if line.startswith("preview: "))[9:])
+    review = Path(json_of("review", bundle / "disc.icon.svg")["sheet"])
+    for sheet in (preview, review):
+        assert sheet.is_file()
+        assert bundle not in sheet.parents
+    assert not list(bundle.glob("*.png"))
 
 
 def test_png_sizes_follow_the_platform_tables(disc_bundle):
@@ -178,14 +187,31 @@ def test_gradient_plate_reaches_the_corners_on_masked_platforms(tmp_path):
     assert ios["background"] is None
 
 
-def test_picture_is_continued_with_its_own_edge_colour(tmp_path):
-    # A picture (the white subject covers most of it) whose edge is navy all the way round.
-    scene = '<rect width="100" height="100" rx="14" fill="#103060"/><rect x="12" y="12" width="76" height="76" fill="#fff"/>'
-    assert run_script("build", write_svg(tmp_path / "scene.svg", scene)).returncode == 0
+# A picture (the white subject covers most of it) whose edge is navy all the way round.
+SCENE = '<rect width="100" height="100" rx="14" fill="#103060"/><rect x="12" y="12" width="76" height="76" fill="#fff"/>'
+
+
+def test_extended_picture_is_continued_with_its_own_edge_colour(tmp_path):
+    done = run_script("build", write_svg(tmp_path / "scene.svg", SCENE), "--picture", "extend")
+    assert done.returncode == 0, done.stderr
     mask = json_of("inspect", tmp_path / "scene.icons/web/icon-mask.png")
     # The band around the shrunken picture must be that navy out to the canvas edge,
     # not a pale average of the navy and the white subject.
     assert mask["background"] == "#103060"
+    # The white subject spans 0.76 of the picture, and the picture 0.8 of the canvas.
+    assert mask["glyph_radius"] == pytest.approx(0.76 * 0.8 * 2**0.5, abs=0.03)
+
+
+def test_cropped_picture_fills_the_cut_and_invents_nothing(tmp_path):
+    assert run_script("build", write_svg(tmp_path / "scene.svg", SCENE)).returncode == 0
+    bundle = tmp_path / "scene.icons"
+    # Full size in the maskable icon: the circle will cut it, nothing is shrunk.
+    assert json_of("inspect", bundle / "web/icon-mask.png")["glyph_radius"] == pytest.approx(0.76 * 2**0.5, abs=0.03)
+    # On the Android layer the picture covers what a launcher shows (72 of 108 dp) and
+    # stands alone: see-through around it, no invented band.
+    layer = json_of("inspect", bundle / "android/res/mipmap-xxxhdpi/ic_launcher_foreground.png")
+    assert layer["background"] == "transparent"
+    assert layer["extent"] == pytest.approx(72 / 108, abs=0.02)
 
 
 def test_gradient_plate_keeps_its_shape_on_a_field_when_a_colour_is_given(tmp_path):
@@ -193,6 +219,23 @@ def test_gradient_plate_keeps_its_shape_on_a_field_when_a_colour_is_given(tmp_pa
     assert done.returncode == 0, done.stderr
     ios = json_of("inspect", tmp_path / "sky.icons/ios/AppIcon.appiconset/icon-1024.png")
     assert ios["background"] == "#101010"
+
+
+def test_round_badge_carrying_a_glyph_is_a_plate_too(tmp_path):
+    badge = '<circle cx="50" cy="50" r="50" fill="#2244aa"/><circle cx="50" cy="50" r="18" fill="#fff"/>'
+    svg = write_svg(tmp_path / "badge.svg", badge)
+    assert any("pre-rounded plate" in doubt for doubt in json_of("review", svg)["doubts"])
+    assert run_script("build", svg).returncode == 0
+    ios = json_of("inspect", tmp_path / "badge.icons/ios/AppIcon.appiconset/icon-1024.png")
+    assert ios["background"] == "#2244aa"
+
+
+def test_cropped_picture_fills_the_cut_even_when_drawn_inside_margins(tmp_path):
+    # The same picture as SCENE, drawn at 0.8 of a larger canvas.
+    svg = write_svg(tmp_path / "scene.svg", SCENE, "-12.5 -12.5 125 125")
+    assert run_script("build", svg).returncode == 0
+    mask = json_of("inspect", tmp_path / "scene.icons/web/icon-mask.png")
+    assert mask["glyph_radius"] == pytest.approx(0.76 * 2**0.5, abs=0.03)
 
 
 def test_solid_one_colour_glyph_is_not_mistaken_for_a_plate(tmp_path):
@@ -288,10 +331,16 @@ def test_review_doubts_a_trace_that_does_not_match_its_source(tmp_path):
         (CROSS, "cut off"),
         (ROUNDED_PLATE, "pre-rounded"),
         (GRADIENT_PLATE, "pre-rounded"),
+        ('<rect x="5" y="40" width="90" height="20" fill="#224466"/>', "thin strip"),
     ],
-    ids=["tiny", "cut-off", "rounded-flat-plate", "rounded-gradient-plate"],
+    ids=["tiny", "cut-off", "rounded-flat-plate", "rounded-gradient-plate", "wordmark-shaped"],
 )
 def test_review_doubts_art_that_would_ship_broken(tmp_path, body, word):
     verdict = json_of("review", write_svg(tmp_path / "art.svg", body))
     assert verdict["verdict"] == "DOUBT"
     assert any(word in doubt for doubt in verdict["doubts"]), verdict["doubts"]
+
+
+def test_review_offers_crop_and_extend_for_a_picture(tmp_path):
+    verdict = json_of("review", write_svg(tmp_path / "art.svg", GRADIENT_PLATE))
+    assert any("--picture crop" in doubt and "--picture extend" in doubt for doubt in verdict["doubts"])

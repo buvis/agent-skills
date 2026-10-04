@@ -28,7 +28,10 @@ macOS and iOS rows rest on secondary sources (listed at the end).
 | `android/res/values/ic_launcher_background.xml` | - | - | same; holds the fill colour |
 | `android/play-store-512.png` | 512 | no | the Play Console listing |
 | `png/icon-N.png` | N | yes | only with `--png N` |
-| `review.png`, `preview.png` | - | - | check sheets, not icons |
+
+The review and preview sheets are not part of the bundle. They are written to
+the system temp folder under `convert-to-icon/` and each command prints the
+path.
 
 Web page head:
 
@@ -55,21 +58,32 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
   touch icon, the Play Store icon and the round launcher; 80% for the
   maskable icon; 66 of 108 dp for the Android adaptive layers. It is never
   enlarged.
-- A plate is a box-shaped block the art sits on: it covers at least 85% of
-  its own box, which a rounded square does and a disc does not. A flat plate
-  is one colour. When the fill is that colour, the plate runs to the corners
-  and the platform does the only rounding; the circle rule then measures the
-  glyph, not the plate.
+- A plate is a block the art sits on: a square (it covers at least 85% of
+  its own box, as a rounded square does) or a disc (it matches the ellipse of
+  its box). A single colour with nothing on it is not a plate; it is the art.
+- A flat plate is one colour carrying a glyph. When the fill is that colour,
+  the plate runs to the corners and the platform does the only rounding; the
+  circle rule then measures the glyph, not the plate.
 - A picture is a plate that is not one flat colour: a gradient, a photo, a
-  scene. It has no glyph to measure, so it keeps its full size where the
-  platform cuts a rounded square (iOS, Apple touch icon, Play Store) and its
-  box is fitted to the circle elsewhere, losing only its corners. Every
-  see-through pixel around it is filled by growing the picture's edge colours
-  outward. That continuation is synthesized: seamless for a gradient, a soft
-  trailing streak where the subject runs off the picture's edge. `--background` with a colour
-  turns this off and keeps the picture's shape on a field of that colour.
-- A round badge is not recognised as a plate. It is treated as plain art and
-  shrunk onto the fill.
+  scene. It has no glyph to measure, and it is sized by its own box, not by
+  the canvas it was drawn on. Under a rounded-square cut (iOS, Apple touch
+  icon, Play Store) it keeps its full size. Under a circle cut there are two
+  treatments, chosen with `--picture`:
+  - `crop` (default): the picture fills everything the platform can show and
+    the cut removes its corners and whatever else falls outside. Nothing is
+    invented. On the Android adaptive layer, which is half again as large as
+    what a launcher shows, the picture stands alone at 72 of 108 dp over the
+    plain background colour; a sliver of that colour can show during launcher
+    motion effects.
+  - `extend`: the whole picture is kept, fitted inside the circle, and the
+    band around it is grown outward from its edge colours. The band is
+    synthesized: seamless for a gradient, a soft trailing streak where the
+    subject runs off the picture's edge.
+  The picture's own rounded corners are filled by the same growth in both
+  treatments; they are small and mostly cut away. `--background` with a
+  colour skips all of this and keeps the picture's shape on a flat field.
+- A round picture on a rounded-square platform has large corners to fill, all
+  of them synthesized. `--background` is usually the better answer there.
 - macOS: the art's box is fitted to the 824 px body of the 1024 px grid. A
   plate is cut to a rounded rectangle of that body; other art stays as drawn.
 - Android themed icon: the art's outline in white. On a plate or picture it

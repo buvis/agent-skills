@@ -12,8 +12,9 @@ a master SVG first; every icon is then drawn from that SVG. Pointed at an
 SVG, the skill writes whatever the bundle is missing.
 
 The bundle is `<name>.icons/` beside the source: `<name>.icon.svg`, a copy
-of a raster source as `<name>.original.<ext>`, `review.png`, `preview.png`,
-and `web/`, `windows/`, `macos/`, `ios/`, `android/`. What each file is for, where it goes, the HTML tags and what is
+of a raster source as `<name>.original.<ext>`, and `web/`, `windows/`,
+`macos/`, `ios/`, `android/`. The two check sheets go to the temp folder,
+never into the bundle; each command prints where. What each file is for, where it goes, the HTML tags and what is
 deliberately not generated: `references/icon-set.md`.
 
 ## Dependencies
@@ -49,7 +50,8 @@ An SVG input skips to step 3.
 - a colour (`"#ffffff"`): a uniform page sits behind the art. Ask the user
   whether the icon is meant to be transparent. Never guess. Yes is `remove`,
   no is `keep` (the colour is part of the icon).
-- `null`: the art runs to the edge. Use `keep`.
+- `null` or `"transparent"`: the art runs to the edge, or the image is
+  already see-through. Nothing to ask; use `keep`.
 
 ```bash
 uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py trace IMAGE --name NAME --background remove
@@ -72,25 +74,33 @@ uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py review SVG --
 
 `--source` can be left out: the review compares against the original kept in
 the bundle, and an SVG input, which has none, is judged on its own. The
-command prints `PASS` or `DOUBT` with reasons and writes `review.png`. Read that image. Panels, left to
-right: source, SVG on white, SVG on magenta, circle cut, 32 px. Look for:
+command prints `PASS` or `DOUBT` with reasons, and the path of a review
+sheet as `sheet`. Read that image. Panels, left to right: source, SVG on
+white, SVG on magenta, circle cut (two for a picture: cropped, extended),
+32 px. Look for:
 
 - resemblance: a shape, colour or proportion that differs from the source
 - overcut: magenta where art should be, or art cut off at the canvas edge
 - leftover page: a halo, or page-coloured patches that should be see-through
 - holes that should be filled (a glyph that vanished from its plate)
 - corners rounded twice, or a plate that is already rounded
-- art lost in an empty canvas
+- art lost in an empty canvas, or a wide wordmark squeezed into a thin strip
 - anything that matters falling outside the circle
 - a 32 px panel nobody could read
 
 Build only when the verdict is `PASS` and you see none of these. On `DOUBT`,
 or on anything you are unsure of, do not build: give the user the path to
-`review.png`, name each doubt in plain words, and ask which fix to apply (a
-retrace with another `--enclosed`, `--colors` or background answer; for a
-pre-rounded plate, extend its colour to the corners or keep its shape).
-Apply the answer and review again. With nobody to ask, stop and report the
-doubts.
+the sheet, name each doubt in plain words, and ask which fix to apply:
+
+- a trace that looks wrong: retrace with another `--enclosed`, `--colors` or
+  background answer, then review again
+- a pre-rounded flat plate: extend its colour to the corners, or keep its
+  shape on another colour
+- a picture plate (a gradient or scene filling a square): crop it, extend
+  it, or keep its shape on a flat field. The sheet shows crop and extend
+  side by side; say what each one loses.
+
+With nobody to ask, stop and report the doubts.
 
 ### 4. Build
 
@@ -103,21 +113,25 @@ Existing files are kept; only missing ones are written. Options:
 - `--background "#rrggbb"`: the fill wherever a platform forbids
   transparency. Default: the plate colour, else the page colour that was
   removed, else black or white by contrast. A pre-rounded plate is extended
-  to the corners by default (a flat one by its colour, a gradient or picture
-  by continuing its edge colours); another colour here keeps its shape on a
-  field of that colour instead.
+  to the corners by default; another colour here keeps its shape on a field
+  of that colour instead.
+- `--picture crop|extend`: how a picture plate meets a circle cut. `crop`
+  (default) fills the cut with the picture, sharp, and loses what falls
+  outside; nothing is invented. `extend` keeps the whole picture, smaller,
+  inside a soft band grown from its edge colours.
 - `--png 300`: an extra plain PNG of that size, repeatable.
 - `--force`: rewrite everything. Use it only when the user wants files
   replaced; a `stale:` line says some are older than the master SVG.
 
 The run ends with `icon set complete: N files`, or `icon set INCOMPLETE`
-plus one `problem:` line each and exit 1. Then read `preview.png` (iOS
-masked, maskable circle, macOS, Android adaptive, Android themed, 48 px
-launcher) with the same eye as step 3. A doubt there goes to the user too.
+plus one `problem:` line each and exit 1. Then read the sheet named on the
+`preview:` line (iOS masked, maskable circle, macOS, Android adaptive,
+Android themed, 48 px launcher) with the same eye as step 3. A doubt there
+goes to the user too.
 
 ### 5. Report
 
 Paste the verdict and the `icon set complete` line as printed. Add the bundle
 path, the fill colour, each decision taken (background, enclosed areas,
-plate) and anything skipped. Without that line the work is incomplete: say
+plate, crop or extend) and anything skipped. Without that line the work is incomplete: say
 so and paste the `problem:` lines.
