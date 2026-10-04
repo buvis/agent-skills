@@ -23,8 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   square or round, is extended to the corners so the platform rounds it once;
   an outline around the art is not taken for a plate, and art with no
   background gets a white or near-black field, whichever it uses less of;
-  a gradient or picture plate is cropped to each circle cut, or kept whole
-  with `--picture extend`; a photo is traced with a warning that names it as
+  a gradient or picture plate, however soft its shading, is cropped to each
+  circle cut, or kept whole with `--picture extend`; `build --fit` tightens
+  a half-empty canvas to its art; `trace --page` names a page that art
+  running off the edge hides; a tiny source is traced at no less than
+  512 px, so its curves come out smooth; a photo is traced with a warning that names it as
   the cause of a poor result, and gets no Android themed layer; glowing art
   is traced as crisp strokes over its page with the fade redrawn as a blur,
   and other shading can be retraced with `trace --detail fine`; a raster

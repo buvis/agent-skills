@@ -6,13 +6,14 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps
 
-from icon_measure import PHOTO_DETAIL, RGB, TOLERANCE, centred, fine_detail, from_hex, icon_name, kept_original, measure_art, rasterise, save_sheet, sheet_path, to_hex
+from icon_measure import PHOTO_DETAIL, RGB, ROOM, TOLERANCE, bounds, centred, find_plate, fine_detail, from_hex, icon_name, kept_original, measure_art, rasterise, save_sheet, sheet_path, to_hex
 MAC_BODY = 824 / 1024  # macOS icon grid: the body inside the canvas
 MAC_ROUNDNESS = 0.2237  # its corner radius, as a share of the body
 ICONSET = "macos/AppIcon.iconset"
@@ -278,14 +279,34 @@ def preview_bundle(bundle: Path, look: Look, themed: bool) -> Path:
     return sheet
 
 
-def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int], force: bool, crop: bool) -> int:
+def fit_canvas(master: Path) -> None:
+    """Tighten an SVG's canvas to its art: flush for a plate, with a traced master's room otherwise."""
+    text = master.read_text(encoding="utf-8")
+    root = re.search(r"<svg\b[^>]*>", text)
+    box = re.search(r'\bviewBox="([^"]+)"', root.group(0)) if root else None
+    if not box or len(view := [float(v) for v in re.split(r"[\s,]+", box.group(1).strip())]) != 4:
+        sys.exit(f"{master} has no viewBox to tighten")
+    data = np.asarray(rasterise(master, 1024))
+    solid = data[..., 3] >= 128
+    x0, y0, x1, y1 = bounds(solid)
+    unit = view[2] / solid.shape[1]
+    side = max(x1 - x0, y1 - y0) * unit * (1.0 if find_plate(data[..., :3], solid)[0] else ROOM)
+    left, top = view[0] + (x0 + x1) / 2 * unit - side / 2, view[1] + (y0 + y1) / 2 * unit - side / 2
+    # Width and height go: they would pin the old shape onto the new square canvas.
+    tag = re.sub(r'\s(?:width|height)="[^"]*"', "", root.group(0).replace(box.group(0), f'viewBox="{left:.2f} {top:.2f} {side:.2f} {side:.2f}"'))
+    master.write_text(text.replace(root.group(0), tag, 1), encoding="utf-8")
+
+
+def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int], force: bool, crop: bool, fit: bool) -> int:
     master = bundle / f"{icon_name(svg)}.icon.svg"
     bundle.mkdir(parents=True, exist_ok=True)
     if svg.resolve() != master.resolve():
         if force or not master.exists():
             shutil.copyfile(svg, master)
-        elif master.read_bytes() != svg.read_bytes():
+        elif master.read_bytes() != svg.read_bytes() and not fit:
             print(f"note: {master} differs from {svg}; the bundle's copy was used (--force replaces it)")
+    if fit:
+        fit_canvas(master)
     look = look_of(master, measure_art(rasterise(master, 1024)), override, crop)
     created: list[str] = []
 

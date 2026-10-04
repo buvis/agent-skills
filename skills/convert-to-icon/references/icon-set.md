@@ -67,7 +67,9 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
   outline drawn around the art.
 - A traced plate, or a page that was kept, runs to the edge of the master's
   canvas. Any other traced art gets 6% of room on each side.
-- A flat plate is one colour carrying a glyph. When the fill is that colour,
+- A flat plate is one colour all the way round, carrying a glyph. A shaded
+  plate is a picture, however soft the shading: extended in its middle shade
+  it would show as a ring. When the fill is the plate's colour,
   the plate runs to the corners and the platform does the only rounding; the
   circle rule then measures the glyph, not the plate.
 - A picture is a plate that is not one flat colour: a gradient, a photo, a

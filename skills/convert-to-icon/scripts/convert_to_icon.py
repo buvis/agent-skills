@@ -71,6 +71,7 @@ def main() -> int:
     tracer.add_argument("--detail", choices=("normal", "fine"), default="normal")
     tracer.add_argument("--style", choices=("auto", "glow", "layers"), default="auto")
     tracer.add_argument("--keep", type=weight_share)
+    tracer.add_argument("--page", type=from_hex)
     reviewer = commands.add_parser("review")
     reviewer.add_argument("svg", type=existing_file)
     reviewer.add_argument("--source", type=existing_file)
@@ -78,6 +79,7 @@ def main() -> int:
     builder.add_argument("svg", type=existing_file)
     builder.add_argument("--png", type=pixel_size, action="append", default=[])
     builder.add_argument("--picture", choices=("crop", "extend"), default="crop")
+    builder.add_argument("--fit", action="store_true")
     for command in (tracer, reviewer, builder):
         command.add_argument("--out", type=Path)
     for command in (tracer, builder):
@@ -97,6 +99,7 @@ def main() -> int:
             sys.exit(f"{svg} exists; --force replaces it")
         options = TraceOptions(
             remove=args.background == "remove",
+            page=args.page,
             enclosed=args.enclosed,
             colours=args.colors,
             fine=args.detail == "fine",
@@ -110,7 +113,7 @@ def main() -> int:
         source = args.source or kept_original(args.svg)
         print(json.dumps(review_svg(args.svg, source, args.background), indent=2))
         return 0
-    return build_bundle(args.svg, bundle, args.background, args.png, args.force, args.picture == "crop")
+    return build_bundle(args.svg, bundle, args.background, args.png, args.force, args.picture == "crop", args.fit)
 
 
 if __name__ == "__main__":

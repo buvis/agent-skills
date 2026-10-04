@@ -16,7 +16,7 @@ import potrace
 import vtracer
 from PIL import Image, ImageDraw, ImageFilter
 
-from icon_measure import RGB, bounds, dominant_colours, filled, find_plate, from_hex, measure_art, stroke_level, to_hex, tone_map
+from icon_measure import RGB, ROOM, bounds, dominant_colours, filled, find_plate, from_hex, measure_art, stroke_level, to_hex, tone_map
 
 
 def border_connected(mask: np.ndarray) -> np.ndarray:
@@ -78,6 +78,7 @@ def trace_shaded(img: Image.Image, removed: np.ndarray, fringe: bool, fine: bool
 @dataclass(frozen=True)
 class TraceOptions:
     remove: bool = False  # take the uniform page away
+    page: RGB | None = None  # the page colour, named when art touching the edge hides it
     enclosed: str = "auto"  # page-coloured areas inside the art: auto, keep or clear
     colours: int | None = None
     fine: bool = False  # more colour steps in the layers style
@@ -97,7 +98,8 @@ def cut_page(solid: np.ndarray, labels: np.ndarray, palette: list[RGB], paper: R
 
 def trace_raster(src: Path, svg: Path, options: TraceOptions) -> dict:
     img = Image.open(src).convert("RGBA")
-    zoom = 2 if max(img.size) < 1024 else 1  # small sources trace into lumpy curves
+    # Small sources trace into lumpy curves: work at twice the size, and at no less than 512 px.
+    zoom = 1 if max(img.size) >= 1024 else max(2, -(-512 // max(img.size)))
     if zoom > 1:
         img = img.resize((img.width * zoom, img.height * zoom), Image.Resampling.LANCZOS)
     facts = measure_art(img)
@@ -109,14 +111,14 @@ def trace_raster(src: Path, svg: Path, options: TraceOptions) -> dict:
         palette = palette[:2]
     wide = rgb.astype(np.int16)
     labels = np.stack([np.abs(wide - np.array(c)).sum(axis=-1) for c in palette]).argmin(axis=0)
-    page = from_hex(facts["background"]) if (facts["background"] or "").startswith("#") else None
+    page = options.page or (from_hex(facts["background"]) if (facts["background"] or "").startswith("#") else None)
     paper = page if options.remove else None
     removed, enclosed = cut_page(solid, labels, palette, paper, count <= 2, options.enclosed) if paper else (~solid, "n/a")
     footprint = ~removed
     x0, y0, x1, y1 = bounds(footprint)
     # A kept page or a plate runs to the edge of its canvas; any other art gets room around it.
     flush = footprint.all() or find_plate(rgb, footprint)[0] is not None
-    side = max(x1 - x0, y1 - y0) * (1.0 if flush else 1.12)
+    side = max(x1 - x0, y1 - y0) * (1.0 if flush else ROOM)
     x, y = (x0 + x1 - side) / 2, (y0 + y1 - side) / 2
     _, soft = stroke_level(tone_map(rgb, page)) if page else (1.0, False)
     if options.style == "glow" and not page:

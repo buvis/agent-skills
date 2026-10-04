@@ -58,7 +58,10 @@ An SVG input skips to step 3.
   whether the icon is meant to be transparent. Never guess. Yes is `remove`,
   no is `keep` (the colour is part of the icon).
 - `null` or `"transparent"`: the art runs to the edge, or the image is
-  already see-through. Nothing to ask; use `keep`.
+  already see-through. Nothing to ask; use `keep`. One exception: look at a
+  `null` image. A plain page behind art that runs off the edge is hidden
+  from inspect, and the question still stands; yes is `remove` plus
+  `--page "#rrggbb"` naming that page.
 
 ```bash
 uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py trace IMAGE --name NAME --background remove
@@ -136,6 +139,7 @@ the sheet, name each doubt in plain words, and ask which fix to apply:
 - a line drawing "hard on the eye": the doubt names the limit it breaks;
   retrace with another `--keep`, and show the user two levels side by side
   when no level meets every limit
+- art lost in an empty canvas: build with `--fit`
 - a pre-rounded flat plate: extend its colour to the corners, or keep its
   shape on another colour
 - a picture plate (a gradient or scene filling a square): crop it, extend
@@ -161,6 +165,8 @@ Existing files are kept; only missing ones are written. Options:
   (default) fills the cut with the picture, sharp, and loses what falls
   outside; nothing is invented. `extend` keeps the whole picture, smaller,
   inside a soft band grown from its edge colours.
+- `--fit`: tighten the canvas of the bundle's master to its art (flush for
+  a plate, 6% of room otherwise). The SVG it was pointed at is not touched.
 - `--png 300`: an extra plain PNG of that size, repeatable.
 - `--force`: rewrite everything. Use it only when the user wants files
   replaced; a `stale:` line says some are older than the master SVG.

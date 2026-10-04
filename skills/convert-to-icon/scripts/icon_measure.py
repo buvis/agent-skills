@@ -19,6 +19,7 @@ RGB = tuple[int, int, int]
 TOLERANCE = 40  # channel distance still read as one flat colour; absorbs JPEG noise
 MIN_SHARE = 0.03  # below this share a colour is an edge blend, not a colour of the art
 PHOTO_DETAIL = 0.2  # fine detail above this share means a photo; flat art measured 0.02 to 0.07
+ROOM = 1.12  # canvas side over art side: art that is not a plate gets 6% of room on each side
 
 # What makes a line drawing easy on the eye, as limits. They were invented for this skill and
 # set on a real logo: the version a person called unpleasing broke the loose-end, wobble and
@@ -184,7 +185,10 @@ def find_plate(rgb: np.ndarray, solid: np.ndarray) -> tuple[RGB | None, bool, bo
     # covering under 30% of the block, it is an outline drawn around the art.
     if even and not 0.3 <= share <= 0.995:
         return None, False, False
-    flat = even and share >= 0.5
+    # A flat plate is one colour all the way round. A gradient drifts from its middle shade, and
+    # extended in that shade it would show as a ring: it is a picture.
+    drift = max(int(np.abs(rgb[p].astype(np.int16) - colour).max()) for p in mids)
+    flat = even and share >= 0.5 and drift <= TOLERANCE // 3
     nick = max(1, min(bw, bh) // 100)
     corners = [(y, x) for y in (y0 + nick, y1 - 1 - nick) for x in (x0 + nick, x1 - 1 - nick)]
     return colour, bool(flat), not all(solid[p] for p in corners)

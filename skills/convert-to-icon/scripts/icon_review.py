@@ -82,7 +82,7 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None) -> dict:
     if not facts["square"]:
         notes.append("canvas is not square: every icon pads it to a square, never stretches it")
     if facts["extent"] < 0.6:
-        doubts.append(f"art fills only {facts['extent']:.0%} of the canvas: it will look tiny")
+        doubts.append(f"art fills only {facts['extent']:.0%} of the canvas: it will look tiny; build with --fit to tighten the canvas to it")
     busy = fine_detail(Image.open(source) if source else rasterise(svg, 1024))
     if busy > PHOTO_DETAIL:
         doubts.append(

@@ -8,6 +8,7 @@ library only. Run: uv run pytest skills/convert-to-icon/scripts -q
 from __future__ import annotations
 
 import json
+import re
 import struct
 import subprocess
 import zlib
@@ -219,6 +220,21 @@ def test_gradient_plate_keeps_its_shape_on_a_field_when_a_colour_is_given(tmp_pa
     assert done.returncode == 0, done.stderr
     ios = json_of("inspect", tmp_path / "sky.icons/ios/AppIcon.appiconset/icon-1024.png")
     assert ios["background"] == "#101010"
+
+
+# A round badge shaded top to bottom, its two ends only a few dozen levels apart.
+SHADED_BADGE = (
+    '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">'
+    '<stop offset="0" stop-color="#29b6dc"/><stop offset="1" stop-color="#0882c8"/></linearGradient></defs>'
+    '<circle cx="50" cy="50" r="50" fill="url(#g)"/><circle cx="50" cy="50" r="18" fill="#fff"/>'
+)
+
+
+def test_softly_shaded_badge_is_a_picture_not_a_flat_plate(tmp_path):
+    facts = json_of("review", write_svg(tmp_path / "badge.svg", SHADED_BADGE))["facts"]
+    # Taken for a flat plate it would be extended in its middle shade, and show as a ring.
+    assert facts["picture"] is True
+    assert facts["plate"] is None
 
 
 def test_round_badge_carrying_a_glyph_is_a_plate_too(tmp_path):
@@ -489,6 +505,32 @@ def test_trace_removes_the_page_but_keeps_the_glyph_a_plate_encloses(tmp_path):
     assert facts["background"] == "#2244aa"
     # ...and the white glyph inside it is still drawn.
     assert "#ffffff" in [colour for colour, _ in facts["colours"]]
+
+
+def test_tiny_source_is_traced_at_no_less_than_512_px(tmp_path):
+    source = write_png(tmp_path / "ring.png", 96, lambda x, y: ring_on_page(x * 256 // 96, y * 256 // 96))
+    text = Path(json_of("trace", source, "--background", "remove")["svg"]).read_text(encoding="utf-8")
+    worked, given = (float(re.search(rf'{box}="[-\d.]+ [-\d.]+ ([\d.]+)', text).group(1)) for box in ("viewBox", "data-source-box"))
+    # Outlined at twice its size, a 96 px drawing comes out lumpy.
+    assert worked / given * 96 >= 512
+
+
+def test_page_hidden_by_art_that_touches_the_edge_can_be_named(tmp_path):
+    bars = write_png(tmp_path / "bars.png", 256, lambda x, y: DARK if 100 <= x < 156 or 100 <= y < 156 else WHITE)
+    # The bars run off every side, so no uniform page is found and nothing would be removed.
+    assert json_of("inspect", bars)["background"] is None
+    facts = json_of("inspect", json_of("trace", bars, "--background", "remove", "--page", "#ffffff")["svg"])
+    assert [colour for colour, _ in facts["colours"]] == ["#282c34"]
+
+
+def test_fit_tightens_a_half_empty_canvas_to_its_art(tmp_path):
+    dot = write_svg(tmp_path / "dot.svg", '<circle cx="50" cy="50" r="20" fill="#224466"/>')
+    assert any("--fit" in doubt for doubt in json_of("review", dot)["doubts"])
+    assert run_script("build", dot, "--fit").returncode == 0
+    # The disc spanned 40% of its canvas. Fitted, it fills it but for 6% of room on each side.
+    assert json_of("inspect", tmp_path / "dot.icons/web/icon-512.png")["extent"] == pytest.approx(1 / 1.12, abs=0.02)
+    # Only the bundle's master is rewritten; the file it was pointed at stays as it was.
+    assert 'viewBox="0 0 100 100"' in dot.read_text(encoding="utf-8")
 
 
 def test_trace_clears_page_gaps_enclosed_by_line_art(tmp_path):
