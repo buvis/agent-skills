@@ -46,9 +46,24 @@ def near(rgb: np.ndarray, colour: RGB) -> np.ndarray:
     return np.abs(rgb.astype(np.int16) - np.array(colour)).max(axis=-1) <= TOLERANCE
 
 
+def small_size_style(svg: Path, px: int) -> str | None:
+    """Hairlines vanish at small sizes. Below 128 px a line drawing (see icon_lines) is redrawn
+    the way a hand-made small icon is: strokes about a pixel and a half wide, and only the
+    brightest half of the lines; below 48 px only the brightest quarter."""
+    if px >= 128:
+        return None
+    text = svg.read_text(encoding="utf-8")
+    box = re.search(r'viewBox="[-\d.]+ [-\d.]+ ([-\d.]+)', text)
+    if 'id="strokes"' not in text or not box:
+        return None
+    width = 1.6 * float(box.group(1)) / px
+    hidden = "#strokes .rank3, #strokes .rank4" + (", #strokes .rank2" if px < 48 else "")
+    return f"#strokes path {{ stroke-width: {width:.1f} }} {hidden} {{ display: none }}"
+
+
 def rasterise(svg: Path, px: int) -> Image.Image:
     """Draw an SVG to fit a px square; resvg keeps the aspect ratio."""
-    png = resvg_py.svg_to_bytes(svg_path=str(svg), width=px, height=px)
+    png = resvg_py.svg_to_bytes(svg_path=str(svg), width=px, height=px, style_sheet=small_size_style(svg, px))
     return Image.open(io.BytesIO(bytes(png))).convert("RGBA")
 
 

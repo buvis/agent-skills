@@ -285,14 +285,31 @@ def test_glow_art_is_traced_as_strokes_over_its_page(tmp_path):
     traced = json_of("trace", source)
     assert traced["style"] == "glow"
     text = Path(traced["svg"]).read_text(encoding="utf-8")
-    # The page is one plain rectangle in its own colour, the strokes are a handful of paths
-    # and the fade is a blur: no stack of bands approximating the light.
+    # The page is one plain rectangle in its own colour and the ring is drawn as lines:
+    # stroked curves, nothing filled, with one blur for the fade. No bands, no painted areas.
     assert f'<rect x="0.0" y="0.0" width="512.0" height="512.0" fill="{page}"/>' in text
     assert "feGaussianBlur" in text
+    assert 'fill="none"' in text and "stroke-width=" in text
+    assert "<path fill=" not in text
     assert text.count("<path") <= 4
     verdict = json_of("review", traced["svg"])
     assert verdict["verdict"] == "PASS", verdict["doubts"]
     assert verdict["facts"]["stroke_overlap"] >= 0.7
+
+
+def hairline_ring(x: int, y: int) -> tuple[int, int, int]:
+    """The neon ring again, a third as thick: a hairline with a soft tail."""
+    spread = 1 / (1 + ((((x - 128) ** 2 + (y - 128) ** 2) ** 0.5 - 80) / 2) ** 2)
+    return tuple(round(dark + (bright - dark) * spread) for dark, bright in zip((17, 23, 39), (255, 190, 80)))
+
+
+def test_line_drawing_is_drawn_bolder_in_small_icons(tmp_path):
+    traced = json_of("trace", write_png(tmp_path / "hair.png", 256, hairline_ring), "--style", "glow")
+    assert run_script("build", traced["svg"]).returncode == 0
+    small = json_of("inspect", tmp_path / "hair.icons/android/res/mipmap-mdpi/ic_launcher.png")
+    # At 48 px the hairline is a third of a pixel wide and would fade into the page. Drawn
+    # bolder, the ring still shows in its own bright colour.
+    assert max(int(colour[1:3], 16) for colour, _ in small["colours"]) >= 180
 
 
 def test_layers_style_can_be_forced_on_soft_art(tmp_path):

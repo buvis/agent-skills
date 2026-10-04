@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.10,<3.14"
-# dependencies = ["numpy", "pillow>=10.1", "potracer", "resvg-py", "vtracer"]
+# dependencies = ["numpy", "pillow>=10.1", "potracer", "resvg-py", "scikit-image", "scipy", "vtracer"]
 # ///
 """Turn an image into a master SVG and a bundle of platform icons.
 

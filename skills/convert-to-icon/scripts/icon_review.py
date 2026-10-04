@@ -7,7 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from icon_measure import PHOTO_DETAIL, RGB, centred, edge_ring, fine_detail, from_hex, icon_name, measure_art, rasterise, save_sheet, sheet_path, stroke_level, tone_map
 from icon_build import Png, compose, look_of, shape_mask
@@ -29,6 +29,25 @@ def framed_pair(svg: Path, source: Path, px: int = 512) -> tuple[Image.Image, Im
     return flat[0], flat[1]
 
 
+def line_fit(truth: np.ndarray, drawn: np.ndarray) -> float:
+    """For a line drawing of glowing art: do the lines sit on the source's light, and do they
+    reach its bright ridges? The lower of the two shares, so 1.0 is a perfect fit."""
+    page = tuple(int(v) for v in np.median(truth[edge_ring(*truth.shape[:2])], axis=0))
+    theirs = tone_map(truth, page)
+    core, _ = stroke_level(theirs)
+
+    def widened(mask: np.ndarray) -> np.ndarray:
+        """Grown by about 1% of the canvas: a line may sit a few pixels off its ridge."""
+        reach = 2 * round(mask.shape[0] * 0.01) + 1
+        return np.asarray(Image.fromarray(mask.astype(np.uint8) * 255).filter(ImageFilter.MaxFilter(reach))) > 0
+
+    lines = tone_map(drawn, page) >= 0.5
+    bright = theirs >= core + 0.45 * (1 - core)
+    on_light = (lines & widened(theirs >= core * 0.6)).sum() / max(lines.sum(), 1)
+    reached = (bright & widened(lines)).sum() / max(bright.sum(), 1)
+    return float(min(on_light, reached))
+
+
 def compare_with_source(svg: Path, source: Path) -> tuple[dict, list[str], list[str], Image.Image]:
     """Measures, doubts and notes from setting a trace beside the raster it came from."""
     framed, shot = framed_pair(svg, source)
@@ -38,16 +57,11 @@ def compare_with_source(svg: Path, source: Path) -> tuple[dict, list[str], list[
     measures = {"mean_error": round(error, 2), "percent_off": round(off, 2)}
     text = svg.read_text(encoding="utf-8")
     if 'data-style="glow"' in text:
-        # Pixel error is the wrong yardstick here, since the haze is left out on purpose.
-        # What must hold is that the traced strokes sit on the source's strokes.
-        page = tuple(int(v) for v in np.median(truth[edge_ring(*truth.shape[:2])], axis=0))
-        theirs = tone_map(truth, page)
-        core, _ = stroke_level(theirs)
-        mine = tone_map(drawn, page) >= core
-        overlap = float((mine & (theirs >= core)).sum() / max((mine | (theirs >= core)).sum(), 1))
-        notes = ["glow style: the strokes are paths and the fade is a blur; haze inside the art is left out on purpose"]
-        doubts = [f"the traced strokes match only {overlap:.0%} of the source's strokes"] if overlap < 0.7 else []
-        return {**measures, "stroke_overlap": round(overlap, 2)}, doubts, notes, framed
+        # Pixel error is the wrong yardstick here: haze and filled areas are left out on purpose.
+        fit = line_fit(truth, drawn)
+        notes = ["glow style: a line drawing over the page with one blur for the fade; haze and filled areas are left out on purpose"]
+        doubts = [f"the drawn lines fit the source's light only {fit:.0%}"] if fit < 0.7 else []
+        return {**measures, "stroke_overlap": round(fit, 2)}, doubts, notes, framed
     if error > 6 or off > 3:
         retry = "; retrace with --detail fine for a closer match" if 'data-detail="normal"' in text else ""
         weak = f"weak resemblance to the source: mean error {error:.1f}, {off:.1f}% of pixels off{retry}"

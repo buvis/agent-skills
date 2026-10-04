@@ -73,26 +73,6 @@ def trace_shaded(img: Image.Image, removed: np.ndarray, fringe: bool, fine: bool
         return re.sub(r"^.*?<svg[^>]*>|</svg>\s*$", "", svg.read_text(encoding="utf-8"), flags=re.S).strip()
 
 
-def trace_glow(rgb: np.ndarray, tone: np.ndarray, core: float, side: float) -> str:
-    """Soft, luminous art: its strokes as crisp shapes in three tones, its fade redrawn as a blur
-    behind them. Tracing the fade itself only ever yields bands."""
-    speck = max(2, (max(tone.shape) // 150) ** 2)  # light dust is noise at icon sizes
-    levels = [core, core + 0.45 * (1 - core), core + 0.8 * (1 - core), 2.0]
-    shapes = []
-    for low, high in zip(levels, levels[1:]):
-        band = (tone >= low) & (tone < high)
-        if band.any():
-            shapes.append((to_hex(np.median(rgb[band], axis=0)), outline(tone >= low, speck)))
-    if not shapes:
-        sys.exit("the glow style found no strokes to trace")
-    fade = (
-        '<filter id="glow" x="-30%" y="-30%" width="160%" height="160%">'
-        f'<feGaussianBlur stdDeviation="{side * 0.015:.1f}"/></filter>'
-        f'<path filter="url(#glow)" fill="{shapes[0][0]}" fill-rule="evenodd" d="{shapes[0][1]}"/>'
-    )
-    return fade + "".join(f'<path fill="{c}" fill-rule="evenodd" d="{d}"/>' for c, d in shapes)
-
-
 def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int | None, fine: bool, style: str) -> dict:
     img = Image.open(src).convert("RGBA")
     zoom = 2 if max(img.size) < 1024 else 1  # small sources trace into lumpy curves
@@ -121,15 +101,18 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
     side = max(x1 - x0, y1 - y0) * (1.0 if filled(footprint) >= 0.85 else 1.12)
     x, y = (x0 + x1 - side) / 2, (y0 + y1 - side) / 2
     speck = max(2, (max(img.size) // 300) ** 2)
-    tone = tone_map(rgb, page) if page else None
-    core, soft = stroke_level(tone) if page else (1.0, False)
+    _, soft = stroke_level(tone_map(rgb, page)) if page else (1.0, False)
     if style == "glow" and not page:
         sys.exit("the glow style needs a uniform page behind the art")
     # Soft art is settled before the colour count: a thin glow spreads over so many tones
     # that none of them counts as a colour, and it would pass for two-colour line art.
     if style == "glow" or (style == "auto" and soft and colours is None):
         board = "" if paper else f'<rect x="{x:.1f}" y="{y:.1f}" width="{side:.1f}" height="{side:.1f}" fill="{to_hex(page)}"/>'
-        style, body = "glow", board + trace_glow(rgb, tone, core, side)
+        # Imported here: line tracing pulls in scipy and scikit-image, which every other
+        # command would otherwise pay for at start-up.
+        from icon_lines import trace_strokes
+
+        style, body = "glow", board + trace_strokes(img, page, side)
     elif count <= 2:
         style, body = "flat", trace_flat(labels, footprint, palette, speck)
     else:

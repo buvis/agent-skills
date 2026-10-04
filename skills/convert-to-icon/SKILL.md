@@ -61,9 +61,11 @@ The trace picks a style and reports it as `style`:
 
 - `flat`: one or two flat colours, traced as clean shapes.
 - `glow`: soft, luminous art on a uniform page (neon, light trails, a logo
-  with a halo). Its strokes become crisp paths in three tones over the plain
-  page colour, and the fade is redrawn as a blur behind them. Never let a
-  glow be traced as it looks: that yields stacked bands and a heavy file.
+  with a halo). It becomes a line drawing: every ridge of light is a stroked
+  curve over the plain page colour, and the fade is one blur of those
+  strokes. Nothing is filled. Never let a glow be traced as it looks: that
+  paints areas and stacks bands. Icons under 128 px draw it bolder and with
+  fewer lines, or hairlines would vanish.
 - `layers`: everything else, one layer per colour.
 
 A source that inspect marks `photo: true` is traced all the same: expect a
@@ -97,7 +99,8 @@ white, SVG on magenta, circle cut (two for a picture: cropped, extended),
 32 px. Look for:
 
 - resemblance: a shape, colour or proportion that differs from the source
-- soft light drawn as stacked bands or blobs (retrace with `--style glow`)
+- soft light drawn as stacked bands, blobs or painted areas (retrace with
+  `--style glow`)
 - overcut: magenta where art should be, or art cut off at the canvas edge
 - leftover page: a halo, or page-coloured patches that should be see-through
 - holes that should be filled (a glyph that vanished from its plate)

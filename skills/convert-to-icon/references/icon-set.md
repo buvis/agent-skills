@@ -96,28 +96,42 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
 
 A tracer turns a soft fade into flat bands. Stacked finely enough they
 measure close to the source and still look like a posterised picture, in a
-file of megabytes. So a glow is not traced as it looks.
+file of megabytes. Thresholding the light into a few tones is cleaner but
+still paints areas. Geometry comes first: a glow is drawn as lines, not
+traced as it looks.
 
 **Glow style.** Each pixel gets a tone: how far it has moved from the page
 colour towards the art's strongest colour. An Otsu split of the art's tones
 marks where haze ends and stroke begins. Art counts as soft when at least
 half of it lies below that split and its tones are spread out rather than
 sitting in a few flat ones (the measured glow logo: 73% haze; flat icons: 1
-to 5%; a shaded illustration: 33%). Soft art on a uniform page is then built
-from parts:
+to 5%; a shaded illustration: 33%). Soft art on a uniform page then becomes
+a line drawing:
 
 - the page, one rectangle in its exact colour;
-- the strokes, traced at three tone levels (the split, and 45% and 80% of
-  the way from there to full strength), each one clean shape in the median
-  colour of its band;
-- the fade, a Gaussian blur of the lowest stroke level, 1.5% of the canvas
-  wide, drawn behind the strokes.
+- the lines: a ridge filter finds the crests of light, they are thinned to
+  one-pixel centre lines, short loose ends are pruned, and each line is
+  written as a smooth curve with a stroke. Its width is the ridge's own
+  width and its colour the light's colour there. Nothing is filled;
+- the fade: one Gaussian blur of all the strokes, drawn behind them.
 
-Haze inside the art is left out on purpose. On the measured 1408 px logo
-this gave a 0.5 MB file where the layered trace took 6.4 MB, and a B that
-is still readable at 32 px. The review does not judge it by pixel error,
-which the missing haze inflates; it checks that the traced strokes sit on
-the source's strokes (at least 70% overlap; the logo scored 85%).
+Haze and filled areas are left out on purpose. On the measured 1408 px logo
+this gave a 0.2 MB file where the layered trace took 6.4 MB.
+
+Hairlines vanish in small icons, so every line carries a rank: lines are
+ordered by weight (brightness times thickness) and split into quarters of
+the drawing's total length. Icons under 128 px are drawn with strokes about
+a pixel and a half wide and only the two heaviest ranks; under 48 px only
+the heaviest. On the logo the B reads from 32 px up; at 16 px art this
+intricate is a blob whatever is done.
+
+The review does not judge a line drawing by pixel error, which the missing
+haze inflates. It checks two things and reports the lower as
+`stroke_overlap`: that the lines sit on the source's light, and that they
+reach its bright ridges. Below 70% is a doubt; the logo scored 98%.
+
+Line tracing needs `scipy` and `scikit-image`, which uv fetches with the
+script's other packages.
 
 **Layers style with `--detail fine`.** For shading that is not a glow: more
 colour steps and smaller shapes, a closer match, about twice the file size.
