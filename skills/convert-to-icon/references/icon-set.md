@@ -92,6 +92,16 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
   many-coloured subject comes out uneven. Draw that layer by hand when it
   matters.
 
+## Soft artwork
+
+Glows, gradients and shaded illustrations are not photos, but a tracer can
+only approximate them with flat bands. `trace --detail fine` keeps more colour
+steps and smaller shapes. On a 1408 px glow logo that took the mean error
+from 7.0 to 5.5 and the clearly-off pixels from 1.65% to 0.5%, and the SVG
+from 3.3 to 6.4 MB. A background that is itself a gradient (a vignette) still
+comes out as one flat colour: the average of the page, which measures closer
+to the source than the colour at its edge does.
+
 ## Photos
 
 A photo is detected by its fine detail: the share of pixels that step sharply

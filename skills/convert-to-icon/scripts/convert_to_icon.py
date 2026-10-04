@@ -286,8 +286,10 @@ def trace_flat(labels: np.ndarray, footprint: np.ndarray, palette: list[RGB], sp
     return "".join(f'<path fill="{to_hex(c)}" fill-rule="evenodd" d="{d}"/>' for c, d in shapes)
 
 
-def trace_shaded(img: Image.Image, removed: np.ndarray, fringe: bool) -> str:
-    """Many colours: vtracer stacks one layer per colour."""
+def trace_shaded(img: Image.Image, removed: np.ndarray, fringe: bool, fine: bool) -> str:
+    """Many colours: vtracer stacks one layer per colour. Fine keeps more colour steps and
+    smaller shapes, which soft glows and gradients need, at about twice the file size."""
+    speckle, precision, difference = (4, 8, 8) if fine else (8, 6, 12)
     if fringe:  # widen the cut by a pixel so no blend of art and background survives as a halo
         removed = np.asarray(Image.fromarray(removed.astype(np.uint8) * 255).filter(ImageFilter.MaxFilter(3))) > 0
     layer = img.copy()
@@ -301,15 +303,15 @@ def trace_shaded(img: Image.Image, removed: np.ndarray, fringe: bool) -> str:
             colormode="color",
             hierarchical="stacked",
             mode="spline",
-            filter_speckle=8,
-            color_precision=6,
-            layer_difference=12,
+            filter_speckle=speckle,
+            color_precision=precision,
+            layer_difference=difference,
             path_precision=2,
         )
         return re.sub(r"^.*?<svg[^>]*>|</svg>\s*$", "", svg.read_text(encoding="utf-8"), flags=re.S).strip()
 
 
-def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int | None) -> dict:
+def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int | None, fine: bool) -> dict:
     img = Image.open(src).convert("RGBA")
     zoom = 2 if max(img.size) < 1024 else 1  # small sources trace into lumpy curves
     if zoom > 1:
@@ -337,10 +339,13 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
     x, y = (x0 + x1 - side) / 2, (y0 + y1 - side) / 2
     speck = max(2, (max(img.size) // 300) ** 2)
     flat = count <= 2
-    body = trace_flat(labels, footprint, palette, speck) if flat else trace_shaded(img, removed, bool(paper))
+    detail = "fine" if fine else "normal"
+    body = trace_flat(labels, footprint, palette, speck) if flat else trace_shaded(img, removed, bool(paper), fine)
     attrs = f'viewBox="{x:.1f} {y:.1f} {side:.1f} {side:.1f}"'
     attrs += f' data-source-box="{x / zoom:.1f} {y / zoom:.1f} {side / zoom:.1f}"'
     attrs += f' data-source="{html.escape(src.name, quote=True)}"'
+    if not flat:
+        attrs += f' data-detail="{detail}"'
     if paper:
         attrs += f' data-background="{to_hex(paper)}"'
     svg.parent.mkdir(parents=True, exist_ok=True)
@@ -357,6 +362,7 @@ def trace_raster(src: Path, svg: Path, remove: bool, enclosed: str, colours: int
         "background": f"removed {to_hex(paper)}" if paper else "kept",
         "enclosed": enclosed if paper else "n/a",
         "photo": facts["photo"],
+        "detail": "n/a" if flat else detail,
     }
 
 
@@ -743,7 +749,11 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None) -> dict:
         error, off, framed = resemblance(svg, source)
         facts = {**facts, "mean_error": round(error, 2), "percent_off": round(off, 2)}
         if error > 6 or off > 3:
-            doubts.append(f"weak resemblance to the source: mean error {error:.1f}, {off:.1f}% of pixels off")
+            retry = 'data-detail="normal"' in svg.read_text(encoding="utf-8")
+            doubts.append(
+                f"weak resemblance to the source: mean error {error:.1f}, {off:.1f}% of pixels off"
+                + ("; retrace with --detail fine for a closer match" if retry else "")
+            )
         panels.insert(0, ("source", framed.resize((cell, cell))))
     span = 1.0 if look.picture else max(facts["glyph_radius" if look.plate else "radius"], 0.01)
     notes.append(
@@ -767,6 +777,7 @@ def main() -> int:
     tracer.add_argument("--enclosed", choices=("auto", "keep", "clear"), default="auto")
     tracer.add_argument("--colors", type=int, choices=range(1, 9))
     tracer.add_argument("--name", type=plain_name)
+    tracer.add_argument("--detail", choices=("normal", "fine"), default="normal")
     reviewer = commands.add_parser("review")
     reviewer.add_argument("svg", type=existing_file)
     reviewer.add_argument("--source", type=existing_file)
@@ -792,7 +803,8 @@ def main() -> int:
         if svg.exists() and not args.force:
             sys.exit(f"{svg} exists; --force replaces it")
         remove = args.background == "remove"
-        print(json.dumps(trace_raster(args.raster, svg, remove, args.enclosed, args.colors), indent=2))
+        fine = args.detail == "fine"
+        print(json.dumps(trace_raster(args.raster, svg, remove, args.enclosed, args.colors, fine), indent=2))
         return 0
     bundle = bundle_for(args.svg, args.out)
     if args.command == "review":

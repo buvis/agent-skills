@@ -267,6 +267,28 @@ def noisy(x: int, y: int) -> tuple[int, int, int]:
     return ((x * 97 + y * 57) % 256, (x * 31 + y * 139) % 256, (x * 173 + y * 11) % 256)
 
 
+def soft_glow(x: int, y: int) -> tuple[int, int, int]:
+    """An orange glow fading smoothly into navy: gradients, no flat shapes, no fine detail."""
+    reach = max(0.0, 1 - ((x - 128) ** 2 + (y - 128) ** 2) ** 0.5 / 120) ** 2
+    return tuple(round(dark + (bright - dark) * reach) for dark, bright in zip((17, 23, 39), (240, 150, 40)))
+
+
+def test_fine_detail_traces_soft_art_closer_to_its_source(tmp_path):
+    source = write_png(tmp_path / "glow.png", 256, soft_glow)
+    errors = {}
+    for detail in ("normal", "fine"):
+        traced = json_of("trace", source, "--name", detail, "--detail", detail)
+        errors[detail] = json_of("review", traced["svg"])["facts"]["mean_error"]
+    assert errors["fine"] < errors["normal"]
+
+
+def test_review_points_a_weak_multi_colour_trace_at_fine_detail(tmp_path):
+    traced = json_of("trace", write_png(tmp_path / "glow.png", 256, soft_glow))
+    other = write_png(tmp_path / "plate.png", 256, plate_on_page)
+    verdict = json_of("review", traced["svg"], "--source", other)
+    assert any("resemblance" in doubt and "--detail fine" in doubt for doubt in verdict["doubts"]), verdict["doubts"]
+
+
 def test_inspect_tells_a_photo_from_flat_art(tmp_path):
     assert json_of("inspect", write_png(tmp_path / "photo.png", 96, noisy))["photo"] is True
     assert json_of("inspect", write_png(tmp_path / "ring.png", 256, ring_on_page))["photo"] is False

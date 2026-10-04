@@ -63,6 +63,9 @@ look, an SVG of megabytes, a `DOUBT` at review and no Android themed layer
 (40 files instead of 45), and tell the user so before going on. Overrides, for when the review shows the default was wrong:
 
 - `--colors N`: `colours` in the inspect output miscounts what you see.
+- `--detail fine`: soft art (glows, gradients, shading) that came out flat or
+  banded. More colour steps, a closer match, about twice the file size. No
+  effect on one or two flat colours. The review names it when it would help.
 - `--enclosed keep|clear`: page-coloured areas fully surrounded by art. `keep`
   draws them (a white glyph on a plate), `clear` makes them see-through (the
   gaps in line art).
