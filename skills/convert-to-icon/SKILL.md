@@ -102,7 +102,9 @@ Existing files are kept; only missing ones are written. Options:
 - `--background "#rrggbb"`: the fill wherever a platform forbids
   transparency. Default: the plate colour, else the page colour that was
   removed, else black or white by contrast. A pre-rounded plate is extended
-  to the corners by default; another colour here keeps its shape instead.
+  to the corners by default (a flat one by its colour, a gradient or picture
+  by continuing its edge colours); another colour here keeps its shape on a
+  field of that colour instead.
 - `--png 300`: an extra plain PNG of that size, repeatable.
 - `--force`: rewrite everything. Use it only when the user wants files
   replaced; a `stale:` line says some are older than the master SVG.

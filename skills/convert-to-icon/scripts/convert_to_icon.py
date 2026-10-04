@@ -50,6 +50,7 @@ class Png:
     zone: float = 0.0  # diameter of the circle the art must stay inside, as a share of px
     body: bool = False  # laid out on the macOS grid
     opaque: bool = False  # the platform forbids transparency
+    squircle: bool = False  # the platform cuts a rounded square, so a picture can stay full size
     circle: bool = False
     mono: bool = False
 
@@ -58,7 +59,8 @@ class Png:
 class Look:
     facts: dict
     fill: RGB  # colour behind the art wherever transparency is not allowed
-    plate: RGB | None  # set when that fill continues the icon's own plate
+    plate: RGB | None  # set when that fill continues the icon's own flat plate
+    picture: bool  # the plate is a gradient or picture: its edge colours are continued instead
 
 
 def to_hex(rgb) -> str:
@@ -167,8 +169,10 @@ def dominant_colours(rgb: np.ndarray) -> list[tuple[RGB, float]]:
     return [(colour, count / len(rgb)) for colour, count in ranked if count / len(rgb) >= MIN_SHARE]
 
 
-def find_plate(rgb: np.ndarray, solid: np.ndarray) -> tuple[RGB | None, bool]:
-    """A plate is one flat colour filling the art's box edge to edge. Also: are its corners rounded?"""
+def find_plate(rgb: np.ndarray, solid: np.ndarray) -> tuple[RGB | None, bool, bool]:
+    """A plate is a box-shaped block the art sits on. Returns its edge colour (None when the art
+    is not a plate), whether that colour is flat across the plate, and whether its corners are
+    rounded. A plate that is not flat is a picture: a gradient, a photo, a scene."""
     x0, y0, x1, y1 = bounds(solid)
     bw, bh = x1 - x0, y1 - y0
     inset = max(1, min(bw, bh) // 25)
@@ -178,15 +182,15 @@ def find_plate(rgb: np.ndarray, solid: np.ndarray) -> tuple[RGB | None, bool]:
         (y0 + bh // 2, x0 + inset),
         (y0 + bh // 2, x1 - 1 - inset),
     ]
-    if not all(solid[p] for p in mids):
-        return None, False
-    colour = tuple(int(v) for v in np.median([rgb[p] for p in mids], axis=0))
     box = (slice(y0, y1), slice(x0, x1))
-    if not all(near(rgb[p], colour) for p in mids) or (near(rgb[box], colour) & solid[box]).mean() < 0.5:
-        return None, False
+    # Box-shaped means it covers its own box: a rounded square does (over 0.94), a disc does not (0.79).
+    if not all(solid[p] for p in mids) or solid[box].mean() < 0.85:
+        return None, False, False
+    colour = tuple(int(v) for v in np.median([rgb[p] for p in mids], axis=0))
+    flat = all(near(rgb[p], colour) for p in mids) and (near(rgb[box], colour) & solid[box]).mean() >= 0.5
     nick = max(1, min(bw, bh) // 100)
     corners = [(y, x) for y in (y0 + nick, y1 - 1 - nick) for x in (x0 + nick, x1 - 1 - nick)]
-    return colour, not all(solid[p] and near(rgb[p], colour) for p in corners)
+    return colour, bool(flat), not all(solid[p] for p in corners)
 
 
 def measure_art(img: Image.Image) -> dict:
@@ -198,7 +202,7 @@ def measure_art(img: Image.Image) -> dict:
     frame = max(2, min(w, h) // 50)
     ring = np.ones((h, w), bool)
     ring[frame:-frame, frame:-frame] = False
-    background, plate, rounded = None, None, False
+    background, plate, picture, rounded = None, None, None, False
     if not solid[ring].any():
         background = "transparent"
     elif solid[ring].all():
@@ -206,7 +210,8 @@ def measure_art(img: Image.Image) -> dict:
         if near(rgb[ring], edge).mean() >= 0.98:
             background, plate = to_hex(edge), edge
     if plate is None:
-        plate, rounded = find_plate(rgb, solid)
+        colour, flat, rounded = find_plate(rgb, solid)
+        plate, picture = (colour, None) if flat else (None, colour)
     x0, y0, x1, y1 = bounds(solid)
     gaps = (x0 + (side - w) / 2, y0 + (side - h) / 2, (side + w) / 2 - x1, (side + h) / 2 - y1)
     return {
@@ -214,6 +219,8 @@ def measure_art(img: Image.Image) -> dict:
         "square": w == h,
         "background": background,
         "plate": to_hex(plate) if plate else None,
+        "picture": picture is not None,
+        "edge": to_hex(picture) if picture else None,
         "plate_rounded": rounded,
         "extent": round(max(x1 - x0, y1 - y0) / side, 3),
         "margin": round(min(gaps) / side, 3),
@@ -329,12 +336,32 @@ def look_of(svg: Path, facts: dict, override: RGB | None) -> Look:
         fill = override
     elif plate:
         fill = plate
+    elif facts["picture"]:
+        fill = from_hex(facts["edge"])
     elif declared:
         fill = from_hex(declared.group(1))
     else:  # nothing known: pick the side that contrasts with the art
         r, g, b = from_hex(facts["colours"][0][0]) if facts["colours"] else (0, 0, 0)
         fill = (255, 255, 255) if 0.299 * r + 0.587 * g + 0.114 * b < 160 else (17, 17, 17)
-    return Look(facts, fill, plate if fill == plate else None)
+    # An explicit colour means "keep the plate's own shape on this field".
+    return Look(facts, fill, plate if fill == plate else None, facts["picture"] and override is None)
+
+
+def bleed(icon: Image.Image) -> Image.Image:
+    """Make an icon opaque by continuing its nearest colours into every see-through pixel.
+
+    Push-pull: halve the image down to one pixel, then come back up, letting each coarser
+    level show through wherever the finer one is see-through.
+    """
+    levels = [icon]
+    while levels[-1].width > 1:
+        half = max(1, levels[-1].width // 2)
+        levels.append(levels[-1].resize((half, half), Image.Resampling.BOX))
+    filled = levels[-1].copy()
+    filled.putalpha(255)
+    for level in reversed(levels[:-1]):
+        filled = Image.alpha_composite(filled.resize(level.size, Image.Resampling.BILINEAR), level)
+    return filled
 
 
 def shape_mask(px: int, share: float, roundness: float) -> Image.Image:
@@ -351,7 +378,10 @@ def silhouette(icon: Image.Image, plate: RGB | None) -> Image.Image:
     alpha = icon.getchannel("A")
     if plate:
         flat = Image.alpha_composite(Image.new("RGBA", icon.size, (*plate, 255)), icon).convert("RGB")
-        alpha = ImageOps.autocontrast(ImageChops.difference(flat, Image.new("RGB", icon.size, plate)).convert("L"))
+        distance = ImageOps.autocontrast(ImageChops.difference(flat, Image.new("RGB", icon.size, plate)).convert("L"))
+        # A soft threshold: shades close to the plate (a gradient's lighter end) drop out,
+        # clearly different art turns solid, edges keep a little of their smoothing.
+        alpha = distance.point(lambda v: min(255, max(0, (v - 80) * 4)))
     shape = Image.new("RGBA", icon.size, (255, 255, 255, 0))
     shape.putalpha(alpha)
     return shape
@@ -360,15 +390,22 @@ def silhouette(icon: Image.Image, plate: RGB | None) -> Image.Image:
 def compose(svg: Path, spec: Png, look: Look) -> Image.Image:
     facts = look.facts
     scale = 1.0
-    if spec.zone:  # keep the art inside the circle a launcher may cut
+    if spec.zone and look.picture:
+        # A picture has no glyph to measure. Under a rounded-square cut it keeps its size;
+        # under a circle its box is fitted to the circle and only its corners are lost.
+        scale = 1.0 if spec.squircle else spec.zone
+    elif spec.zone:  # keep the art inside the circle a launcher may cut
         scale = min(1.0, spec.zone / max(facts["glyph_radius" if look.plate else "radius"], 0.01))
     if spec.body:
         scale = min(1.0, MAC_BODY / facts["extent"])
-    shaped = spec.body and look.plate is not None
-    backdrop = (*look.fill, 255) if spec.opaque or shaped else (0, 0, 0, 0)
+    shaped = spec.body and (look.plate is not None or look.picture)
+    continued = look.picture and (bool(spec.zone) or shaped)
+    backdrop = (*look.fill, 255) if (spec.opaque or shaped) and not continued else (0, 0, 0, 0)
     icon = centred(rasterise(svg, max(1, round(spec.px * scale))), spec.px, backdrop)
+    if continued:
+        icon = bleed(icon)
     if spec.mono:
-        icon = silhouette(icon, look.plate)
+        icon = silhouette(icon, look.plate or (look.fill if look.picture else None))
     if spec.circle:
         icon.putalpha(shape_mask(spec.px, 1.0, 0.5))
     if shaped:
@@ -380,12 +417,12 @@ def compose(svg: Path, spec: Png, look: Look) -> Image.Image:
 
 def plan_pngs(extra: list[int]) -> list[Png]:
     pngs = [
-        Png("web/apple-touch-icon.png", 180, zone=0.9, opaque=True),
+        Png("web/apple-touch-icon.png", 180, zone=0.9, opaque=True, squircle=True),
         Png("web/icon-192.png", 192),
         Png("web/icon-512.png", 512),
         Png("web/icon-mask.png", 512, zone=0.8, opaque=True),
-        Png("ios/AppIcon.appiconset/icon-1024.png", 1024, zone=0.9, opaque=True),
-        Png("android/play-store-512.png", 512, zone=0.9, opaque=True),
+        Png("ios/AppIcon.appiconset/icon-1024.png", 1024, zone=0.9, opaque=True, squircle=True),
+        Png("android/play-store-512.png", 512, zone=0.9, opaque=True, squircle=True),
     ]
     for points in (16, 32, 128, 256, 512):
         pngs.append(Png(f"{ICONSET}/icon_{points}x{points}.png", points, body=True))
@@ -588,12 +625,13 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None, sheet: Path
         notes.append("canvas is not square: every icon pads it to a square, never stretches it")
     if facts["extent"] < 0.6:
         doubts.append(f"art fills only {facts['extent']:.0%} of the canvas: it will look tiny")
-    if facts["margin"] < 0.01 and not facts["plate"]:
+    if facts["margin"] < 0.01 and not facts["plate"] and not facts["picture"]:
         doubts.append("art touches the canvas edge: part of it may be cut off")
     if facts["plate_rounded"]:
+        how = f"extend {facts['plate']}" if facts["plate"] else "continue the picture's edge colours"
         doubts.append(
-            f"pre-rounded plate: masked icons extend {facts['plate']} to the corners so the platform "
-            "rounds it once; confirm, or pass another --background to keep the plate's own shape"
+            f"pre-rounded plate: masked icons {how} to the corners so the platform rounds it once; "
+            "confirm, or pass --background with another colour to keep the plate's own shape"
         )
     cell = 384
     shot = centred(rasterise(svg, cell), cell)
@@ -612,7 +650,7 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None, sheet: Path
         if error > 6 or off > 3:
             doubts.append(f"weak resemblance to the source: mean error {error:.1f}, {off:.1f}% of pixels off")
         panels.insert(0, ("source", framed.resize((cell, cell))))
-    span = max(facts["glyph_radius" if look.plate else "radius"], 0.01)
+    span = 1.0 if look.picture else max(facts["glyph_radius" if look.plate else "radius"], 0.01)
     notes.append(
         f"circular cut: art drawn at {min(1.0, 0.8 / span):.0%} in the maskable icon "
         f"and at {min(1.0, 66 / 108 / span):.0%} of the Android adaptive layer"

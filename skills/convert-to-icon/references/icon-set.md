@@ -54,14 +54,27 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
   touch icon, the Play Store icon and the round launcher; 80% for the
   maskable icon; 66 of 108 dp for the Android adaptive layers. It is never
   enlarged.
-- A plate is a flat colour filling the art's box. When the fill is the plate
-  colour, the plate runs to the corners and the platform does the only
-  rounding; the circle rule then measures the glyph, not the plate.
+- A plate is a box-shaped block the art sits on: it covers at least 85% of
+  its own box, which a rounded square does and a disc does not. A flat plate
+  is one colour. When the fill is that colour, the plate runs to the corners
+  and the platform does the only rounding; the circle rule then measures the
+  glyph, not the plate.
+- A picture is a plate that is not one flat colour: a gradient, a photo, a
+  scene. It has no glyph to measure, so it keeps its full size where the
+  platform cuts a rounded square (iOS, Apple touch icon, Play Store) and its
+  box is fitted to the circle elsewhere, losing only its corners. Every
+  see-through pixel around it is filled by continuing the nearest colours
+  outward. That continuation is synthesized: smooth for a gradient, smeared
+  where the subject runs off the picture's edge. `--background` with a colour
+  turns this off and keeps the picture's shape on a field of that colour.
+- A round badge is not recognised as a plate. It is treated as plain art and
+  shrunk onto the fill.
 - macOS: the art's box is fitted to the 824 px body of the 1024 px grid. A
   plate is cut to a rounded rectangle of that body; other art stays as drawn.
-- Android themed icon: the art's outline in white. On a plate it is the
-  glyph, taken by colour distance from the plate, so a many-coloured glyph
-  comes out uneven. Draw that layer by hand when it matters.
+- Android themed icon: the art's outline in white. On a plate or picture it
+  is whatever differs clearly from the plate's edge colour, so a
+  many-coloured subject comes out uneven. Draw that layer by hand when it
+  matters.
 
 ## Not generated, on purpose
 

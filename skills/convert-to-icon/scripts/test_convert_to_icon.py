@@ -21,6 +21,11 @@ WHITE, BLUE, DARK = (255, 255, 255), (34, 68, 170), (40, 44, 52)
 DISC = '<circle cx="50" cy="50" r="40" fill="#224466"/>'
 CROSS = '<path d="M0 0L100 100M100 0L0 100" stroke="#224466" stroke-width="10"/>'
 ROUNDED_PLATE = '<rect width="100" height="100" rx="22" fill="#2244aa"/><circle cx="50" cy="50" r="20" fill="#fff"/>'
+GRADIENT_PLATE = (
+    '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'
+    '<stop offset="0" stop-color="#103060"/><stop offset="1" stop-color="#e0a040"/></linearGradient></defs>'
+    '<rect width="100" height="100" rx="14" fill="url(#g)"/><circle cx="50" cy="50" r="22" fill="#fff"/>'
+)
 
 
 def run_script(*args) -> subprocess.CompletedProcess:
@@ -163,6 +168,31 @@ def test_rounded_plate_reaches_the_corners_on_masked_platforms(tmp_path):
     assert ios["plate_rounded"] is False
 
 
+def test_gradient_plate_reaches_the_corners_on_masked_platforms(tmp_path):
+    assert run_script("build", write_svg(tmp_path / "sky.svg", GRADIENT_PLATE)).returncode == 0
+    ios = json_of("inspect", tmp_path / "sky.icons/ios/AppIcon.appiconset/icon-1024.png")
+    # Opaque to the corners with the gradient still running along the edge: no flat field
+    # around a shrunken rounded picture.
+    assert ios["picture"] is True
+    assert ios["plate_rounded"] is False
+    assert ios["background"] is None
+
+
+def test_gradient_plate_keeps_its_shape_on_a_field_when_a_colour_is_given(tmp_path):
+    done = run_script("build", write_svg(tmp_path / "sky.svg", GRADIENT_PLATE), "--background", "#101010")
+    assert done.returncode == 0, done.stderr
+    ios = json_of("inspect", tmp_path / "sky.icons/ios/AppIcon.appiconset/icon-1024.png")
+    assert ios["background"] == "#101010"
+
+
+def test_solid_one_colour_glyph_is_not_mistaken_for_a_plate(tmp_path):
+    # A filled disc must stay a disc on its field, not dissolve into a square of its own colour.
+    assert run_script("build", write_svg(tmp_path / "disc.svg", DISC)).returncode == 0
+    ios = json_of("inspect", tmp_path / "disc.icons/ios/AppIcon.appiconset/icon-1024.png")
+    assert ios["background"] == "#ffffff"
+    assert "#224466" in [colour for colour, _ in ios["colours"]]
+
+
 @pytest.mark.parametrize(
     ("option", "value", "complaint"),
     [
@@ -231,7 +261,9 @@ def test_review_doubts_a_trace_that_does_not_match_its_source(tmp_path):
         ('<circle cx="50" cy="50" r="10" fill="#224466"/>', "tiny"),
         (CROSS, "cut off"),
         (ROUNDED_PLATE, "pre-rounded"),
+        (GRADIENT_PLATE, "pre-rounded"),
     ],
+    ids=["tiny", "cut-off", "rounded-flat-plate", "rounded-gradient-plate"],
 )
 def test_review_doubts_art_that_would_ship_broken(tmp_path, body, word):
     verdict = json_of("review", write_svg(tmp_path / "art.svg", body))
