@@ -180,7 +180,9 @@ def find_plate(rgb: np.ndarray, solid: np.ndarray) -> tuple[RGB | None, bool, bo
     colour = tuple(int(v) for v in np.median([rgb[p] for p in mids], axis=0))
     share = (near(rgb[box], colour) & patch).sum() / patch.sum()
     even = all(near(rgb[p], colour) for p in mids)
-    if even and share > 0.995:  # one colour with nothing on it is the art itself, not a plate
+    # An even edge colour is not always a plate. With nothing else on it, it is the art itself;
+    # covering under 30% of the block, it is an outline drawn around the art.
+    if even and not 0.3 <= share <= 0.995:
         return None, False, False
     flat = even and share >= 0.5
     nick = max(1, min(bw, bh) // 100)

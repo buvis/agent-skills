@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drawn into the web, Windows, macOS, iOS and Android icon files; pointed at
   an SVG it writes only the files the bundle is missing. A pre-rounded plate,
   square or round, is extended to the corners so the platform rounds it once;
+  an outline around the art is not taken for a plate, and art with no
+  background gets a white or near-black field, whichever it does not already use;
   a gradient or picture plate is cropped to each circle cut, or kept whole
   with `--picture extend`; a photo is traced with a warning that names it as
   the cause of a poor result, and gets no Android themed layer; glowing art

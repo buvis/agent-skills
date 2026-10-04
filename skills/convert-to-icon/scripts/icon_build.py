@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps
 
-from icon_measure import PHOTO_DETAIL, RGB, centred, fine_detail, from_hex, icon_name, kept_original, measure_art, rasterise, save_sheet, sheet_path, to_hex
+from icon_measure import PHOTO_DETAIL, RGB, TOLERANCE, centred, fine_detail, from_hex, icon_name, kept_original, measure_art, rasterise, save_sheet, sheet_path, to_hex
 MAC_BODY = 824 / 1024  # macOS icon grid: the body inside the canvas
 MAC_ROUNDNESS = 0.2237  # its corner radius, as a share of the body
 ICONSET = "macos/AppIcon.iconset"
@@ -53,9 +53,15 @@ def look_of(svg: Path, facts: dict, override: RGB | None, crop: bool = True) -> 
         fill = from_hex(facts["edge"])
     elif declared:
         fill = from_hex(declared.group(1))
-    else:  # nothing known: pick the side that contrasts with the art
-        r, g, b = from_hex(facts["colours"][0][0]) if facts["colours"] else (0, 0, 0)
-        fill = (255, 255, 255) if 0.299 * r + 0.587 * g + 0.114 * b < 160 else (17, 17, 17)
+    else:
+        # Nothing known: white or near-black, whichever the art does not already use, since a
+        # field in the colour of the outlines would swallow them. Failing that, the one that
+        # contrasts with the art's main colour.
+        used = [from_hex(colour) for colour, _ in facts["colours"]] or [(0, 0, 0)]
+        dark, light = any(max(c) <= TOLERANCE for c in used), any(min(c) >= 255 - TOLERANCE for c in used)
+        r, g, b = used[0]
+        on_white = dark if dark != light else 0.299 * r + 0.587 * g + 0.114 * b < 160
+        fill = (255, 255, 255) if on_white else (17, 17, 17)
     # An explicit colour means "keep the plate's own shape on this field".
     return Look(facts, fill, plate if fill == plate else None, facts["picture"] and override is None, crop)
 

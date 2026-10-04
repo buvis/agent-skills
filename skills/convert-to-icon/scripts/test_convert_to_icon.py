@@ -393,6 +393,30 @@ def test_review_names_a_photo_as_the_cause_of_a_poor_trace(tmp_path):
     assert any("photo" in doubt for doubt in verdict["doubts"]), verdict["doubts"]
 
 
+OUTLINED_DISC = '<circle cx="50" cy="50" r="42" fill="#9cc5f9" stroke="#000" stroke-width="5"/>'
+OUTLINED_SPIKE = '<path d="M50 8L92 88L8 88Z" fill="#f5e165" stroke="#000" stroke-width="6" stroke-linejoin="round"/>'
+
+
+@pytest.mark.parametrize("body", [OUTLINED_DISC, OUTLINED_SPIKE], ids=["disc", "spike"])
+def test_light_art_with_dark_outlines_gets_a_white_field(tmp_path, body):
+    assert run_script("build", write_svg(tmp_path / "art.svg", body)).returncode == 0
+    ios = json_of("inspect", tmp_path / "art.icons/ios/AppIcon.appiconset/icon-1024.png")
+    # A dark field would swallow the outlines, and an outline is not a plate to extend.
+    assert ios["background"] == "#ffffff"
+
+
+def notched_block(x: int, y: int) -> tuple[int, int, int]:
+    """A dark block that fills most of its box but is no plate: a notch is cut into its top."""
+    if 108 <= x < 148 and 28 <= y < 68:
+        return WHITE
+    return DARK if 28 <= x < 228 and 28 <= y < 228 else WHITE
+
+
+def test_trace_leaves_room_around_art_that_is_not_a_plate(tmp_path):
+    traced = json_of("trace", write_png(tmp_path / "block.png", 256, notched_block), "--background", "remove")
+    assert json_of("inspect", traced["svg"])["margin"] >= 0.04
+
+
 def test_solid_one_colour_glyph_is_not_mistaken_for_a_plate(tmp_path):
     # A filled disc must stay a disc on its field, not dissolve into a square of its own colour.
     assert run_script("build", write_svg(tmp_path / "disc.svg", DISC)).returncode == 0

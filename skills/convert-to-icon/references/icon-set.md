@@ -52,7 +52,9 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
 - A non-square master is padded to a square. Nothing is ever stretched.
 - Where a platform forbids transparency, the canvas is filled first. The fill
   is `--background`, else the icon's plate colour, else the page colour
-  removed during tracing, else black or white by contrast.
+  removed during tracing, else white or near-black: whichever the art does
+  not already use (a field in the colour of the outlines would swallow
+  them), or failing that the one that contrasts with its main colour.
 - Where a platform cuts its own shape, the art is shrunk until its farthest
   pixel sits inside a centred circle: 90% of the canvas for iOS, the Apple
   touch icon, the Play Store icon and the round launcher; 80% for the
@@ -61,6 +63,10 @@ Android manifest: `android:icon="@mipmap/ic_launcher"` and
 - A plate is a block the art sits on: a square (it covers at least 85% of
   its own box, as a rounded square does) or a disc (it matches the ellipse of
   its box). A single colour with nothing on it is not a plate; it is the art.
+  Nor is an edge colour that covers under 30% of the block: that is an
+  outline drawn around the art.
+- A traced plate, or a page that was kept, runs to the edge of the master's
+  canvas. Any other traced art gets 6% of room on each side.
 - A flat plate is one colour carrying a glyph. When the fill is that colour,
   the plate runs to the corners and the platform does the only rounding; the
   circle rule then measures the glyph, not the plate.

@@ -16,7 +16,7 @@ import potrace
 import vtracer
 from PIL import Image, ImageDraw, ImageFilter
 
-from icon_measure import RGB, bounds, dominant_colours, filled, from_hex, measure_art, stroke_level, to_hex, tone_map
+from icon_measure import RGB, bounds, dominant_colours, filled, find_plate, from_hex, measure_art, stroke_level, to_hex, tone_map
 
 
 def border_connected(mask: np.ndarray) -> np.ndarray:
@@ -114,7 +114,9 @@ def trace_raster(src: Path, svg: Path, options: TraceOptions) -> dict:
     removed, enclosed = cut_page(solid, labels, palette, paper, count <= 2, options.enclosed) if paper else (~solid, "n/a")
     footprint = ~removed
     x0, y0, x1, y1 = bounds(footprint)
-    side = max(x1 - x0, y1 - y0) * (1.0 if filled(footprint) >= 0.85 else 1.12)
+    # A kept page or a plate runs to the edge of its canvas; any other art gets room around it.
+    flush = footprint.all() or find_plate(rgb, footprint)[0] is not None
+    side = max(x1 - x0, y1 - y0) * (1.0 if flush else 1.12)
     x, y = (x0 + x1 - side) / 2, (y0 + y1 - side) / 2
     _, soft = stroke_level(tone_map(rgb, page)) if page else (1.0, False)
     if options.style == "glow" and not page:
