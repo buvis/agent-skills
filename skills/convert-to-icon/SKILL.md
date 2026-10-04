@@ -1,0 +1,120 @@
+---
+name: convert-to-icon
+description: Use when turning an image or SVG into icons - favicon, .ico, .icns, iOS and Android app icons - or a raster logo into SVG (provide the image path). Triggers on "convert to icon", "make icons", "favicon", "app icon", "icns", "vectorize logo".
+compatibility: "Portable; needs uv on PATH and network on the first run, when uv fetches the script's Python packages. iconutil (macOS) writes the full .icns; elsewhere Pillow writes one without the 16 and 32 px 1x entries."
+argument-hint: "<path/to/image-or-svg> [name]"
+---
+
+# Convert to icon
+
+Turn one image into a bundle of platform icons. A raster source is traced to
+a master SVG first; every icon is then drawn from that SVG. Pointed at an
+SVG, the skill writes whatever the bundle is missing.
+
+The bundle is `<name>.icons/` beside the source: `<name>.icon.svg`,
+`review.png`, `preview.png`, and `web/`, `windows/`, `macos/`, `ios/`,
+`android/`. What each file is for, where it goes, the HTML tags and what is
+deliberately not generated: `references/icon-set.md`.
+
+## Dependencies
+
+- `uv` on PATH: hard failure without it. The script declares its own Python
+  packages and uv fetches them on the first run, which needs network.
+- `iconutil` (macOS, optional): absent, Pillow writes the `.icns` without the
+  16 and 32 px 1x entries.
+
+## Inputs
+
+1. Take the image path from the user's message. If there is none, ask for it
+   and wait. Check the file exists.
+2. Name: the user's wording, else the file stem (`logo.icon.jpg` gives
+   `logo`).
+
+## Workflow
+
+Add `--out DIR` to any step to put the bundle somewhere else.
+
+### 1. Inspect
+
+```bash
+uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py inspect IMAGE
+```
+
+An SVG input skips to step 3.
+
+### 2. Trace (raster only)
+
+`background` in the inspect output decides the question to ask:
+
+- a colour (`"#ffffff"`): a uniform page sits behind the art. Ask the user
+  whether the icon is meant to be transparent. Never guess. Yes is `remove`,
+  no is `keep` (the colour is part of the icon).
+- `null`: the art runs to the edge. Use `keep`.
+
+```bash
+uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py trace IMAGE --name NAME --background remove
+```
+
+One or two flat colours go through potrace, more through vtracer. Overrides,
+for when the review shows the default was wrong:
+
+- `--colors N`: `colours` in the inspect output miscounts what you see.
+- `--enclosed keep|clear`: page-coloured areas fully surrounded by art. `keep`
+  draws them (a white glyph on a plate), `clear` makes them see-through (the
+  gaps in line art).
+- `--force`: replace an SVG that already exists.
+
+### 3. Review, before anything is built
+
+```bash
+uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py review SVG --source IMAGE
+```
+
+Leave out `--source` for an SVG input. The command prints `PASS` or `DOUBT`
+with reasons and writes `review.png`. Read that image. Panels, left to
+right: source, SVG on white, SVG on magenta, circle cut, 32 px. Look for:
+
+- resemblance: a shape, colour or proportion that differs from the source
+- overcut: magenta where art should be, or art cut off at the canvas edge
+- leftover page: a halo, or page-coloured patches that should be see-through
+- holes that should be filled (a glyph that vanished from its plate)
+- corners rounded twice, or a plate that is already rounded
+- art lost in an empty canvas
+- anything that matters falling outside the circle
+- a 32 px panel nobody could read
+
+Build only when the verdict is `PASS` and you see none of these. On `DOUBT`,
+or on anything you are unsure of, do not build: give the user the path to
+`review.png`, name each doubt in plain words, and ask which fix to apply (a
+retrace with another `--enclosed`, `--colors` or background answer; for a
+pre-rounded plate, extend its colour to the corners or keep its shape).
+Apply the answer and review again. With nobody to ask, stop and report the
+doubts.
+
+### 4. Build
+
+```bash
+uv run ~/.agents/skills/convert-to-icon/scripts/convert_to_icon.py build SVG
+```
+
+Existing files are kept; only missing ones are written. Options:
+
+- `--background "#rrggbb"`: the fill wherever a platform forbids
+  transparency. Default: the plate colour, else the page colour that was
+  removed, else black or white by contrast. A pre-rounded plate is extended
+  to the corners by default; another colour here keeps its shape instead.
+- `--png 300`: an extra plain PNG of that size, repeatable.
+- `--force`: rewrite everything. Use it only when the user wants files
+  replaced; a `stale:` line says some are older than the master SVG.
+
+The run ends with `icon set complete: N files`, or `icon set INCOMPLETE`
+plus one `problem:` line each and exit 1. Then read `preview.png` (iOS
+masked, maskable circle, macOS, Android adaptive, Android themed, 48 px
+launcher) with the same eye as step 3. A doubt there goes to the user too.
+
+### 5. Report
+
+Paste the verdict and the `icon set complete` line as printed. Add the bundle
+path, the fill colour, each decision taken (background, enclosed areas,
+plate) and anything skipped. Without that line the work is incomplete: say
+so and paste the `problem:` lines.
