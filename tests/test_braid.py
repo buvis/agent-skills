@@ -278,18 +278,10 @@ def test_cli_loads_machine_policy_from_agents_root(
     assert not os.path.lexists(claude_root / "skills" / "machine-ignored")
 
 
-# Found by an agoge run on 2026-08-31. Each of these fails against the code as
-# it stands, so the strict xfail is the executable record of the defect: fix
-# the defect and the marker goes stale, turning the suite red to say "delete me".
+# Found by an agoge run on 2026-08-31 and recorded as strict xfail tests until the
+# defects were fixed. They stay as the regression tests for those fixes.
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="agoge 2026-08-31: --check reconciles against the state manifest only, never "
-    "against the filesystem, so a link braid created but no longer records is invisible. "
-    "The re-sync below is what hides it: it rewrites the state without the orphan, so "
-    "the MISMATCH STATE signal for a missing manifest is spent before --check runs.",
-)
 def test_check_reports_a_managed_link_the_state_file_no_longer_records(tmp_path: Path) -> None:
     source = tmp_path / "personal"
     skill = make_skill(source, "temporary")
@@ -308,11 +300,62 @@ def test_check_reports_a_managed_link_the_state_file_no_longer_records(tmp_path:
     assert result.drift > 0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="agoge 2026-08-31: the cleanup refusal is raised before the mode check, so "
-    "read-only --check aborts mid-report instead of reporting the changed path",
-)
+def test_check_leaves_the_orphan_link_it_reports_on_disk(tmp_path: Path) -> None:
+    source = tmp_path / "personal"
+    skill = make_skill(source, "temporary")
+    make_skill(source, "kept")
+    config = settings(tmp_path, source)
+    run(config)
+    (config.agents_root / ".braid-state.json").unlink()
+    shutil.rmtree(skill)
+    synced: list[str] = []
+    run(config, emit=synced.append)
+    reported: list[str] = []
+
+    run(config.with_mode(Mode.CHECK), emit=reported.append)
+
+    orphans = [root / "skills" / "temporary" for root in (config.agents_root, config.claude_root)]
+    assert reported == [f"MISMATCH ORPHAN {orphan}" for orphan in orphans]
+    assert all(os.path.lexists(orphan) for orphan in orphans)
+    assert not (config.agents_root / "backups").exists()
+    assert not any("ORPHAN" in line for line in synced)
+
+
+def test_check_ignores_a_link_pointing_outside_every_source_root(tmp_path: Path) -> None:
+    source = tmp_path / "personal"
+    make_skill(source, "portable")
+    config = settings(tmp_path, source)
+    run(config)
+    own_skill = tmp_path / "own-skill"
+    own_skill.mkdir()
+    planted = config.agents_root / "skills" / "own"
+    planted.symlink_to(own_skill, target_is_directory=True)
+
+    result = run(config.with_mode(Mode.CHECK))
+
+    assert result.drift == 0
+    assert planted.is_symlink()
+
+
+def test_check_after_a_lost_state_file_reports_the_state_not_the_wanted_links(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "personal"
+    make_skill(source, "portable")
+    make_skill(source, "plugin-owned")
+    policy = source / ".braidignore"
+    policy.write_text("plugin-owned\n")
+    config = enroll(settings(tmp_path, source, policy_files=(policy,)))
+    run(config)
+    state_path = config.agents_root / ".braid-state.json"
+    state_path.unlink()
+    reported: list[str] = []
+
+    run(config.with_mode(Mode.CHECK), emit=reported.append)
+
+    assert reported == [f"MISMATCH STATE {state_path}"]
+
+
 def test_check_reports_a_hand_changed_managed_path_instead_of_aborting(tmp_path: Path) -> None:
     source = tmp_path / "personal"
     skill = make_skill(source, "temporary")
@@ -330,11 +373,42 @@ def test_check_reports_a_hand_changed_managed_path_instead_of_aborting(tmp_path:
     assert result.drift > 0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="agoge 2026-08-31: _write_state has no try/finally, so a failed state write "
-    "escapes as a bare OSError and orphans one temp snapshot per run",
-)
+def change_a_managed_path_by_hand(tmp_path: Path) -> tuple[Settings, Path]:
+    source = tmp_path / "personal"
+    skill = make_skill(source, "temporary")
+    make_skill(source, "kept")
+    config = settings(tmp_path, source)
+    run(config)
+    shutil.rmtree(skill)
+    stale = config.agents_root / "skills" / "temporary"
+    stale.unlink()
+    stale.mkdir()
+    return config, stale
+
+
+@pytest.mark.parametrize("mode", [Mode.DRY_RUN, Mode.CHECK])
+def test_read_only_run_names_the_hand_changed_path_and_finishes_the_report(
+    tmp_path: Path, mode: Mode
+) -> None:
+    config, stale = change_a_managed_path_by_hand(tmp_path)
+    reported: list[str] = []
+
+    run(config.with_mode(mode), emit=reported.append)
+
+    assert reported[0] == f"MISMATCH CHANGED {stale}"
+    # The Claude projection of the same skill comes after it and is still reported.
+    assert len(reported) == 2
+
+
+def test_sync_refuses_to_remove_a_hand_changed_managed_path(tmp_path: Path) -> None:
+    config, stale = change_a_managed_path_by_hand(tmp_path)
+
+    with pytest.raises(BraidError, match="refusing to clean changed managed path"):
+        run(config)
+
+    assert stale.is_dir()
+
+
 def test_a_failed_state_write_reports_a_braid_error_and_leaves_no_temp_file(
     tmp_path: Path,
 ) -> None:
@@ -397,6 +471,7 @@ def test_kiro_gets_every_skill_including_those_ignored_for_claude(tmp_path: Path
     assert (kiro_skills / "portable").is_symlink()
     assert (kiro_skills / "plugin-owned").resolve() == plugin_owned.resolve()
     assert not os.path.lexists(config.claude_root / "skills" / "plugin-owned")
+    assert run(config.with_mode(Mode.CHECK)).drift == 0
 
 
 def test_later_runs_maintain_kiro_without_repeating_the_flags(tmp_path: Path) -> None:

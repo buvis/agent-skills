@@ -402,10 +402,15 @@ def sync_kiro_agent(
 
 
 def _write_state(path: Path, state: State) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    temporary.write_text(json.dumps(state.as_json(), indent=2, sort_keys=True) + "\n")
-    os.replace(temporary, path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary.write_text(json.dumps(state.as_json(), indent=2, sort_keys=True) + "\n")
+        os.replace(temporary, path)
+    except OSError as error:
+        raise BraidError(f"cannot write Braid state {path}: {error}") from error
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _backup(
@@ -430,6 +435,30 @@ def _remove_owned_link(path: Path, target: Path, platform: str) -> None:
         os.rmdir(path)
         return
     raise BraidError(f"refusing to remove changed or unowned path: {path}")
+
+
+def _report_orphan_links(
+    root: Path,
+    owner_roots: Iterable[Path],
+    recorded: set[str],
+    result: Result,
+    emit: Callable[[str], None],
+) -> None:
+    """Report links into an owner root that the manifest does not record; never touch them."""
+    if not root.is_dir():
+        return
+    owners = {_resolved(owner) for owner in owner_roots}
+    for path in sorted(root.iterdir()):
+        if path.name in recorded or not path.is_symlink():
+            continue
+        target = Path(os.readlink(path))
+        if not target.is_absolute():
+            target = path.parent / target
+        # Judge where the link itself points: resolving its last hop would follow a union
+        # link into the source tree and hide the projection that still names it.
+        if owners.intersection((_resolved(target.parent) / target.name).parents):
+            result.drift += 1
+            emit(f"MISMATCH ORPHAN {path}")
 
 
 def _sync_links(
@@ -479,7 +508,11 @@ def _sync_links(
             continue
         old_target = Path(raw_target)
         if not _points_to(destination, old_target, platform):
-            raise BraidError(f"refusing to clean changed managed path: {destination}")
+            if mode is Mode.SYNC:
+                raise BraidError(f"refusing to clean changed managed path: {destination}")
+            result.drift += 1
+            emit(f"MISMATCH CHANGED {destination}")
+            continue
         result.drift += 1
         verb = "MISMATCH STALE" if mode is Mode.CHECK else "WOULD REMOVE"
         if mode is not Mode.SYNC:
@@ -520,14 +553,17 @@ def run(settings: Settings, emit: Callable[[str], None] = print) -> Result:
         emit=emit,
         preserve_real_sources=True,
     )
+    source_roots = [_skills_directory(source) for source in settings.sources]
+    orphan_scans = [(union_root, source_roots, {*inventory, *previous_state.union})]
 
     hosts = dict(previous_state.hosts)
     if settings.project_claude:
         eligible = {name: union_root / name for name in inventory if name not in ignored}
         result.ignored += len(inventory) - len(eligible)
+        previous_claude = previous_state.hosts.get("claude", {})
         hosts["claude"] = _sync_links(
             desired=eligible,
-            previous=previous_state.hosts.get("claude", {}),
+            previous=previous_claude,
             destination_root=settings.claude_root / "skills",
             backup_root=settings.claude_root / "skills-backup" / suffix,
             backup_category="project",
@@ -537,12 +573,16 @@ def run(settings: Settings, emit: Callable[[str], None] = print) -> Result:
             emit=emit,
             preserve_real_sources=False,
         )
+        orphan_scans.append(
+            (settings.claude_root / "skills", [union_root], {*eligible, *previous_claude})
+        )
 
     if kiro is not None and settings.project_kiro:
         # Claude's plugin-duplicate exclusions do not apply to Kiro.
+        previous_kiro = previous_state.hosts.get("kiro", {})
         hosts["kiro"] = _sync_links(
             desired={name: union_root / name for name in inventory},
-            previous=previous_state.hosts.get("kiro", {}),
+            previous=previous_kiro,
             destination_root=kiro.root / "skills",
             backup_root=kiro.root / "skills-backup" / suffix,
             backup_category="project",
@@ -552,8 +592,15 @@ def run(settings: Settings, emit: Callable[[str], None] = print) -> Result:
             emit=emit,
             preserve_real_sources=False,
         )
+        orphan_scans.append((kiro.root / "skills", [union_root], {*inventory, *previous_kiro}))
         for edit in kiro_edits:
             sync_kiro_agent(edit, kiro.root / "agent-backup" / suffix, settings.mode, result, emit)
+
+    # The manifest is not the only record of what Braid owns: a read-only run also reports
+    # links on disk that it forgot. Sync leaves them alone.
+    if settings.mode is not Mode.SYNC:
+        for root, owner_roots, recorded in orphan_scans:
+            _report_orphan_links(root, owner_roots, recorded, result, emit)
 
     next_state = State(union=union, hosts=hosts, kiro=kiro)
     if next_state != previous_state and result.drift == 0:

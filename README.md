@@ -204,6 +204,14 @@ the same way to `<agents-root>/backups/<timestamp>-<pid>/compose/`. Claude-only
 destination entries are untouched. Restart the assistant after changing
 skills if its current session does not notice the update.
 
+`--check` and `--dry-run` also report two things sync will not repair, and count
+both as drift. `MISMATCH ORPHAN` marks a link the state file no longer records
+that still points into a source's `skills/` directory or into the union, such as
+one left behind when the state file was lost. `MISMATCH CHANGED` marks a recorded
+link that was replaced by hand. Braid removes neither: delete an orphan yourself,
+and restore or delete a changed path before the next sync, which refuses to clean
+it.
+
 On Windows, Braid tries directory symlinks first and falls back to NTFS
 junctions if Developer Mode or elevated symlink privileges are unavailable.
 The same Python CLI and flags work on macOS, Linux, and Windows; no Bash runtime
