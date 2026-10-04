@@ -33,6 +33,13 @@ deliberately not generated: `references/icon-set.md`.
 
 ## Workflow
 
+An icon carries what a picture means, not its detail. Before tracing, say in
+one sentence what the image depicts: its subject and what surrounds it (for
+example "a letter B inside a sphere of orbiting light"). Judge every draft
+against that sentence, not against the pixels: the subject must read at
+once, what surrounds it must still be there, and nothing else needs to
+survive. A faithful copy of a busy picture is a failed icon.
+
 Add `--out DIR` to any step to put the bundle somewhere else.
 
 ### 1. Inspect
@@ -61,11 +68,13 @@ The trace picks a style and reports it as `style`:
 
 - `flat`: one or two flat colours, traced as clean shapes.
 - `glow`: soft, luminous art on a uniform page (neon, light trails, a logo
-  with a halo). It becomes a line drawing: every ridge of light is a stroked
-  curve over the plain page colour, and the fade is one blur of those
-  strokes. Nothing is filled. Never let a glow be traced as it looks: that
-  paints areas and stacks bands. Icons under 128 px draw it bolder and with
-  fewer lines, or hairlines would vanish.
+  with a halo). It becomes a line drawing: the ridges of light are joined
+  into long stroked curves over the plain page colour, and the fade is one
+  blur of those strokes. Nothing is filled. Never let a glow be traced as it
+  looks: that paints areas and stacks bands. Only as many strokes are kept
+  as stay easy on the eye; the output's `pleasing` block gives the measures.
+  Icons under 128 px draw it bolder and with fewer lines, down to the
+  subject alone under 48 px, or hairlines would vanish.
 - `layers`: everything else, one layer per colour.
 
 A source that inspect marks `photo: true` is traced all the same: expect a
@@ -76,6 +85,10 @@ Overrides, for when the review shows the default was wrong:
 
 - `--style glow|layers`: the other treatment for art with more than two
   colours. `glow` needs a uniform page behind the art.
+- `--keep 0.6`: for the `glow` style, the share of the drawing's weight to
+  keep (0.3 to 1.0) instead of letting the measures choose. Lower when the
+  draft is still as busy as a traced picture, higher when the subject or
+  what surrounds it has gone.
 - `--colors N`: `colours` in the inspect output miscounts what you see.
 - `--detail fine`: for the `layers` style only. Shading that came out flat
   or banded gets more colour steps, a closer match and about twice the file
@@ -98,6 +111,9 @@ sheet as `sheet`. Read that image. Panels, left to right: source, SVG on
 white, SVG on magenta, circle cut (two for a picture: cropped, extended),
 32 px. Look for:
 
+- meaning: the subject no longer reads, or what surrounds it has gone
+- detail: as busy as the source, or so bare it says nothing; stray arcs
+  that end in mid-air, wobbly curves, dirt (retrace with `--keep`)
 - resemblance: a shape, colour or proportion that differs from the source
 - soft light drawn as stacked bands, blobs or painted areas (retrace with
   `--style glow`)
@@ -117,6 +133,9 @@ the sheet, name each doubt in plain words, and ask which fix to apply:
   background answer, then review again
 - a photo: accept the posterised trace, or stop and ask for flat artwork;
   no setting makes a photo trace cleanly
+- a line drawing "hard on the eye": the doubt names the limit it breaks;
+  retrace with another `--keep`, and show the user two levels side by side
+  when no level meets every limit
 - a pre-rounded flat plate: extend its colour to the corners, or keep its
   shape on another colour
 - a picture plate (a gradient or scene filling a square): crop it, extend

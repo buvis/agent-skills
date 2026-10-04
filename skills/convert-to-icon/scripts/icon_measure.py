@@ -20,6 +20,28 @@ TOLERANCE = 40  # channel distance still read as one flat colour; absorbs JPEG n
 MIN_SHARE = 0.03  # below this share a colour is an edge blend, not a colour of the art
 PHOTO_DETAIL = 0.2  # fine detail above this share means a photo; flat art measured 0.02 to 0.07
 
+# What makes a line drawing easy on the eye, as limits. They were invented for this skill and
+# set on a real logo: the version a person called unpleasing broke the loose-end, wobble and
+# balance limits, and the one called too detailed broke the fragment and crowding limits.
+PLEASING = {
+    "kept": (0.75, "at least", "of the drawing's weight still carried by the strokes"),
+    "fragments": (0.03, "at most", "of the stroke length in bits shorter than 8% of the art"),
+    "loose_ends": (0.45, "at most", "stroke ends per stroke that meet nothing"),
+    "wobble": (1.3, "at most", "changes of bend per art-width of line"),
+    "off_centre": (0.08, "at most", "of the art's radius between its centre and the strokes' weight"),
+    "crowding": (0.4, "at most", "of the art's area covered by strokes at icon size"),
+}
+
+
+def displeasing(measures: dict) -> list[str]:
+    """The limits a line drawing breaks, in words."""
+    faults = []
+    for name, (limit, sense, meaning) in PLEASING.items():
+        value = measures.get(name)
+        if value is not None and (value < limit if sense == "at least" else value > limit):
+            faults.append(f"{name.replace('_', ' ')} {value} ({sense} {limit} {meaning})")
+    return faults
+
 
 def to_hex(rgb) -> str:
     return "#%02x%02x%02x" % tuple(int(v) for v in rgb[:3])

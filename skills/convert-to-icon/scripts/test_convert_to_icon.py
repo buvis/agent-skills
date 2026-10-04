@@ -312,6 +312,47 @@ def test_line_drawing_is_drawn_bolder_in_small_icons(tmp_path):
     assert max(int(colour[1:3], 16) for colour, _ in small["colours"]) >= 180
 
 
+def ring_with_dust(x: int, y: int) -> tuple[int, int, int]:
+    """The neon ring with a scatter of short faint dashes around it: detail, not meaning."""
+    light = 1 / (1 + ((((x - 128) ** 2 + (y - 128) ** 2) ** 0.5 - 70) / 6) ** 2)
+    for cx, cy in ((30, 40), (220, 30), (40, 215), (215, 220), (128, 18), (18, 128), (238, 128), (128, 238)):
+        if abs(y - cy) <= 1 and abs(x - cx) <= 7:
+            light = max(light, 0.55)
+    return tuple(round(dark + (bright - dark) * light) for dark, bright in zip((17, 23, 39), (255, 190, 80)))
+
+
+def test_line_drawing_keeps_the_meaning_and_drops_the_detail(tmp_path):
+    traced = json_of("trace", write_png(tmp_path / "dusty.png", 256, ring_with_dust))
+    pleasing = traced["pleasing"]
+    # The ring is the drawing; the dashes are dirt and are gone.
+    assert pleasing["strokes"] <= 2
+    assert pleasing["fragments"] == 0
+    assert pleasing["kept"] >= 0.75
+    assert not [doubt for doubt in json_of("review", traced["svg"])["doubts"] if "hard on the eye" in doubt]
+
+
+def test_review_doubts_a_line_drawing_that_is_hard_on_the_eye(tmp_path):
+    measured = {"strokes": 16, "kept": 0.53, "fragments": 0.0, "loose_ends": 0.81, "wobble": 1.4, "off_centre": 0.11, "crowding": 0.2}
+    svg = tmp_path / "arcs.svg"
+    svg.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" '
+        f"data-pleasing='{json.dumps(measured)}'>".replace("'", '"').replace('{"', "{&quot;").replace('": ', "&quot;: ")
+        .replace(', "', ", &quot;")
+        + f"{DISC}</svg>",
+        encoding="utf-8",
+    )
+    doubts = [doubt for doubt in json_of("review", svg)["doubts"] if "hard on the eye" in doubt]
+    # Every limit this drawing breaks is named: too little kept, loose ends, wobble, balance.
+    assert len(doubts) == 4
+    assert any("loose ends 0.81" in doubt for doubt in doubts)
+
+
+def test_keep_share_is_refused_outside_its_range(tmp_path):
+    done = run_script("trace", write_png(tmp_path / "neon.png", 256, neon_ring), "--keep", "2")
+    assert done.returncode != 0
+    assert "expected a share from 0.3 to 1.0" in done.stderr
+
+
 def test_layers_style_can_be_forced_on_soft_art(tmp_path):
     traced = json_of("trace", write_png(tmp_path / "neon.png", 256, neon_ring), "--style", "layers")
     assert traced["style"] == "layers"

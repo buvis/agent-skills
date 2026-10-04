@@ -109,21 +109,49 @@ to 5%; a shaded illustration: 33%). Soft art on a uniform page then becomes
 a line drawing:
 
 - the page, one rectangle in its exact colour;
-- the lines: a ridge filter finds the crests of light, they are thinned to
-  one-pixel centre lines, short loose ends are pruned, and each line is
-  written as a smooth curve with a stroke. Its width is the ridge's own
-  width and its colour the light's colour there. Nothing is filled;
+- the lines: a ridge filter finds the crests of light, fine lines first (a
+  glowing tube is its two bright edges) and thick strokes only where no fine
+  line runs. They are thinned to one-pixel centre lines, short loose ends
+  are pruned, and lines are joined through their junctions into long
+  strokes, each end continuing into the one it runs straightest into;
+- the choice of strokes (below), each fitted with a smoothing spline and
+  written as a stroked curve in one of two weights and two shades. Nothing
+  is filled;
 - the fade: one Gaussian blur of all the strokes, drawn behind them.
 
-Haze and filled areas are left out on purpose. On the measured 1408 px logo
-this gave a 0.2 MB file where the layered trace took 6.4 MB.
+Haze and filled areas are left out on purpose.
 
-Hairlines vanish in small icons, so every line carries a rank: lines are
-ordered by weight (brightness times thickness) and split into quarters of
-the drawing's total length. Icons under 128 px are drawn with strokes about
-a pixel and a half wide and only the two heaviest ranks; under 48 px only
-the heaviest. On the logo the B reads from 32 px up; at 16 px art this
-intricate is a blob whatever is done.
+**Meaning, not detail.** A faithful line drawing of a busy picture is still
+a busy picture. Each stroke has a weight: its brightness times its
+thickness times its length. Strokes are taken heaviest first until they
+carry a set share of the drawing's total weight, and that share is walked
+down a ladder (95%, 90%, ... 60%) until the drawing breaks none of these
+limits. They were invented for this skill and set on one real logo, where a
+person called one version unpleasing and another too detailed:
+
+| Measure | Limit | What it catches |
+|---|---|---|
+| `kept` | at least 0.75 | so little left that the meaning has gone |
+| `fragments` | at most 0.03 | stroke length in bits shorter than 8% of the art: dirt |
+| `loose_ends` | at most 0.45 per stroke | arcs that stop in mid-air and meet nothing |
+| `wobble` | at most 1.3 | changes of bend per art-width of line: curves that do not flow |
+| `off_centre` | at most 0.08 | the strokes' weight sitting away from the art's centre |
+| `crowding` | at most 0.4 | the share of the art's area the strokes cover at icon size |
+
+On that logo the full drawing had 205 strokes, fragments 0.14, wobble 2.5
+and crowding 0.73; the version called unpleasing had 16 strokes, loose ends
+0.81, wobble 1.4 and sat 0.11 off centre; the level chosen has 58 strokes,
+keeps 85% and breaks nothing, in an 88 KB file. Short dashes that touch
+nothing at either end are dropped as well. When no level meets every limit
+the best one is kept and the review names what it breaks. `--keep` sets the
+share by hand.
+
+Hairlines vanish in small icons, so every stroke carries a rank. Rank 1 is
+the subject: the heavy strokes that sit in the middle of the art. Rank 2 is
+the other heavy strokes, ranks 3 and 4 the rest. Icons under 128 px are
+drawn with strokes about a pixel and a half wide and ranks 1 and 2 only;
+under 48 px rank 1 only. On the logo that gives a bold B at 32 px; at 16 px
+art this intricate is a blob whatever is done.
 
 The review does not judge a line drawing by pixel error, which the missing
 haze inflates. It checks two things and reports the lower as

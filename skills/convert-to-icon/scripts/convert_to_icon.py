@@ -24,7 +24,7 @@ from pathlib import Path
 from PIL import Image
 
 from icon_measure import bundle_for, from_hex, icon_name, kept_original, measure_art, rasterise
-from icon_trace import trace_raster
+from icon_trace import TraceOptions, trace_raster
 from icon_build import build_bundle
 from icon_review import review_svg
 
@@ -40,6 +40,16 @@ def pixel_size(text: str) -> int:
     if not text.isdigit() or not 1 <= int(text) <= 4096:
         raise argparse.ArgumentTypeError(f"expected a size from 1 to 4096 px, got {text!r}")
     return int(text)
+
+
+def weight_share(text: str) -> float:
+    try:
+        share = float(text)
+    except ValueError:
+        share = 0.0
+    if not 0.3 <= share <= 1.0:
+        raise argparse.ArgumentTypeError(f"expected a share from 0.3 to 1.0, got {text!r}")
+    return share
 
 
 def plain_name(text: str) -> str:
@@ -60,6 +70,7 @@ def main() -> int:
     tracer.add_argument("--name", type=plain_name)
     tracer.add_argument("--detail", choices=("normal", "fine"), default="normal")
     tracer.add_argument("--style", choices=("auto", "glow", "layers"), default="auto")
+    tracer.add_argument("--keep", type=weight_share)
     reviewer = commands.add_parser("review")
     reviewer.add_argument("svg", type=existing_file)
     reviewer.add_argument("--source", type=existing_file)
@@ -84,10 +95,15 @@ def main() -> int:
         svg = bundle_for(args.raster, args.out, name) / f"{name}.icon.svg"
         if svg.exists() and not args.force:
             sys.exit(f"{svg} exists; --force replaces it")
-        remove = args.background == "remove"
-        fine = args.detail == "fine"
-        traced = trace_raster(args.raster, svg, remove, args.enclosed, args.colors, fine, args.style)
-        print(json.dumps(traced, indent=2))
+        options = TraceOptions(
+            remove=args.background == "remove",
+            enclosed=args.enclosed,
+            colours=args.colors,
+            fine=args.detail == "fine",
+            style=args.style,
+            keep=args.keep,
+        )
+        print(json.dumps(trace_raster(args.raster, svg, options), indent=2))
         return 0
     bundle = bundle_for(args.svg, args.out)
     if args.command == "review":

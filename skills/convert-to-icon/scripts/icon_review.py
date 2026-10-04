@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+import json
 import re
 from dataclasses import replace
 from pathlib import Path
@@ -9,7 +11,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageFilter
 
-from icon_measure import PHOTO_DETAIL, RGB, centred, edge_ring, fine_detail, from_hex, icon_name, measure_art, rasterise, save_sheet, sheet_path, stroke_level, tone_map
+from icon_measure import PHOTO_DETAIL, RGB, centred, displeasing, edge_ring, fine_detail, from_hex, icon_name, measure_art, rasterise, save_sheet, sheet_path, stroke_level, tone_map
 from icon_build import Png, compose, look_of, shape_mask
 
 
@@ -73,6 +75,10 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None) -> dict:
     facts = measure_art(rasterise(svg, 1024))
     look = look_of(svg, facts, override)
     doubts, notes = [], []
+    if drawing := re.search(r'data-pleasing="([^"]+)"', svg.read_text(encoding="utf-8")):
+        pleasing = json.loads(html.unescape(drawing.group(1)))
+        facts = {**facts, "pleasing": pleasing}
+        doubts += [f"the line drawing is hard on the eye: {fault}" for fault in displeasing(pleasing)]
     if not facts["square"]:
         notes.append("canvas is not square: every icon pads it to a square, never stretches it")
     if facts["extent"] < 0.6:
