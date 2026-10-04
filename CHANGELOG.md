@@ -28,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and other shading can be retraced with `trace --detail fine`; a raster
   source is kept in the bundle under its own file name; the check sheets go
   to the temp folder, not the bundle.
-- **graduate**: convert PRDs and legacy intake into specflow requirements, design and tasks; preserve completed-work evidence, record approval gates, and support manual conversion without inventing runtime state.
 - **use-qwen**: render eval rounds into evidence, scoreboard and audit queue from attempt records (`run_eval_harness.py render`); a refused render exits 1 with one `render refused:` line naming the malformed `run.json`, `vetting.json`, `attempt.json` or `audit.jsonl` row instead of a traceback
 - **capture-experiment**: notes carry an `id` frontmatter field holding the
   same zettelkasten id as the filename, matching the `digest-github-repo`
