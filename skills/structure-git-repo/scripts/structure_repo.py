@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -17,6 +18,7 @@ KNOWN_PATHS = (
     "README.md",
     "AGENTS.md",
     "CLAUDE.md",
+    ".claude/CLAUDE.md",
     "mise.toml",
     ".mise.toml",
     "tools",
@@ -149,6 +151,7 @@ def render_seed(name: str, purpose: str) -> dict[str, str]:
             "Name commands and executable helpers with verbs. Document actual commands\n"
             "and project invariants here as they are introduced.\n"
         ),
+        "CLAUDE.md": "@AGENTS.md\n",
     }
 
 
@@ -195,6 +198,36 @@ def scaffold_repo(target: Path, name: str, purpose: str, apply: bool) -> dict[st
     }
 
 
+def check_claude_bridge(target: Path) -> tuple[bool, dict[str, Any]]:
+    """Recognize an adjacent import or direct symlink; do not simulate host loading."""
+    bridge = target / "CLAUDE.md"
+    agents = target / "AGENTS.md"
+    evidence = {"path": str(bridge), **inspect_path(bridge)}
+    if not bridge.is_file() or not agents.is_file() or not agents.read_bytes().strip():
+        return False, {**evidence, "reason": "Require readable CLAUDE.md and nonempty AGENTS.md"}
+    if bridge.is_symlink():
+        valid = bridge.resolve() == agents.resolve()
+        return valid, {**evidence, "imports_adjacent_agents": valid}
+    text = re.sub(r"<!--.*?-->", "", bridge.read_text(encoding="utf-8"), flags=re.DOTALL)
+    fence = ""
+    for line in text.splitlines():
+        if fence:
+            if re.fullmatch(
+                r" {0,3}" + re.escape(fence[0]) + "{" + str(len(fence)) + r",}\s*", line
+            ):
+                fence = ""
+            continue
+        match = re.match(r" {0,3}(`{3,}|~{3,})", line)
+        if match:
+            fence = match.group(1)
+        elif re.fullmatch(r" {0,3}@(?:\./)?AGENTS\.md[ \t]*", line):
+            return True, {**evidence, "imports_adjacent_agents": True}
+    return False, {
+        **evidence,
+        "reason": "Add @AGENTS.md on its own line outside comments/code; preserve other content",
+    }
+
+
 def check_repo(target: Path, git_dir: Path | None = None) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
 
@@ -207,6 +240,8 @@ def check_repo(target: Path, git_dir: Path | None = None) -> dict[str, Any]:
         path = target / name
         valid = path.is_file() and bool(path.read_bytes().strip())
         record(f"nonempty-{name}", valid, inspect_path(path))
+    valid, evidence = check_claude_bridge(target)
+    record("claude-imports-AGENTS.md", valid, evidence)
     if git["kind"] == "worktree":
         for name in ("docs/dev/tmp", ".agents/autopilot/runtime"):
             tracked = read_git(
@@ -232,6 +267,8 @@ def check_repo(target: Path, git_dir: Path | None = None) -> dict[str, Any]:
         "checks": checks,
         "limitations": [
             "Checks core docs, Git boundary, tracked scratch/runtime, known links and shim modes.",
+            "Checks the root Claude bridge only; inspect maintained nested scopes separately.",
+            "Import checks do not prove host loading under the session's settings/exclusions.",
             "No task/hook/release execution or approval/path-consumer validation.",
             "COMPLETE still requires the mode reference's operational evidence.",
         ],
@@ -258,7 +295,7 @@ def run_selftest() -> int:
         base = Path(directory).resolve()
         target = base / "example"
         preview = scaffold_repo(target, "Example", "Store project notes.", False)
-        verify("preview writes nothing", not target.exists() and len(preview["would_create"]) == 2)
+        verify("preview writes nothing", not target.exists() and len(preview["would_create"]) == 3)
         verify("nonexistent inventory", inspect_repo(target)["git"]["kind"] == "none")
         scaffold_repo(target, "Example", "Store project notes.", True)
         before = {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in target.iterdir()}
@@ -294,6 +331,68 @@ def run_selftest() -> int:
         read_git(git_only, "init", "--quiet")
         scaffold_repo(git_only, "Example", "Store project notes.", True)
         verify("seed Git-only checkout", check_repo(git_only)["structural_gate"] == "PASS")
+        claude_target = base / "claude-example"
+        preview = scaffold_repo(claude_target, "Example", "Store project notes.", False)
+        verify(
+            "Claude preview includes bridge without writes",
+            not claude_target.exists() and "CLAUDE.md" in preview["would_create"],
+        )
+        scaffold_repo(claude_target, "Example", "Store project notes.", True)
+        read_git(claude_target, "init", "--quiet")
+        bridge = claude_target / "CLAUDE.md"
+        verify(
+            "Claude scaffold passes bridge check",
+            bridge.read_bytes() == b"@AGENTS.md\n"
+            and check_repo(claude_target)["structural_gate"] == "PASS",
+        )
+        before_bridge = (bridge.read_bytes(), bridge.stat().st_mtime_ns)
+        repeated = scaffold_repo(claude_target, "Example", "Store project notes.", True)
+        verify(
+            "Claude scaffold preserves existing bridge",
+            repeated["status"] == "UNCHANGED"
+            and before_bridge == (bridge.read_bytes(), bridge.stat().st_mtime_ns),
+        )
+        bridge.unlink()
+        verify(
+            "default check rejects missing Claude bridge",
+            check_repo(claude_target)["structural_gate"] == "FAIL",
+        )
+        for label, content in (
+            ("prose", "Read AGENTS.md before working.\n"),
+            ("inline code", "`@AGENTS.md`\n"),
+            ("fenced code", "```text\n@AGENTS.md\n```\n"),
+            ("tilde fence", "~~~text\n@AGENTS.md\n~~~\n"),
+            ("indented code", "    @AGENTS.md\n"),
+            ("comment", "<!--\n@AGENTS.md\n-->\n"),
+            ("wrong target", "@missing.md\n"),
+        ):
+            bridge.write_text(content, encoding="utf-8")
+            verify(f"reject {label} as Claude import", not check_claude_bridge(claude_target)[0])
+        bridge.write_text("```text\nExample\n```\n@AGENTS.md\n", encoding="utf-8")
+        verify("accept active import after closed fence", check_claude_bridge(claude_target)[0])
+        native_content = "@./AGENTS.md\n\nKeep these Claude-specific instructions.\n"
+        bridge.write_text(native_content, encoding="utf-8")
+        before_bridge = (bridge.read_bytes(), bridge.stat().st_mtime_ns)
+        verify("accept import with native instructions", check_claude_bridge(claude_target)[0])
+        try:
+            scaffold_repo(claude_target, "Example", "Store project notes.", True)
+        except ValueError:
+            verify("refuse replacement of authored Claude content", True)
+        else:
+            verify("refuse replacement of authored Claude content", False)
+        verify(
+            "check and refused scaffold preserve native instructions",
+            before_bridge == (bridge.read_bytes(), bridge.stat().st_mtime_ns),
+        )
+        if os.name != "nt":
+            bridge.unlink()
+            bridge.symlink_to("AGENTS.md")
+            verify("accept existing direct Claude symlink", check_claude_bridge(claude_target)[0])
+            bridge.unlink()
+            bridge.symlink_to("README.md")
+            verify(
+                "reject Claude symlink to wrong target", not check_claude_bridge(claude_target)[0]
+            )
         for relative in ("docs/dev/tmp/note.txt", ".agents/autopilot/runtime/state.json"):
             path = git_only / relative
             path.parent.mkdir(parents=True, exist_ok=True)

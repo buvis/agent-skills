@@ -3,7 +3,9 @@
 ## Seed the common core
 
 Use the helper on a nonexistent/empty directory or a checkout containing only .git.
-It previews by default; --apply writes README.md and AGENTS.md without overwriting.
+It previews by default; --apply writes README.md, AGENTS.md and a real CLAUDE.md
+containing only `@AGENTS.md`, without overwriting. The bridge is part of the default
+seed and check; no host flag, installed Claude or follow-up question is needed.
 Supply the actual project purpose, not a placeholder. It does not initialize Git,
 install software, select a language, or create speculative tasks/directories.
 
@@ -38,7 +40,9 @@ the default branch from the user's conventions; no remote publication is implied
 
 ## Verify
 
-Run the helper's check command. Inspect generated shims for executable permissions,
+Run the helper's check command; it requires the root Claude bridge. Follow the
+instruction-scope checks in integrations.md for any nested AGENTS.md added later.
+Inspect generated shims for executable permissions,
 argument forwarding and task recursion; list/validate mise tasks if applicable.
 Run the applicable safe repository validation tasks after inspecting their contents;
 never launch develop or publish a release as a verification shortcut. Check release

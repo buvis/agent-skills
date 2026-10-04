@@ -11,16 +11,43 @@ nested files before working on governed files if the host has not already loaded
 Nested guidance states scope explicitly, including for hosts that load it eagerly.
 A prose pointer is an agent-followed fallback, not proof of automatic loading.
 
-Use the smallest supported native pointer/config adapter; retain the one-line
-CLAUDE.md @AGENTS.md bridge where Claude is supported. A root import alone does not
-prove nested discovery. Keep host-specific execution policies and hooks independent
-of prose. Do not build a steering MCP service or universal glob-rule generator.
+Use the smallest supported native pointer/config adapter. Include Claude import
+bridges by default, independent of installed hosts; these tracked files work in a
+fresh clone without onboarding or Braid. Implement the following without asking
+the user to opt in:
+
+- Create or retain a tracked root CLAUDE.md with a standalone `@AGENTS.md` import.
+  New bridges are real one-line files. Preserve existing Claude-specific content;
+  merge shared guidance into AGENTS.md without dropping instructions or conflicts.
+  Keep an existing direct CLAUDE.md -> AGENTS.md symlink if appropriate for the
+  repository's platforms; use a real import file for new scaffolds.
+- Keep the import as the default even on versions with native AGENTS.md support.
+  Loading depends on versions, settings and other instruction files. File presence
+  and a prose request to read AGENTS.md are insufficient evidence of an active import.
+- For every maintained nested AGENTS.md, create/preserve an
+  adjacent CLAUDE.md import using the same rule. Inventory project-owned scopes;
+  exclude vendored content, generated trees and test fixtures. Preserve working
+  native instruction entry points while moving their shared prose. A root import
+  loads the root file only; the root's explicit-reading fallback remains in place.
+- Run `check /path/to/repo`. It accepts a standalone `@AGENTS.md` or
+  `@./AGENTS.md` line outside comments/code, or a direct symlink to that AGENTS.md.
+  It fails on missing or ineffective root bridges and never rewrites existing files.
+  Other valid import spellings need manual reconciliation to the supported shape.
+  Inspect each maintained nested bridge yourself; the helper does not scan them.
+- Confirm instruction loading in the actual Claude session (for example, `/context`
+  and its Memory files). Record version/settings and root/nested evidence separately.
+  If no host probe is available, report that limitation; a structural PASS is not
+  evidence of live loading. See [Claude's import documentation](https://code.claude.com/docs/en/memory#import-additional-files).
+
+Keep host-specific execution policies and hooks independent of prose. Do not build
+a steering MCP service or universal glob-rule generator.
 
 Record actual enabled surfaces (CLI/app/IDE/cloud/custom agent), their entry points,
 nested behavior, adapter owner and evidence/limitations. Initial documentation from
 2026-10-03 distinguished Codex startup discovery, Claude version/settings, Copilot
 surface differences and Kiro eager/custom-agent behavior; recheck installed support
-instead of treating that snapshot as permanent truth. No need to configure absent hosts.
+instead of treating that snapshot as permanent truth. Other integrations follow
+declared host support; the default Claude instruction bridges do not depend on it.
 
 ## Skills: Braid owns projection
 

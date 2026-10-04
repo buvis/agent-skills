@@ -7,7 +7,9 @@ The tree is not mandatory scaffolding.
 
 ## Common core and ownership
 
-Provide README.md for humans and AGENTS.md for agents. Document actual purpose,
+Provide README.md for humans, AGENTS.md for agents and a one-line CLAUDE.md importing
+AGENTS.md by default. Keep adjacent bridges for maintained nested AGENTS.md scopes;
+see integrations.md. Document actual purpose,
 available commands, invariants and links. Keep native language/framework/package
 layouts: no forced root src/ or mirrored tests/. Add mise and tools/ where tooling
 is needed. Add documentation categories, skills and workflow state only when used.

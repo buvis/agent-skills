@@ -60,10 +60,15 @@ work, fabricate no approvals, publish nothing unasked) hold regardless.
 2. Run the helper's `inspect` command. Extend its shallow inventory with tracked
    files, configuration and path-consumer searches; it is not an exhaustive audit.
    Build an applicability table: area, observed source, fit, intended change,
-   prerequisite.
+   prerequisite. Declare supported hosts from the request, repository and established
+   user workflow; an absent native directory does not mean its host is unsupported.
 3. Read and execute `references/scaffold.md` or `references/restructure.md`.
    Read `references/tasks.md` when configuring commands/releases and
-   `references/integrations.md` when configuring hosts or workflow tools.
+   `references/integrations.md` for instruction bridges and applicable workflow tools.
+   Create/preserve the CLAUDE.md import bridge by default at the root and each
+   maintained nested AGENTS.md scope. Do not wait for a flag, installed Claude or
+   another user decision. Missing bridges block completion unless explicitly waived
+   by the user; report such a waiver as a deviation.
 4. Implement the requested reversible changes. A restructuring request authorizes
    ordinary edits/moves; do not turn it into another approval interview. Present the
    concrete delta first, misfits on top. Ask only about material ambiguity, a
@@ -74,7 +79,8 @@ work, fabricate no approvals, publish nothing unasked) hold regardless.
    checks performed, unavailable capabilities and remaining migrations. Structural
    PASS alone does not establish working hooks, releases, hosts or workflow recovery.
 
-Use the installed helper through the shared discovery path:
+Use the installed helper through the shared discovery path. Scaffolding and checking
+include the root Claude bridge automatically:
 
 ```bash
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py inspect /path/to/repo

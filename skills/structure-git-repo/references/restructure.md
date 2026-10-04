@@ -23,6 +23,11 @@ Include package/release hooks, task script paths, CI, global steering, context w
 recording pathspecs, dirty-tree exemptions, cleanup, runtime recovery and skill source
 ownership. Retain existing native assets and ecosystem source/test layouts.
 
+Include root/nested instruction entry points in this map by default and
+follow integrations.md. Create a missing CLAUDE.md import bridge; preserve existing
+Claude-specific content and working imports. Moving shared prose into AGENTS.md
+must leave an active import at its Claude entry point in the same migration group.
+
 Show the concrete delta and apply the already requested reversible restructuring.
 If asked only to audit/preview, stop with PLANNED and do not write a report into the
 target. Do not turn every file move into a separate approval question.
@@ -57,7 +62,8 @@ For each group:
 
 ## Complete with evidence
 
-Run the helper's check command and paste its output into the report. It checks a
+Run the helper's check command and paste its
+output into the report. It checks the root import bridge and a
 small structural subset only. Separately record actual evidence for each applicable
 area, or an explicit not-applicable/blocked reason:
 

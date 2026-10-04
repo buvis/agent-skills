@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **structure-git-repo**: create and check Claude's AGENTS.md import bridge by default with no opt-in; preserve existing native instructions and add adjacent bridges for maintained nested instruction scopes.
 - **working documents**: store durable project-management artifacts under
   `docs/dev/project-management/` and disposable assets under the globally
   ignored `docs/dev/tmp/`; replace `purge-devlocal` with `purge-devtmp`.
