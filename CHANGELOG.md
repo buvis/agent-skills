@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **structure-git-repo**: new skill that scaffolds an empty Git repository or
+  restructures an existing one toward the common layout (README and AGENTS.md,
+  `docs/dev/`, mise tasks with `tools/` shims, host and workflow integrations),
+  applied by purpose. The layout is advice, not a mandate: a part that does not
+  fit the repository is flagged in a `MISFIT` block and reported as a deviation
+  instead of being forced.
 - **convert-to-icon**: new skill that turns an image into a `<name>.icons/`
   bundle: a raster is traced to a master SVG, checked against its source, and
   drawn into the web, Windows, macOS, iOS and Android icon files; pointed at
