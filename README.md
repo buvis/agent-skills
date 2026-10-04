@@ -72,8 +72,8 @@ Maintenance rules:
 
 `braid` discovers every configured source, rejects duplicate skill names before
 writing, composes per-skill links under `~/.agents/skills`, and then projects
-eligible skills to Claude. Kiro can use the same assembled view; Copilot and
-Codex discover it directly.
+eligible skills to Claude. Enrolled Kiro installations get their own per-skill
+links to that view. Copilot and Codex discover the shared view directly.
 
 ## How each assistant sees skills
 
@@ -83,7 +83,7 @@ Codex discover it directly.
 | GitHub Copilot | `~/.agents/skills` | Native, no extra link. It also reads `~/.copilot/skills`, and per project `.github/skills`, `.agents/skills`, `.claude/skills`. | Yes - `copilot skill --help` lists the source and `copilot skill list` returns the union. |
 | Gemini CLI | `~/.agents/skills` | Native, no extra link. `gemini skills list --all` shows what it found; `gemini skills disable <name>` hides one per host. | Yes - `gemini skills list --all` returns the union, each entry located under `~/.agents/skills/`. |
 | Codex | `~/.agents/skills` | Native, no extra link. | Yes - the CLI has no `skill list`, so a `codex exec` session was asked to name what it sees; it returned the union exactly, and none of `docs/plugin-skills/`. |
-| Kiro | `~/.kiro/skills` | Add `skill://~/.agents/skills/*/SKILL.md` to a custom agent, or create equivalent per-skill links. Kiro's import command copies rather than links. | No - `~/.kiro` does not exist here and this row has never been run. |
+| Kiro | `~/.kiro/skills` | Enroll with `braid --kiro`; use `--kiro-agent NAME` for selected custom agents. | Paths and `skill://` resources follow Kiro documentation; live discovery still requires a Kiro session. |
 | Goose | unknown | Not investigated. | No - not installed here. |
 
 None of the native hosts can be pointed away from `~/.agents/skills`: Copilot's
@@ -110,7 +110,7 @@ symlink it wholesale. User-authored cross-agent skills belong in
 
 ## braid
 
-Preview, apply, or verify the union and Claude projection:
+Preview, apply, or verify the union and enrolled host projections:
 
 ```bash
 braid --dry-run
@@ -137,11 +137,64 @@ a work-machine-only `work` file:
 | `--policy PATH` | Repeatable extra `.braidignore` policy file, loaded with the repository, agents-root, config-root and per-source files. |
 | `--agents-root PATH` | Overrides the union root, ahead of `AGENTS_ROOT`. |
 | `--claude-root PATH` | Overrides the Claude root, ahead of `CLAUDE_ROOT`. |
+| `--kiro` | Enrolls Kiro at `~/.kiro` once; later runs remember enrollment. |
+| `--kiro-root PATH` | Enrolls an explicit Kiro root, ahead of `KIRO_ROOT` and saved enrollment. |
+| `--kiro-agent NAME` | Enrolls an existing `<kiro-root>/agents/NAME.json`; repeat for multiple agents. Implies Kiro enrollment. |
+| `--forget-kiro-agent NAME` | Stops checking/updating that custom agent; leaves its resources unchanged. |
+| `--no-kiro` | Skips Kiro for this invocation, preserving its links and enrollment. |
 | `--config-root PATH` | Overrides the config directory holding `sources.d`, ahead of `AGENT_SKILLS_CONFIG`. |
-| `--no-claude` | Updates only the shared union, skips the Claude projection. |
+| `--no-claude` | Skips the Claude projection; use with `--no-kiro` to update only the union. |
 
 `AGENTS_ROOT`, `CLAUDE_ROOT`, and `AGENT_SKILLS_CONFIG` override the default
 roots.
+
+### Enroll Kiro
+
+Enable Kiro once, selecting any existing custom agents that should receive the
+shared skills. Use authored agent configs, not temporary/generated agent views:
+
+```bash
+braid --kiro --kiro-agent my-agent --dry-run
+braid --kiro --kiro-agent my-agent
+braid --check
+```
+
+Omit `--kiro-agent` for the default Kiro agent. Later `braid`, `braid --dry-run`
+and `braid --check` include the saved Kiro root and selected custom agents without
+repeating the flags. Enrollment is recorded only by a successful apply, never
+by a preview or check. `KIRO_ROOT` also explicitly enables Kiro. Merely finding
+a `.kiro` directory does not enable it or prove an IDE/CLI is installed.
+
+Each portable skill gets a link under `<kiro-root>/skills/`, using the same
+symlink/Windows-junction backend, backup rules and stale-link ownership checks
+as Claude. Kiro receives the entire shared inventory: `.braidignore` exclusions
+are for Claude's plugin duplicates and do not apply to Kiro. Unmanaged skills
+with other names remain in place. Name collisions are backed up before linking.
+Kiro link backups live in `<kiro-root>/skills-backup/<run>/project/`.
+
+For selected custom agents, Braid appends one `skill://` resource for the global
+skills view to the existing `resources` array. An equivalent existing resource
+for the shared union or Kiro view is retained without duplication. Other fields
+and resources are preserved. A changed JSON file is reformatted and backed up
+byte-for-byte under `<kiro-root>/agent-backup/<run>/agents/`, then replaced
+atomically with its original file permissions. Symlinked, missing or malformed
+selected configs are refused before composition. Braid never scans every custom
+agent and changes its skill scope implicitly.
+
+`--check` reports missing links/resources with a nonzero exit; `--dry-run` reports
+intended changes without writing. `--no-kiro` skips both links and custom agents
+for that run. To stop managing one config, use `--forget-kiro-agent NAME`; remove
+its resource manually if it should no longer discover these skills. Saved root
+relocation is refused rather than applying old ownership records to a new folder.
+
+The existing version-1 state is accepted. Kiro enrollment uses an optional `kiro`
+record alongside `hosts.kiro`; an older Braid can discard that enrollment record
+when rewriting state, so re-enroll after downgrading and upgrading. Braid remains
+an explicit command, not a filesystem watcher. Restart Kiro after enrollment and
+confirm the skill is available; link/config checks do not prove host discovery.
+See [Kiro skill scope and custom agents](https://kiro.dev/docs/skills/#skill-scope).
+
+### Maintain host links
 
 For each non-ignored canonical skill, `braid` creates an absolute symlink at
 `~/.claude/skills/<name>`. If that name is already a real directory or points

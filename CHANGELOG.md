@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **braid**: enroll Kiro with `--kiro` / `--kiro-agent`; subsequent syncs, previews and drift checks maintain its skill links and selected custom-agent resources, with backups and preservation of other settings.
 - **structure-git-repo**: new skill that scaffolds an empty Git repository or
   restructures an existing one toward the common layout (README and AGENTS.md,
   `docs/dev/`, mise tasks with `tools/` shims, host and workflow integrations),

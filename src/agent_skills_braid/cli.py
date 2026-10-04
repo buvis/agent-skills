@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from datetime import datetime
@@ -18,6 +19,7 @@ from agent_skills_braid import __version__
 
 STATE_VERSION = 1
 SKILL_NAME = re.compile(r"^name:\s*[\"']?([a-z0-9-]+)[\"']?\s*$")
+AGENT_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 
 
 class BraidError(RuntimeError):
@@ -39,6 +41,11 @@ class Settings:
     policy_files: tuple[Path, ...] = ()
     project_claude: bool = True
     platform: str = os.name
+    enable_kiro: bool = False
+    kiro_root: Path | None = None
+    kiro_agents: tuple[str, ...] = ()
+    forget_kiro_agents: tuple[str, ...] = ()
+    project_kiro: bool = True
 
     def with_mode(self, mode: Mode) -> Settings:
         return replace(self, mode=mode)
@@ -52,19 +59,41 @@ class Result:
     removed: int = 0
     backed_up: int = 0
     drift: int = 0
+    configured: int = 0
+
+
+@dataclass(frozen=True)
+class KiroRegistration:
+    root: Path
+    agents: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class KiroAgentEdit:
+    path: Path
+    before: bytes
+    after: bytes | None
 
 
 @dataclass(frozen=True)
 class State:
     union: dict[str, str]
     hosts: dict[str, dict[str, str]]
+    kiro: KiroRegistration | None = None
 
     @classmethod
     def empty(cls) -> State:
         return cls(union={}, hosts={})
 
     def as_json(self) -> dict[str, Any]:
-        return {"version": STATE_VERSION, "union": self.union, "hosts": self.hosts}
+        payload: dict[str, Any] = {
+            "version": STATE_VERSION,
+            "union": self.union,
+            "hosts": self.hosts,
+        }
+        if self.kiro is not None:
+            payload["kiro"] = {"root": str(self.kiro.root), "agents": list(self.kiro.agents)}
+        return payload
 
 
 def _present(path: Path) -> bool:
@@ -225,7 +254,7 @@ def _load_state(path: Path) -> State:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise BraidError(f"cannot read Braid state {path}: {error}") from error
-    if payload.get("version") != STATE_VERSION:
+    if not isinstance(payload, dict) or payload.get("version") != STATE_VERSION:
         raise BraidError(f"unsupported Braid state version in {path}")
     union = payload.get("union")
     hosts = payload.get("hosts")
@@ -240,7 +269,136 @@ def _load_state(path: Path) -> State:
         if not all(isinstance(key, str) and isinstance(value, str) for key, value in links.items()):
             raise BraidError(f"invalid host link state in {path}")
         normalized_hosts[host] = dict(links)
-    return State(union=dict(union), hosts=normalized_hosts)
+    kiro = None
+    if "kiro" in payload:
+        registration = payload["kiro"]
+        if (
+            not isinstance(registration, dict)
+            or not isinstance(registration.get("root"), str)
+            or not Path(registration["root"]).is_absolute()
+            or not isinstance(registration.get("agents"), list)
+            or not all(
+                isinstance(name, str) and AGENT_NAME.fullmatch(name)
+                for name in registration["agents"]
+            )
+        ):
+            raise BraidError(f"invalid Kiro registration in {path}")
+        kiro = KiroRegistration(
+            root=Path(registration["root"]), agents=tuple(sorted(set(registration["agents"])))
+        )
+    return State(union=dict(union), hosts=normalized_hosts, kiro=kiro)
+
+
+def select_kiro(settings: Settings, previous: KiroRegistration | None) -> KiroRegistration | None:
+    if not settings.project_kiro:
+        return previous
+    requested = settings.enable_kiro or settings.kiro_root is not None or bool(settings.kiro_agents)
+    if previous is None and not requested:
+        if settings.forget_kiro_agents:
+            raise BraidError("Kiro has no registered custom agents to forget")
+        return None
+    root = _resolved(settings.kiro_root or (previous.root if previous else Path.home() / ".kiro"))
+    if previous is not None and root != _resolved(previous.root):
+        raise BraidError(
+            f"Kiro is already enrolled at {previous.root}; moving its root is unsupported"
+        )
+    agents = set(previous.agents if previous else ())
+    for name in (*settings.kiro_agents, *settings.forget_kiro_agents):
+        if not AGENT_NAME.fullmatch(name):
+            raise BraidError(f"invalid Kiro agent name: {name!r}; use a filename without .json")
+    if set(settings.kiro_agents) & set(settings.forget_kiro_agents):
+        raise BraidError("cannot enroll and forget the same Kiro agent")
+    missing = set(settings.forget_kiro_agents) - agents
+    if missing:
+        raise BraidError(f"Kiro agents are not registered: {', '.join(sorted(missing))}")
+    agents.update(settings.kiro_agents)
+    agents.difference_update(settings.forget_kiro_agents)
+    return KiroRegistration(root=root, agents=tuple(sorted(agents)))
+
+
+def prepare_kiro_agents(
+    registration: KiroRegistration, agents_root: Path
+) -> tuple[KiroAgentEdit, ...]:
+    """Read every selected config before any links or configs change."""
+    skill_glob = registration.root / "skills" / "*" / "SKILL.md"
+    try:
+        resource = "skill://~/" + skill_glob.relative_to(Path.home()).as_posix()
+    except ValueError:
+        resource = "skill://" + skill_glob.as_posix()
+    equivalent = {_resolved(skill_glob), _resolved(agents_root / "skills" / "*" / "SKILL.md")}
+
+    def covers_personal_skills(item: object) -> bool:
+        if not isinstance(item, str) or not item.startswith("skill://"):
+            return False
+        path = _expand_user(item[len("skill://") :])
+        # Relative resources follow the chat's project, not this Braid invocation.
+        return path.is_absolute() and _resolved(path) in equivalent
+
+    edits: list[KiroAgentEdit] = []
+    for name in registration.agents:
+        path = registration.root / "agents" / f"{name}.json"
+        if path.is_symlink():
+            raise BraidError(f"refusing to rewrite symlinked Kiro agent config: {path}")
+        try:
+            before = path.read_bytes()
+            config = json.loads(before)
+        except (OSError, ValueError) as error:
+            raise BraidError(f"cannot read Kiro agent {path}: {error}") from error
+        if not isinstance(config, dict) or not isinstance(config.get("resources", []), list):
+            raise BraidError(f"Kiro agent must be a JSON object with a resources array: {path}")
+        resources = config.get("resources", [])
+        covered = any(covers_personal_skills(item) for item in resources)
+        after = None
+        if not covered:
+            config["resources"] = [*resources, resource]
+            after = (json.dumps(config, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+        edits.append(KiroAgentEdit(path=path, before=before, after=after))
+    return tuple(edits)
+
+
+def sync_kiro_agent(
+    edit: KiroAgentEdit,
+    backup_root: Path,
+    mode: Mode,
+    result: Result,
+    emit: Callable[[str], None],
+) -> None:
+    if edit.after is None:
+        result.current += 1
+        return
+    result.drift += 1
+    if mode is not Mode.SYNC:
+        verb = "MISMATCH RESOURCE" if mode is Mode.CHECK else "WOULD CONFIGURE"
+        emit(f"{verb} {edit.path}")
+        return
+    temporary: Path | None = None
+    backup = backup_root / "agents" / edit.path.name
+    try:
+        if edit.path.is_symlink() or edit.path.read_bytes() != edit.before:
+            raise BraidError(f"Kiro agent changed during composition; retry: {edit.path}")
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        if _present(backup):
+            raise BraidError(f"refusing to overwrite Kiro agent backup: {backup}")
+        shutil.copy2(edit.path, backup)
+        result.backed_up += 1
+        emit(f"BACKUP {edit.path} -> {backup}")
+        with tempfile.NamedTemporaryFile(
+            mode="wb", dir=edit.path.parent, prefix=f".{edit.path.name}.braid-", delete=False
+        ) as stream:
+            temporary = Path(stream.name)
+            stream.write(edit.after)
+        shutil.copymode(edit.path, temporary)
+        if edit.path.is_symlink() or edit.path.read_bytes() != edit.before:
+            raise BraidError(f"Kiro agent changed during composition; retry: {edit.path}")
+        os.replace(temporary, edit.path)
+        temporary = None
+    except OSError as error:
+        raise BraidError(f"cannot configure Kiro agent {edit.path}: {error}") from error
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    result.configured += 1
+    emit(f"CONFIGURE {edit.path}")
 
 
 def _write_state(path: Path, state: State) -> None:
@@ -339,7 +497,13 @@ def run(settings: Settings, emit: Callable[[str], None] = print) -> Result:
     ignored = read_ignored(settings.policy_files)
     state_path = settings.agents_root / ".braid-state.json"
     previous_state = _load_state(state_path)
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    kiro = select_kiro(settings, previous_state.kiro)
+    kiro_edits = (
+        prepare_kiro_agents(kiro, settings.agents_root)
+        if kiro is not None and settings.project_kiro
+        else ()
+    )
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     suffix = f"{timestamp}-{os.getpid()}"
     result = Result()
     union_root = settings.agents_root / "skills"
@@ -374,7 +538,24 @@ def run(settings: Settings, emit: Callable[[str], None] = print) -> Result:
             preserve_real_sources=False,
         )
 
-    next_state = State(union=union, hosts=hosts)
+    if kiro is not None and settings.project_kiro:
+        # Claude's plugin-duplicate exclusions do not apply to Kiro.
+        hosts["kiro"] = _sync_links(
+            desired={name: union_root / name for name in inventory},
+            previous=previous_state.hosts.get("kiro", {}),
+            destination_root=kiro.root / "skills",
+            backup_root=kiro.root / "skills-backup" / suffix,
+            backup_category="project",
+            mode=settings.mode,
+            platform=settings.platform,
+            result=result,
+            emit=emit,
+            preserve_real_sources=False,
+        )
+        for edit in kiro_edits:
+            sync_kiro_agent(edit, kiro.root / "agent-backup" / suffix, settings.mode, result, emit)
+
+    next_state = State(union=union, hosts=hosts, kiro=kiro)
     if next_state != previous_state and result.drift == 0:
         result.drift += 1
         if settings.mode is not Mode.SYNC:
@@ -406,7 +587,9 @@ def _parser() -> argparse.ArgumentParser:
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true", help="report changes without writing")
-    mode.add_argument("--check", action="store_true", help="exit non-zero when links drift")
+    mode.add_argument(
+        "--check", action="store_true", help="exit non-zero when links, resources or state drift"
+    )
     parser.add_argument(
         "--source",
         action="append",
@@ -440,12 +623,44 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-claude", action="store_true", help="skip projecting skills into claude-root"
     )
+    parser.add_argument(
+        "--kiro", action="store_true", help="enroll Kiro once; later runs remember it"
+    )
+    parser.add_argument(
+        "--kiro-root",
+        type=Path,
+        help="enroll a Kiro root (default ~/.kiro), ahead of KIRO_ROOT and saved enrollment",
+    )
+    parser.add_argument(
+        "--kiro-agent",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="enroll an existing <kiro-root>/agents/NAME.json for skill resources (repeatable)",
+    )
+    parser.add_argument(
+        "--forget-kiro-agent",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="stop managing a custom agent; keep its existing resources (repeatable)",
+    )
+    parser.add_argument(
+        "--no-kiro",
+        action="store_true",
+        help="skip Kiro for this run; preserve its links/enrollment",
+    )
     parser.add_argument("--version", action="version", version=__version__)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    arguments = _parser().parse_args(argv)
+    parser = _parser()
+    arguments = parser.parse_args(argv)
+    if arguments.no_kiro and (
+        arguments.kiro or arguments.kiro_root or arguments.kiro_agent or arguments.forget_kiro_agent
+    ):
+        parser.error("--no-kiro cannot be combined with Kiro enrollment options")
     home = Path.home()
     agents_root = arguments.agents_root or Path(os.environ.get("AGENTS_ROOT", home / ".agents"))
     claude_root = arguments.claude_root or Path(os.environ.get("CLAUDE_ROOT", home / ".claude"))
@@ -487,6 +702,12 @@ def main(argv: list[str] | None = None) -> int:
         mode=selected_mode,
         policy_files=tuple(policy_files),
         project_claude=not arguments.no_claude,
+        enable_kiro=arguments.kiro,
+        kiro_root=arguments.kiro_root
+        or (Path(os.environ["KIRO_ROOT"]) if os.environ.get("KIRO_ROOT") else None),
+        kiro_agents=tuple(arguments.kiro_agent),
+        forget_kiro_agents=tuple(arguments.forget_kiro_agent),
+        project_kiro=not arguments.no_kiro,
     )
     result = run(settings)
     change_label = "drift" if selected_mode is Mode.CHECK else "change(s)"
@@ -494,6 +715,7 @@ def main(argv: list[str] | None = None) -> int:
         "braid: "
         f"{result.linked} linked, {result.current} current, {result.ignored} ignored, "
         f"{result.removed} removed, {result.backed_up} backed up, "
+        f"{result.configured} configured, "
         f"{result.drift} {change_label}"
     )
     if selected_mode is Mode.CHECK and result.drift:
