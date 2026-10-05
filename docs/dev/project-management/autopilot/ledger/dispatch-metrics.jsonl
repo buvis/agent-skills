@@ -1565,3 +1565,7 @@
 {"id":"babd4483","kind":"carl","task":"review-00068c1","queued_at":1790452262,"prompt_bytes":6593}
 {"id":"7558b443","ended_at":1790452783,"elapsed_s":522,"outcome":"ok","detail":null}
 {"id":"babd4483","ended_at":1790452785,"elapsed_s":523,"outcome":"ok","detail":null}
+{"id":"0a1b0ec6","kind":"bob","task":"review-00014-c1","queued_at":1791201892,"prompt_bytes":8847}
+{"id":"ee00fe55","kind":"carl","task":"review-00014-c1","queued_at":1791201894,"prompt_bytes":6501}
+{"id":"0a1b0ec6","ended_at":1791202369,"elapsed_s":477,"outcome":"ok","detail":null}
+{"id":"ee00fe55","ended_at":1791202371,"elapsed_s":477,"outcome":"ok","detail":null}
