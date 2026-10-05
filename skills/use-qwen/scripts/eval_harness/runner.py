@@ -8,6 +8,7 @@ a process group on POSIX and a job object on Windows, whose kernel32 half lives
 in its own module.
 """
 import os
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -261,19 +262,24 @@ def _start(argv: Sequence[str], cwd: Path, env: dict[str, str] | None, log: Path
     LaunchError chained to the refusal, and leaves no capture behind: a file
     nothing wrote to is not evidence.
     """
+    command = list(argv)
     boundary_kwargs = {"start_new_session": True}
     if os.name == "nt":
         from eval_harness import win32
         # Suspended rather than contained: the job assignment has to land before
         # the child's first instruction, or a grandchild is born outside the job.
         boundary_kwargs = {"creationflags": win32.CREATE_SUSPENDED}
+        # Windows looks in System32 before PATH, and the `bash` there is the WSL launcher,
+        # which fails without a distribution. Resolved here, PATH decides what a name means,
+        # the child's own PATH when it has one, as on every other host.
+        command[0] = shutil.which(command[0], path=(env or os.environ).get("PATH")) or command[0]
     with ExitStack() as opened:
         try:
             stdout = opened.enter_context(open(log, "wb"))
             stderr = subprocess.STDOUT
             if stderr_log is not None:
                 stderr = opened.enter_context(open(stderr_log, "wb"))
-            return subprocess.Popen(list(argv), cwd=str(cwd), env=env, stdin=subprocess.DEVNULL,
+            return subprocess.Popen(command, cwd=str(cwd), env=env, stdin=subprocess.DEVNULL,
                                     stdout=stdout, stderr=stderr, **boundary_kwargs)
         except OSError as refusal:
             # Closed before unlinked: Windows will not delete a file still open.

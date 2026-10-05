@@ -8,9 +8,12 @@ proven intact or told exactly where it is not.
 """
 import hashlib
 import json
+import os
 import re
 import shutil
+import stat
 import subprocess
+import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from functools import partial
@@ -111,12 +114,27 @@ def _show(repo: Path, rev: str, relpath: str) -> bytes:
                             % (relpath, rev)) from exc
 
 
+def _remove_tree(tree: Path) -> None:
+    """Delete a sealed tree, read-only files included.
+
+    Git writes its objects read-only, and Windows will not unlink a file that still carries
+    the bit, so a template sealed once could never be sealed again there.
+    """
+    def unlock_and_retry(function: Callable, path: str, _failure: object) -> None:
+        os.chmod(path, stat.S_IWRITE)
+        function(path)
+
+    # `onerror` is deprecated from Python 3.12, where `onexc` takes over with the same shape.
+    hook = "onexc" if sys.version_info >= (3, 12) else "onerror"
+    shutil.rmtree(tree, **{hook: unlock_and_retry})
+
+
 def _write_seal(task_dir: Path, spec: Spec, writable: list[str], oracle: list[str],
                 rendered: dict[str, str]) -> str:
     """Replace the sealed set under `task_dir` wholesale; answer the template's sha."""
     for name in _SEALED_DIRS:
         if (task_dir / name).exists():
-            shutil.rmtree(task_dir / name)
+            _remove_tree(task_dir / name)
     template = task_dir / "template"
     template_sha = build_template(spec.repo, spec.first, template)
     pretask = {"head_sha": template_sha, "writable": hash_paths(template, writable),
