@@ -237,10 +237,19 @@ def test_softly_shaded_badge_is_a_picture_not_a_flat_plate(tmp_path):
     assert facts["plate"] is None
 
 
+@pytest.mark.parametrize(("body", "word"), [(ROUNDED_PLATE, "pre-rounded plate"), (SHADED_BADGE, "round picture")], ids=["flat-plate", "round-picture"])
+def test_review_passes_a_default_that_loses_nothing_and_notes_it(tmp_path, body, word):
+    verdict = json_of("review", write_svg(tmp_path / "art.svg", body))
+    # Extending a flat plate or cropping a round badge to a circle drops nothing, so nobody
+    # has to be asked: a doubt is kept for what a person must decide.
+    assert verdict["verdict"] == "PASS", verdict["doubts"]
+    assert any(word in note and "loses nothing" in note for note in verdict["notes"]), verdict["notes"]
+
+
 def test_round_badge_carrying_a_glyph_is_a_plate_too(tmp_path):
     badge = '<circle cx="50" cy="50" r="50" fill="#2244aa"/><circle cx="50" cy="50" r="18" fill="#fff"/>'
     svg = write_svg(tmp_path / "badge.svg", badge)
-    assert any("pre-rounded plate" in doubt for doubt in json_of("review", svg)["doubts"])
+    assert any("pre-rounded plate" in note for note in json_of("review", svg)["notes"])
     assert run_script("build", svg).returncode == 0
     ios = json_of("inspect", tmp_path / "badge.icons/ios/AppIcon.appiconset/icon-1024.png")
     assert ios["background"] == "#2244aa"
@@ -555,6 +564,15 @@ def test_move_keeps_a_source_the_bundle_does_not_hold(tmp_path):
     assert "left in place" in done.stdout
 
 
+def test_move_keeps_a_source_whose_canvas_fit_rewrote(tmp_path):
+    dot = write_svg(tmp_path / "dot.svg", '<circle cx="50" cy="50" r="20" fill="#224466"/>')
+    done = run_script("build", dot, "--fit", "--move")
+    assert done.returncode == 0, done.stderr
+    # The fitted master is no longer the file as it was drawn, and that exists nowhere else.
+    assert dot.exists()
+    assert "left in place" in done.stdout
+
+
 def test_trace_clears_page_gaps_enclosed_by_line_art(tmp_path):
     source = write_png(tmp_path / "ring.png", 256, ring_on_page)
     traced = json_of("trace", source, "--background", "remove")
@@ -586,11 +604,10 @@ def test_review_doubts_a_trace_that_does_not_match_its_source(tmp_path):
     [
         ('<circle cx="50" cy="50" r="10" fill="#224466"/>', "tiny"),
         (CROSS, "cut off"),
-        (ROUNDED_PLATE, "pre-rounded"),
         (GRADIENT_PLATE, "pre-rounded"),
         ('<rect x="5" y="40" width="90" height="20" fill="#224466"/>', "thin strip"),
     ],
-    ids=["tiny", "cut-off", "rounded-flat-plate", "rounded-gradient-plate", "wordmark-shaped"],
+    ids=["tiny", "cut-off", "rounded-gradient-plate", "wordmark-shaped"],
 )
 def test_review_doubts_art_that_would_ship_broken(tmp_path, body, word):
     verdict = json_of("review", write_svg(tmp_path / "art.svg", body))

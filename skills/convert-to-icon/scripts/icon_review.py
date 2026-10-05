@@ -93,7 +93,14 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None) -> dict:
         doubts.append(f"art is {facts['aspect']:.1f} times longer one way: a square icon shows it as a thin strip")
     if facts["margin"] < 0.01 and not facts["plate"] and not facts["picture"]:
         doubts.append("art touches the canvas edge: part of it may be cut off")
-    if look.picture:
+    # A default that loses nothing is a note, so that a doubt always means: stop and ask.
+    disc = facts["aspect"] <= 1.05 and facts["radius"] <= facts["extent"] * 1.05
+    if look.picture and disc:
+        notes.append(
+            "round picture plate: it is cropped to each circle cut, which loses nothing; "
+            "--picture extend shrinks it into a soft band instead"
+        )
+    elif look.picture:
         doubts.append(
             f"{'pre-rounded ' if facts['plate_rounded'] else ''}picture plate: under a circle cut choose "
             "--picture crop (sharp; what falls outside the circle is lost) or --picture extend (whole "
@@ -101,9 +108,9 @@ def review_svg(svg: Path, source: Path | None, override: RGB | None) -> dict:
             "keeps its shape on a flat field instead"
         )
     elif facts["plate_rounded"] and facts["plate"]:
-        doubts.append(
+        notes.append(
             f"pre-rounded plate: masked icons extend {facts['plate']} to the corners so the platform "
-            "rounds it once; confirm, or pass --background with another colour to keep the plate's own shape"
+            "rounds it once, which loses nothing; --background with another colour keeps the plate's own shape"
         )
     cell = 384
 

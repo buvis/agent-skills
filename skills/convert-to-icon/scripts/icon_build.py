@@ -300,18 +300,20 @@ def fit_canvas(master: Path) -> None:
 def build_bundle(svg: Path, bundle: Path, override: RGB | None, extra: list[int], force: bool, crop: bool, fit: bool, move: bool) -> int:
     master = bundle / f"{icon_name(svg)}.icon.svg"
     bundle.mkdir(parents=True, exist_ok=True)
-    if svg.resolve() != master.resolve():
-        if force or not master.exists():
-            shutil.copyfile(svg, master)
-        same = master.read_bytes() == svg.read_bytes()
-        if move and same:
-            svg.unlink()
-        elif move:  # the bundle does not hold this drawing: removing it would lose it
-            print(f"note: {svg} was left in place; the bundle's master differs from it (--force replaces the master)")
-        elif not same and not fit:
-            print(f"note: {master} differs from {svg}; the bundle's copy was used (--force replaces it)")
+    loose = svg.resolve() != master.resolve()
+    if loose and (force or not master.exists()):
+        shutil.copyfile(svg, master)
     if fit:
         fit_canvas(master)
+    # Compared after fitting: a fitted master is no longer the source as it was drawn.
+    same = not loose or master.read_bytes() == svg.read_bytes()
+    if loose and move and same:
+        svg.unlink()
+    elif loose and move:  # the bundle does not hold this file as it is: removing it would lose it
+        why = "--fit rewrote its canvas" if fit else "--force replaces the master"
+        print(f"note: {svg} was left in place; the bundle's master differs from it ({why})")
+    elif not same and not fit:
+        print(f"note: {master} differs from {svg}; the bundle's copy was used (--force replaces it)")
     look = look_of(master, measure_art(rasterise(master, 1024)), override, crop)
     created: list[str] = []
 

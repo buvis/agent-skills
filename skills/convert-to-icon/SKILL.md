@@ -43,7 +43,8 @@ survive. A faithful copy of a busy picture is a failed icon.
 Add `--out DIR` to any step to put the bundle somewhere else. Add `--move`
 to `trace` (raster) or `build` (SVG) when the user wants no loose file left
 beside the bundle: the source goes into the bundle instead of a copy of it.
-A source the bundle does not hold as it is stays where it was, with a note.
+A source the bundle does not hold as it is stays where it was, with a note:
+a master that `--fit` rewrote counts. Tell the user; never remove it yourself.
 
 ### 1. Inspect
 
@@ -131,6 +132,10 @@ white, SVG on magenta, circle cut (two for a picture: cropped, extended),
 - anything that matters falling outside the circle
 - a 32 px panel nobody could read
 
+`notes` name defaults that lose nothing (a flat plate extended to the
+corners, a round badge cropped to the circle). Read them; they need no
+question. A doubt always does, however safe its default looks.
+
 Build only when the verdict is `PASS` and you see none of these. On `DOUBT`,
 or on anything you are unsure of, do not build: give the user the path to
 the sheet, name each doubt in plain words, and ask which fix to apply:
@@ -143,8 +148,6 @@ the sheet, name each doubt in plain words, and ask which fix to apply:
   retrace with another `--keep`, and show the user two levels side by side
   when no level meets every limit
 - art lost in an empty canvas: build with `--fit`
-- a pre-rounded flat plate: extend its colour to the corners, or keep its
-  shape on another colour
 - a picture plate (a gradient or scene filling a square): crop it, extend
   it, or keep its shape on a flat field. The sheet shows crop and extend
   side by side; say what each one loses.
