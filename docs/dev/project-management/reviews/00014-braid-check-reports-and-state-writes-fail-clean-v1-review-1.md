@@ -275,5 +275,29 @@ ownership-predicate deviation (row 3), the Kiro-root scan (row 7, which also dec
 orphan test is owed), the size of `run` and `_sync_links` (row 2), and one bundle of low items (rows
 8, 10, 11, 13).
 
+## Walkthrough minutes
+
+Walked with the operator on 2026-10-05, one finding at a time. Nothing was deferred or rejected;
+every fix below is queued for one rework commit, which this file is the record of.
+
+| # | Finding (table rows) | Decision | Status |
+|---|----------------------|----------|--------|
+| 1 | State-write cleanup can still traceback (5, 6) | Guard the temp delete so it can never replace the `BraidError`; test both confirmed cases (parent is a regular file, temp path is a directory). The wider "catch `OSError` in `entrypoint()`" option was not chosen. | queued |
+| 2 | Ownership predicate resolves the target's parent (3) | Keep the code. Amend the PRD's "Ownership predicate" behavior to describe parent resolution and why (full resolution misses a Claude-root orphan whose union link still exists). Bob's hybrid was not chosen; the two exotic link shapes stay as they are. | queued |
+| 3 | Kiro root scanned, PRD names two roots (7) | Keep the scan. Add the Kiro root to the PRD's orphan-scan inputs and add one test that plants a Kiro orphan. | queued |
+| 4 | `run` 85 lines, `_sync_links` 62 (2) | Move the orphan-scan list building out of `run()` into one helper. `_sync_links` is left alone; both stay over the 50-line limit, accepted for this PRD. | queued |
+| 5a | README and changelog overstate the sync refusal (8) | Say "no longer wanted" where `MISMATCH CHANGED` and the refusal are described. | queued |
+| 5b | Exit 2 and the `braid:` message untested (11) | Add a CLI-level assertion for exit status 2 and the `braid: cannot write Braid state` line. | queued |
+| 5c | Orphaned NTFS junctions not reported (10, 12) | Add one README sentence stating the limit. No code change. | queued |
+| 5d | `readlink` and `iterdir` unguarded in the scan (12) | Turn an `OSError` there into a `BraidError`. | queued |
+| 6 | Four touched tests pass on the old code (13, mech-check) | Kept by design: they are guard tests for the fix's limits, one of them ordered by the PRD. Put to the operator, no objection. | no action |
+| 7 | Orphan scan untested in `--dry-run` (4, 12) | Rule-mandated (every new behavior ships with a test): run the orphan test in both read-only modes. | queued |
+| 8 | `tests/test_braid.py` at 801 lines, duplicate setup (1, 9) | Rule-mandated (800-line limit): reuse `change_a_managed_path_by_hand` in the older test. Items 1, 3, 5b and 7 add tests, so also move the drift-reporting tests to their own file to stay under the limit. | queued |
+| 9 | "Cannot statically verify" the suite (14) | Answered by this cycle's run, see `Tests:`. | closed |
+
+The rework changes code, so it gets its own review cycle from a fresh session: `--since d5d2562`
+(this file's `head_sha`) scopes it to what landed after this review: the rework, plus this file's
+own two commits.
+
 Verdict: 14 findings
 Tests: 3434 passed, 0 failed, 6 skipped (suite run this cycle)
