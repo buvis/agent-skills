@@ -28,6 +28,9 @@ IDENTITY = (
     "-c", "init.defaultBranch=main",
 )
 
+# The date every sealed template commit carries, so its sha names the tree alone.
+SEAL_DATE = "2000-01-01T00:00:00+00:00"
+
 # Files that say a tree declares its own toolchain.
 MISE_MARKERS = (".mise.toml", "mise.toml", ".tool-versions")
 
@@ -39,7 +42,7 @@ class TreeError(RuntimeError):
     """Raised when a tree, or a path inside one, is not one the harness may use."""
 
 
-def _git(root: Path, *args: str) -> str:
+def _git(root: Path, *args: str, env: dict[str, str] | None = None) -> str:
     """Git's stdout in `root`, trailing newlines only: porcelain's leading space stays."""
     done = subprocess.run(
         ["git", "-C", str(root), *args],
@@ -47,6 +50,7 @@ def _git(root: Path, *args: str) -> str:
         text=True,
         check=True,
         timeout=_GIT_TIMEOUT_S,
+        env=env,
     )
     return done.stdout.rstrip("\n")
 
@@ -137,7 +141,10 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
         archive.extractall(dest)
     _git(dest, *IDENTITY, "init")
     _git(dest, "add", "-A")
-    _git(dest, *IDENTITY, "commit", "-m", "sealed pre-task tree")
+    # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the
+    # same tree sealed a second later has to carry the same one.
+    dated = {**os.environ, "GIT_AUTHOR_DATE": SEAL_DATE, "GIT_COMMITTER_DATE": SEAL_DATE}
+    _git(dest, *IDENTITY, "commit", "-m", "sealed pre-task tree", env=dated)
     return head_sha(dest)
 
 

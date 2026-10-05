@@ -171,6 +171,22 @@ def test_build_template_seals_the_tree_before_the_task_as_one_commit(
     )
 
 
+def test_build_template_names_the_tree_not_the_moment_it_was_sealed(
+    tmp_path, built_repo, monkeypatch
+):
+    repo, task = Path(built_repo["repo"]), str(built_repo["last"])
+    shas = []
+    for moment in ("2001-02-03T04:05:06+00:00", "2020-11-12T13:14:15+00:00"):
+        # Two seals at different times: git dates a commit from these when nothing else does.
+        monkeypatch.setenv("GIT_AUTHOR_DATE", moment)
+        monkeypatch.setenv("GIT_COMMITTER_DATE", moment)
+        shas.append(trees.build_template(repo, task, tmp_path / moment[:4]))
+
+    # The sha is signed into pretask.json. Dated by the clock, the same inputs sealed a
+    # second apart would carry two digests.
+    assert shas[0] == shas[1]
+
+
 def test_build_template_seals_the_commit_it_was_handed_not_the_repo_s_head(
     tmp_path, built_repo
 ):
