@@ -94,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **use-qwen**: a task's `repo` such as `1:/repo` or `?:/repo` is refused as relative on every Python. From Python 3.12 the loader accepted it as an absolute Windows path, because pathlib there takes any character before the colon for a drive; a drive is now one letter (or a UNC share), whatever the interpreter.
 - **use-qwen**: sealing the same eval task twice now gives the same template sha and the same `pretask` digest. The sealed commit was dated by the clock, so two seals of identical inputs disagreed whenever they fell in different seconds; it now carries a fixed date. A task sealed before this change keeps the sha it recorded and still verifies.
 - **braid**: `--check` and `--dry-run` now report a link the state file no longer records as `MISMATCH ORPHAN` and count it as drift, when it points into a source's `skills/` or into the union; such a link used to stay invisible once the state file was lost. Reporting only: no mode removes it, so delete it by hand.
 - **braid**: `--check` and `--dry-run` no longer abort on a managed path that was changed by hand; they report it as `MISMATCH CHANGED`, count it as drift and finish the report, so `--check` exits 1 there instead of 2. Sync still refuses to touch it.

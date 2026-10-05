@@ -6,6 +6,7 @@ key and nothing else, so a caller learns which field to fix.
 """
 import fnmatch
 import json
+import string
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
@@ -120,7 +121,11 @@ def _command(body: dict, key: str) -> tuple[str, ...]:
 def _repo(body: dict) -> Path:
     """An absolute root in either host's spelling: a check on the string, not a lookup."""
     value = _text(body, "repo")
-    if not (PurePosixPath(value).is_absolute() or PureWindowsPath(value).is_absolute()):
+    windows = PureWindowsPath(value)
+    # A drive is one letter, or a UNC share. Pathlib has taken any character before the colon
+    # for a drive since Python 3.12, so `1:/repo` would pass there and nowhere else.
+    lettered = windows.drive[:1] in "\\/" or windows.drive[:1] in string.ascii_letters
+    if not (PurePosixPath(value).is_absolute() or (windows.is_absolute() and lettered)):
         _fail("repo", value)
     return Path(value)
 
