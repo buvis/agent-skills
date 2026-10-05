@@ -5,6 +5,7 @@ reads relative paths silently assembles the wrong thing (or nothing) when the
 caller is somewhere else. These tests run it from an unrelated cwd.
 """
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -13,9 +14,13 @@ BUILD = Path(__file__).resolve().parents[1] / "references" / "build.sh"
 
 def run(*args, cwd):
     # Slash form: Git Bash accepts "C:/..." on Windows, and on POSIX it is
-    # byte-identical to str(BUILD).
+    # byte-identical to str(BUILD). The bash is looked up on PATH first: handed
+    # the bare name, Windows takes System32's, which is the WSL launcher.
     return subprocess.run(
-        ["bash", BUILD.as_posix(), *args], cwd=cwd, capture_output=True, text=True
+        [shutil.which("bash") or "bash", BUILD.as_posix(), *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
     )
 
 
