@@ -56,7 +56,9 @@ Read-only modes stop treating the state manifest as the only record of what brai
 - **Description**: In `Mode.CHECK` and `Mode.DRY_RUN`, report links on disk that are in neither `desired`
   nor `previous`.
 - **Inputs**: `<agents-root>/skills` owned by the configured source roots; `<claude-root>/skills` owned by
-  `<agents-root>/skills`; the `desired` and `previous` name sets `run()` already holds.
+  `<agents-root>/skills`; `<kiro-root>/skills` owned by `<agents-root>/skills` when Kiro is enrolled
+  (added in the review of 2026-10-05: Kiro landed after this PRD was written, and its projection is
+  scanned like Claude's); the `desired` and `previous` name sets `run()` already holds.
 - **Outputs**: `MISMATCH ORPHAN <path>` per orphan and `+1` on `Result.drift` each.
 - **Behavior**: Reporting only. It never unlinks, moves, backs up or relinks, and it does not run in
   `Mode.SYNC`, so the sync summary and the state write are untouched.
@@ -67,8 +69,13 @@ Read-only modes stop treating the state manifest as the only record of what brai
 - **Inputs**: One entry under a destination root, plus that root's owner roots.
 - **Outputs**: True only for a symlink whose target lies inside an owner root.
 - **Behavior**: Read the raw target with `os.readlink`, make it absolute against the link's parent as
-  `_points_to` does (`cli.py:208-216`), then `_resolved` it (`cli.py:83-84`, `strict=False`) so a dangling
-  link still classifies. Anything outside every owner root is the operator's and stays unreported.
+  `_points_to` does (`cli.py:208-216`), then `_resolved` the target's parent directory (`cli.py:83-84`,
+  `strict=False`) and re-append the target's last name, so a dangling link still classifies and the link
+  is judged by where it points rather than where its last hop leads. Resolving the full target was the
+  wording until the review of 2026-10-05; it misses every Claude or Kiro orphan whose union link is
+  still on disk, because that hop leads into the source tree and out of the owner root, and the PRD's
+  own two-orphan scenario needs both reported. Anything outside every owner root is the operator's and
+  stays unreported.
 
 ### Capability: Fail-clean state writes
 
@@ -103,7 +110,8 @@ Refusing to mutate stays; refusing to look goes.
 src/agent_skills_braid/
 └── cli.py            # Maps to: Filesystem reconciliation, Fail-clean state writes, Read-only drift reporting
 tests/
-└── test_braid.py     # Maps to: the regression tests for all three capabilities
+└── test_braid_check.py  # Maps to: the regression tests for all three capabilities (moved out of
+                         # test_braid.py in the review of 2026-10-05, which hit the 800-line limit)
 ```
 
 ### Module: braid CLI

@@ -207,10 +207,13 @@ skills if its current session does not notice the update.
 `--check` and `--dry-run` also report two things sync will not repair, and count
 both as drift. `MISMATCH ORPHAN` marks a link the state file no longer records
 that still points into a source's `skills/` directory or into the union, such as
-one left behind when the state file was lost. `MISMATCH CHANGED` marks a recorded
-link that was replaced by hand. Braid removes neither: delete an orphan yourself,
-and restore or delete a changed path before the next sync, which refuses to clean
-it.
+one left behind when the state file was lost; the scan covers the union, the
+Claude projection and, when Kiro is enrolled, its skills root. `MISMATCH CHANGED`
+marks a recorded link that is no longer wanted and was replaced by hand (a link
+that is still wanted is backed up and relinked by sync instead). Braid removes
+neither: delete an orphan yourself, and restore or delete a changed path before
+the next sync, which refuses to clean it. On Windows the scan recognises symlinks
+only, so an orphaned junction is not reported.
 
 On Windows, Braid tries directory symlinks first and falls back to NTFS
 junctions if Developer Mode or elevated symlink privileges are unavailable.
