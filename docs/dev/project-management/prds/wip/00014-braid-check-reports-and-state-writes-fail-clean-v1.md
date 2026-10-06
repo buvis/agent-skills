@@ -43,7 +43,8 @@ The operator who runs `braid --check` after every skill edit and trusts the drif
   one temp file per run.
 - A hand-changed managed path in `Mode.CHECK` emits a line, counts as drift, and the report completes;
   `Mode.SYNC` keeps the hard refusal.
-- `rg -n -c "xfail" tests/test_braid.py` prints 1 (the comment at `tests/test_braid.py:251-253`), down from 4.
+- `rg -n -c "xfail" tests/test_braid_check.py` prints 1 (the module docstring at `tests/test_braid_check.py:3`),
+  and `tests/test_braid.py` holds none, down from 4.
 
 ## Functional Decomposition
 
@@ -129,9 +130,9 @@ tests/
 - **Maps to capability**: all three
 - **Responsibility**: Hold the executable record of each defect and of the fix's limits.
 - **Exports**:
-  - `test_check_reports_a_managed_link_the_state_file_no_longer_records` (line 263)
-  - `test_check_reports_a_hand_changed_managed_path_instead_of_aborting` (line 286)
-  - `test_a_failed_state_write_reports_a_braid_error_and_leaves_no_temp_file` (line 308)
+  - `test_check_reports_a_managed_link_the_state_file_no_longer_records` (`tests/test_braid_check.py:21`)
+  - `test_check_reports_a_hand_changed_managed_path_instead_of_aborting` (`tests/test_braid_check.py:141`)
+  - `test_a_failed_state_write_reports_a_braid_error_and_leaves_no_temp_file` (`tests/test_braid_check.py:172`)
 
 ## Dependency Graph
 
@@ -161,9 +162,9 @@ No dependencies - built first.
   re-raise as `BraidError(f"cannot write Braid state {path}: {error}")`,
   add `finally: temporary.unlink(missing_ok=True)`, and delete the `@pytest.mark.xfail` decorator above the
   matching test (no deps) - Acceptance:
-  `uv run pytest tests/test_braid.py::test_a_failed_state_write_reports_a_braid_error_and_leaves_no_temp_file -q`
+  `uv run pytest tests/test_braid_check.py::test_a_failed_state_write_reports_a_braid_error_and_leaves_no_temp_file -q`
   reports `1 passed` with no xfail or xpass, and
-  `rg -n --fixed-strings "_write_state has no try/finally" tests/test_braid.py` prints nothing, exit 1.
+  `rg -n --fixed-strings "_write_state has no try/finally" tests/test_braid_check.py` prints nothing, exit 1.
 
 **Exit Criteria**: `uv run pytest tests -q` reports 0 failed and 2 xfailed.
 
@@ -177,9 +178,9 @@ No dependencies - built first.
   `Mode.CHECK` and `Mode.DRY_RUN` emit `MISMATCH CHANGED {destination}`, do `result.drift += 1`, and
   `continue`; delete the `@pytest.mark.xfail` decorator above the matching test (depends on: Phase 0) -
   Acceptance:
-  `uv run pytest tests/test_braid.py::test_check_reports_a_hand_changed_managed_path_instead_of_aborting -q`
+  `uv run pytest tests/test_braid_check.py::test_check_reports_a_hand_changed_managed_path_instead_of_aborting -q`
   reports `1 passed`, and
-  `rg -n --fixed-strings "the cleanup refusal is raised before the mode check" tests/test_braid.py` prints
+  `rg -n --fixed-strings "the cleanup refusal is raised before the mode check" tests/test_braid_check.py` prints
   nothing, exit 1.
 - [ ] Re-check that no in-repo caller reads `--check`'s exit code, which changes from 2 to 1 for this case.
   Premise: today all six mentions are prose (`AGENTS.md:9`, `:108`, `README.md:23`, `:82`, `:118`, `:172`);
@@ -198,20 +199,20 @@ processes every remaining name; `uv run pytest tests -q` reports 0 failed and 1 
 - [ ] Add the orphan scan and its ownership predicate, both specified under Functional Decomposition, to
   `run()` (`src/agent_skills_braid/cli.py:335-382`) after both `_sync_links` calls, and delete the
   `@pytest.mark.xfail` decorator above the matching test (depends on: Phase 1) - Acceptance:
-  `uv run pytest tests/test_braid.py::test_check_reports_a_managed_link_the_state_file_no_longer_records -q`
+  `uv run pytest tests/test_braid_check.py::test_check_reports_a_managed_link_the_state_file_no_longer_records -q`
   reports `1 passed`, and
-  `rg -n --fixed-strings "reconciles against the state manifest only" tests/test_braid.py` prints nothing,
+  `rg -n --fixed-strings "reconciles against the state manifest only" tests/test_braid_check.py` prints nothing,
   exit 1.
-- [ ] Add two tests to `tests/test_braid.py` for the scan's limits: `test_check_leaves_the_orphan_link_it_reports_on_disk` (sync, delete the state file,
+- [ ] Add two tests to `tests/test_braid_check.py` for the scan's limits: `test_check_leaves_the_orphan_link_it_reports_on_disk` (sync, delete the state file,
   re-sync, `Mode.CHECK`; the dangling path still passes `os.path.lexists` and `<agents-root>/backups` does
   not exist) and `test_check_ignores_a_link_pointing_outside_every_source_root` (a planted symlink in
   `<agents-root>/skills` aimed at a `tmp_path` directory in no source root; `result.drift == 0`)
   (depends on: Phase 2 orphan scan) - Acceptance:
-  `uv run pytest tests/test_braid.py -q` reports `15 passed` (13 today plus these two) with no xfail,
-  xpass or skip.
+  `uv run pytest tests/test_braid.py tests/test_braid_check.py -q` reports `58 passed` (counted
+  2026-10-06, after the review rework) with no xfail, xpass or skip.
 
 **Exit Criteria**: `uv run pytest tests -q` reports 0 failed and 0 xfailed, and
-`rg -n -c "xfail" tests/test_braid.py` prints 1.
+`rg -n -c "xfail" tests/test_braid_check.py` prints 1.
 
 ## Test Strategy
 

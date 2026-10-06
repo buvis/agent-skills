@@ -192,5 +192,24 @@ R13: pass
 
 None. Standalone run: findings are reported here and to the operator, not written as tasks.
 
+## Walkthrough minutes
+
+Walked with the operator on 2026-10-06. Settled before asking: rows 2 and 8 (cycle-1 items 4 and 6),
+row 7 (answered by the run above), rows 4 and 5 (Blake's temp-cleanup and scan-abort items are the
+behavior the operator chose in cycle-1 items 1 and 5d).
+
+| # | Finding (table rows) | Decision | Status |
+|---|----------------------|----------|--------|
+| 1 | PRD acceptance commands name the old test file (1, 6) | Repoint every command and test reference at `tests/test_braid_check.py` and replace the stale counts with today's (`58 passed` for both braid files, xfail count 1 in `test_braid_check.py`). The three named selectors pass. | applied |
+| 2 | Claude eligibility rule computed twice (3) | Build `eligible` once in `run()` and pass it to `_report_orphans` in place of `ignored`. `cli.py` 800 to 799 lines; braid tests 58 passed, ruff clean, `braid --check` 0 drift. | applied |
+| - | `run`/`_sync_links` over 50 lines (2) | Settled in cycle 1, item 4. | no action |
+| - | Temp left when its unlink fails (4) | Settled in cycle 1, item 1. | no action |
+| - | Scan aborts on an unreadable link (5) | Settled in cycle 1, item 5d. | no action |
+| - | Suite counts unverified (7) | Answered: 58 passed, no skip/xfail/xpass. | closed |
+| - | 12 replay passes (8) | Settled in cycle 1, item 6. | no action |
+
+Item 2 is a behavior-preserving refactor in code the reviewers already saw, covered by the existing
+Claude orphan tests; no further review cycle was run for it.
+
 Verdict: 8 findings
 Tests: 3443 passed, 0 failed, 6 skipped (suite run this cycle)
