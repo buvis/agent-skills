@@ -295,9 +295,11 @@ every fix below is queued for one rework commit, which this file is the record o
 | 8 | `tests/test_braid.py` at 801 lines, duplicate setup (1, 9) | Rule-mandated (800-line limit): reuse `change_a_managed_path_by_hand` in the older test. Items 1, 3, 5b and 7 add tests, so also move the drift-reporting tests to their own file to stay under the limit. | queued |
 | 9 | "Cannot statically verify" the suite (14) | Answered by this cycle's run, see `Tests:`. | closed |
 
-The rework changes code, so it gets its own review cycle from a fresh session: `--since d5d2562`
-(this file's `head_sha`) scopes it to what landed after this review: the rework, plus this file's
-own two commits.
+The rework landed as `37c1c3e` on 2026-10-06 (every queued item above; `cli.py` sits at exactly 800
+lines after it, so the next feature there needs a module split). It changes code, so it gets its own
+review cycle from a fresh session: `--since d5d2562` (this file's `head_sha`) scopes it to what
+landed after this review, which includes unrelated commits from other sessions, so scope the diff to
+`37c1c3e` the way cycle 1 scoped `4e2de33`.
 
 Verdict: 14 findings
 Tests: 3434 passed, 0 failed, 6 skipped (suite run this cycle)
