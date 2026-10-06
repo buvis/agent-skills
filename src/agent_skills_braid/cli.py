@@ -470,7 +470,7 @@ def _report_orphans(
     settings: Settings,
     union_root: Path,
     inventory: dict[str, Path],
-    ignored: set[str],
+    eligible: dict[str, Path],
     previous: State,
     kiro: KiroRegistration | None,
     result: Result,
@@ -482,7 +482,6 @@ def _report_orphans(
     source_roots = [_skills_directory(source) for source in settings.sources]
     scans = [(union_root, source_roots, {*inventory, *previous.union})]
     if settings.project_claude:
-        eligible = {name for name in inventory if name not in ignored}
         claude_skills = settings.claude_root / "skills"
         scans.append((claude_skills, [union_root], {*eligible, *hosts.get("claude", {})}))
     if kiro is not None and settings.project_kiro:
@@ -585,8 +584,8 @@ def run(settings: Settings, emit: Callable[[str], None] = print) -> Result:
     )
 
     hosts = dict(previous_state.hosts)
+    eligible = {name: union_root / name for name in inventory if name not in ignored}
     if settings.project_claude:
-        eligible = {name: union_root / name for name in inventory if name not in ignored}
         result.ignored += len(inventory) - len(eligible)
         hosts["claude"] = _sync_links(
             desired=eligible,
@@ -618,7 +617,7 @@ def run(settings: Settings, emit: Callable[[str], None] = print) -> Result:
         for edit in kiro_edits:
             sync_kiro_agent(edit, kiro.root / "agent-backup" / suffix, settings.mode, result, emit)
 
-    _report_orphans(settings, union_root, inventory, ignored, previous_state, kiro, result, emit)
+    _report_orphans(settings, union_root, inventory, eligible, previous_state, kiro, result, emit)
 
     next_state = State(union=union, hosts=hosts, kiro=kiro)
     if next_state != previous_state and result.drift == 0:
