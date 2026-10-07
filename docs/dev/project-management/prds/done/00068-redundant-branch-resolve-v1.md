@@ -6,6 +6,12 @@ design: skip
 
 # collect.py spawns one redundant git rev-parse per repo
 
+> **Closed as superseded, 2026-10-07.** The work landed (`eacc795`, `8786bf2`, `746efc8`), but
+> `af1b704` then removed the whole brief-portfolio skill (superseded by the postup gem, PRD 00070)
+> before the completion review was recorded. The 2026-09-26 cycle-1 review session ran all four
+> reviewers and drafted two rework tasks (a CHANGELOG entry, stronger tests), then died before
+> writing its review file. Both are moot with the code gone and were dropped by decision.
+
 ## Problem
 
 `collect_branches` (line 190) and `collect_local` (line 364) in
