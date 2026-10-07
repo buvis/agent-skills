@@ -1,0 +1,436 @@
+{
+  "prd": "00068-redundant-branch-resolve-v1.md",
+  "phase": "review",
+  "next_phase": "review",
+  "schema_version": 1,
+  "batch": {
+    "id": "202609050909",
+    "mode": "autopilot",
+    "completed_prds": [
+      {
+        "filename": "00015-corrupt-queue-reads-as-drained-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 13,
+        "escalated_decisions": 0,
+        "tasks_completed": 7,
+        "tasks_total": 7
+      },
+      {
+        "filename": "00016-queue-lands-in-wrong-repo-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 10,
+        "escalated_decisions": 0,
+        "tasks_completed": 5,
+        "tasks_total": 5
+      },
+      {
+        "filename": "00017-malformed-memory-half-written-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 6,
+        "escalated_decisions": 0,
+        "tasks_completed": 7,
+        "tasks_total": 7
+      },
+      {
+        "filename": "00020-changelog-skill-presence-check-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 6,
+        "escalated_decisions": 0,
+        "tasks_completed": 5,
+        "tasks_total": 5
+      },
+      {
+        "filename": "00021-risks-tile-fake-zero-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 3,
+        "escalated_decisions": 0,
+        "tasks_completed": 5,
+        "tasks_total": 5
+      },
+      {
+        "filename": "00022-node-ci-and-install-docs-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 2,
+        "escalated_decisions": 0,
+        "tasks_completed": 4,
+        "tasks_total": 4
+      },
+      {
+        "filename": "00030-survey-prunes-skip-dirs-deep-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 7,
+        "escalated_decisions": 0,
+        "tasks_completed": 7,
+        "tasks_total": 7
+      },
+      {
+        "filename": "00032-sweep-validates-out-late-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 6,
+        "escalated_decisions": 0,
+        "tasks_completed": 3,
+        "tasks_total": 3
+      },
+      {
+        "filename": "00034-timeout-leaks-prompt-to-disk-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 5,
+        "escalated_decisions": 0,
+        "tasks_completed": 3,
+        "tasks_total": 3
+      },
+      {
+        "filename": "00036-create-skill-scripts-help-and-union-path-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 6,
+        "escalated_decisions": 0,
+        "tasks_completed": 7,
+        "tasks_total": 7
+      },
+      {
+        "filename": "00038-braid-docs-flags-and-backup-paths-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 6,
+        "escalated_decisions": 0,
+        "tasks_completed": 5,
+        "tasks_total": 5
+      },
+      {
+        "filename": "00047-check-links-repeated-stats-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 3,
+        "tasks_total": 3
+      },
+      {
+        "filename": "00051-qwen-eval-harness-core-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 22,
+        "escalated_decisions": 14,
+        "tasks_completed": 24,
+        "tasks_total": 24
+      },
+      {
+        "filename": "00052-qwen-eval-harness-report-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 20,
+        "escalated_decisions": 1,
+        "tasks_completed": 7,
+        "tasks_total": 7,
+        "lane": "full",
+        "lane_reason": "security_path",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00053-split-oversized-brief-suites-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 9,
+        "escalated_decisions": 0,
+        "tasks_completed": 6,
+        "tasks_total": 6,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00054-non-json-metadata-kills-collect-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 5,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00055-bad-metrics-ts-aborts-run-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 7,
+        "escalated_decisions": 0,
+        "tasks_completed": 4,
+        "tasks_total": 4,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00056-ci-failure-fakes-no-ci-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 6,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00058-page-links-accept-javascript-urls-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 2,
+        "escalated_decisions": 0,
+        "tasks_completed": 3,
+        "tasks_total": 3,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00059-build-dies-on-torn-inputs-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 7,
+        "escalated_decisions": 0,
+        "tasks_completed": 3,
+        "tasks_total": 3,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00060-torn-history-fuses-next-row-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 4,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00061-meta-failure-fakes-hygiene-nags-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 2,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00062-commit-cap-hides-true-count-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 5,
+        "escalated_decisions": 0,
+        "tasks_completed": 3,
+        "tasks_total": 3,
+        "lane": "fast-track",
+        "lane_reason": "uncardable",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00063-missing-registry-tracebacks-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 2,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00064-braid-follows-symlinked-skill-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 3,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00065-build-reads-whole-history-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 3,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00066-clipboard-markdown-unescaped-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 4,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00067-remote-url-passes-query-dotdot-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 4,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      }
+    ],
+    "plugin_versions": {
+      "aegis@buvis-plugins": "0.3.2",
+      "warden@buvis-plugins": "0.14.0"
+    },
+    "catchup_completed_at": "2026-09-26T19:12:10Z",
+    "catchup_head_sha": "a30de2d",
+    "parks_consecutive": 0,
+    "minted_stubs": [
+      "00081-triage-vet-gained-an-undocumented-shapes-flag-a-v1.md",
+      "00082-triage-vetting-json-carries-nine-keys-adds-inpu-v1.md",
+      "00083-triage-render-silently-accepts-unknown-attempt-v1.md"
+    ]
+  },
+  "catchup_mode": "run",
+  "doubt_reviewer": "codex",
+  "consensus_engine": "legacy",
+  "rework_cap": 2,
+  "tasks_total": 1,
+  "tasks_completed": 1,
+  "cycle": 1,
+  "phases_completed": [],
+  "replan_count": 0,
+  "qwen_preflight": {
+    "batch_id": "202609050909",
+    "verdict": "endpoint_unreachable",
+    "detail": "qwen-run.sh --preflight --approved-only blocked by warden (unknown command); could not execute the probe in this environment",
+    "checked_at": "2026-09-05T14:16:30Z"
+  },
+  "codex_probe": {
+    "batch_id": "202609050909",
+    "verdict": "unhealthy",
+    "backend": "codex",
+    "detail": "hook_doctor: empty\tanalyze-instincts.py",
+    "hook_doctor": "3 ok, 7 stale, 2 broken",
+    "checked_at": "2026-09-05T22:16:05Z"
+  },
+  "session_model": "sonnet",
+  "lane": "full",
+  "lane_reason": "unparsed",
+  "lane_effective": "full",
+  "qwen_breaker": {
+    "tripped": false,
+    "after_task": null,
+    "failed_tasks": [],
+    "batch_id": "202609050909"
+  },
+  "qwen_gate_failures_consecutive": 0,
+  "autonomous_decisions/1": {
+    "cycle": 1,
+    "issue": "Cannot statically verify: [VERIFY] reproduce `demo/broken` with fresh brush and purge stamps, build the report, and confirm no brush or purge todo is derived (Bob, 1/4, low)",
+    "severity": "low",
+    "action": "deferred to batch end - the named check needs a QA harness this repo does not contain",
+    "reason": "The check cannot be run as named: `demo/broken` and the metadata-failing gh shim appear nowhere in the repo (rg over the whole tree finds no occurrence; a collect_purge_devlocal control search over the same scope returns 3 files, so the pattern works). They were an ad-hoc rig in the 2026-09-05 agoge run that raised finding 9. Building two scratch repos plus a gh shim plus a full collect-and-derive run is net-new QA scaffolding for a low finding, and it duplicates the agoge product-QA lane the batch already runs after the drain. What the criterion asserts is pinned where it can be pinned cheaply: test_a_failed_metadata_call_still_collects_the_local_hygiene_stamps proves all four local keys are set when metadata fails (and the fail-first replay proves that test fails against base), and Blake confirmed derive.js:267 and :325 read r.brush_last_run / r.purge_last_run straight off the record, so present keys cannot render as never. Deferred rather than discarded because the end-to-end reproduction genuinely was not executed, and that gap should stay visible at batch end instead of being called verified."
+  },
+  "contract_card": "step: PRD 00068 build complete (Phase 3 done, task-done via phase-done --outcome tasks_done). phase/next_phase -> \"review\", cycle 1.\ninvariants: (1) loop mode - never AskUserQuestion, never pause the batch, never push; (2) next session starts a FRESH review gate (references/phase-review.md) for PRD 00068 - do not continue build work here; (3) work_start_sha=a30de2d9b31f5c2d9a52e6e111bdfb28fda6eaa8, HEAD=746efc8ef8aacc173a6fae45e9f31912060dc3b2, full suite green (3486 passed, 0 failed, 6 skipped, 4 xfailed), validate_skill and braid --check clean.\nnext: hand off to a fresh session for the review gate (references/phase-review.md) - run the consensus/blind/doubt review lenses on PRD 00068's diff (work_start_sha..HEAD).",
+  "design_mode": "skipped",
+  "tasks": [
+    {
+      "name": "Hoist the duplicate git rev-parse into collect_repo for collect_branches and collect_local",
+      "description": "Resolve the current branch once per repo instead of twice, in collect.py's collect_repo.\n\nLocation: skills/brief-portfolio/scripts/collect.py - collect_branches (line 199, its `git rev-parse --abbrev-ref HEAD` call at line 202), collect_local (line 400, its call at line 408), collect_repo (line 429, the branches/local dispatch inside run_collectors at lines 461-468). Test: skills/brief-portfolio/scripts/test_collect_repo.py.\n\nReuse: collect_repo's existing run_collectors(repo, [...]) helper (defined at line 421) already isolates one collector's failure from the others via a per-key try/except that appends f\"{key}: {e}\" to repo[\"errors\"]; reuse that exact error-string format for the shared lookup's own failure path (see Details). For the new test, follow the local recording-stub shape already used in test_collect_repo.py's test_an_unparseable_remote_is_skipped_before_any_gh_call (a fake_run closure that appends every dispatched cmd to a `calls` list before returning a canned answer) rather than collect_test_helpers.make_fake_run, which only stubs `git remote`/`gh` and does not answer the branches/commits/local/etc. calls a full collect_repo() run makes.\n\nContract (verbatim from the PRD):\n- Resolve `current` once in `collect_repo`, where the default branch is already known, and pass it to both collectors as a new trailing parameter: `collect_branches(path, branch, current)` and `collect_local(path, branch, current)`. Two signatures change; that was the option's named drawback, and their production call sites and direct-test callers must be updated.\n- Keep the shared lookup inside error isolation: on failure, omit only branches and local and append their usual prefixed errors, while other collectors continue.\n\nDetails:\n- One `git rev-parse --abbrev-ref HEAD` for each repo whose metadata succeeds (not two).\n- The `branches` and `local` records are identical to today's for the same repo - collect_branches keeps using `current` to build its `keep` set exactly as it uses the local `current` today; collect_local keeps returning `current` as its `branch` field exactly as it returns the local `cur` today.\n- `rg` confirms no existing test calls `collect_branches(` or `collect_local(` directly today (both are only exercised indirectly through `collect_repo`), so there are no other direct-test callers to update beyond the new test below.\n- On the shared lookup's own failure (the `git rev-parse --abbrev-ref HEAD` call itself raises), do NOT call `collect_branches`/`collect_local` at all this pass, and append `f\"branches: {e}\"` and `f\"local: {e}\"` directly to `repo[\"errors\"]` - the identical string shape `run_collectors` already produces for a per-collector failure - so `branches` and `local` are absent from the result exactly as they are today when either collector individually fails.\n- A metadata-failed/skipped repo never reaches this lookup at all (collect_repo returns before `branch = repo[\"default_branch\"]` on that path) - unchanged by this task.\n\nAcceptance criteria (verbatim from the PRD):\n- Hoist the `rev-parse` into `collect_repo` and thread `current` through both signatures, updating every existing test that calls either collector directly - Acceptance: a new test `test_collect_repo_resolves_the_current_branch_once` wraps `collect.run` with a recording stub (the `make_fake_run` pattern) and asserts `[\"git\", \"rev-parse\", \"--abbrev-ref\", \"HEAD\"]` appears exactly once for one eligible repo; a raising shared lookup leaves other collected fields intact and records branches/local errors without escaping; `rg -c \"abbrev-ref\" skills/brief-portfolio/scripts/collect.py` prints 1; `uv run pytest skills/brief-portfolio/scripts -q` reports 0 failing.\n- The new test passes; the `branches` and `local` tests pass with only their call sites updated.\n- The same fixture makes one fewer current-branch lookup per eligible repo than the immediately preceding implementation. Do not pin a total process count: earlier PRD 00062 adds its own count lookup.\n\nVerify: `rg -c \"abbrev-ref\" skills/brief-portfolio/scripts/collect.py` prints 1; `uv run pytest skills/brief-portfolio/scripts -q` reports 0 failing.",
+      "files": [
+        "skills/brief-portfolio/scripts/collect.py"
+      ],
+      "estimated_tokens": 62334,
+      "est_context_peak": 82334,
+      "model": "sonnet",
+      "tier_reason": "default",
+      "qwen_eligible": true,
+      "id": "1",
+      "status": "completed",
+      "usage_at_start": 284044,
+      "calls_at_start": 60,
+      "attempts": [
+        {
+          "attempt": 1,
+          "model": "sonnet",
+          "outcome": "completed",
+          "review_cycle": null,
+          "cause": null,
+          "implementor": "claude",
+          "preflight_outcome": "endpoint_unreachable",
+          "pipeline": "lean",
+          "escalation_reason": null,
+          "escalated_from": null,
+          "diagnosis": null,
+          "repair_used": null,
+          "breaker_skipped": null,
+          "qwen_excluded_reason": null,
+          "qwen_gate_failed": null,
+          "codex_no_edit": null,
+          "codex_no_edit_probe_exit": null,
+          "verification": null,
+          "red_check": null,
+          "self_deslop": "skipped:trivial",
+          "style_gate": "fixed:746efc8ef8aacc173a6fae45e9f31912060dc3b2",
+          "devon": null,
+          "split_hygiene": "clean",
+          "micro_lane": null,
+          "reflow": null,
+          "review": null
+        }
+      ],
+      "usage_at_done": 379277,
+      "calls_at_done": 139
+    }
+  ],
+  "work_start_sha": "a30de2d9b31f5c2d9a52e6e111bdfb28fda6eaa8",
+  "repo_root": "/Users/bob/git/src/github.com/buvis/agent-skills",
+  "review_lenses": {
+    "consensus": "done",
+    "blind": "done",
+    "doubt": "done",
+    "ui": "done"
+  },
+  "doubts_rubric_verdicts": [
+    {
+      "rule_id": "D1",
+      "verdict": "pass",
+      "source": "codex"
+    },
+    {
+      "rule_id": "D2",
+      "verdict": "pass",
+      "source": "codex"
+    },
+    {
+      "rule_id": "D3",
+      "verdict": "pass",
+      "source": "codex"
+    },
+    {
+      "rule_id": "D4",
+      "verdict": "pass",
+      "source": "codex"
+    },
+    {
+      "rule_id": "D5",
+      "verdict": "pass",
+      "source": "codex"
+    }
+  ]
+}
