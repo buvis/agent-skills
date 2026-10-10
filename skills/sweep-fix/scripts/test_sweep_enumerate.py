@@ -175,6 +175,7 @@ def test_a_subdirectory_cwd_resolves_to_its_repo_root_and_is_not_a_gap(
     nested = repo / "a" / "b"
     nested.mkdir(parents=True)
     _plant_matches(repo, "SUBDIRWALKUPMARKER", 1)  # at the root, outside a/b
+    other = _make_repo(portfolio_root / "org" / "other")  # unregistered: a real gap
     registry = tmp_path / "repos.csv"
     _write_registry(registry, [str(repo)])
 
@@ -182,7 +183,7 @@ def test_a_subdirectory_cwd_resolves_to_its_repo_root_and_is_not_a_gap(
 
     assert repos == [repo]
     assert nested not in repos
-    assert gaps == []
+    assert gaps == [str(other)]
 
     hits, _suppressed, _failed = sweep.scan("SUBDIRWALKUPMARKER", "rg", repos)
 
@@ -199,6 +200,7 @@ def test_an_unregistered_repo_run_from_its_subdirectory_is_scanned_and_not_a_gap
     repo = _make_repo(portfolio_root / "org" / "repo")
     nested = repo / "a" / "b"
     nested.mkdir(parents=True)
+    other = _make_repo(portfolio_root / "org" / "other")  # unregistered: a real gap
     registry = tmp_path / "repos.csv"
     _write_registry(registry, [])
 
@@ -207,7 +209,7 @@ def test_an_unregistered_repo_run_from_its_subdirectory_is_scanned_and_not_a_gap
     assert repo in repos
     assert repos.count(repo) == 1
     assert nested not in repos
-    assert gaps == []
+    assert gaps == [str(other)]
 
 
 def test_a_relative_subdirectory_cwd_walks_up_to_the_absolute_repo_root(
@@ -231,6 +233,35 @@ def test_a_relative_subdirectory_cwd_walks_up_to_the_absolute_repo_root(
     path_entries = [Path(entry) for entry in repos if not isinstance(entry, dict)]
     assert all(entry.is_absolute() for entry in path_entries)
 
+    monkeypatch.chdir(repo)  # a multi-part relative cwd, not just "."
+
+    repos, _gaps = sweep.enumerate_repos(registry, Path("a/b"))
+
+    assert repo in repos
+    assert nested not in repos
+    path_entries = [Path(entry) for entry in repos if not isinstance(entry, dict)]
+    assert all(entry.is_absolute() for entry in path_entries)
+
+
+def test_a_relative_cwd_outside_any_repo_is_appended_as_its_absolute_path(
+    tmp_path, monkeypatch
+):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    plain = tmp_path / "plain"
+    plain.mkdir()  # no .git here or in any ancestor under tmp_path
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [])
+    monkeypatch.chdir(plain)
+
+    repos, _gaps = sweep.enumerate_repos(registry, Path("."))
+
+    assert plain in repos
+    path_entries = [Path(entry) for entry in repos if not isinstance(entry, dict)]
+    assert all(entry.is_absolute() for entry in path_entries)
+
 
 def test_git_root_walks_up_to_a_repo_whose_git_entry_is_a_file(tmp_path):
     repo = tmp_path / "worktree"
@@ -238,8 +269,11 @@ def test_git_root_walks_up_to_a_repo_whose_git_entry_is_a_file(tmp_path):
     (repo / ".git").write_text("gitdir: /elsewhere/.git/worktrees/worktree\n")
     nested = repo / "a" / "b"
     nested.mkdir(parents=True)
+    deep = repo / "a" / "b" / "c" / "d" / "e"
+    deep.mkdir(parents=True)
 
     assert sweep._git_root(nested) == repo
+    assert sweep._git_root(deep) == repo
 
 
 def test_git_root_picks_the_nearest_repo_including_the_path_itself(tmp_path):
@@ -247,9 +281,12 @@ def test_git_root_picks_the_nearest_repo_including_the_path_itself(tmp_path):
     inner = _make_repo(outer / "vendor" / "inner")
     inner_sub = inner / "src"
     inner_sub.mkdir()
+    deep = inner / "a" / "b" / "c" / "d" / "e"
+    deep.mkdir(parents=True)
 
     assert sweep._git_root(inner) == inner
     assert sweep._git_root(inner_sub) == inner
+    assert sweep._git_root(deep) == inner
     assert sweep._git_root(outer / "vendor") == outer
 
 
@@ -387,6 +424,32 @@ def test_enumerate_repos_finds_buvis_bare_tracked_files_regardless_of_process_cw
 
     matched_files = {Path(hit["file"]).name for hit in hits}
     assert "top.txt" in matched_files  # root-level file, hidden by cwd's prefix under the bug
+
+
+def test_a_subdirectory_cwd_inside_the_bare_work_tree_becomes_the_bare_entry(
+    tmp_path, monkeypatch
+):
+    fixture_home, registry = _setup_buvis_bare_fixture(
+        tmp_path, monkeypatch, ["top.txt", "sub/nested.txt"], untracked=["loose.tmp"]
+    )
+    (fixture_home / "top.txt").write_text("BARESUBDIRMARKER content\n")
+    (fixture_home / "sub" / "nested.txt").write_text("BARESUBDIRMARKER content\n")
+    (fixture_home / "loose.tmp").write_text("BARESUBDIRMARKER content\n")
+
+    repos, _gaps = sweep.enumerate_repos(registry, fixture_home / "sub")
+
+    bare_entries = [
+        repo for repo in repos if isinstance(repo, dict) and repo["cwd"] == fixture_home
+    ]
+    assert len(bare_entries) == 1
+    plain_entries = [repo for repo in repos if not isinstance(repo, dict)]
+    assert fixture_home not in plain_entries
+    assert fixture_home / "sub" not in plain_entries
+
+    hits, _suppressed, _failed = sweep.scan("BARESUBDIRMARKER", "rg", repos)
+
+    matched_files = {Path(hit["file"]).name for hit in hits}
+    assert matched_files == {"top.txt", "nested.txt"}
 
 
 def test_scan_caps_buvis_bare_repo_as_a_single_repo_not_per_tracked_file(
