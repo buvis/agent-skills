@@ -208,16 +208,26 @@ approval or rejection:
    non-zero after the `kept` decision, fix the cause named on stderr first (a
    missing store directory, for example, is reported, never created; that is
    deliberate), then re-run the same `write.py write` command with the same
-   `entry.json` the driver still holds from step 2. The entry stays `kept` in
-   the queue meanwhile: `decide` is terminal and `next` skips decided entries,
-   so re-deciding it is not possible, and re-running the write is the only way
-   forward. The same recovery applies to step 6's edit path, after its
-   `decide ... kept --file ...` call.
+   `entry.json` the driver still holds from step 2. A re-run is safe: identical
+   memory text and a current pointer are no-ops, and a missing or stale pointer
+   is added or fixed once. The entry stays `kept` in the queue meanwhile, and
+   `next` skips decided entries. A bare `decide "<id>" kept` on a kept entry is
+   refused, and so is a change from `kept` to `dropped`. The same recovery
+   applies to step 6's edit path, after its `decide ... kept --file ...` call.
 
-   A keep whose write fails with "already exists" means another kept proposal
-   already claimed that output filename; resolve it by renaming the proposal
-   through the edit path (step 6), which re-emits the file under a distinct
-   `name`.
+   A keep whose write fails with "already exists" means a different memory
+   already holds that name. Rename the proposal through the edit path (step 6):
+   re-emit the file with a new `name` in its frontmatter, save it as
+   `<edited-file-path>`, then record the rename:
+
+   ```bash
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" kept --name "<new-name>" --file "<edited-file-path>" --queue "<queue-path>"
+   ```
+
+   This is a recovery edit. `decide` accepts it on an already-kept entry: it
+   replaces the entry's name and `file_text` and moves no counter. Set `name`
+   and `file_text` in `entry.json` to the same values, then re-run
+   `write.py write`.
 
 6. For edit, use `funnel.judge(prompt, "strong")`, the skill's one model-call
    route, to re-emit the whole memory file with the requested change. Validate
@@ -233,15 +243,16 @@ approval or rejection:
    - Derive `index_has_names` for the same `<store-path>` used in step 5:
 
      ```python
-     index_has_names = bool(dedup.parse_index(dedup.read_index("<store-path>")))
+     index_has_names = bool(dedup.parse_index(dedup.read_index(Path("<store-path>"))))
      ```
 
      Guessing `True` against a store with an empty index wrongly rejects a
      linkless edit; guessing `False` skips the link rule entirely.
 
    If validation fails, report the failure, write nothing,
-   and leave the proposal undecided. A re-emitted file failing the frontmatter
-   contract is not written, and the proposal stays undecided.
+   and leave the proposal as it was: undecided, or still `kept` for a step 5
+   recovery edit. A re-emitted file failing the frontmatter contract is not
+   written, and the queue entry does not change.
 
    After validation succeeds, replace `file_text` in the driver's saved
    `entry.json`, save the same text as `<edited-file-path>`, then run:
@@ -253,22 +264,61 @@ approval or rejection:
 
    Derive `<store-path>` with the same expression from step 5. The `--file`
    value replaces the queue entry's `file_text`; the refreshed `entry.json`
-   gives that same replacement to `write.py`. Return to step 2 after any
-   completed decision.
+   gives that same replacement to `write.py`. This `decide` works for an
+   undecided entry and, for a recovery edit (step 5), for an already-kept one.
+   Return to step 2 after any completed decision.
 
-7. When `next` exits 1 (drained or capped), write a sitting report under
+7. When `next` exits 1 (drained or capped), check what is still unpublished,
+   then write a sitting report under
    `docs/dev/project-management/audit-results/`. A `next` that produces exit 2 means the queue
    file is unreadable; stop and report the failure instead of writing a
-   sitting report. Include counts of kept without edit, edited, and
+   sitting report.
+
+   Before the sitting report, for each distinct `<store-path>` among the
+   queue's kept entries (derive each with the step 5 expression), run:
+
+   ```bash
+   python3 ~/.agents/skills/distil-memory/scripts/docket.py unpublished --store "<store-path>" --queue "<queue-path>"
+   ```
+
+   - Exit 0 with no output: nothing in that store is unpublished.
+   - Exit 1 with ids on stdout (one per line, in queue order): those kept
+     entries are not fully published. Show the user each listed entry: its
+     id, its target name, and why (file missing, text differs, or pointer
+     missing). Ask, per entry, whether to publish it now. A memory the user
+     deleted or hand-edited on purpose is declined, not restored. For each
+     confirmed id, rebuild `entry.json` from that queue entry:
+
+     ```python
+     json.dumps(next(e for e in json.loads(Path("<queue-path>").read_text())["entries"] if e["id"] == "<id>" and e["decision"] == "kept"))
+     ```
+
+     The `decision` filter matters: `save` re-adds an id dropped under an
+     older rubric, so a dropped and a kept entry can share one id. Show the
+     user that same kept entry, then run the write and record its result:
+
+     ```bash
+     python3 ~/.agents/skills/distil-memory/scripts/write.py write --store "<store-path>" < entry.json
+     ```
+
+     Attempt every confirmed id once per pass, then re-run `unpublished`.
+     Stop when it exits 0, or when a pass publishes nothing new (the confirmed
+     ids it lists are the same set as the previous pass). List every
+     confirmed id still printed, with its write's stderr, in the report.
+   - Exit 1 with empty stdout: the store check failed, and stderr names it
+     (`cannot check the store <store>: <error>`). Report it.
+   - Exit 2: the queue is unreadable. Report it and write no sitting report.
+
+   In the sitting report, include counts of kept without edit, edited, and
    dropped entries, the lifetime cursor printed by:
 
    ```bash
    python3 ~/.agents/skills/distil-memory/scripts/docket.py cursor --queue "<queue-path>"
    ```
 
-   Also include every path written, and list any entry decided `kept` whose
-   `write.py write` did not succeed, so the sitting cannot end silently having
-   lost one. Compare the cursor with the total entry count in
+   Also include every path written. List the entries the user declined to
+   publish apart from the failed writes, so the sitting cannot end silently
+   having lost one. Compare the cursor with the total entry count in
    `<queue-path>` to distinguish a drained queue from a sitting that stopped
    at the cap. End with this verbatim block:
 
