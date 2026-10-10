@@ -221,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise WriteError(f"{target}: {exc}") from exc
             previous = _readable_bytes(target) if exists else None
             written = write_memory(entry, store_path)
-        except (WriteError, KeyError) as exc:
+        except (WriteError, KeyError, AttributeError) as exc:
             print(str(exc), file=sys.stderr)
             return 1
         try:
