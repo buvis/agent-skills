@@ -228,11 +228,22 @@ def check_claude_bridge(target: Path) -> tuple[bool, dict[str, Any]]:
     }
 
 
-def check_repo(target: Path, git_dir: Path | None = None) -> dict[str, Any]:
+def check_repo(
+    target: Path,
+    git_dir: Path | None = None,
+    deviations: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    accepted = dict(deviations or {})
+    applied: dict[str, str] = {}
     checks: list[dict[str, Any]] = []
 
     def record(name: str, passed: bool, evidence: Any) -> None:
-        checks.append({"check": name, "status": "PASS" if passed else "FAIL", "evidence": evidence})
+        status = "PASS" if passed else "FAIL"
+        if status == "FAIL" and name in accepted:
+            status = "DEVIATION"
+            applied[name] = accepted[name]
+            evidence = {"deviation_reason": accepted[name], "would_fail": evidence}
+        checks.append({"check": name, "status": status, "evidence": evidence})
 
     git = inspect_git(target, git_dir)
     record("own-git-worktree", git["kind"] == "worktree", git)
@@ -260,16 +271,26 @@ def check_repo(target: Path, git_dir: Path | None = None) -> dict[str, Any]:
         if path.exists() or path.is_symlink():
             valid = path.is_file() and (os.name == "nt" or os.access(path, os.X_OK))
             record(f"executable-tools/{name}", valid, inspect_path(path))
+    unused = sorted(set(accepted) - set(applied))
+    if unused:
+        checked = sorted(c["check"] for c in checks)
+        raise ValueError(
+            "Deviation names must match a check that fails without the waiver; "
+            f"these did not apply: {unused}. Observed checks: {checked}"
+        )
+    gate_fail = any(c["status"] == "FAIL" for c in checks)
     return {
         "mode": "check",
         "target": str(target),
-        "structural_gate": "PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL",
+        "structural_gate": "FAIL" if gate_fail else "PASS",
         "checks": checks,
+        "deviations": applied,
         "limitations": [
             "Checks core docs, Git boundary, tracked scratch/runtime, known links and shim modes.",
             "Checks the root Claude bridge only; inspect maintained nested scopes separately.",
             "Import checks do not prove host loading under the session's settings/exclusions.",
             "No task/hook/release execution or approval/path-consumer validation.",
+            "DEVIATION marks a FAIL waived under Fit; it does not fail the gate but is not a PASS.",
             "COMPLETE still requires the mode reference's operational evidence.",
         ],
     }
@@ -357,6 +378,37 @@ def run_selftest() -> int:
             "default check rejects missing Claude bridge",
             check_repo(claude_target)["structural_gate"] == "FAIL",
         )
+        waived = check_repo(
+            claude_target, deviations={"claude-imports-AGENTS.md": "native plugin CLAUDE.md"}
+        )
+        waived_check = next(
+            c for c in waived["checks"] if c["check"] == "claude-imports-AGENTS.md"
+        )
+        verify(
+            "accepted deviation clears gate without a PASS",
+            waived["structural_gate"] == "PASS"
+            and waived_check["status"] == "DEVIATION"
+            and waived["deviations"] == {"claude-imports-AGENTS.md": "native plugin CLAUDE.md"},
+        )
+        verify(
+            "deviation preserves the underlying failure evidence",
+            "would_fail" in waived_check["evidence"]
+            and waived_check["evidence"]["deviation_reason"] == "native plugin CLAUDE.md",
+        )
+        try:
+            check_repo(claude_target, deviations={"nonexistent-check": "typo"})
+        except ValueError:
+            verify("reject deviation naming an unknown check", True)
+        else:
+            verify("reject deviation naming an unknown check", False)
+        read_git(claude_target, "init", "--quiet")
+        read_git(claude_target, "add", "--", "README.md")
+        try:
+            check_repo(claude_target, deviations={"nonempty-README.md": "no reason to waive"})
+        except ValueError:
+            verify("reject deviation on a passing check", True)
+        else:
+            verify("reject deviation on a passing check", False)
         for label, content in (
             ("prose", "Read AGENTS.md before working.\n"),
             ("inline code", "`@AGENTS.md`\n"),
@@ -494,6 +546,14 @@ def run_main() -> int:
             command.add_argument(
                 "--git-dir", help="explicit Git directory for a bare-backed worktree"
             )
+        if name == "check":
+            command.add_argument(
+                "--deviation",
+                action="append",
+                default=[],
+                metavar="CHECK=REASON",
+                help="waive one failing check as a Fit deviation; repeatable",
+            )
         if name == "scaffold":
             command.add_argument("--name", required=True)
             command.add_argument("--purpose", required=True)
@@ -514,7 +574,16 @@ def run_main() -> int:
         if args.command == "inspect":
             result = inspect_repo(target, git_dir)
         elif args.command == "check":
-            result = check_repo(target, git_dir)
+            deviations: dict[str, str] = {}
+            for item in getattr(args, "deviation", []):
+                key, sep, reason = item.partition("=")
+                key, reason = key.strip(), reason.strip()
+                if not sep or not key or not reason:
+                    raise ValueError(f"Use --deviation CHECK=REASON with a nonempty reason: {item}")
+                if key in deviations:
+                    raise ValueError(f"Duplicate deviation for check: {key}")
+                deviations[key] = reason
+            result = check_repo(target, git_dir, deviations)
         else:
             result = scaffold_repo(target, args.name, args.purpose, args.apply)
         print(json.dumps(result, indent=2, ensure_ascii=True))

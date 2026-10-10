@@ -21,6 +21,13 @@ the user to opt in:
   merge shared guidance into AGENTS.md without dropping instructions or conflicts.
   Keep an existing direct CLAUDE.md -> AGENTS.md symlink if appropriate for the
   repository's platforms; use a real import file for new scaffolds.
+- The bridge is subject to Fit. When an existing CLAUDE.md is authored native
+  content whose consumer requires that exact file (a Claude plugin's root
+  CLAUDE.md, for example) and no AGENTS.md owns the shared prose, do not overwrite
+  it or convert it into an import. Record a `MISFIT`/deviation per SKILL.md Fit,
+  and surface the resulting helper `FAIL` as an accepted deviation (see the helper
+  note below), not a defect. Introducing an AGENTS.md there is a separate authored
+  decision, not an automatic bridge step.
 - Keep the import as the default even on versions with native AGENTS.md support.
   Loading depends on versions, settings and other instruction files. File presence
   and a prose request to read AGENTS.md are insufficient evidence of an active import.
@@ -34,6 +41,11 @@ the user to opt in:
   It fails on missing or ineffective root bridges and never rewrites existing files.
   Other valid import spellings need manual reconciliation to the supported shape.
   Inspect each maintained nested bridge yourself; the helper does not scan them.
+  For a bridge waived as a Fit deviation (native-format CLAUDE.md), run
+  `check ... --deviation claude-imports-AGENTS.md="<reason>"`. The check becomes
+  `DEVIATION` and no longer fails the gate, while the pasted JSON keeps the reason
+  and the underlying failure evidence. The helper refuses a `--deviation` that
+  names a passing or unknown check, so a waiver cannot hide a real defect.
 - Confirm instruction loading in the actual Claude session (for example, `/context`
   and its Memory files). Record version/settings and root/nested evidence separately.
   If no host probe is available, report that limitation; a structural PASS is not

@@ -50,8 +50,11 @@ Both hide the signal used to tune this standard per project kind.
 
 A deliberate deviation is a result, not a defect. It does not block `COMPLETE`,
 and a helper `FAIL` on a part left out on purpose is reported as a deviation.
-Fit governs layout choices only. The safety rules in the references (preserve
-work, fabricate no approvals, publish nothing unasked) hold regardless.
+When you run the `check` command, pass each such part as
+`--deviation CHECK=REASON` so the pasted JSON records it as `DEVIATION` rather
+than a bare `FAIL`; the helper refuses a waiver that names a passing or unknown
+check. Fit governs layout choices only. The safety rules in the references
+(preserve work, fabricate no approvals, publish nothing unasked) hold regardless.
 
 ## Execute
 
@@ -67,8 +70,13 @@ work, fabricate no approvals, publish nothing unasked) hold regardless.
    `references/integrations.md` for instruction bridges and applicable workflow tools.
    Create/preserve the CLAUDE.md import bridge by default at the root and each
    maintained nested AGENTS.md scope. Do not wait for a flag, installed Claude or
-   another user decision. Missing bridges block completion unless explicitly waived
-   by the user; report such a waiver as a deviation.
+   another user decision. Missing bridges block completion unless waived, by the
+   user or as a Fit deviation; report either as a deviation. The bridge is a Fit
+   part like any other: when an existing CLAUDE.md is authored native content whose
+   consumer requires that exact file (such as a Claude plugin), and no AGENTS.md
+   owns the shared prose, forcing an `@AGENTS.md` import fights the ecosystem.
+   Record that as a `MISFIT`/deviation under the Fit rules rather than overwriting
+   the native file or demanding a user interview.
 4. Implement the requested reversible changes. A restructuring request authorizes
    ordinary edits/moves; do not turn it into another approval interview. Present the
    concrete delta first, misfits on top. Ask only about material ambiguity, a
@@ -85,6 +93,7 @@ include the root Claude bridge automatically:
 ```bash
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py inspect /path/to/repo
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo
+python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo --deviation claude-imports-AGENTS.md="native plugin CLAUDE.md, no AGENTS.md owner"
 ```
 
 When validating the skill installation itself, run the helper with `--selftest`;
