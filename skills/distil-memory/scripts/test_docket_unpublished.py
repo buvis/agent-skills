@@ -1,6 +1,8 @@
 """Tests for docket.py: unpublished(), the kept entries a store does not yet
 hold, and the `unpublished --store <path> [--queue <path>]` subcommand."""
 
+import json
+
 import docket
 
 import proposal
@@ -414,3 +416,69 @@ def test_main_unpublished_prints_no_partial_list_when_a_later_target_cannot_be_r
     captured = capsys.readouterr()
     assert captured.out == ""
     _assert_the_store_diagnostic_names(captured.err, store, store / "unreadable-fact.md")
+
+
+# A malformed queue entry is a malformed queue: QueueError, exit 2, no traceback.
+
+
+def _queue_with_one_kept_entry_broken(tmp_path, break_entry):
+    queue_path = tmp_path / "q.json"
+    project = _project(tmp_path)
+    entry = _kept(project, 1, "broken-fact")
+    _queue_kept(queue_path, [entry])
+    data = json.loads(queue_path.read_text())
+    break_entry(data["entries"][0])
+    queue_path.write_text(json.dumps(data))
+    return project / "memory", queue_path, _id(entry)
+
+
+def _drop_key(key):
+    return lambda stored: stored.pop(key)
+
+
+def _set_key(key, value):
+    return lambda stored: stored.__setitem__(key, value)
+
+
+_BROKEN_ENTRIES = {
+    "transcript missing": _drop_key("transcript"),
+    "transcript null": _set_key("transcript", None),
+    "transcript not a string": _set_key("transcript", 7),
+    "decision missing": _drop_key("decision"),
+}
+
+
+@pytest.mark.parametrize("break_entry", list(_BROKEN_ENTRIES.values()), ids=list(_BROKEN_ENTRIES))
+def test_unpublished_raises_queue_error_naming_the_entry_when_a_queue_entry_is_malformed(
+    tmp_path, break_entry
+):
+    store, queue_path, entry_id = _queue_with_one_kept_entry_broken(tmp_path, break_entry)
+
+    with pytest.raises(docket.QueueError) as raised:
+        docket.unpublished(store, path=queue_path)
+
+    assert entry_id in str(raised.value)
+
+
+def test_unpublished_raises_queue_error_when_a_queue_entry_has_no_id(tmp_path):
+    store, queue_path, _ = _queue_with_one_kept_entry_broken(tmp_path, _drop_key("id"))
+
+    with pytest.raises(docket.QueueError):
+        docket.unpublished(store, path=queue_path)
+
+
+@pytest.mark.parametrize("break_entry", list(_BROKEN_ENTRIES.values()), ids=list(_BROKEN_ENTRIES))
+def test_main_unpublished_exits_two_with_a_diagnostic_when_a_queue_entry_is_malformed(
+    tmp_path, monkeypatch, capsys, break_entry
+):
+    monkeypatch.chdir(tmp_path)
+    store, queue_path, _ = _queue_with_one_kept_entry_broken(tmp_path, break_entry)
+    capsys.readouterr()
+
+    exit_code = docket.main(["unpublished", "--store", str(store), "--queue", str(queue_path)])
+
+    assert exit_code == 2
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    assert "Traceback" not in captured.err
+    assert captured.out == ""

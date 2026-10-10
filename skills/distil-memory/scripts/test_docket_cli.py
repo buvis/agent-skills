@@ -576,3 +576,54 @@ def test_main_save_without_queue_flag_derives_queue_path_from_proposals_dir_pare
     assert exit_code == 0
     assert (tmp_path / "repo_a" / "distil-memory-queue.json").exists() is True
     assert not list(repo_b.rglob("distil-memory-queue.json"))
+
+
+def test_decide_name_only_recovery_edit_on_a_kept_entry_is_refused_and_changes_nothing(
+    tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+    entry_id = _kept_in_the_working_directory_queue(name="old-name")
+    queue_file = _the_working_directory_queue_path(tmp_path)
+    before = queue_file.read_bytes()
+
+    with pytest.raises(docket.QueueError):
+        docket.decide(entry_id, "kept", name="new-name")
+
+    assert queue_file.read_bytes() == before
+
+
+def test_main_decide_name_only_recovery_edit_on_a_kept_entry_returns_one_and_changes_nothing(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    entry_id = _kept_in_the_working_directory_queue(name="old-name")
+    queue_file = _the_working_directory_queue_path(tmp_path)
+    before = queue_file.read_bytes()
+    capsys.readouterr()
+
+    exit_code = docket.main(["decide", entry_id, "kept", "--name", "new-name"])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert queue_file.read_bytes() == before
+
+
+def test_decide_file_only_recovery_edit_on_a_kept_entry_still_replaces_the_file_text(
+    tmp_path, monkeypatch, capsys
+):
+    # Regression guard: passes before and after the name-only refusal.
+    monkeypatch.chdir(tmp_path)
+    entry_id = _kept_in_the_working_directory_queue(name="old-name", file_text="original")
+    replacement = tmp_path / "replacement.md"
+    replacement.write_text("edited content")
+    capsys.readouterr()
+
+    exit_code = docket.main(["decide", entry_id, "kept", "--file", str(replacement)])
+
+    assert exit_code == 0
+    entry = docket.load()["entries"][1]
+    assert entry["name"] == "old-name"
+    assert entry["file_text"] == "edited content"
