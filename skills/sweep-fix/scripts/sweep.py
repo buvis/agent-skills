@@ -116,11 +116,22 @@ def _buvis_bare_entry():
     return {"cwd": work_tree, "files": files}
 
 
+def _git_root(path):
+    """Nearest ancestor of `path` (itself included) holding `.git`, or
+    `path` itself when none does."""
+    for candidate in (path, *path.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return path
+
+
 def enumerate_repos(registry, cwd):
     """Enumerate the repos sweep should operate on.
 
     `registry` is a text file with one repo path per line (blank lines
-    skipped). Returns `(repos, gaps)`:
+    skipped); a missing registry raises `RuntimeError`. `cwd` is first made
+    absolute and walked up to its git root (nearest ancestor holding
+    `.git`). Returns `(repos, gaps)`:
 
     - `repos`: registered paths that have a `.git` dir, plus `cwd` if it is
       not already covered. If `cwd` or a registered row is the buvis bare
@@ -137,7 +148,7 @@ def enumerate_repos(registry, cwd):
     The registry file is only ever read, never written.
     """
     registry = Path(registry)
-    cwd = Path(cwd)
+    cwd = _git_root(Path(cwd).absolute())
     if not registry.is_file():
         raise RuntimeError(f"registry not found: {registry}")
 

@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **sweep-fix**: a sweep run from a subdirectory of a repo now scans the whole repo and no longer reports that repo as a registry gap
 - **sweep-fix**: exits 1 with a one-line error instead of writing a report when its scan tool, registry or control check is unusable
 - **distil-memory**: judge calls no longer save session transcripts into the corpus that later runs scan, and long prompts go on stdin instead of argv, so a large prompt no longer fails with an ARG_MAX error.
 - **distil-memory**: re-running `write.py write` for a memory that is already on disk is now safe. Identical memory text and a current `MEMORY.md` pointer are left alone, a missing or stale pointer is added or fixed once, and a new entry no longer gets a second pointer line for the same memory. Multi-line and padded descriptions get a single-line pointer that reads back the same.
