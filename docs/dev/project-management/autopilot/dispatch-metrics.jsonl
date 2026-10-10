@@ -1644,3 +1644,4 @@
 {"id":"24a7314d","kind":"carl","task":"review-00071c2-20261010","queued_at":1791634875,"prompt_bytes":12532}
 {"id":"ed47466b","ended_at":1791634957,"elapsed_s":82,"outcome":"ok","detail":null}
 {"id":"24a7314d","ended_at":1791635343,"elapsed_s":468,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1791643841,"phase":"review","prd":"00071-distil-publish-recovery-v1.md"}
