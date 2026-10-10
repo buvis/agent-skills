@@ -139,9 +139,10 @@ Updated: 2026-10-10 (full catchup, PRD 00072 selection, same batch, HEAD 3b6c1dd
   recovery edit, new `docket.py unpublished`, null-`kind` guard, SKILL.md
   steps 5-7 rewrite. 5 items deferred (3 settled design re-raises, ledger
   size, `_save_queue` traceback -> 00077 territory).
-- [ ] 00072-distil-judge-no-persistence-v1.md — in wip: `judge()` gets
-  `--no-session-persistence` and the prompt on stdin; FakeClaudeCli and
-  test_funnel_main argv consumers migrate. `design: skip`.
+- [x] 00072-distil-judge-no-persistence-v1.md (2/2 tasks, 1 cycle) —
+  `judge()` runs with `--no-session-persistence` and the prompt on stdin;
+  FakeClaudeCli and argv consumers migrated; 1 MB stdin test. Full suite
+  3560 passed at 2b9cebc. Nothing deferred.
 - [ ] 00073, 00075, 00076, 00077, 00079, 00080 (backlog)
 
   Observations: reviewers kept finding the same class (input faults escaping

@@ -1681,3 +1681,5 @@
 {"id":"a065a760","kind":"pat","task":"2","queued_at":1791657387,"prompt_bytes":6342}
 {"id":"a065a760","ended_at":1791657403,"elapsed_s":16,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1791657772,"phase":"done","prd":"00072-distil-judge-no-persistence-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1791669906,"phase":"done","prd":"00072-distil-judge-no-persistence-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1791669938,"phase":"build","prd":"00072-distil-judge-no-persistence-v1.md"}
