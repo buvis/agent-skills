@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **sweep-fix**: the ast-grep rule block now quotes every message and pattern, so values such as timestamps, `1:30`, `=` or control characters no longer break or change type when the rule file is loaded
 - **sweep-fix**: a sweep run from a subdirectory of a repo now scans the whole repo and no longer reports that repo as a registry gap
 - **sweep-fix**: exits 1 with a one-line error instead of writing a report when its scan tool, registry or control check is unusable
 - **distil-memory**: judge calls no longer save session transcripts into the corpus that later runs scan, and long prompts go on stdin instead of argv, so a large prompt no longer fails with an ARG_MAX error.

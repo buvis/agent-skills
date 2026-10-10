@@ -410,65 +410,17 @@ def _render_gaps_section(gaps):
     return lines
 
 
-_YAML_INDICATOR_CHARS = "-?:,[]{}#&*!|>'\"%@`"
-_YAML_RESERVED_WORDS = {"null", "~", "true", "false", "yes", "no", "on", "off"}
-
-
-_YAML_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-_YAML_CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f]")
-_YAML_INF_NAN_RE = re.compile(r"^[-+]?\.(inf|nan)$", re.IGNORECASE)
-
-
-def _needs_yaml_quoting(value):
-    """True if `value` cannot be emitted as a bare YAML plain scalar: it
-    would either fail to parse (a colon-space, a trailing colon, a leading
-    indicator character, an embedded newline or other control character) or
-    silently parse back as a different type (an empty string; a whole value
-    that is itself a YAML null/bool token; leading/trailing whitespace; or a
-    value that resolves implicitly to a number or a date)."""
-    if value == "" or _YAML_CONTROL_CHARS_RE.search(value):
-        return True
-    if value[0] in _YAML_INDICATOR_CHARS:
-        return True
-    if ": " in value or value.endswith(":"):
-        return True
-    if " #" in value:
-        return True
-    if value.lower() in _YAML_RESERVED_WORDS:
-        return True
-    if value != value.strip():
-        return True
-    if _YAML_DATE_RE.match(value):
-        return True
-    try:
-        int(value, 0)
-        return True
-    except ValueError:
-        pass
-    try:
-        float(value)
-        return True
-    except ValueError:
-        pass
-    if _YAML_INF_NAN_RE.match(value):
-        return True
-    return False
-
-
-_YAML_SCALAR_ESCAPES = {chr(code): f"\\x{code:02x}" for code in range(0x20)}
-_YAML_SCALAR_ESCAPES[chr(0x7F)] = "\\x7f"
-_YAML_SCALAR_ESCAPES.update(
-    {"\\": "\\\\", '"': '\\"', "\n": "\\n", "\r": "\\r", "\t": "\\t"}
-)
-
-
-def _yaml_scalar(value):
-    """Render `value` as a YAML scalar: bare when it is safe as a plain
-    scalar, double-quoted with escapes otherwise."""
-    if not _needs_yaml_quoting(value):
-        return value
-    escaped = "".join(_YAML_SCALAR_ESCAPES.get(ch, ch) for ch in value)
-    return f'"{escaped}"'
+def _yaml_quote(value):
+    """Render `value` as a YAML double-quoted scalar. A JSON string is a
+    valid YAML double-quoted scalar; characters JSON leaves raw that YAML
+    forbids or folds (DEL, C1 incl. U+0085, U+2028/2029, BOM, other
+    non-printables) are escaped as \\uXXXX / \\UXXXXXXXX."""
+    return "".join(
+        ch if ch.isprintable()
+        else f"\\u{ord(ch):04x}" if ord(ch) <= 0xFFFF
+        else f"\\U{ord(ch):08x}"
+        for ch in json.dumps(value, ensure_ascii=False)
+    )
 
 
 def _render_astgrep_rule_block(derivation, hits):
@@ -480,8 +432,8 @@ def _render_astgrep_rule_block(derivation, hits):
     if not seen_langs:
         return lines
 
-    message = _yaml_scalar(derivation["reason"])
-    pattern = _yaml_scalar(derivation["pattern"])
+    message = _yaml_quote(derivation["reason"])
+    pattern = _yaml_quote(derivation["pattern"])
     rule_docs = [
         "\n".join(
             [
