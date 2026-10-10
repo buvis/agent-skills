@@ -132,8 +132,9 @@ def decide(entry_id, state, file_text=None, path=None, data=None, *, name=None):
     counter; the latter is what next_undecided() checks against PER_RUN_CAP
     and what advance() resets to re-arm the next sitting.
 
-    Deciding an already-kept entry "kept" again with a file_text and/or name
-    is a recovery edit: it replaces those fields and moves neither counter.
+    Deciding an already-kept entry "kept" again with a file_text, and
+    optionally a name, is a recovery edit: it replaces those fields and moves
+    neither counter. A name without a file_text is refused.
 
     Pass `data` to decide against a queue the caller has already read, so the
     read and the decision cannot report different failures for one command.
@@ -313,7 +314,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.file:
                 try:
                     file_text = Path(args.file).read_text()
-                except (OSError, json.JSONDecodeError) as exc:
+                except (OSError, UnicodeDecodeError) as exc:
                     print(f"cannot read the note file {args.file}: {exc}", file=sys.stderr)
                     return 1
             # Read once, outside the refusal handler below, so an unreadable

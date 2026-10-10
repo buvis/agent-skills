@@ -376,6 +376,26 @@ def test_main_decide_recovery_edit_with_an_unreadable_file_changes_nothing_and_r
     assert queue_file.read_bytes() == before
 
 
+def test_main_decide_with_a_non_utf8_file_returns_one_with_a_reason_and_leaves_the_queue_untouched(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    entry_id = _kept_in_the_working_directory_queue(name="old-name")
+    queue_file = _the_working_directory_queue_path(tmp_path)
+    before = queue_file.read_bytes()
+    note = tmp_path / "note.md"
+    note.write_bytes(b"\xff\xfe not utf-8")
+    capsys.readouterr()
+
+    exit_code = docket.main(["decide", entry_id, "kept", "--file", str(note)])
+
+    assert exit_code == 1
+    err = capsys.readouterr().err
+    assert str(note) in err
+    assert "Traceback" not in err
+    assert queue_file.read_bytes() == before
+
+
 def test_main_save_carries_a_records_dedup_error_into_the_stored_entry(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     proposals_dir = tmp_path / "proposals"
