@@ -286,12 +286,22 @@ approval or rejection:
    - Exit 0 with no output: nothing in that store is unpublished.
    - Exit 1 with ids on stdout (one per line, in queue order): those kept
      entries are not fully published. `unpublished` prints ids only, so
-     work out the reason yourself: the target is `<store-path>/<name>.md`,
-     where `<name>` is the name after `update ` in the entry's `kind`, or
-     the entry's `name` for a new one. Read that file and `MEMORY.md`: the
-     file is missing, its text differs from the entry's `file_text`, or no
-     `MEMORY.md` line links `<name>.md` with the entry's description. Show
-     the user each listed entry: its id, its target name, and that reason.
+     work out the reason with the writer's own rules, never by hand
+     (`entry` is the kept queue entry):
+
+     ```python
+     stem, _ = write._target_stem(entry)
+     target = Path("<store-path>") / f"{stem}.md"
+     description = proposal.parse_frontmatter(entry["file_text"])["description"]
+     indexes, current = write._pointer_state(write._index_lines(Path("<store-path>") / "MEMORY.md"), stem, description)
+     ```
+
+     The reason is the first that holds: `target` is missing; its text
+     differs from the entry's `file_text`; `indexes` is empty (no pointer);
+     `indexes` has more than one line (duplicate pointers); otherwise the
+     one pointer carries a stale description. Any of these calls raising
+     means the entry or the store is malformed; report that as the reason.
+     Show the user each listed entry: its id, its target name, and that reason.
      Ask, per entry, whether to publish it now. A memory the user
      deleted or hand-edited on purpose is declined, not restored. For each
      confirmed id, rebuild `entry.json` from that queue entry:
