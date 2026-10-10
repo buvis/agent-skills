@@ -512,10 +512,18 @@ def _parse_args(argv):
 
 def _resolve_report_path(cwd_path, out, reason):
     """Resolve `--out` under `cwd_path`, defaulting to a slugged report
-    name; refuses (exit 1) if it would land outside `cwd_path`."""
+    name; refuses (exit 1) if it would land outside `cwd_path`. A default
+    name that already exists gets the first free `-2`, `-3`, ... suffix so
+    a same-day same-reason sweep never overwrites an earlier report; an
+    explicit `--out` is never suffixed."""
     if not out:
         slug = re.sub(r"[^a-z0-9]+", "-", reason[:40].lower()).strip("-")
-        out = f"docs/dev/project-management/audit-results/sweep-{slug}-{date.today().isoformat()}.md"
+        stem = f"docs/dev/project-management/audit-results/sweep-{slug}-{date.today().isoformat()}"
+        out = f"{stem}.md"
+        n = 2
+        while (cwd_path / out).exists():
+            out = f"{stem}-{n}.md"
+            n += 1
 
     out_path = (cwd_path / out).resolve()
     if not out_path.is_relative_to(cwd_path):

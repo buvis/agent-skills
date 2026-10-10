@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **sweep-fix**: a second same-day sweep with the same reason writes a `-2` (then `-3`, ...) report instead of overwriting the first
 - **sweep-fix**: the ast-grep rule block now quotes every message and pattern, so values such as timestamps, `1:30`, `=` or control characters no longer break or change type when the rule file is loaded
 - **sweep-fix**: a sweep run from a subdirectory of a repo now scans the whole repo and no longer reports that repo as a registry gap
 - **sweep-fix**: exits 1 with a one-line error instead of writing a report when its scan tool, registry or control check is unusable
