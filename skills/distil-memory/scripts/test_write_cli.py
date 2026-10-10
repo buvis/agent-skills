@@ -301,3 +301,68 @@ def test_main_write_refuses_a_kind_that_is_not_a_string_and_returns_one_without_
     assert captured.out == ""
     monkeypatch.undo()
     assert _tree_bytes(tmp_path) == before
+
+
+def _seed_store(store_path):
+    store_path.mkdir()
+    (store_path / "widget-fact.md").write_text(
+        _file_text(name="widget-fact", description="keeps facts about widgets straight")
+    )
+    (store_path / "MEMORY.md").write_text(
+        "- [Widget fact](widget-fact.md) — keeps facts about widgets straight\n"
+    )
+
+
+def _assert_refused_with_a_reason_and_store_untouched(status, capsys, tmp_path, before):
+    assert status == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert _tree_bytes(tmp_path) == before
+
+
+def test_main_write_refuses_a_name_that_sanitises_to_an_empty_stem_and_returns_one_with_a_reason(
+    tmp_path, store_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    _seed_store(store_path)
+    before = _tree_bytes(tmp_path)
+    entry = _entry(name="!!!", kind="new", file_text=_file_text(name='"!!!"'))
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    _assert_refused_with_a_reason_and_store_untouched(status, capsys, tmp_path, before)
+
+
+@pytest.mark.parametrize(
+    "stdin_text",
+    ["this is not json", "", '{"name": "widget-fact", "kind": '],
+    ids=["plain-text", "empty", "truncated-json"],
+)
+def test_main_write_refuses_stdin_that_is_not_valid_json_and_returns_one_with_a_reason(
+    tmp_path, store_path, monkeypatch, capsys, stdin_text
+):
+    monkeypatch.chdir(tmp_path)
+    _seed_store(store_path)
+    before = _tree_bytes(tmp_path)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(stdin_text))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    _assert_refused_with_a_reason_and_store_untouched(status, capsys, tmp_path, before)
+
+
+@pytest.mark.parametrize("stdin_text", ["null", "[]"], ids=["null", "list"])
+def test_main_write_refuses_a_json_envelope_that_is_not_an_object_and_returns_one_with_a_reason(
+    tmp_path, store_path, monkeypatch, capsys, stdin_text
+):
+    monkeypatch.chdir(tmp_path)
+    _seed_store(store_path)
+    before = _tree_bytes(tmp_path)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(stdin_text))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    _assert_refused_with_a_reason_and_store_untouched(status, capsys, tmp_path, before)
