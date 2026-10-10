@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **distil-memory**: judge calls no longer save session transcripts into the corpus that later runs scan, and long prompts go on stdin instead of argv, so a large prompt no longer fails with an ARG_MAX error.
 - **distil-memory**: re-running `write.py write` for a memory that is already on disk is now safe. Identical memory text and a current `MEMORY.md` pointer are left alone, a missing or stale pointer is added or fixed once, and a new entry no longer gets a second pointer line for the same memory. Multi-line and padded descriptions get a single-line pointer that reads back the same.
 - **distil-memory**: `write.py write` given an entry whose `kind` is null or not a string now exits 1 with the reason on stderr and leaves the store untouched, instead of crashing with a traceback.
 - **distil-memory**: `write.py write` now also exits 1 with a reason, store untouched, when stdin is not UTF-8 JSON, the JSON is not an object, or the entry's name reduces to nothing. An update whose `existing_text` is null is rolled back and refused the same way. Duplicate `MEMORY.md` lines for one memory, left by older runs, collapse to a single current pointer.

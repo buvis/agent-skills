@@ -176,8 +176,8 @@ def judge(prompt: str, tier: str) -> str:
     from `tier` and return its raw stdout. Raises RuntimeError(stderr) on
     a non-zero exit."""
     proc = subprocess.run(
-        ["claude", "--print", "--model", _MODEL_FOR_TIER[tier], prompt],
-        stdin=subprocess.DEVNULL,
+        ["claude", "--print", "--no-session-persistence", "--model", _MODEL_FOR_TIER[tier]],
+        input=prompt,
         capture_output=True,
         text=True,
         timeout=120,
