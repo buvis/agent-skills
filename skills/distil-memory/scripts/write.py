@@ -58,12 +58,26 @@ def _readable_bytes(path: Path) -> bytes:
     return raw
 
 
+def _holds_text(target: Path, text: str) -> bool:
+    """Whether the existing file `target` already holds exactly `text`.
+
+    A target that cannot be read is refused as a WriteError naming it, never
+    taken for a different file and overwritten.
+    """
+    try:
+        return target.read_text() == text
+    except (OSError, UnicodeDecodeError) as exc:
+        raise WriteError(f"{target}: {exc}") from exc
+
+
 def write_memory(entry: dict, store_path: Path) -> Path:
     """Write `entry["file_text"]` to its target file inside `store_path`.
 
-    The file text's frontmatter must parse. A new entry must not already have
-    a file at its target; an update must. Raises WriteError otherwise, or when
-    the write itself fails (for example because `store_path` does not exist).
+    The file text's frontmatter must parse. A target that already holds
+    exactly that text is returned untouched, new and update alike. Otherwise
+    a new entry must not already have a file at its target; an update must.
+    Raises WriteError otherwise, or when the write itself fails (for example
+    because `store_path` does not exist).
     """
     try:
         proposal.parse_frontmatter(entry["file_text"])
@@ -72,6 +86,8 @@ def write_memory(entry: dict, store_path: Path) -> Path:
     stem, is_new = _target_stem(entry)
     target = store_path / f"{stem}.md"
     exists = target.exists()
+    if exists and _holds_text(target, entry["file_text"]):
+        return target
     if is_new and exists:
         raise WriteError(f"{target} already exists")
     if not is_new and not exists:
@@ -87,41 +103,71 @@ def _title(stem: str) -> str:
     return stem.replace("-", " ").capitalize()
 
 
+def _hook(description) -> str:
+    """The description's words joined by single spaces: the only form that
+    reads back from an index line unchanged."""
+    return " ".join(str(description).split())
+
+
 def _pointer_line(stem: str, description: str) -> str:
-    return f"- [{_title(stem)}]({stem}.md) — {description}"
+    return f"- [{_title(stem)}]({stem}.md) — {_hook(description)}"
+
+
+def _pointer_state(lines: list[str], stem: str, description) -> tuple[int | None, bool]:
+    """The index of the first line pointing at `stem` (None when no line
+    does), and whether that line's hook is current for `description`."""
+    for i, line in enumerate(lines):
+        parsed = dedup.parse_index_line(line)
+        if parsed is not None and parsed[1] == stem:
+            return i, parsed[2] == _hook(description)
+    return None, False
+
+
+def _index_lines(index_path: Path) -> list[str]:
+    return _readable_bytes(index_path).decode().splitlines() if index_path.exists() else []
 
 
 def append_pointer(store_path: Path, entry: dict) -> str | None:
     """Upsert `entry`'s pointer line in `store_path`'s MEMORY.md.
 
-    A new entry's line is always appended. An update's line replaces the
-    existing entry for its target stem in place, or is appended when no line
-    for that stem exists yet - unless the description is unchanged from
-    `entry["existing_text"]`, in which case nothing is written and None is
-    returned.
+    When a line for the target stem already carries the current hook,
+    nothing is written and None is returned. Otherwise the first line for
+    that stem is replaced in place, or the new line is appended when none
+    exists. Every other line keeps its place and its bytes. An update's
+    `existing_text` must still parse, before the index is touched.
     """
     stem, is_new = _target_stem(entry)
     description = proposal.parse_frontmatter(entry["file_text"])["description"]
-
     if not is_new:
-        old_description = proposal.parse_frontmatter(entry["existing_text"])["description"]
-        if old_description == description:
-            return None
-
-    line = _pointer_line(stem, description)
+        proposal.parse_frontmatter(entry["existing_text"])
     index_path = store_path / "MEMORY.md"
-    lines = _readable_bytes(index_path).decode().splitlines() if index_path.exists() else []
-
-    if not is_new:
-        for i, existing_line in enumerate(lines):
-            if stem in dedup.parse_index(existing_line):
-                lines[i] = line
-                _atomic_write(index_path, "\n".join(lines) + "\n")
-                return line
-
-    lines.append(line)
+    lines = _index_lines(index_path)
+    idx, current = _pointer_state(lines, stem, description)
+    if current:
+        return None
+    line = _pointer_line(stem, description)
+    if idx is not None:
+        lines[idx] = line
+    else:
+        lines.append(line)
     _atomic_write(index_path, "\n".join(lines) + "\n")
     return line
+
+
+def published(entry: dict, store_path: Path) -> bool:
+    """Whether `entry` is fully in `store_path`: its target file holds exactly
+    its file text and MEMORY.md carries a current pointer to it.
+
+    An unreadable target or index raises a WriteError naming the file; a
+    malformed entry raises as it is.
+    """
+    stem, _ = _target_stem(entry)
+    description = proposal.parse_frontmatter(entry["file_text"])["description"]
+    target = store_path / f"{stem}.md"
+    if not target.exists() or not _holds_text(target, entry["file_text"]):
+        return False
+    _, current = _pointer_state(_index_lines(store_path / "MEMORY.md"), stem, description)
+    return current
 
 
 def _rollback(target: Path, previous: bytes | None) -> None:

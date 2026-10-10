@@ -65,6 +65,13 @@ def parse_index(index_text: str) -> dict[str, str]:
     return entries
 
 
+def parse_index_line(line: str) -> tuple[str, str, str] | None:
+    """One bullet link's title, memory name and hook, or None for any other
+    line."""
+    match = _ENTRY.match(line)
+    return match.groups() if match else None
+
+
 def shortlist(
     index_text: str, proposal: Proposal, limit: int = SHORTLIST_LIMIT
 ) -> list[str]:
