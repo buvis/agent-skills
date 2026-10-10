@@ -1683,3 +1683,46 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1791657772,"phase":"done","prd":"00072-distil-judge-no-persistence-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1791669906,"phase":"done","prd":"00072-distil-judge-no-persistence-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1791669938,"phase":"build","prd":"00072-distil-judge-no-persistence-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1791671447,"phase":"build","prd":"00073-sweep-loud-failures-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1791671862,"phase":"build","prd":"00073-sweep-loud-failures-v1.md"}
+{"id":"dc089d50","kind":"tess","task":"1","queued_at":1791672633,"prompt_bytes":15381}
+{"id":"dc089d50","ended_at":1791672745,"elapsed_s":112,"outcome":"ok","detail":null}
+{"id":"da1ead57","kind":"devon","task":"1","queued_at":1791672838,"prompt_bytes":4108}
+{"id":"da1ead57","ended_at":1791673009,"elapsed_s":171,"outcome":"ok","detail":"6 weak points"}
+{"id":"507876a6","kind":"tess","task":"1","queued_at":1791673024,"prompt_bytes":13150}
+{"id":"507876a6","ended_at":1791673125,"elapsed_s":101,"outcome":"ok","detail":null}
+{"id":"2b8ea920","kind":"ivan","task":"1","queued_at":1791673167,"prompt_bytes":36537}
+{"id":"2b8ea920","ended_at":1791673224,"elapsed_s":57,"outcome":"ok","detail":null}
+{"id":"ca959231","kind":"pat","task":"1","queued_at":1791673257,"prompt_bytes":25556}
+{"id":"ca959231","ended_at":1791673286,"elapsed_s":29,"outcome":"ok","detail":"2 LOW"}
+{"id":"9c1d9216","kind":"tess","task":"2","queued_at":1791673336,"prompt_bytes":21506}
+{"id":"9c1d9216","ended_at":1791673402,"elapsed_s":66,"outcome":"ok","detail":null}
+{"id":"516afcc7","kind":"devon","task":"2","queued_at":1791673431,"prompt_bytes":3661}
+{"id":"516afcc7","ended_at":1791673556,"elapsed_s":125,"outcome":"ok","detail":"5 weak points"}
+{"id":"9b79815f","kind":"tess","task":"2","queued_at":1791673568,"prompt_bytes":10072}
+{"id":"9b79815f","ended_at":1791673634,"elapsed_s":66,"outcome":"ok","detail":null}
+{"id":"df72c4b0","kind":"ivan","task":"2","queued_at":1791673655,"prompt_bytes":22766}
+{"id":"df72c4b0","ended_at":1791673688,"elapsed_s":33,"outcome":"ok","detail":null}
+{"id":"d614917b","kind":"pat","task":"2","queued_at":1791673706,"prompt_bytes":16407}
+{"id":"d614917b","ended_at":1791673726,"elapsed_s":20,"outcome":"ok","detail":"3 LOW"}
+{"id":"ad629293","kind":"tess","task":"3","queued_at":1791673761,"prompt_bytes":26923}
+{"id":"ad629293","ended_at":1791673806,"elapsed_s":45,"outcome":"ok","detail":null}
+{"id":"f562e846","kind":"devon","task":"3","queued_at":1791673832,"prompt_bytes":3537}
+{"id":"f562e846","ended_at":1791674024,"elapsed_s":192,"outcome":"ok","detail":"8 weak points"}
+{"id":"b135f14c","kind":"tess","task":"3","queued_at":1791674039,"prompt_bytes":9764}
+{"id":"b135f14c","ended_at":1791674098,"elapsed_s":59,"outcome":"ok","detail":null}
+{"id":"c53e98ee","kind":"ivan","task":"3","queued_at":1791674124,"prompt_bytes":28428}
+{"id":"c53e98ee","ended_at":1791674157,"elapsed_s":33,"outcome":"ok","detail":null}
+{"id":"dceb1e37","kind":"pat","task":"3","queued_at":1791674178,"prompt_bytes":16165}
+{"id":"dceb1e37","ended_at":1791674202,"elapsed_s":24,"outcome":"ok","detail":"no findings"}
+{"id":"6938d0ea","kind":"tess","task":"4","queued_at":1791674231,"prompt_bytes":12765}
+{"id":"6938d0ea","ended_at":1791674270,"elapsed_s":39,"outcome":"ok","detail":null}
+{"id":"f0672ced","kind":"devon","task":"4","queued_at":1791674292,"prompt_bytes":3284}
+{"id":"f0672ced","ended_at":1791674396,"elapsed_s":104,"outcome":"ok","detail":"6 weak points"}
+{"id":"49285b0e","kind":"tess","task":"4","queued_at":1791674409,"prompt_bytes":8645}
+{"id":"49285b0e","ended_at":1791674506,"elapsed_s":97,"outcome":"ok","detail":null}
+{"id":"7fc79bef","kind":"ivan","task":"4","queued_at":1791674533,"prompt_bytes":12191}
+{"id":"7fc79bef","ended_at":1791674561,"elapsed_s":28,"outcome":"ok","detail":null}
+{"id":"7b1c2d3c","kind":"pat","task":"4","queued_at":1791674580,"prompt_bytes":15477}
+{"id":"7b1c2d3c","ended_at":1791674602,"elapsed_s":22,"outcome":"ok","detail":"3 LOW"}
+{"kind":"handoff","site":"build","edge":"leave","at":1791674957,"phase":"review","prd":"00073-sweep-loud-failures-v1.md"}

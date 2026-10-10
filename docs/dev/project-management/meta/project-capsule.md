@@ -49,6 +49,7 @@ Updated: 2026-09-26T19:15Z (full catchup, PRD 00068 selection, same batch, local
 Updated: 2026-10-10 (full catchup, interactive batch 202610100952, PRD 00071 selection, HEAD 9a87317; Active Work, Related context, GitHub State and the dev/local invariant refreshed; task restore skipped)
 Updated: 2026-10-10 (full catchup, `catchup: force`, PRD 00071 build entry, HEAD 20d4d02; GitHub State re-measured, unchanged except a newer red Windows run at 5e07853 with the same 47 use-qwen failures)
 Updated: 2026-10-10 (full catchup, PRD 00072 selection, same batch, HEAD 3b6c1dd; GitHub State unchanged: 6 Renovate PRs, 1 issue, master CI red on Windows use-qwen harness tests (51 failed at b615fdb), unrelated to distil-memory; engram skipped, repo unregistered)
+Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same batch, HEAD 267c263; GitHub State NOT re-measured: `gh` unauthenticated this pass; engram repo scope still unregistered)
 
 ## Key Invariants
 
@@ -143,7 +144,11 @@ Updated: 2026-10-10 (full catchup, PRD 00072 selection, same batch, HEAD 3b6c1dd
   `judge()` runs with `--no-session-persistence` and the prompt on stdin;
   FakeClaudeCli and argv consumers migrated; 1 MB stdin test. Full suite
   3560 passed at 2b9cebc. Nothing deferred.
-- [ ] 00073, 00075, 00076, 00077, 00079, 00080 (backlog)
+- [ ] 00073-sweep-loud-failures-v1.md (wip, build started 2026-10-11) —
+  six `sweep-fix/scripts/sweep.py` defects: hoist tool resolution into
+  `main`, `verify_control` raises, cwd walk-up to git root, guarded
+  registry open, `json.dumps` replaces YAML helpers, report-path suffixing.
+- [ ] 00075, 00076, 00077, 00079, 00080 (backlog)
 
   Observations: reviewers kept finding the same class (input faults escaping
   as tracebacks) across cycles 1-2; 00077 should sweep that class wholesale.
