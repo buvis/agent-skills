@@ -138,8 +138,11 @@ def enumerate_repos(registry, cwd):
     """
     registry = Path(registry)
     cwd = Path(cwd)
+    if not registry.is_file():
+        raise RuntimeError(f"registry not found: {registry}")
 
-    registered = [Path(row[0].strip()) for row in csv.reader(registry.open()) if row and row[0].strip()]
+    with registry.open() as fh:
+        registered = [Path(row[0].strip()) for row in csv.reader(fh) if row and row[0].strip()]
 
     work_tree = BUVIS_BARE["work_tree"]
     repos = [path for path in registered if path != work_tree and (path / ".git").exists()]
@@ -321,20 +324,26 @@ def verify_control(pattern, kind, control_repo, control_term):
     `control_term` finds hits but `pattern` did not, `pattern` is broken
     (e.g. the Rust-regex `\\|` literal-pipe trap): prints a message naming
     `control_term` and `control_repo`, then exits with status 1.
+
+    Raises `RuntimeError` (one-line message) when the control repo cannot be
+    scanned or the control-term search cannot run.
     """
-    hits, _suppressed, _failed = scan(pattern, kind, [control_repo])
+    hits, _suppressed, failed = scan(pattern, kind, [control_repo])
+    if failed:
+        reason = " ".join(next(iter(failed.values())).split())
+        raise RuntimeError(
+            f"sweep unverified: control repo {control_repo} could not be scanned: {reason}"
+        )
     if hits:
         return None
 
     try:
         result = _run_rg(["-F", "--", control_term, "."], control_repo)
     except Exception as exc:
-        print(
-            f"sweep: could not verify control term \"{control_term}\" in "
-            f"{control_repo}: {exc}",
-            file=sys.stderr,
-        )
-        return None
+        reason = " ".join(str(exc).split())
+        raise RuntimeError(
+            f'sweep unverified: could not search control term "{control_term}" in {control_repo}: {reason}'
+        ) from exc
     if result.returncode == 1:
         return None
 
@@ -569,7 +578,8 @@ def main(argv=None):
     The report is written under `--cwd`; an `--out` resolving outside that
     repo is refused.
 
-    Returns 0 on success.
+    Returns 0 on success. Returns 1 with one stderr line, writing no report,
+    on a setup failure (scan tool, registry, control check).
     """
     args = _parse_args(argv)
 
@@ -577,6 +587,7 @@ def main(argv=None):
     out_path = _resolve_report_path(cwd_path, args.out, args.reason)
 
     try:
+        resolve_rg() if args.kind == "rg" else resolve_ast_grep()
         repos, gaps = enumerate_repos(args.registry, args.cwd)
         hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap)
         if not hits:
