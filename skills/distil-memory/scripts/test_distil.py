@@ -447,7 +447,8 @@ def test_distil_keeps_a_file_carrying_a_wiki_link_when_the_index_already_has_nam
     [
         RuntimeError("claude cli exploded"),
         subprocess.TimeoutExpired(
-            cmd=["claude", "--print", "--model", "sonnet", "prompt"], timeout=120
+            cmd=["claude", "--print", "--no-session-persistence", "--model", "sonnet"],
+            timeout=120,
         ),
         OSError("[Errno 5] Input/output error"),
     ],

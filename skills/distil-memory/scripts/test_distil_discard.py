@@ -31,7 +31,15 @@ def _judge_raising_runtime_error(prompt, tier):
 
 def _judge_raising_timeout(prompt, tier):
     raise subprocess.TimeoutExpired(
-        cmd=["claude", "--print", "--model", "sonnet", _SENTINEL], timeout=120
+        cmd=[
+            "claude",
+            "--print",
+            "--no-session-persistence",
+            "--model",
+            "sonnet",
+            _SENTINEL,
+        ],
+        timeout=120,
     )
 
 
