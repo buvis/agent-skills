@@ -124,14 +124,8 @@ def test_collision_is_refused_then_rename_via_decide_kept_lets_the_second_memory
     )
     docket.save(
         [
-            make_proposal(
-                transcript=transcript, line_no=1, name="shared-memory",
-                file_text=first_text,
-            ),
-            make_proposal(
-                transcript=transcript, line_no=2, name="shared-memory",
-                file_text=second_text,
-            ),
+            make_proposal(transcript=transcript, line_no=1, name="shared-memory", file_text=first_text),
+            make_proposal(transcript=transcript, line_no=2, name="shared-memory", file_text=second_text),
         ],
         path=queue_path,
     )
