@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **distil-memory**: `docket.py unpublished --store <path> [--queue <path>]` lists the kept entries whose memory or `MEMORY.md` pointer is missing or out of date in that store, one id per line in queue order (exit 1 when any, 0 when none, 2 for an unreadable queue). `docket.py decide <id> kept --name <new> --file <path>` now also works on an already-kept entry, so a name collision can be renamed and re-published.
 - **braid**: enroll Kiro with `--kiro` / `--kiro-agent`; subsequent syncs, previews and drift checks maintain its skill links and selected custom-agent resources, with backups and preservation of other settings.
 - **structure-git-repo**: new skill that scaffolds an empty Git repository or
   restructures an existing one toward the common layout (README and AGENTS.md,

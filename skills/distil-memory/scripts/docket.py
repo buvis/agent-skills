@@ -7,6 +7,9 @@ import json
 import sys
 from pathlib import Path
 
+import proposal
+import write
+
 PER_RUN_CAP = 10  # walkthrough decisions per sitting; unbased guess, tune after first real run (PRD Risks)
 RUBRIC_VERSION = "1"  # bump by hand when distil.py's _DISTIL_PROMPT changes meaningfully; re-opens drops made under the old value
 
@@ -121,12 +124,19 @@ def next_undecided(path=None):
     )
 
 
-def decide(entry_id, state, file_text=None, path=None, data=None):
+def _find(entries, entry_id, decision):
+    return next((e for e in entries if e["id"] == entry_id and e["decision"] == decision), None)
+
+
+def decide(entry_id, state, file_text=None, path=None, data=None, *, name=None):
     """Record a "kept"/"dropped" decision for an undecided entry.
 
     Increments both the lifetime cursor and the per-sitting session_decided
     counter; the latter is what next_undecided() checks against PER_RUN_CAP
     and what advance() resets to re-arm the next sitting.
+
+    Deciding an already-kept entry "kept" again with a file_text and/or name
+    is a recovery edit: it replaces those fields and moves neither counter.
 
     Pass `data` to decide against a queue the caller has already read, so the
     read and the decision cannot report different failures for one command.
@@ -136,17 +146,19 @@ def decide(entry_id, state, file_text=None, path=None, data=None):
     p = _resolve_path(path)
     if data is None:
         data = load(path=p)
-    entry = next(
-        (e for e in data["entries"] if e["id"] == entry_id and e["decision"] == "undecided"),
-        None,
-    )
+    entry = _find(data["entries"], entry_id, "undecided")
+    if entry is not None:
+        entry["decision"] = state
+        data["cursor"] = data.get("cursor", 0) + 1
+        data["session_decided"] = data.get("session_decided", 0) + 1
+    elif state == "kept" and (file_text is not None or name is not None):
+        entry = _find(data["entries"], entry_id, "kept")
     if entry is None:
         raise QueueError(f"no undecided entry with id {entry_id!r}")
-    entry["decision"] = state
     if file_text is not None:
         entry["file_text"] = file_text
-    data["cursor"] = data.get("cursor", 0) + 1
-    data["session_decided"] = data.get("session_decided", 0) + 1
+    if name is not None:
+        entry["name"] = name
     _save_queue(data, p)
 
 
@@ -171,6 +183,44 @@ def advance(new_cursor=None, path=None):
     _save_queue(data, p)
 
 
+_ENVELOPE_FAULTS = (KeyError, TypeError, AttributeError, proposal.ProposalError)
+
+
+def unpublished(store, path=None) -> list[str]:
+    """Ids, in queue order, of the kept entries that own a target in the store
+    at `store` and that write.published() does not confirm there.
+
+    Only the last kept entry for a target owns it. An entry whose envelope
+    cannot be read is listed. Store and index read failures propagate.
+    """
+    data = load(path=path)
+    store = Path(store)
+    if (store / "MEMORY.md").exists():
+        write._readable_bytes(store / "MEMORY.md")
+    own_store = store.resolve()
+    owners = {}
+    for entry in data["entries"]:
+        if entry["decision"] != "kept":
+            continue
+        if (Path(entry["transcript"]).parent / "memory").resolve() != own_store:
+            continue
+        try:
+            target = write._target_stem(entry)[0]
+        except _ENVELOPE_FAULTS:
+            target = ("unreadable envelope", entry["id"])
+        owners.pop(target, None)
+        owners[target] = entry
+    ids = []
+    for entry in owners.values():
+        try:
+            if write.published(entry, store):
+                continue
+        except _ENVELOPE_FAULTS:
+            pass
+        ids.append(entry["id"])
+    return ids
+
+
 def _parse_args(argv):
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -189,7 +239,12 @@ def _parse_args(argv):
     decide_parser.add_argument("id")
     decide_parser.add_argument("state", choices=["kept", "dropped"])
     decide_parser.add_argument("--file", default=None)
+    decide_parser.add_argument("--name", default=None)
     decide_parser.add_argument("--queue", default=None)
+
+    unpublished_parser = subparsers.add_parser("unpublished")
+    unpublished_parser.add_argument("--store", required=True)
+    unpublished_parser.add_argument("--queue", default=None)
 
     cursor_parser = subparsers.add_parser("cursor")
     cursor_parser.add_argument("--queue", default=None)
@@ -255,11 +310,20 @@ def main(argv: list[str] | None = None) -> int:
             # queue leaves through the exit 2 handler instead.
             data = load(path=args.queue)
             try:
-                decide(args.id, args.state, file_text=file_text, path=args.queue, data=data)
+                decide(args.id, args.state, file_text=file_text, path=args.queue, data=data, name=args.name)
             except QueueError as exc:
                 print(str(exc), file=sys.stderr)
                 return 1
             return 0
+        elif args.command == "unpublished":
+            try:
+                ids = unpublished(args.store, path=args.queue)
+            except (write.WriteError, OSError) as exc:
+                print(f"cannot check the store {args.store}: {exc}", file=sys.stderr)
+                return 1
+            for entry_id in ids:
+                print(entry_id)
+            return 1 if ids else 0
         elif args.command == "cursor":
             print(cursor(path=args.queue))
             return 0
