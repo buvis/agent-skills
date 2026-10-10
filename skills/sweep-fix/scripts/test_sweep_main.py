@@ -481,3 +481,164 @@ def test_an_out_path_outside_the_cwd_repo_is_refused_before_any_repo_is_scanned(
         sweep.main(argv)
 
     assert scans == []
+
+
+# -- main: setup failures exit 1 with one stderr line and no report ---------
+
+
+def _zero_hit_argv(tmp_path, monkeypatch, control_repo, control_term):
+    """One registered repo with no pattern hits, so the whole sweep finds
+    zero hits and main() must run the control check. The report would land
+    in a not-yet-existing `reports/` directory inside the repo."""
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    repo_a = _make_repo(tmp_path / "org" / "repo-a")
+    (repo_a / "file.txt").write_text("nothing relevant here\n")
+
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(repo_a)])
+
+    out_path = repo_a / "reports" / "report.md"
+    argv = [
+        "--kind", "rg",
+        "--pattern", "ZEROHITPATTERN",
+        "--reason", "regression test for fail-loud setup",
+        "--control-term", control_term,
+        "--control-repo", str(control_repo),
+        "--registry", str(registry),
+        "--cwd", str(repo_a),
+        "--out", str(out_path),
+    ]
+    return argv, out_path
+
+
+@pytest.mark.parametrize(
+    ("kind", "resolver_name", "tool_name"),
+    [("rg", "resolve_rg", "rg"), ("astgrep", "resolve_ast_grep", "ast-grep")],
+)
+def test_an_unresolvable_scan_tool_exits_one_and_writes_no_report(
+    tmp_path, monkeypatch, capsys, kind, resolver_name, tool_name
+):
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "UNRESOLVABLETOOLMARKER", _make_repo
+    )
+    argv[argv.index("--kind") + 1] = kind
+    out_path = repo_a / "reports" / "report.md"
+    argv[argv.index("--out") + 1] = str(out_path)
+
+    def _unresolvable():
+        raise RuntimeError(f"Could not resolve {tool_name}: not found on PATH")
+
+    monkeypatch.setattr(sweep, resolver_name, _unresolvable)
+    scans = []
+    monkeypatch.setattr(sweep, "scan", lambda *a, **k: scans.append(a) or ([], [], []))
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 1
+    assert scans == []
+    assert not out_path.exists()
+    assert not out_path.parent.exists()
+    err_lines = capsys.readouterr().err.strip().splitlines()
+    assert len(err_lines) == 1
+    assert f"Could not resolve {tool_name}" in err_lines[0]
+
+
+def test_an_invalid_out_is_refused_before_the_scan_tool_is_resolved(
+    tmp_path, monkeypatch, capsys
+):
+    argv, _repos, _out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "OUTBEFORETOOLMARKER", _make_repo
+    )
+    outside_out = tmp_path / "outside" / "report.md"
+    argv[argv.index("--out") + 1] = str(outside_out)
+
+    resolver_calls = []
+
+    def _unresolvable():
+        resolver_calls.append(True)
+        raise RuntimeError("Could not resolve rg: not found on PATH")
+
+    monkeypatch.setattr(sweep, "resolve_rg", _unresolvable)
+
+    with pytest.raises(SystemExit) as exc_info:
+        sweep.main(argv)
+
+    assert exc_info.value.code == 1
+    assert resolver_calls == []
+    assert not outside_out.parent.exists()
+    message = capsys.readouterr().err
+    assert str(outside_out) in message
+    assert "Could not resolve" not in message
+
+
+def test_a_failed_control_search_exits_one(tmp_path, monkeypatch, capsys):
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text("unrelated control content\n")
+    argv, out_path = _zero_hit_argv(
+        tmp_path, monkeypatch, control_repo, "FAILEDSEARCHTERM"
+    )
+
+    original_run_rg = sweep._run_rg
+
+    def _fail_fixed_string_search(args, *rest, **kwargs):
+        if "-F" in args:
+            raise RuntimeError("rg failed: line one\nline two")
+        return original_run_rg(args, *rest, **kwargs)
+
+    monkeypatch.setattr(sweep, "_run_rg", _fail_fixed_string_search)
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 1
+    assert not out_path.exists()
+    assert not out_path.parent.exists()
+    err_lines = capsys.readouterr().err.strip().splitlines()
+    assert len(err_lines) == 1
+    assert "sweep unverified" in err_lines[0]
+    assert str(control_repo) in err_lines[0]
+
+
+def test_an_unscannable_control_repo_exits_one_and_writes_no_report(
+    tmp_path, monkeypatch, capsys
+):
+    control_repo = tmp_path / "control-does-not-exist"
+    argv, out_path = _zero_hit_argv(
+        tmp_path, monkeypatch, control_repo, "MISSINGCONTROLTERM"
+    )
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 1
+    assert not out_path.exists()
+    assert not out_path.parent.exists()
+    err_lines = capsys.readouterr().err.strip().splitlines()
+    assert len(err_lines) == 1
+    assert "could not be scanned" in err_lines[0]
+    assert str(control_repo) in err_lines[0]
+
+
+def test_a_missing_registry_exits_one_naming_the_path(
+    tmp_path, monkeypatch, capsys
+):
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "MISSINGREGISTRYMARKER", _make_repo
+    )
+    missing_registry = str(tmp_path / "no-such-repos.csv")
+    argv[argv.index("--registry") + 1] = missing_registry
+    out_path = repo_a / "reports" / "report.md"
+    argv[argv.index("--out") + 1] = str(out_path)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        sweep.enumerate_repos(missing_registry, repo_a)
+    assert str(exc_info.value) == f"registry not found: {missing_registry}"
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 1
+    assert not out_path.exists()
+    assert not out_path.parent.exists()
+    assert capsys.readouterr().err.strip() == f"registry not found: {missing_registry}"
