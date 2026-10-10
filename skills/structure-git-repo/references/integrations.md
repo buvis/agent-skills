@@ -46,6 +46,14 @@ the user to opt in:
   `DEVIATION` and no longer fails the gate, while the pasted JSON keeps the reason
   and the underlying failure evidence. The helper refuses a `--deviation` that
   names a passing or unknown check, so a waiver cannot hide a real defect.
+- For a repository that never adopted agent instructions (no AGENTS.md, so no
+  bridge concept applies), the bridge and `nonempty-AGENTS.md` checks are not a
+  gap to fix but out of scope. Mark them with
+  `check ... --not-applicable nonempty-AGENTS.md="<reason>" --not-applicable claude-imports-AGENTS.md="<reason>"`;
+  they record as `NOT-APPLICABLE`. This is opt-in and never inferred, so a bare
+  `check` still fails such a repository until a human or the model declares the
+  convention out of scope. Do not create an AGENTS.md just to satisfy the check:
+  introducing agent instructions is a separate authored decision.
 - Confirm instruction loading in the actual Claude session (for example, `/context`
   and its Memory files). Record version/settings and root/nested evidence separately.
   If no host probe is available, report that limitation; a structural PASS is not

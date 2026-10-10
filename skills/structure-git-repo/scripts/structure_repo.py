@@ -232,9 +232,15 @@ def check_repo(
     target: Path,
     git_dir: Path | None = None,
     deviations: dict[str, str] | None = None,
+    not_applicable: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     accepted = dict(deviations or {})
+    excused = dict(not_applicable or {})
+    both = sorted(set(accepted) & set(excused))
+    if both:
+        raise ValueError(f"A check cannot be both a deviation and not-applicable: {both}")
     applied: dict[str, str] = {}
+    skipped: dict[str, str] = {}
     checks: list[dict[str, Any]] = []
 
     def record(name: str, passed: bool, evidence: Any) -> None:
@@ -243,6 +249,10 @@ def check_repo(
             status = "DEVIATION"
             applied[name] = accepted[name]
             evidence = {"deviation_reason": accepted[name], "would_fail": evidence}
+        elif status == "FAIL" and name in excused:
+            status = "NOT-APPLICABLE"
+            skipped[name] = excused[name]
+            evidence = {"not_applicable_reason": excused[name], "would_fail": evidence}
         checks.append({"check": name, "status": status, "evidence": evidence})
 
     git = inspect_git(target, git_dir)
@@ -271,12 +281,19 @@ def check_repo(
         if path.exists() or path.is_symlink():
             valid = path.is_file() and (os.name == "nt" or os.access(path, os.X_OK))
             record(f"executable-tools/{name}", valid, inspect_path(path))
-    unused = sorted(set(accepted) - set(applied))
-    if unused:
+    unused_dev = sorted(set(accepted) - set(applied))
+    unused_na = sorted(set(excused) - set(skipped))
+    if unused_dev or unused_na:
         checked = sorted(c["check"] for c in checks)
+        parts = []
+        if unused_dev:
+            parts.append(f"deviations that did not apply: {unused_dev}")
+        if unused_na:
+            parts.append(f"not-applicable waivers that did not apply: {unused_na}")
         raise ValueError(
-            "Deviation names must match a check that fails without the waiver; "
-            f"these did not apply: {unused}. Observed checks: {checked}"
+            "A waiver must match a check that fails without it; "
+            + "; ".join(parts)
+            + f". Observed checks: {checked}"
         )
     gate_fail = any(c["status"] == "FAIL" for c in checks)
     return {
@@ -285,13 +302,19 @@ def check_repo(
         "structural_gate": "FAIL" if gate_fail else "PASS",
         "checks": checks,
         "deviations": applied,
+        "not_applicable": skipped,
         "limitations": [
             "Checks core docs, Git boundary, tracked scratch/runtime, known links and shim modes.",
             "Checks the root Claude bridge only; inspect maintained nested scopes separately.",
             "Import checks do not prove host loading under the session's settings/exclusions.",
             "No task/hook/release execution or approval/path-consumer validation.",
             "DEVIATION marks a FAIL waived under Fit; it does not fail the gate but is not a PASS.",
-            "COMPLETE still requires the mode reference's operational evidence.",
+            "NOT-APPLICABLE marks a FAIL the operator declared out of scope for this repo kind "
+            "(for example, no AGENTS.md so no bridge applies); it never auto-infers and must be "
+            "requested per check, so it cannot silently hide a defect.",
+            "A PASS gate is structural only: it is not evidence that hooks, releases, host "
+            "instruction loading or workflow recovery actually work. COMPLETE still requires the "
+            "mode reference's operational evidence.",
         ],
     }
 
@@ -409,6 +432,83 @@ def run_selftest() -> int:
             verify("reject deviation on a passing check", True)
         else:
             verify("reject deviation on a passing check", False)
+        # Not-applicable: a repo that never adopted the AGENTS.md convention.
+        no_agents = base / "no-agents"
+        no_agents.mkdir()
+        (no_agents / "README.md").write_text("# Infra\n\nGitOps cluster config.\n", encoding="utf-8")
+        read_git(no_agents, "init", "--quiet")
+        read_git(no_agents, "add", "--", "README.md")
+        verify(
+            "no-AGENTS repo fails the gate by default",
+            check_repo(no_agents)["structural_gate"] == "FAIL",
+        )
+        na = check_repo(
+            no_agents,
+            not_applicable={
+                "nonempty-AGENTS.md": "no agent-instructions convention here",
+                "claude-imports-AGENTS.md": "no AGENTS.md to import",
+            },
+        )
+        na_checks = {c["check"]: c for c in na["checks"]}
+        verify(
+            "declared not-applicable clears the gate",
+            na["structural_gate"] == "PASS"
+            and na_checks["nonempty-AGENTS.md"]["status"] == "NOT-APPLICABLE"
+            and na_checks["claude-imports-AGENTS.md"]["status"] == "NOT-APPLICABLE"
+            and set(na["not_applicable"]) == {"nonempty-AGENTS.md", "claude-imports-AGENTS.md"},
+        )
+        verify(
+            "not-applicable preserves the underlying failure evidence",
+            "would_fail" in na_checks["nonempty-AGENTS.md"]["evidence"]
+            and na_checks["nonempty-AGENTS.md"]["evidence"]["not_applicable_reason"]
+            == "no agent-instructions convention here",
+        )
+        # N/A must not hide a real defect: tracked scratch still fails even when
+        # the AGENTS.md checks are excused.
+        scratch = no_agents / "docs/dev/tmp/note.txt"
+        scratch.parent.mkdir(parents=True)
+        scratch.write_text("x\n", encoding="utf-8")
+        read_git(no_agents, "add", "--force", "--", "docs/dev/tmp/note.txt")
+        guarded = check_repo(
+            no_agents,
+            not_applicable={
+                "nonempty-AGENTS.md": "no convention",
+                "claude-imports-AGENTS.md": "no AGENTS.md",
+            },
+        )
+        verify(
+            "not-applicable cannot mask an unrelated FAIL",
+            guarded["structural_gate"] == "FAIL",
+        )
+        read_git(no_agents, "rm", "--cached", "--", "docs/dev/tmp/note.txt")
+        # A repo that DID adopt the convention cannot excuse its missing bridge as N/A
+        # on the bridge alone while AGENTS.md is present and the bridge is absent:
+        # that is still a real FAIL unless explicitly excused, which the operator may
+        # do, but excusing a passing/absent-reason check is refused.
+        try:
+            check_repo(
+                no_agents, not_applicable={"nonempty-README.md": "README is present and valid"}
+            )
+        except ValueError:
+            verify("reject not-applicable on a passing check", True)
+        else:
+            verify("reject not-applicable on a passing check", False)
+        try:
+            check_repo(no_agents, not_applicable={"nonexistent-check": "typo"})
+        except ValueError:
+            verify("reject not-applicable naming an unknown check", True)
+        else:
+            verify("reject not-applicable naming an unknown check", False)
+        try:
+            check_repo(
+                no_agents,
+                deviations={"claude-imports-AGENTS.md": "x"},
+                not_applicable={"claude-imports-AGENTS.md": "y"},
+            )
+        except ValueError:
+            verify("reject a check marked both deviation and not-applicable", True)
+        else:
+            verify("reject a check marked both deviation and not-applicable", False)
         for label, content in (
             ("prose", "Read AGENTS.md before working.\n"),
             ("inline code", "`@AGENTS.md`\n"),
@@ -554,6 +654,14 @@ def run_main() -> int:
                 metavar="CHECK=REASON",
                 help="waive one failing check as a Fit deviation; repeatable",
             )
+            command.add_argument(
+                "--not-applicable",
+                action="append",
+                default=[],
+                metavar="CHECK=REASON",
+                dest="not_applicable",
+                help="mark one failing check out of scope for this repo kind; repeatable",
+            )
         if name == "scaffold":
             command.add_argument("--name", required=True)
             command.add_argument("--purpose", required=True)
@@ -574,16 +682,21 @@ def run_main() -> int:
         if args.command == "inspect":
             result = inspect_repo(target, git_dir)
         elif args.command == "check":
-            deviations: dict[str, str] = {}
-            for item in getattr(args, "deviation", []):
-                key, sep, reason = item.partition("=")
-                key, reason = key.strip(), reason.strip()
-                if not sep or not key or not reason:
-                    raise ValueError(f"Use --deviation CHECK=REASON with a nonempty reason: {item}")
-                if key in deviations:
-                    raise ValueError(f"Duplicate deviation for check: {key}")
-                deviations[key] = reason
-            result = check_repo(target, git_dir, deviations)
+            def parse_waivers(items: list[str], label: str) -> dict[str, str]:
+                parsed: dict[str, str] = {}
+                for item in items:
+                    key, sep, reason = item.partition("=")
+                    key, reason = key.strip(), reason.strip()
+                    if not sep or not key or not reason:
+                        raise ValueError(f"Use --{label} CHECK=REASON with a nonempty reason: {item}")
+                    if key in parsed:
+                        raise ValueError(f"Duplicate {label} for check: {key}")
+                    parsed[key] = reason
+                return parsed
+
+            deviations = parse_waivers(getattr(args, "deviation", []), "deviation")
+            not_applicable = parse_waivers(getattr(args, "not_applicable", []), "not-applicable")
+            result = check_repo(target, git_dir, deviations, not_applicable)
         else:
             result = scaffold_repo(target, args.name, args.purpose, args.apply)
         print(json.dumps(result, indent=2, ensure_ascii=True))

@@ -64,8 +64,12 @@ For each group:
 
 Run the helper's check command and paste its
 output into the report. It checks the root import bridge and a
-small structural subset only. Separately record actual evidence for each applicable
-area, or an explicit not-applicable/blocked reason:
+small structural subset only, and a `PASS` gate is structural evidence only, not
+proof that hooks, releases, host loading or recovery work. Record a deliberate
+skip with `--deviation CHECK=REASON` (a part skipped on purpose) or
+`--not-applicable CHECK=REASON` (a part out of scope for this repository kind) so
+the pasted JSON carries the judgement. Separately record actual evidence for each
+applicable area, or an explicit not-applicable/blocked reason:
 
 - Fresh-clone setup, repeatable onboarding/sync, and linked-worktree execution with
   existing hooks preserved. Use disposable fixtures; do not create commits, install

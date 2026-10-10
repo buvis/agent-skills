@@ -50,11 +50,24 @@ Both hide the signal used to tune this standard per project kind.
 
 A deliberate deviation is a result, not a defect. It does not block `COMPLETE`,
 and a helper `FAIL` on a part left out on purpose is reported as a deviation.
-When you run the `check` command, pass each such part as
-`--deviation CHECK=REASON` so the pasted JSON records it as `DEVIATION` rather
-than a bare `FAIL`; the helper refuses a waiver that names a passing or unknown
-check. Fit governs layout choices only. The safety rules in the references
-(preserve work, fabricate no approvals, publish nothing unasked) hold regardless.
+Distinguish two kinds when you run `check`:
+
+- A part that *would* apply but you deliberately skip here (such as a native
+  plugin `CLAUDE.md`): pass `--deviation CHECK=REASON`. The JSON records it as
+  `DEVIATION`.
+- A part that does not apply to this repository kind at all (such as the
+  AGENTS.md bridge in a repository that never adopted agent instructions):
+  pass `--not-applicable CHECK=REASON`. The JSON records it as `NOT-APPLICABLE`.
+
+Both keep that check out of the gate while preserving the underlying evidence,
+and neither is a `PASS`. Both are opt-in: a bare `check` never infers them, so an
+unmarked repository that lost a file it should have still fails. The helper
+refuses a waiver that names a passing or unknown check, or the same check marked
+both ways, so a waiver can never mask a real defect. This makes a portfolio-wide
+`check` a readable signal: `FAIL` means an unaddressed gap, `DEVIATION`/`NOT-APPLICABLE`
+mean a recorded judgement, `PASS` means the structural subset holds. Fit governs
+layout choices only. The safety rules in the references (preserve work, fabricate
+no approvals, publish nothing unasked) hold regardless.
 
 ## Execute
 
@@ -84,8 +97,11 @@ check. Fit governs layout choices only. The safety rules in the references
    outside the selected repository.
 5. Run the bundled `check` command and the applicable validation described in the
    mode reference. Paste the helper's actual JSON result, then name operational
-   checks performed, unavailable capabilities and remaining migrations. Structural
-   PASS alone does not establish working hooks, releases, hosts or workflow recovery.
+   checks performed, unavailable capabilities and remaining migrations. A `PASS`
+   gate certifies only the structural subset; it is not evidence that hooks,
+   releases, host instruction loading or workflow recovery actually work. Record a
+   deliberate skip as `--deviation`/`--not-applicable` so the pasted JSON carries
+   the judgement instead of a bare `FAIL`.
 
 Use the installed helper through the shared discovery path. Scaffolding and checking
 include the root Claude bridge automatically:
@@ -94,6 +110,7 @@ include the root Claude bridge automatically:
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py inspect /path/to/repo
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo --deviation claude-imports-AGENTS.md="native plugin CLAUDE.md, no AGENTS.md owner"
+python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo --not-applicable nonempty-AGENTS.md="no agent-instructions convention" --not-applicable claude-imports-AGENTS.md="no AGENTS.md to import"
 ```
 
 When validating the skill installation itself, run the helper with `--selftest`;
