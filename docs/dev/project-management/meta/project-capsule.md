@@ -48,6 +48,7 @@ Updated: 2026-09-26T17:59Z (full catchup, PRD 00067 selection, same batch, local
 Updated: 2026-09-26T19:15Z (full catchup, PRD 00068 selection, same batch, local HEAD `a30de2d`; batch cache missed on HEAD only (last recorded `9921133`, 4 commits behind — PRD 00067's own task 2 plus its CHANGELOG/finalize). PRD 00067 finished 2/2 tasks at cycle 1 since the last pass, now in `done/` — batch has drained 28 PRDs. `git fetch origin master` **failed** again this pass with the same intermittent `sign_and_send_pubkey` SSH-agent error (RSA "buvis" refused) — ahead-count is against the stale cached ref: local `master` is 63 commits ahead of `origin/master`, 0 behind (grew from 59; still all unpushed, needs a human `git push`). GitHub state re-measured: same 6 open Renovate PRs (#5-#10), same 1 open issue (Dependency Dashboard, bookkeeping); master CI still `completed/failure`, still pinned to run 35569127166 at `f394bd5` (2026-09-21) with the same 4 known `PureWindowsPath` failures, no CI run for any of the 63 unpushed commits — 00068's target (`collect.py`'s `collect_branches`/`collect_local`, hoisting the duplicate `git rev-parse --abbrev-ref HEAD`) is unrelated to `spec.py`, expect the same 4 CI-only failures in any full-suite run and do not attribute them to 00068. `design: skip` per frontmatter (two-signature hoist, one additive counting test). engram: repo still unregistered (`engram index`/`harvest` both refuse `no_repo`, same gap as every prior pass); portfolio query for this session's topic (PRD 00068's title) returned 5 hits, all ≤0.0164, none about the redundant rev-parse hoist itself (nearest: a different repo's collector-feature PRD, plus two review files mentioning `rev-parse`/`collect_repo` subprocess handling in passing); `engram status --scope portfolio` unchanged in shape (memory stale=23/dead=1, prd stale=9/dead=61, code stale=48/dead=188). Working tree clean.)
 Updated: 2026-10-10 (full catchup, interactive batch 202610100952, PRD 00071 selection, HEAD 9a87317; Active Work, Related context, GitHub State and the dev/local invariant refreshed; task restore skipped)
 Updated: 2026-10-10 (full catchup, `catchup: force`, PRD 00071 build entry, HEAD 20d4d02; GitHub State re-measured, unchanged except a newer red Windows run at 5e07853 with the same 47 use-qwen failures)
+Updated: 2026-10-10 (full catchup, PRD 00072 selection, same batch, HEAD 3b6c1dd; GitHub State unchanged: 6 Renovate PRs, 1 issue, master CI red on Windows use-qwen harness tests (51 failed at b615fdb), unrelated to distil-memory; engram skipped, repo unregistered)
 
 ## Key Invariants
 
@@ -138,7 +139,10 @@ Updated: 2026-10-10 (full catchup, `catchup: force`, PRD 00071 build entry, HEAD
   recovery edit, new `docket.py unpublished`, null-`kind` guard, SKILL.md
   steps 5-7 rewrite. 5 items deferred (3 settled design re-raises, ledger
   size, `_save_queue` traceback -> 00077 territory).
-- [ ] 00072, 00073, 00075, 00076, 00077, 00079, 00080 (backlog)
+- [ ] 00072-distil-judge-no-persistence-v1.md — in wip: `judge()` gets
+  `--no-session-persistence` and the prompt on stdin; FakeClaudeCli and
+  test_funnel_main argv consumers migrate. `design: skip`.
+- [ ] 00073, 00075, 00076, 00077, 00079, 00080 (backlog)
 
   Observations: reviewers kept finding the same class (input faults escaping
   as tracebacks) across cycles 1-2; 00077 should sweep that class wholesale.
