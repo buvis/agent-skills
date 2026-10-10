@@ -187,10 +187,22 @@ def test_write_memory_returns_the_target_when_it_already_holds_the_same_text(sto
     assert [p.name for p in store_path.iterdir()] == ["widget-fact.md"]
 
 
-def test_write_memory_still_refuses_a_different_existing_file(store_path):
+@pytest.mark.parametrize(
+    "original",
+    [
+        pytest.param(
+            _file_text(name="widget-fact", description="what the store already holds"),
+            id="different-description",
+        ),
+        pytest.param(
+            _file_text(name="widget-fact", description="a different fact", body="An older body."),
+            id="same-description-different-body",
+        ),
+    ],
+)
+def test_write_memory_still_refuses_a_different_existing_file(store_path, original):
     store_path.mkdir()
     target = store_path / "widget-fact.md"
-    original = _file_text(name="widget-fact", description="what the store already holds")
     target.write_text(original)
     entry = _entry(
         name="widget-fact",
@@ -257,6 +269,72 @@ def test_append_pointer_new_appends_after_existing_lines_without_disturbing_them
 
     lines = (store_path / "MEMORY.md").read_text().splitlines()
     assert lines == [existing_line, line]
+
+
+# An update whose description differs, so its missing pointer goes the append
+# path exactly as a new entry's does.
+APPENDING_KINDS = [
+    pytest.param("new", None, id="new"),
+    pytest.param(
+        "update widget-fact",
+        _file_text(name="widget-fact", description="old description"),
+        id="update",
+    ),
+]
+
+
+@pytest.mark.parametrize(("kind", "existing_text"), APPENDING_KINDS)
+def test_append_pointer_appends_at_the_end_keeping_headings_prose_blank_lines_and_order(
+    store_path, kind, existing_text
+):
+    store_path.mkdir()
+    original = (
+        "# Memory index\n"
+        "\n"
+        "Some prose about this store.\n"
+        "- [Zebra](zebra.md) — sorts after widget\n"
+        "- [Apple](apple.md) — sorts before widget\n"
+    )
+    (store_path / "MEMORY.md").write_text(original)
+    entry = _entry(
+        name="widget-fact",
+        kind=kind,
+        file_text=_file_text(name="widget-fact", description="keeps facts about widgets straight"),
+        existing_text=existing_text,
+    )
+
+    line = write.append_pointer(store_path, entry)
+
+    assert line == "- [Widget fact](widget-fact.md) — keeps facts about widgets straight"
+    assert (store_path / "MEMORY.md").read_text() == original + line + "\n"
+
+
+@pytest.mark.parametrize(
+    ("kind", "existing_text"),
+    [
+        pytest.param("new", None, id="new"),
+        pytest.param(
+            "update widget", _file_text(name="widget", description="old description"), id="update"
+        ),
+    ],
+)
+def test_append_pointer_leaves_a_line_whose_stem_merely_contains_the_target_stem_alone(
+    store_path, kind, existing_text
+):
+    store_path.mkdir()
+    neighbour = "- [Widget fact](widget-fact.md) — keeps facts about widgets straight"
+    (store_path / "MEMORY.md").write_text(neighbour + "\n")
+    entry = _entry(
+        name="widget",
+        kind=kind,
+        file_text=_file_text(name="widget", description="a widget of its own"),
+        existing_text=existing_text,
+    )
+
+    line = write.append_pointer(store_path, entry)
+
+    assert line == "- [Widget](widget.md) — a widget of its own"
+    assert (store_path / "MEMORY.md").read_text().splitlines() == [neighbour, line]
 
 
 def test_append_pointer_new_replaces_a_stale_line_for_the_same_stem_in_place(store_path):
@@ -521,6 +599,12 @@ SPREAD_DESCRIPTIONS = [
         "keeps facts about widgets straight",
         id="leading-whitespace",
     ),
+    pytest.param(
+        "|\n  keeps  facts\n\n  about\twidgets",
+        "keeps  facts\n\nabout\twidgets\n",
+        "keeps facts about widgets",
+        id="block-scalar-with-runs-of-spaces-a-blank-line-and-a-tab",
+    ),
 ]
 
 
@@ -552,6 +636,11 @@ def test_a_description_that_is_not_one_trimmed_line_publishes_once_and_then_read
             "- [Widget fact](widget-fact.md) — keeps facts straight",
             ("Widget fact", "widget-fact", "keeps facts straight"),
             id="bullet-link",
+        ),
+        pytest.param(
+            "- [Cold start](cold-start-bad.md) — x",
+            ("Cold start", "cold-start-bad", "x"),
+            id="stem-ending-in-a-letter-of-the-suffix",
         ),
         pytest.param("# Memory index", None, id="heading"),
         pytest.param("- a plain bullet with no link", None, id="plain-bullet"),
@@ -599,6 +688,11 @@ def test_published_is_true_when_the_file_holds_the_text_and_the_index_points_at_
         pytest.param(
             PUBLISHED_TEXT, "- [Widget fact](widget-fact.md) — an older hook\n", id="stale-pointer"
         ),
+        pytest.param(
+            PUBLISHED_TEXT,
+            "- [Widget fact](widget-fact.md) — keeps facts about widgets straight and more\n",
+            id="stale-pointer-whose-hook-extends-the-current-one",
+        ),
     ],
 )
 def test_published_is_false_unless_both_the_file_and_a_current_pointer_are_in_place(
@@ -621,6 +715,32 @@ def test_published_raises_a_write_error_naming_the_file_it_cannot_read(store_pat
         write.published(entry, store_path)
 
     assert str(unreadable) in str(raised.value)
+
+
+def _update_named_other_name():
+    return _entry(
+        name="other-name",
+        kind="update widget-fact",
+        file_text=PUBLISHED_TEXT,
+        existing_text=_file_text(name="widget-fact", description="old description"),
+    )
+
+
+def test_published_checks_the_file_an_update_names_in_its_kind_not_its_name(store_path):
+    _seed_store(store_path, PUBLISHED_TEXT, CURRENT_POINTER)
+
+    assert write.published(_update_named_other_name(), store_path) is True
+
+
+def test_published_is_false_for_an_update_when_only_the_file_named_by_its_name_holds_the_text(
+    store_path,
+):
+    _seed_store(
+        store_path, None, "- [Other name](other-name.md) — keeps facts about widgets straight\n"
+    )
+    (store_path / "other-name.md").write_text(PUBLISHED_TEXT)
+
+    assert write.published(_update_named_other_name(), store_path) is False
 
 
 def test_write_error_is_a_value_error():
