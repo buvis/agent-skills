@@ -258,8 +258,16 @@ def _the_working_directory_queue_path(tmp_path):
 
 
 def _kept_in_the_working_directory_queue(name="old-name", file_text="original"):
-    docket.save([_proposal(transcript="t.jsonl", line_no=1, name=name, file_text=file_text)])
-    entry_id = docket.slice_key("t.jsonl", 1)
+    """Two kept entries; the second one (whose id is returned) is the one a
+    test re-decides, so an edit that lands on the first kept entry shows."""
+    docket.save(
+        [
+            _proposal(transcript="t.jsonl", line_no=1, name="bystander", file_text="bystander text"),
+            _proposal(transcript="t.jsonl", line_no=2, name=name, file_text=file_text),
+        ]
+    )
+    docket.decide(docket.slice_key("t.jsonl", 1), "kept")
+    entry_id = docket.slice_key("t.jsonl", 2)
     docket.decide(entry_id, "kept")
     return entry_id
 
@@ -281,6 +289,7 @@ def test_main_decide_name_flag_renames_an_undecided_entry_as_it_is_decided(tmp_p
 def test_decide_kept_again_with_name_and_file_replaces_both(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     entry_id = _kept_in_the_working_directory_queue(name="old-name", file_text="original")
+    bystander_before = docket.load()["entries"][0]
     replacement = tmp_path / "replacement.md"
     replacement.write_text("edited content")
     capsys.readouterr()
@@ -292,13 +301,15 @@ def test_decide_kept_again_with_name_and_file_replaces_both(tmp_path, monkeypatc
     assert exit_code == 0
     assert capsys.readouterr().err == ""
     data = docket.load()
-    assert len(data["entries"]) == 1
-    entry = data["entries"][0]
+    assert len(data["entries"]) == 2
+    assert data["entries"][0] == bystander_before
+    entry = data["entries"][1]
+    assert entry["id"] == entry_id
     assert entry["decision"] == "kept"
     assert entry["name"] == "new-name"
     assert entry["file_text"] == "edited content"
-    assert data["cursor"] == 1
-    assert data["session_decided"] == 1
+    assert data["cursor"] == 2
+    assert data["session_decided"] == 2
 
 
 def test_decide_kept_to_dropped_is_still_refused(tmp_path, monkeypatch, capsys):
@@ -316,13 +327,14 @@ def test_decide_kept_to_dropped_is_still_refused(tmp_path, monkeypatch, capsys):
     assert "Traceback" not in captured.err
     assert captured.out == ""
     assert queue_file.read_bytes() == before
-    assert docket.load()["entries"][0]["decision"] == "kept"
+    assert docket.load()["entries"][1]["decision"] == "kept"
 
 
 def test_main_decide_recovery_edit_reads_the_queue_once(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     entry_id = _kept_in_the_working_directory_queue(name="old-name")
     real_load = docket.load
+    bystander_before = real_load()["entries"][0]
     reads = []
 
     def _load_once_then_refuse_to_read(path=None):
@@ -338,7 +350,10 @@ def test_main_decide_recovery_edit_reads_the_queue_once(tmp_path, monkeypatch, c
     assert reads == [None]
     assert exit_code == 0
     assert capsys.readouterr().err == ""
-    assert real_load()["entries"][0]["name"] == "new-name"
+    entries = real_load()["entries"]
+    assert entries[0] == bystander_before
+    assert entries[1]["id"] == entry_id
+    assert entries[1]["name"] == "new-name"
 
 
 def test_main_decide_recovery_edit_with_an_unreadable_file_changes_nothing_and_returns_one(

@@ -241,13 +241,28 @@ def test_decide_raises_when_the_entry_is_already_decided(queue_path):
 
 
 def _decided_kept(queue_path, name="original-name", file_text="original"):
+    """Two kept entries; the second one (whose id is returned) is the one a
+    test re-decides, so an edit that lands on the first kept entry shows."""
     docket.save(
-        [_proposal(transcript="t.jsonl", line_no=1, name=name, file_text=file_text)],
+        [
+            _proposal(transcript="t.jsonl", line_no=1, name="bystander", file_text="bystander text"),
+            _proposal(transcript="t.jsonl", line_no=2, name=name, file_text=file_text),
+        ],
         path=queue_path,
     )
-    entry_id = docket.slice_key("t.jsonl", 1)
+    docket.decide(docket.slice_key("t.jsonl", 1), "kept", path=queue_path)
+    entry_id = docket.slice_key("t.jsonl", 2)
     docket.decide(entry_id, "kept", path=queue_path)
     return entry_id
+
+
+def _assert_only_the_target_changed(data, bystander_before, entry_id):
+    assert len(data["entries"]) == 2
+    assert data["entries"][0] == bystander_before
+    assert data["entries"][1]["id"] == entry_id
+    assert data["entries"][1]["decision"] == "kept"
+    assert data["cursor"] == 2
+    assert data["session_decided"] == 2
 
 
 def test_decide_with_a_name_on_an_undecided_entry_sets_the_name_and_counts_the_decision(
@@ -270,43 +285,38 @@ def test_decide_kept_on_a_kept_entry_edits_name_and_file_text_and_leaves_both_co
     queue_path,
 ):
     entry_id = _decided_kept(queue_path)
+    bystander_before = docket.load(path=queue_path)["entries"][0]
 
     docket.decide(entry_id, "kept", file_text="edited", path=queue_path, name="renamed")
 
     data = docket.load(path=queue_path)
-    assert len(data["entries"]) == 1
-    entry = data["entries"][0]
-    assert entry["decision"] == "kept"
-    assert entry["name"] == "renamed"
-    assert entry["file_text"] == "edited"
-    assert data["cursor"] == 1
-    assert data["session_decided"] == 1
+    _assert_only_the_target_changed(data, bystander_before, entry_id)
+    assert data["entries"][1]["name"] == "renamed"
+    assert data["entries"][1]["file_text"] == "edited"
 
 
 def test_decide_kept_on_a_kept_entry_with_only_a_name_leaves_its_file_text_untouched(queue_path):
     entry_id = _decided_kept(queue_path, file_text="original")
+    bystander_before = docket.load(path=queue_path)["entries"][0]
 
     docket.decide(entry_id, "kept", path=queue_path, name="renamed")
 
     data = docket.load(path=queue_path)
-    entry = data["entries"][0]
-    assert entry["name"] == "renamed"
-    assert entry["file_text"] == "original"
-    assert data["cursor"] == 1
-    assert data["session_decided"] == 1
+    _assert_only_the_target_changed(data, bystander_before, entry_id)
+    assert data["entries"][1]["name"] == "renamed"
+    assert data["entries"][1]["file_text"] == "original"
 
 
 def test_decide_kept_on_a_kept_entry_with_only_file_text_leaves_its_name_untouched(queue_path):
     entry_id = _decided_kept(queue_path, name="original-name")
+    bystander_before = docket.load(path=queue_path)["entries"][0]
 
     docket.decide(entry_id, "kept", file_text="edited", path=queue_path)
 
     data = docket.load(path=queue_path)
-    entry = data["entries"][0]
-    assert entry["name"] == "original-name"
-    assert entry["file_text"] == "edited"
-    assert data["cursor"] == 1
-    assert data["session_decided"] == 1
+    _assert_only_the_target_changed(data, bystander_before, entry_id)
+    assert data["entries"][1]["name"] == "original-name"
+    assert data["entries"][1]["file_text"] == "edited"
 
 
 _EDITS = {
