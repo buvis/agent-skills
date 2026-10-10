@@ -138,6 +138,86 @@ def test_main_write_reports_the_write_errors_message_to_stderr_and_returns_one_w
     assert (store_path / "widget-fact.md").read_text() == "original content"
 
 
+def test_main_write_reports_a_pointer_failure_to_stderr_and_returns_one_without_a_traceback(
+    tmp_path, store_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    store_path.mkdir()
+    entry = _entry(name="widget-fact", kind="new")
+
+    def fail_to_append(store, entry):
+        raise OSError("index disk is full")
+
+    monkeypatch.setattr(write, "append_pointer", fail_to_append)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    captured = capsys.readouterr()
+    assert "index disk is full" in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert list(store_path.iterdir()) == []
+
+
+def test_main_write_run_twice_with_the_same_new_entry_leaves_memory_and_index_bytes_identical(
+    tmp_path, store_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    store_path.mkdir()
+    entry = _entry(
+        name="widget-fact",
+        kind="new",
+        file_text=_file_text(name="widget-fact", description="keeps facts about widgets straight"),
+    )
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+    assert write.main(["write", "--store", str(store_path)]) == 0
+    capsys.readouterr()
+    memory_bytes = (store_path / "widget-fact.md").read_bytes()
+    index_bytes = (store_path / "MEMORY.md").read_bytes()
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    second = write.main(["write", "--store", str(store_path)])
+
+    assert second == 0
+    captured = capsys.readouterr()
+    assert captured.out.splitlines() == [str(store_path / "widget-fact.md"), "MEMORY.md: unchanged"]
+    assert (store_path / "widget-fact.md").read_bytes() == memory_bytes
+    assert (store_path / "MEMORY.md").read_bytes() == index_bytes
+    assert index_bytes.decode().count("widget-fact.md") == 1
+
+
+def test_main_write_recovers_a_missing_pointer_for_an_already_written_unchanged_description_update(
+    tmp_path, store_path, monkeypatch, capsys
+):
+    # a previous run wrote the update but never reached the index
+    monkeypatch.chdir(tmp_path)
+    store_path.mkdir()
+    old_text = _file_text(name="widget-fact", description="keeps facts about widgets straight")
+    new_text = _file_text(
+        name="widget-fact", description="keeps facts about widgets straight", body="Updated body."
+    )
+    (store_path / "widget-fact.md").write_text(new_text)
+    (store_path / "MEMORY.md").write_text("- [Something](something.md) — unrelated\n")
+    entry = _entry(
+        name="widget-fact", kind="update widget-fact", file_text=new_text, existing_text=old_text
+    )
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 0
+    pointer = "- [Widget fact](widget-fact.md) — keeps facts about widgets straight"
+    assert capsys.readouterr().out.splitlines() == [str(store_path / "widget-fact.md"), pointer]
+    assert (store_path / "MEMORY.md").read_text().splitlines() == [
+        "- [Something](something.md) — unrelated",
+        pointer,
+    ]
+    assert (store_path / "widget-fact.md").read_text() == new_text
+    assert write.published(entry, store_path) is True
+
+
 @pytest.mark.parametrize(
     ("malformed", "expected_message"),
     [
