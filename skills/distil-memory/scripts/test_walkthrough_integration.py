@@ -7,6 +7,8 @@ from pathlib import Path
 import docket
 import proposal
 import write
+from docket_test_helpers import make_proposal
+from write_test_helpers import _file_text
 
 import pytest
 
@@ -89,18 +91,6 @@ def _attempt_edit_then_publish(
     return _keep_and_publish(entry, queue_path, store_path, file_text=new_file_text)
 
 
-def _memory_text(name: str, description: str, body: str) -> str:
-    return (
-        "---\n"
-        f"name: {name}\n"
-        f"description: {description}\n"
-        "metadata:\n"
-        "  type: project\n"
-        "---\n\n"
-        f"{body}\n"
-    )
-
-
 def _session_store(tmp_path: Path) -> tuple[str, Path]:
     """A transcript path whose derived store (`<transcript dir>/memory`) is
     the returned store, so `docket.unpublished` attributes entries to it."""
@@ -108,18 +98,6 @@ def _session_store(tmp_path: Path) -> tuple[str, Path]:
     store = sessions / "memory"
     store.mkdir(parents=True)
     return str(sessions / "walkthrough.jsonl"), store
-
-
-def _proposal(transcript: str, line_no: int, name: str, file_text: str) -> dict:
-    return {
-        "name": name,
-        "kind": "new",
-        "transcript": transcript,
-        "line_no": line_no,
-        "evidence_text": f"evidence for line {line_no}",
-        "file_text": file_text,
-        "existing_text": None,
-    }
 
 
 def _queued(entry_id: str, queue_path: Path) -> dict:
@@ -130,10 +108,7 @@ def _queued(entry_id: str, queue_path: Path) -> dict:
 
 def _run_write(entry: dict, store: Path, monkeypatch: pytest.MonkeyPatch) -> int:
     monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(entry)))
-    try:
-        return write.main(["write", "--store", str(store)])
-    except SystemExit as exc:
-        return exc.code
+    return write.main(["write", "--store", str(store)])
 
 
 def test_collision_is_refused_then_rename_via_decide_kept_lets_the_second_memory_publish(
@@ -141,12 +116,22 @@ def test_collision_is_refused_then_rename_via_decide_kept_lets_the_second_memory
 ) -> None:
     queue_path = tmp_path / "queue.json"
     transcript, store = _session_store(tmp_path)
-    first_text = _memory_text("shared-memory", "the first claim", "First body.")
-    second_text = _memory_text("shared-memory", "the second claim", "Second body.")
+    first_text = _file_text(
+        name="shared-memory", description="the first claim", body="First body."
+    )
+    second_text = _file_text(
+        name="shared-memory", description="the second claim", body="Second body."
+    )
     docket.save(
         [
-            _proposal(transcript, 1, "shared-memory", first_text),
-            _proposal(transcript, 2, "shared-memory", second_text),
+            make_proposal(
+                transcript=transcript, line_no=1, name="shared-memory",
+                file_text=first_text,
+            ),
+            make_proposal(
+                transcript=transcript, line_no=2, name="shared-memory",
+                file_text=second_text,
+            ),
         ],
         path=queue_path,
     )
@@ -163,7 +148,9 @@ def test_collision_is_refused_then_rename_via_decide_kept_lets_the_second_memory
     assert docket.unpublished(store, path=queue_path) == [second["id"]]
 
     cursor_before = docket.cursor(path=queue_path)
-    renamed_text = _memory_text("shared-memory-two", "the second claim", "Second body.")
+    renamed_text = _file_text(
+        name="shared-memory-two", description="the second claim", body="Second body."
+    )
     docket.decide(
         second["id"], "kept", file_text=renamed_text, path=queue_path,
         name="shared-memory-two",
@@ -184,8 +171,18 @@ def test_pointer_failure_rolls_back_the_memory_and_a_rerun_publishes_it_fully(
 ) -> None:
     queue_path = tmp_path / "queue.json"
     transcript, store = _session_store(tmp_path)
-    text = _memory_text("pointer-retry-memory", "survives a pointer failure", "Body.")
-    docket.save([_proposal(transcript, 1, "pointer-retry-memory", text)], path=queue_path)
+    text = _file_text(
+        name="pointer-retry-memory", description="survives a pointer failure", body="Body."
+    )
+    docket.save(
+        [
+            make_proposal(
+                transcript=transcript, line_no=1, name="pointer-retry-memory",
+                file_text=text,
+            )
+        ],
+        path=queue_path,
+    )
     entry = _next_entry(queue_path)
     docket.decide(entry["id"], "kept", path=queue_path)
     kept = _queued(entry["id"], queue_path)
@@ -202,6 +199,42 @@ def test_pointer_failure_rolls_back_the_memory_and_a_rerun_publishes_it_fully(
     assert _run_write(kept, store, monkeypatch) == 0
     assert (store / "pointer-retry-memory.md").read_text() == text
     assert "pointer-retry-memory" in (store / "MEMORY.md").read_text()
+    assert docket.unpublished(store, path=queue_path) == []
+
+
+def test_a_rerun_of_a_new_entry_whose_memory_is_on_disk_without_a_pointer_adds_the_pointer_and_publishes_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    queue_path = tmp_path / "queue.json"
+    transcript, store = _session_store(tmp_path)
+    text = _file_text(
+        name="orphaned-memory", description="on disk without a pointer", body="Body."
+    )
+    docket.save(
+        [
+            make_proposal(
+                transcript=transcript, line_no=1, name="orphaned-memory",
+                file_text=text,
+            )
+        ],
+        path=queue_path,
+    )
+    entry = _next_entry(queue_path)
+    docket.decide(entry["id"], "kept", path=queue_path)
+    memory = store / "orphaned-memory.md"
+    memory.write_text(text)
+    (store / "MEMORY.md").write_text("- [other](other.md) - unrelated\n")
+    assert docket.unpublished(store, path=queue_path) == [entry["id"]]
+
+    assert _run_write(_queued(entry["id"], queue_path), store, monkeypatch) == 0
+
+    assert memory.read_text() == text
+    pointers = [
+        line
+        for line in (store / "MEMORY.md").read_text().splitlines()
+        if "orphaned-memory" in line
+    ]
+    assert len(pointers) == 1
     assert docket.unpublished(store, path=queue_path) == []
 
 
