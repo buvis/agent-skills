@@ -225,7 +225,9 @@ approval or rejection:
    ```
 
    This is a recovery edit. `decide` accepts it on an already-kept entry: it
-   replaces the entry's name and `file_text` and moves no counter. Set `name`
+   replaces the entry's name and `file_text` and moves no counter. `--name`
+   without `--file` is refused, so the entry's name cannot drift from the
+   name in its file. Set `name`
    and `file_text` in `entry.json` to the same values, then re-run
    `write.py write`.
 

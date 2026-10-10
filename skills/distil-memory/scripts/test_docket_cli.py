@@ -344,8 +344,10 @@ def test_main_decide_recovery_edit_reads_the_queue_once(tmp_path, monkeypatch, c
         return real_load(path=path)
 
     monkeypatch.setattr(docket, "load", _load_once_then_refuse_to_read)
+    note = tmp_path / "renamed.md"
+    note.write_text("renamed text")
 
-    exit_code = docket.main(["decide", entry_id, "kept", "--name", "new-name"])
+    exit_code = docket.main(["decide", entry_id, "kept", "--name", "new-name", "--file", str(note)])
 
     assert reads == [None]
     assert exit_code == 0

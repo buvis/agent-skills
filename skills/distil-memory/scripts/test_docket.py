@@ -295,18 +295,6 @@ def test_decide_kept_on_a_kept_entry_edits_name_and_file_text_and_leaves_both_co
     assert data["entries"][1]["file_text"] == "edited"
 
 
-def test_decide_kept_on_a_kept_entry_with_only_a_name_leaves_its_file_text_untouched(queue_path):
-    entry_id = _decided_kept(queue_path, file_text="original")
-    bystander_before = docket.load(path=queue_path)["entries"][0]
-
-    docket.decide(entry_id, "kept", path=queue_path, name="renamed")
-
-    data = docket.load(path=queue_path)
-    _assert_only_the_target_changed(data, bystander_before, entry_id)
-    assert data["entries"][1]["name"] == "renamed"
-    assert data["entries"][1]["file_text"] == "original"
-
-
 def test_decide_kept_on_a_kept_entry_with_only_file_text_leaves_its_name_untouched(queue_path):
     entry_id = _decided_kept(queue_path, name="original-name")
     bystander_before = docket.load(path=queue_path)["entries"][0]

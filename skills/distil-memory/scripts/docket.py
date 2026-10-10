@@ -7,9 +7,6 @@ import json
 import sys
 from pathlib import Path
 
-import proposal
-import write
-
 PER_RUN_CAP = 10  # walkthrough decisions per sitting; unbased guess, tune after first real run (PRD Risks)
 RUBRIC_VERSION = "1"  # bump by hand when distil.py's _DISTIL_PROMPT changes meaningfully; re-opens drops made under the old value
 
@@ -153,6 +150,8 @@ def decide(entry_id, state, file_text=None, path=None, data=None, *, name=None):
         data["session_decided"] = data.get("session_decided", 0) + 1
     elif state == "kept" and (file_text is not None or name is not None):
         entry = _find(data["entries"], entry_id, "kept")
+        if entry is not None and file_text is None:
+            raise QueueError(f"a name-only recovery edit of {entry_id!r} is refused: pass the note file too")
     if entry is None:
         raise QueueError(f"no undecided entry with id {entry_id!r}")
     if file_text is not None:
@@ -183,7 +182,12 @@ def advance(new_cursor=None, path=None):
     _save_queue(data, p)
 
 
-_ENVELOPE_FAULTS = (KeyError, TypeError, AttributeError, proposal.ProposalError)
+def _check_entry(index, entry):
+    label = repr(entry["id"]) if "id" in entry else f"at position {index}"
+    if "id" not in entry or "decision" not in entry:
+        raise QueueError(f"invalid review queue entry {label}: id and decision are required")
+    if entry["decision"] == "kept" and not isinstance(entry.get("transcript"), str):
+        raise QueueError(f"invalid review queue entry {label}: transcript must be a string")
 
 
 def unpublished(store, path=None) -> list[str]:
@@ -193,7 +197,13 @@ def unpublished(store, path=None) -> list[str]:
     Only the last kept entry for a target owns it. An entry whose envelope
     cannot be read is listed. Store and index read failures propagate.
     """
+    import proposal
+    import write
+
+    envelope_faults = (KeyError, TypeError, AttributeError, proposal.ProposalError)
     data = load(path=path)
+    for index, entry in enumerate(data["entries"]):
+        _check_entry(index, entry)
     store = Path(store)
     if (store / "MEMORY.md").exists():
         write._readable_bytes(store / "MEMORY.md")
@@ -206,7 +216,7 @@ def unpublished(store, path=None) -> list[str]:
             continue
         try:
             target = write._target_stem(entry)[0]
-        except _ENVELOPE_FAULTS:
+        except envelope_faults:
             target = ("unreadable envelope", entry["id"])
         owners.pop(target, None)
         owners[target] = entry
@@ -215,7 +225,7 @@ def unpublished(store, path=None) -> list[str]:
         try:
             if write.published(entry, store):
                 continue
-        except _ENVELOPE_FAULTS:
+        except envelope_faults:
             pass
         ids.append(entry["id"])
     return ids
@@ -316,6 +326,8 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             return 0
         elif args.command == "unpublished":
+            import write
+
             try:
                 ids = unpublished(args.store, path=args.queue)
             except (write.WriteError, OSError) as exc:
