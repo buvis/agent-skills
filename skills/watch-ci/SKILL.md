@@ -73,8 +73,10 @@ Timeout after 15 minutes. If still running, report status and stop polling.
 If `NTFY_URL` and `NTFY_TOPIC` are set in environment, send notification:
 
 ```bash
-curl -s -d "CI {conclusion} for {branch}" ${NTFY_URL}/${NTFY_TOPIC}
+curl -sS --fail-with-body --netrc-optional -d "CI {conclusion} for {branch}" ${NTFY_URL}/${NTFY_TOPIC}
 ```
+
+A protected server needs a `~/.netrc` entry for its host (`machine <host> login <user> password <password-or-token>`). If curl exits non-zero, report the HTTP error instead of claiming the notification was sent.
 
 ## Error Handling
 
