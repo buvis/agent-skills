@@ -1645,3 +1645,13 @@
 {"id":"ed47466b","ended_at":1791634957,"elapsed_s":82,"outcome":"ok","detail":null}
 {"id":"24a7314d","ended_at":1791635343,"elapsed_s":468,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1791643841,"phase":"review","prd":"00071-distil-publish-recovery-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1791643923,"phase":"review","prd":"00071-distil-publish-recovery-v1.md"}
+{"id":"ed47466b","ended_at":1791643941,"elapsed_s":null,"outcome":"ok","detail":"spans handoff; "}
+{"id":"24a7314d","ended_at":1791643941,"elapsed_s":null,"outcome":"ok","detail":"spans handoff; "}
+{"id":"36f8c1af","kind":"pat","task":"9","queued_at":1791644024,"prompt_bytes":10905}
+{"id":"36f8c1af","ended_at":1791644039,"elapsed_s":15,"outcome":"ok","detail":null}
+{"id":"dfd91684","kind":"pat","task":"11","queued_at":1791644127,"prompt_bytes":11039}
+{"id":"dfd91684","ended_at":1791644159,"elapsed_s":32,"outcome":"ok","detail":null}
+{"id":"2524b7cb","kind":"pat","task":"12","queued_at":1791644186,"prompt_bytes":7118}
+{"id":"2524b7cb","ended_at":1791644202,"elapsed_s":16,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1791644526,"phase":"review","prd":"00071-distil-publish-recovery-v1.md"}
