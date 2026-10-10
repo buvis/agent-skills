@@ -250,3 +250,29 @@ def test_main_write_reports_the_frontmatter_parse_failure_and_returns_one_leavin
     assert "Traceback" not in captured.err
     assert captured.out == ""
     assert list(store_path.iterdir()) == []
+
+
+def test_main_write_rejects_a_null_kind_and_returns_one_leaving_store_and_index_bytes_unchanged(
+    tmp_path, store_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    store_path.mkdir()
+    (store_path / "widget-fact.md").write_text(
+        _file_text(name="widget-fact", description="keeps facts about widgets straight")
+    )
+    (store_path / "MEMORY.md").write_text(
+        "- [Widget fact](widget-fact.md) — keeps facts about widgets straight\n"
+    )
+    before = {path.name: path.read_bytes() for path in store_path.iterdir()}
+    # a different name, so treating a null kind as "new" would write a file
+    entry = _entry(name="gadget-fact", kind=None)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    assert status == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert {path.name: path.read_bytes() for path in store_path.iterdir()} == before
