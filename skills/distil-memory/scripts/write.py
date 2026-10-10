@@ -206,7 +206,7 @@ def _read_entry() -> dict | None:
     """Parse the stdin entry; print the fault and return None when unusable."""
     try:
         entry = json.loads(sys.stdin.read())
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         print(f"stdin is not valid JSON: {exc}", file=sys.stderr)
         return None
     if not isinstance(entry, dict):
@@ -247,10 +247,11 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         try:
             line = append_pointer(store_path, entry)
-        except (OSError, WriteError, proposal.ProposalError, KeyError) as exc:
+        except (OSError, WriteError, proposal.ProposalError, KeyError, AttributeError) as exc:
             # the pointer line is built from frontmatter, so this step fails on
             # the entry as well as on the disk: file text carrying no
-            # description, an update whose existing_text will not parse, or an
+            # description, an update whose existing_text will not parse or is
+            # null (AttributeError from parse_frontmatter), or an
             # index this process cannot read (a WriteError naming it). The
             # memory file is already on disk by then, so the store has to go
             # back to the state this run found it in. MEMORY.md needs no

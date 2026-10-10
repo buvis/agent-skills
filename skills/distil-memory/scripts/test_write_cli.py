@@ -366,3 +366,32 @@ def test_main_write_refuses_a_json_envelope_that_is_not_an_object_and_returns_on
     status = write.main(["write", "--store", str(store_path)])
 
     _assert_refused_with_a_reason_and_store_untouched(status, capsys, tmp_path, before)
+
+
+def test_main_write_refuses_stdin_that_is_not_utf8_and_returns_one_with_a_reason(
+    tmp_path, store_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    _seed_store(store_path)
+    before = _tree_bytes(tmp_path)
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(b"\xff\xfe{}"), encoding="utf-8"))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    _assert_refused_with_a_reason_and_store_untouched(status, capsys, tmp_path, before)
+
+
+def test_main_write_rolls_back_an_update_whose_existing_text_is_null_and_returns_one_with_a_reason(
+    tmp_path, store_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    _seed_store(store_path)
+    before = _tree_bytes(tmp_path)
+    new_text = _file_text(name="widget-fact", description="a changed hook", body="New body.")
+    entry = _entry(name="widget-fact", kind="update widget-fact", file_text=new_text)
+    assert entry["existing_text"] is None
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    status = write.main(["write", "--store", str(store_path)])
+
+    _assert_refused_with_a_reason_and_store_untouched(status, capsys, tmp_path, before)
