@@ -1,6 +1,7 @@
 """Tests for sweep.py: main (CLI end-to-end)."""
 import re
 import time
+from pathlib import Path
 
 import pytest
 
@@ -544,6 +545,33 @@ def test_an_unresolvable_scan_tool_exits_one_and_writes_no_report(
     err_lines = capsys.readouterr().err.strip().splitlines()
     assert len(err_lines) == 1
     assert f"Could not resolve {tool_name}" in err_lines[0]
+    assert "not found on PATH" in err_lines[0]
+
+
+@pytest.mark.parametrize(
+    ("kind", "unneeded_resolver_name"),
+    [("rg", "resolve_ast_grep"), ("astgrep", "resolve_rg")],
+)
+def test_a_sweep_does_not_need_the_scan_tool_of_the_other_kind(
+    tmp_path, monkeypatch, kind, unneeded_resolver_name
+):
+    argv, repos, out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "OTHERTOOLMARKER", _make_repo
+    )
+    argv[argv.index("--kind") + 1] = kind
+    for repo in repos:
+        _plant_matches(repo, "OTHERTOOLMARKER", 1, ext=".py")
+
+    def _unresolvable():
+        raise RuntimeError("Could not resolve the other tool: not found on PATH")
+
+    monkeypatch.setattr(sweep, unneeded_resolver_name, _unresolvable)
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 0
+    assert out_path.exists()
+    assert "OTHERTOOLMARKER" in out_path.read_text()
 
 
 def test_an_invalid_out_is_refused_before_the_scan_tool_is_resolved(
@@ -599,6 +627,40 @@ def test_a_failed_control_search_exits_one(tmp_path, monkeypatch, capsys):
     err_lines = capsys.readouterr().err.strip().splitlines()
     assert len(err_lines) == 1
     assert "sweep unverified" in err_lines[0]
+    assert str(control_repo) in err_lines[0]
+    assert "line one line two" in err_lines[0]
+
+
+def test_a_control_repo_whose_pattern_scan_fails_exits_one_with_one_stderr_line(
+    tmp_path, monkeypatch, capsys
+):
+    # The control repo exists, but scanning it for the pattern blows up with
+    # multi-line error text. That is a failed control check, not "no hits",
+    # and the reason must reach stderr collapsed onto one line.
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text("unrelated control content\n")
+    argv, out_path = _zero_hit_argv(
+        tmp_path, monkeypatch, control_repo, "SCANFAILCONTROLTERM"
+    )
+
+    original_run_rg = sweep._run_rg
+
+    def _fail_control_pattern_scan(args, cwd, *rest, **kwargs):
+        if "-F" not in args and Path(cwd).resolve() == control_repo.resolve():
+            raise RuntimeError("rg failed: a\nb")
+        return original_run_rg(args, cwd, *rest, **kwargs)
+
+    monkeypatch.setattr(sweep, "_run_rg", _fail_control_pattern_scan)
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 1
+    assert not out_path.exists()
+    assert not out_path.parent.exists()
+    err_lines = capsys.readouterr().err.strip().splitlines()
+    assert len(err_lines) == 1
+    assert "could not be scanned" in err_lines[0]
     assert str(control_repo) in err_lines[0]
 
 

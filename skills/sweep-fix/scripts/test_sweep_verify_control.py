@@ -1,4 +1,6 @@
 """Tests for sweep.py: verify_control."""
+import subprocess
+
 import pytest
 
 import sweep
@@ -87,12 +89,52 @@ def test_verify_control_raises_when_the_fallback_check_cannot_run(tmp_path):
     assert str(control_repo) in message
 
 
-def test_verify_control_raises_one_line_error_when_control_term_search_fails(
+def test_verify_control_raises_one_line_error_when_the_control_pattern_scan_fails(
     tmp_path, monkeypatch
+):
+    # The control repo exists, but scanning it for the pattern blows up with
+    # multi-line error text. That must not read as "no hits"; the reason
+    # must be collapsed onto one line.
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text("unrelated content\n")
+
+    original_run_rg = sweep._run_rg
+
+    def _fail_pattern_scan(args, *rest, **kwargs):
+        if "-F" not in args:
+            raise RuntimeError("rg failed: a\nb")
+        return original_run_rg(args, *rest, **kwargs)
+
+    monkeypatch.setattr(sweep, "_run_rg", _fail_pattern_scan)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        sweep.verify_control(
+            "NOTPRESENTPATTERN", "rg", control_repo, "NOTPRESENTTERM"
+        )
+
+    message = str(exc_info.value)
+    assert "sweep unverified" in message
+    assert "could not be scanned" in message
+    assert str(control_repo) in message
+    assert "\n" not in message
+
+
+@pytest.mark.parametrize(
+    ("search_error", "collapsed_reason"),
+    [
+        (RuntimeError("rg failed: line one\nline two"), "line one line two"),
+        (subprocess.TimeoutExpired(["rg"], 30), "timed out after 30 seconds"),
+        (OSError("boom"), "boom"),
+    ],
+    ids=["runtime-error", "timeout", "os-error"],
+)
+def test_verify_control_raises_one_line_error_when_control_term_search_fails(
+    tmp_path, monkeypatch, search_error, collapsed_reason
 ):
     # The control repo exists and scans cleanly (zero hits for the pattern),
     # but the fixed-string search for the control term itself blows up.
-    # That must not be read as "control term absent".
+    # That must not be read as "control term absent", whatever it raised.
     control_repo = tmp_path / "control"
     control_repo.mkdir()
     (control_repo / "file.txt").write_text("unrelated content\n")
@@ -101,7 +143,7 @@ def test_verify_control_raises_one_line_error_when_control_term_search_fails(
 
     def _fail_fixed_string_search(args, *rest, **kwargs):
         if "-F" in args:
-            raise RuntimeError("rg failed: line one\nline two")
+            raise search_error
         return original_run_rg(args, *rest, **kwargs)
 
     monkeypatch.setattr(sweep, "_run_rg", _fail_fixed_string_search)
@@ -116,6 +158,7 @@ def test_verify_control_raises_one_line_error_when_control_term_search_fails(
     assert "could not search control term" in message
     assert "SEARCHFAILTERM" in message
     assert str(control_repo) in message
+    assert collapsed_reason in message
     assert "\n" not in message
 
 
