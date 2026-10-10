@@ -99,7 +99,7 @@ def test_main_normal_run_prints_and_writes_report_matching_render_yield_and_refl
     monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
 
     def fake_run(cmd, **kwargs):
-        prompt = cmd[-1]
+        prompt = kwargs["input"]
         if prompt.endswith("and confirmed that"):
             return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="transient", stderr="")
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="durable", stderr="")
@@ -215,7 +215,7 @@ def timed_out_judge(monkeypatch):
     sentinel = "SENTINEL-TRANSCRIPT-SLICE-9f3c1a-do-not-leak"
 
     def fake_run(cmd, **kwargs):
-        raise subprocess.TimeoutExpired(cmd=[*cmd[:-1], sentinel], timeout=120)
+        raise subprocess.TimeoutExpired(cmd=[*cmd, sentinel], timeout=120)
 
     monkeypatch.setattr(funnel.subprocess, "run", fake_run)
     return sentinel
@@ -278,7 +278,7 @@ def test_run_triage_returns_the_surviving_slices_with_a_matching_count_and_no_er
 
     def fake_run(cmd, **kwargs):
         judge_calls.append(cmd)
-        verdict = "transient" if cmd[-1].endswith(transient_slice.text) else "durable"
+        verdict = "transient" if kwargs["input"].endswith(transient_slice.text) else "durable"
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout=verdict, stderr="")
 
     monkeypatch.setattr(funnel.subprocess, "run", fake_run)
@@ -555,7 +555,7 @@ def test_main_with_distil_still_selects_transcripts_over_the_requested_days_and_
     assert exit_code == 0
     assert len(calls) == 1
     assert calls[0]["days"] == 90
-    assert len([cmd for cmd in judge_calls if cmd[3] == "haiku"]) == 1
+    assert len([cmd for cmd in judge_calls if cmd[cmd.index("--model") + 1] == "haiku"]) == 1
     captured = capsys.readouterr()
     assert "survivors: 1" in captured.out
     assert "survivors: n/a" not in captured.out

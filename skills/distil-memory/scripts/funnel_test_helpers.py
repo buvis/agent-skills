@@ -167,8 +167,8 @@ class FakeClaudeCli:
         self.classified = []
 
     def __call__(self, cmd, **kwargs):
-        prompt = cmd[-1]
-        if cmd[3] == "haiku":
+        prompt = kwargs["input"]
+        if cmd[cmd.index("--model") + 1] == "haiku":
             verdict = "transient" if prompt.endswith(self.transient_texts) else "durable"
             return _deliver(cmd, verdict)
         for text, answer in self.distil_answers.items():

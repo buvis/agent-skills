@@ -1,7 +1,9 @@
 """Tests for funnel.py's judgment path: judge()'s subprocess seam and
 triage()'s cheap-tier pass over a list of Slices."""
 
+import json
 import subprocess
+import sys
 from pathlib import Path
 
 import funnel
@@ -29,10 +31,36 @@ def test_judge_invokes_claude_cli_with_model_resolved_from_tier(monkeypatch, tie
 
     assert calls == [
         (
-            ["claude", "--print", "--model", expected_model, "prompt text"],
-            {"stdin": subprocess.DEVNULL, "capture_output": True, "text": True, "timeout": 120},
+            ["claude", "--print", "--no-session-persistence", "--model", expected_model],
+            {"input": "prompt text", "capture_output": True, "text": True, "timeout": 120},
         )
     ]
+
+
+def test_judge_sends_a_one_megabyte_prompt_on_stdin_intact(tmp_path, monkeypatch):
+    record = tmp_path / "record.json"
+    fake_claude = tmp_path / "fake_claude.py"
+    fake_claude.write_text(
+        "import json, sys\n"
+        "data = sys.stdin.read()\n"
+        f"with open({str(record)!r}, 'w', encoding='utf-8') as handle:\n"
+        "    json.dump({'stdin_length': len(data), 'argv': sys.argv[1:]}, handle)\n"
+        "print('durable')\n",
+        encoding="utf-8",
+    )
+    real_run = subprocess.run
+
+    def run_fake_claude(cmd, **kwargs):
+        assert cmd[0] == "claude"
+        return real_run([sys.executable, str(fake_claude), *cmd[1:]], **kwargs)
+
+    monkeypatch.setattr(funnel.subprocess, "run", run_fake_claude)
+
+    funnel.judge("x" * 1_000_000, "cheap")
+
+    recorded = json.loads(record.read_text(encoding="utf-8"))
+    assert recorded["stdin_length"] == 1_000_000
+    assert "--no-session-persistence" in recorded["argv"]
 
 
 def test_judge_returns_raw_stdout_from_successful_subprocess_run(monkeypatch):
