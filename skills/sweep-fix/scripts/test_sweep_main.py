@@ -1,4 +1,5 @@
 """Tests for sweep.py: main (CLI end-to-end)."""
+import datetime
 import re
 import time
 from pathlib import Path
@@ -704,3 +705,66 @@ def test_a_missing_registry_exits_one_naming_the_path(
     assert not out_path.exists()
     assert not out_path.parent.exists()
     assert capsys.readouterr().err.strip() == f"registry not found: {missing_registry}"
+
+
+# -- _resolve_report_path: same-day same-reason reports never overwrite -----
+
+
+_SAME_REASON = "Same Reason Twice"
+
+
+def _default_report_path(cwd_path, suffix=""):
+    """The default report path for `_SAME_REASON` today, with `suffix`
+    (e.g. "-2") inserted before `.md`."""
+    today = datetime.date.today().isoformat()
+    return (
+        cwd_path
+        / "docs" / "dev" / "project-management" / "audit-results"
+        / f"sweep-same-reason-twice-{today}{suffix}.md"
+    )
+
+
+def test_a_second_sweep_with_the_same_reason_on_the_same_day_gets_a_suffixed_report(
+    tmp_path,
+):
+    cwd_path = tmp_path.resolve()
+    first_report = _default_report_path(cwd_path)
+    first_report.parent.mkdir(parents=True)
+    first_report.write_text("first sweep report\n")
+
+    result = sweep._resolve_report_path(cwd_path, None, _SAME_REASON)
+
+    assert result.name.endswith("-2.md")
+    assert result == _default_report_path(cwd_path, "-2")
+    assert first_report.read_text() == "first sweep report\n"
+
+
+def test_a_third_sweep_with_the_same_reason_on_the_same_day_gets_the_next_free_suffix(
+    tmp_path,
+):
+    cwd_path = tmp_path.resolve()
+    first_report = _default_report_path(cwd_path)
+    first_report.parent.mkdir(parents=True)
+    first_report.write_text("first sweep report\n")
+    second_report = _default_report_path(cwd_path, "-2")
+    second_report.write_text("second sweep report\n")
+
+    result = sweep._resolve_report_path(cwd_path, "", _SAME_REASON)
+
+    assert result.name.endswith("-3.md")
+    assert result == _default_report_path(cwd_path, "-3")
+    assert first_report.read_text() == "first sweep report\n"
+    assert second_report.read_text() == "second sweep report\n"
+
+
+def test_an_explicit_out_naming_an_existing_report_is_returned_unsuffixed(tmp_path):
+    # The explicit --out points at the very file a default run would have
+    # suffixed around; as given, it must be honoured (and later overwritten).
+    cwd_path = tmp_path.resolve()
+    existing_report = _default_report_path(cwd_path)
+    existing_report.parent.mkdir(parents=True)
+    existing_report.write_text("earlier report\n")
+
+    result = sweep._resolve_report_path(cwd_path, str(existing_report), _SAME_REASON)
+
+    assert result == existing_report
