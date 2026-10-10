@@ -233,6 +233,129 @@ def test_decide_raises_when_the_entry_is_already_decided(queue_path):
         docket.decide(entry_id, "dropped", path=queue_path)
 
 
+# Re-deciding a kept entry. A kept entry can be edited again (its name, its
+# file_text, or both) by deciding it "kept" once more with at least one of
+# those given. That recovery edit is not a new decision, so neither counter
+# moves. Every other re-decision is refused with the same message as an
+# unknown id, and a refusal must leave the queue file byte-for-byte as it was.
+
+
+def _decided_kept(queue_path, name="original-name", file_text="original"):
+    docket.save(
+        [_proposal(transcript="t.jsonl", line_no=1, name=name, file_text=file_text)],
+        path=queue_path,
+    )
+    entry_id = docket.slice_key("t.jsonl", 1)
+    docket.decide(entry_id, "kept", path=queue_path)
+    return entry_id
+
+
+def test_decide_with_a_name_on_an_undecided_entry_sets_the_name_and_counts_the_decision(
+    queue_path,
+):
+    docket.save([_proposal(transcript="t.jsonl", line_no=1, name="old-name")], path=queue_path)
+    entry_id = docket.slice_key("t.jsonl", 1)
+
+    docket.decide(entry_id, "kept", path=queue_path, name="new-name")
+
+    data = docket.load(path=queue_path)
+    entry = data["entries"][0]
+    assert entry["decision"] == "kept"
+    assert entry["name"] == "new-name"
+    assert data["cursor"] == 1
+    assert data["session_decided"] == 1
+
+
+def test_decide_kept_on_a_kept_entry_edits_name_and_file_text_and_leaves_both_counters_unchanged(
+    queue_path,
+):
+    entry_id = _decided_kept(queue_path)
+
+    docket.decide(entry_id, "kept", file_text="edited", path=queue_path, name="renamed")
+
+    data = docket.load(path=queue_path)
+    assert len(data["entries"]) == 1
+    entry = data["entries"][0]
+    assert entry["decision"] == "kept"
+    assert entry["name"] == "renamed"
+    assert entry["file_text"] == "edited"
+    assert data["cursor"] == 1
+    assert data["session_decided"] == 1
+
+
+def test_decide_kept_on_a_kept_entry_with_only_a_name_leaves_its_file_text_untouched(queue_path):
+    entry_id = _decided_kept(queue_path, file_text="original")
+
+    docket.decide(entry_id, "kept", path=queue_path, name="renamed")
+
+    data = docket.load(path=queue_path)
+    entry = data["entries"][0]
+    assert entry["name"] == "renamed"
+    assert entry["file_text"] == "original"
+    assert data["cursor"] == 1
+    assert data["session_decided"] == 1
+
+
+def test_decide_kept_on_a_kept_entry_with_only_file_text_leaves_its_name_untouched(queue_path):
+    entry_id = _decided_kept(queue_path, name="original-name")
+
+    docket.decide(entry_id, "kept", file_text="edited", path=queue_path)
+
+    data = docket.load(path=queue_path)
+    entry = data["entries"][0]
+    assert entry["name"] == "original-name"
+    assert entry["file_text"] == "edited"
+    assert data["cursor"] == 1
+    assert data["session_decided"] == 1
+
+
+_EDITS = {
+    "no-edit": {},
+    "name-only": {"name": "renamed"},
+    "file-text-only": {"file_text": "edited"},
+    "name-and-file-text": {"name": "renamed", "file_text": "edited"},
+}
+
+
+@pytest.mark.parametrize("edit", list(_EDITS.values()), ids=list(_EDITS))
+def test_decide_dropped_on_a_kept_entry_is_refused_and_leaves_the_queue_file_untouched(
+    queue_path, edit
+):
+    entry_id = _decided_kept(queue_path)
+    before = queue_path.read_bytes()
+
+    with pytest.raises(docket.QueueError) as raised:
+        docket.decide(entry_id, "dropped", path=queue_path, **edit)
+
+    assert str(raised.value) == f"no undecided entry with id {entry_id!r}"
+    assert queue_path.read_bytes() == before
+
+
+def test_decide_kept_on_a_kept_entry_without_a_name_or_file_text_is_refused(queue_path):
+    entry_id = _decided_kept(queue_path)
+    before = queue_path.read_bytes()
+
+    with pytest.raises(docket.QueueError) as raised:
+        docket.decide(entry_id, "kept", path=queue_path)
+
+    assert str(raised.value) == f"no undecided entry with id {entry_id!r}"
+    assert queue_path.read_bytes() == before
+
+
+@pytest.mark.parametrize("state", ["kept", "dropped"])
+def test_decide_on_a_dropped_entry_is_refused_even_with_a_name_and_file_text(queue_path, state):
+    docket.save([_proposal(transcript="t.jsonl", line_no=1)], path=queue_path)
+    entry_id = docket.slice_key("t.jsonl", 1)
+    docket.decide(entry_id, "dropped", path=queue_path)
+    before = queue_path.read_bytes()
+
+    with pytest.raises(docket.QueueError) as raised:
+        docket.decide(entry_id, state, file_text="edited", path=queue_path, name="renamed")
+
+    assert str(raised.value) == f"no undecided entry with id {entry_id!r}"
+    assert queue_path.read_bytes() == before
+
+
 def test_cursor_starts_at_zero_for_a_new_queue(queue_path):
     assert docket.cursor(path=queue_path) == 0
 

@@ -248,6 +248,117 @@ def test_main_decide_reports_the_queue_errors_message_to_stderr_and_returns_one_
     assert captured.out == ""
 
 
+# decide --name, and re-deciding a kept entry with --name and/or --file (a
+# recovery edit). A recovery edit is not a new decision: the counters stay put.
+# Anything else on an already-decided entry stays a refusal, exit 1.
+
+
+def _the_working_directory_queue_path(tmp_path):
+    return tmp_path / "docs" / "dev" / "project-management" / "audit-results" / "distil-memory-queue.json"
+
+
+def _kept_in_the_working_directory_queue(name="old-name", file_text="original"):
+    docket.save([_proposal(transcript="t.jsonl", line_no=1, name=name, file_text=file_text)])
+    entry_id = docket.slice_key("t.jsonl", 1)
+    docket.decide(entry_id, "kept")
+    return entry_id
+
+
+def test_main_decide_name_flag_renames_an_undecided_entry_as_it_is_decided(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(transcript="t.jsonl", line_no=1, name="old-name")])
+    entry_id = docket.slice_key("t.jsonl", 1)
+
+    exit_code = docket.main(["decide", entry_id, "kept", "--name", "new-name"])
+
+    assert exit_code == 0
+    data = docket.load()
+    assert data["entries"][0]["decision"] == "kept"
+    assert data["entries"][0]["name"] == "new-name"
+    assert data["cursor"] == 1
+
+
+def test_decide_kept_again_with_name_and_file_replaces_both(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    entry_id = _kept_in_the_working_directory_queue(name="old-name", file_text="original")
+    replacement = tmp_path / "replacement.md"
+    replacement.write_text("edited content")
+    capsys.readouterr()
+
+    exit_code = docket.main(
+        ["decide", entry_id, "kept", "--name", "new-name", "--file", str(replacement)]
+    )
+
+    assert exit_code == 0
+    assert capsys.readouterr().err == ""
+    data = docket.load()
+    assert len(data["entries"]) == 1
+    entry = data["entries"][0]
+    assert entry["decision"] == "kept"
+    assert entry["name"] == "new-name"
+    assert entry["file_text"] == "edited content"
+    assert data["cursor"] == 1
+    assert data["session_decided"] == 1
+
+
+def test_decide_kept_to_dropped_is_still_refused(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    entry_id = _kept_in_the_working_directory_queue()
+    queue_file = _the_working_directory_queue_path(tmp_path)
+    before = queue_file.read_bytes()
+    capsys.readouterr()
+
+    exit_code = docket.main(["decide", entry_id, "dropped"])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert f"no undecided entry with id {entry_id!r}" in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert queue_file.read_bytes() == before
+    assert docket.load()["entries"][0]["decision"] == "kept"
+
+
+def test_main_decide_recovery_edit_reads_the_queue_once(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    entry_id = _kept_in_the_working_directory_queue(name="old-name")
+    real_load = docket.load
+    reads = []
+
+    def _load_once_then_refuse_to_read(path=None):
+        reads.append(path)
+        if len(reads) > 1:
+            raise docket.QueueError("the queue stopped being readable after the first read")
+        return real_load(path=path)
+
+    monkeypatch.setattr(docket, "load", _load_once_then_refuse_to_read)
+
+    exit_code = docket.main(["decide", entry_id, "kept", "--name", "new-name"])
+
+    assert reads == [None]
+    assert exit_code == 0
+    assert capsys.readouterr().err == ""
+    assert real_load()["entries"][0]["name"] == "new-name"
+
+
+def test_main_decide_recovery_edit_with_an_unreadable_file_changes_nothing_and_returns_one(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    entry_id = _kept_in_the_working_directory_queue(name="old-name")
+    queue_file = _the_working_directory_queue_path(tmp_path)
+    before = queue_file.read_bytes()
+    capsys.readouterr()
+
+    exit_code = docket.main(
+        ["decide", entry_id, "kept", "--name", "new-name", "--file", str(tmp_path / "missing.md")]
+    )
+
+    assert exit_code == 1
+    assert capsys.readouterr().err.strip() != ""
+    assert queue_file.read_bytes() == before
+
+
 def test_main_save_carries_a_records_dedup_error_into_the_stored_entry(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     proposals_dir = tmp_path / "proposals"
