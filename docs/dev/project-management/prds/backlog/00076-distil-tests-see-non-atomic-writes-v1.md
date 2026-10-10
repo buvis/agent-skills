@@ -18,7 +18,7 @@ passed all 29 crash-safety tests while destroying `MEMORY.md` on a crash one ins
 crash-safety test faults `Path.replace` so it raises INSTEAD of running, so no test ever observes the target
 after a move succeeds. Source: batch 202609050909 deferred ledger, PRD 00017 rows (`test-weakness` tasks 1 to
 4, `coverage-gap`, `review-deferral`); decided 2026-09-06 in the config-audit closure walkthrough
-(`~/.claude/dev/local/audit-results/2026-09-05.md`).
+(`~/.claude/docs/dev/project-management/audit-results/2026-09-05.md`).
 
 The other exploits that still pass, each with the assertion that closes it, as the lane named them:
 
@@ -36,6 +36,21 @@ The other exploits that still pass, each with the assertion that closes it, as t
    writes, so a load-then-`_save_queue` round trip passes and a refusal can revert a concurrent peer decision;
    nothing forbids `except BaseException`, so a `KeyboardInterrupt` swallowed into exit 1 passes; the `--file`
    read count is unpinned; the both-faults test pins which fault is reported, not which read happens first.
+
+Absorbed from PRD 00074 (merged by the 2026-10-10 backlog review; 00074 is parked in `hold/`), three
+leftovers from PRD 00009's review in the same suite. 00074's fourth item (exact exception types on the four
+`_raise_replace` crash-safety tests) already landed with PRD 00017 and is dropped.
+
+5. `test_walkthrough_integration.py` validates an edited proposal with `proposal.validate(candidate)` (line 86
+   at 2026-10-10) while its docstring models the documented step 6, which mandates
+   `proposal.validate_distil_output(proposal, index_has_names)` (`SKILL.md` step 6); an edit failing only the
+   distil-specific rules passes the test and is refused by the walkthrough.
+6. `test_docket_cli.py` `test_main_start_returns_zero` asserts only the exit code and cannot fail if `start`
+   stops calling `advance()`. `advance()` resets `session_decided` to 0 and leaves the lifetime `cursor` (and
+   every entry) untouched, so the observable effect is that `next` returns nothing on a capped queue before
+   `start` and returns the remaining undecided entry after it.
+7. `test_docket_cli.py` declares a `capsys` parameter it never reads in three tests (lines 251, 277 and 302 at
+   2026-10-10).
 
 ## Solution
 
@@ -62,16 +77,29 @@ task and say so in the commit body, never weaken the test.
 - Task 2: the fault hook writes an unrelated memory before raising and the test asserts that mutation survives
   rollback; a success-then-fault sequence in one process asserts the target holds run 1's bytes.
 - Task 3: a three-record batch with the MIDDLE sibling absent asserts the missing name is in stderr and the two
-  innocent filenames are not; a case with three or more readable records before the failure asserts
-  `entries == []`; the missing-directory case asserts `proposals.json` is not named.
+  innocent filenames are not; a partial-save probe with three or more readable records before an absent
+  sibling asserts `entries == []` and that `save()`/`_save_queue` is never called (record-shape refusals are
+  PRD 00077's, not repeated here); the missing-directory case asserts the stderr message names the missing
+  directory and not `proposals.json` (today `docket.py` names `<dir>/proposals.json`, so this needs the
+  minimal production fix the Solution allows).
 - Task 4: an empty `--file` writes `file_text == ""`; the refusal path asserts `_save_queue` is never called
   (monkeypatch) or `st_ino`/`st_mtime_ns` unchanged; `Path.read_text` raising `KeyboardInterrupt` propagates;
   the `--file` read happens exactly once (mirror `test_main_decide_reads_the_queue_once`); the both-faults test
   counts `load` calls and asserts none happened at the moment of refusal.
 - New tests go into a new module beside the existing ones; `test_write_crash_safety.py` sits at 658 lines
   (re-measure at execution time) and the 800-line file limit applies.
-- The seven index/entry-failure rollback tests in `test_write_crash_safety.py` share one parametrized helper
-  taking the entry and the expected pre/post bytes.
+- Every test in `test_write_crash_safety.py` that injects an index or entry failure and asserts the pre/post
+  bytes after a rollback shares one parametrized helper taking the entry and the expected pre/post bytes.
+  Premise: at 2026-10-10 these are the eight tests defined at lines 212, 260, 291, 340, 375, 412, 552 and 584;
+  re-list them by that rule at execution (PRD 00071 lands first and may add or move cases) and report the
+  final set in the commit body. Tests that assert no rollback happened (e.g. lines 452, 630) are out.
+- Absorbed item 5: the walkthrough test derives `index_has_names` from its temporary store and calls
+  `proposal.validate_distil_output`; a new case feeds a general-valid but distil-invalid edit (no wiki link
+  while the index is nonempty) and asserts no decision and no write occur.
+- Absorbed item 6: `test_main_start_returns_zero` builds a capped queue with one remaining undecided entry and
+  asserts `next` returns nothing before `start`, returns that entry after `start`, and `cursor` is unchanged.
+- Absorbed item 7: the three unused `capsys` parameters are removed; fixtures used elsewhere stay.
+- No existing test is renamed or deleted except where the parametrize helper above collapses cases.
 - The rollback-failure assertion binds intent, not phrasing: it asserts both errors are reported and no
   restoration is claimed, instead of `"rolled back" not in stderr`.
 
@@ -91,9 +119,14 @@ task and say so in the commit body, never weaken the test.
 - **Responsibility**: the batch-refusal and `decide --file` regressions (tasks 3 and 4); split if it nears 800 lines
 - **Exports**: the tests named in the tasks below
 
+### Module: existing suites (absorbed 00074 items)
+- **Location**: `skills/distil-memory/scripts/` (`test_write_crash_safety.py`, `test_walkthrough_integration.py`, `test_docket_cli.py`)
+- **Responsibility**: the parametrized rollback helper and the three absorbed intent bindings
+- **Exports**: the tests named in the tasks below
+
 ### Dependencies
 - PRD 00017 (done): the code under test.
-- PRD 00074 (backlog): touches the same crash-safety cases; run after it, or before it with 00074 rebased.
+- PRD 00071 (backlog, lower number): edits `write.py`, `docket.py` and the same suites first; re-ground by test name after it.
 - test_write_atomicity: depends on [write.py]
 - test_docket_refusals: depends on [docket.py]
 
@@ -114,8 +147,8 @@ task and say so in the commit body, never weaken the test.
 ### Phase 1: Core
 
 - [ ] Task-3 batch-refusal tests (depends on: nothing) - Acceptance: 0 failing with
-  `test_save_blames_only_the_absent_middle_sibling`, `test_save_refuses_the_whole_batch_after_readable_records`
-  and `test_save_missing_dir_does_not_name_proposals_json` present; a blame-the-last-record `except` and a partial `save()` on refusal each turn at least one test red.
+  `test_save_blames_only_the_absent_middle_sibling`, `test_save_never_partially_saves_after_three_readable_records`
+  and `test_save_missing_dir_names_the_directory_not_proposals_json` present; a blame-the-last-record `except` and a partial `save()` on refusal each turn at least one test red.
 - [ ] Task-4 `decide --file` tests (depends on: nothing) - Acceptance: 0 failing with
   `test_decide_accepts_an_empty_file`, `test_decide_refusal_never_calls_save_queue`,
   `test_decide_propagates_keyboard_interrupt`, `test_decide_reads_the_file_once` and
@@ -123,9 +156,15 @@ task and say so in the commit body, never weaken the test.
 
 ### Phase 2: Test hygiene
 
-- [ ] Parametrize the seven rollback tests and re-bind the rollback-failure assertion (depends on: Phase 0) -
-  Acceptance: 0 failing; the seven cases run from one helper; `rg -n '"rolled back" not in'
-  skills/distil-memory/scripts` prints nothing.
+- [ ] Parametrize the rollback tests selected by the Must-have rule and re-bind the rollback-failure assertion
+  (depends on: Phase 0) - Acceptance: 0 failing; every selected case runs from one helper and the commit body
+  lists them; `rg -n '"rolled back" not in' skills/distil-memory/scripts` prints nothing.
+- [ ] Bind the three absorbed 00074 tests (depends on: nothing) - Acceptance: 0 failing;
+  `rg -n "validate_distil_output" skills/distil-memory/scripts/test_walkthrough_integration.py` matches and the
+  general-valid/distil-invalid edit is neither decided nor written; `test_main_start_returns_zero` asserts
+  `next` is empty before `start`, returns the undecided entry after, and `cursor` is unchanged; the three unused
+  `capsys` parameters are gone; dropping the `advance()` call from `start` and swapping
+  `validate_distil_output` back to `validate` each turn at least one test red, recorded in the commit body.
 
 ## Success Criteria
 

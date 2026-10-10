@@ -34,13 +34,20 @@ _MODEL_FOR_TIER[tier]]` with the prompt supplied on stdin (`input=prompt`;
 documented for `--print` ("sessions will not be saved to disk") in
 `claude --help` on this machine, checked 2026-09-05.
 `test_judge_invokes_claude_cli_with_model_resolved_from_tier`
-(`test_funnel_triage.py` lines 19-33) pins today's argv and kwargs and is
+(`test_funnel_triage.py` lines 15-35) pins today's argv and kwargs and is
 updated to the new shape. Migrate FakeClaudeCli in funnel_test_helpers.py
-and the positional argv assumptions in test_funnel_main.py: read the prompt
+(reads `cmd[-1]` and `cmd[3]`) and the positional argv assumptions in
+test_funnel_main.py (lines 102, 218 - 00034's `[*cmd[:-1], sentinel]` -
+281 and 558 at 2026-10-10; re-locate by `rg -n "cmd\[" ` at execution): read the prompt
 from input and locate the model flag by name, preserving their behavioral
 assertions. Keep the 120-second judge bound and 00034's separate typing-timeout
-regression. A platform-runnable fake CLI proves the prompt arrives intact
-at one megabyte on Windows and POSIX.
+regression. A real child process proves the prompt arrives intact at one
+megabyte on Windows and POSIX: the test writes `fake_claude.py` under
+`tmp_path` and monkeypatches `funnel.subprocess.run` with a wrapper that
+replaces argv[0] (`"claude"`) with `[sys.executable, str(fake_claude)]` and
+calls the real `subprocess.run` with every other argument unchanged. No
+production change: `judge()` keeps the bare `"claude"`, and PATH resolution
+of the real binary stays out of this test's scope.
 
 ## Requirements
 
@@ -79,7 +86,7 @@ at one megabyte on Windows and POSIX.
 
 ### Phase 0: Foundation
 
-- [ ] Change the argv and stdin in `judge()` - Acceptance: `test_judge_invokes_claude_cli_with_model_resolved_from_tier` is updated to expect `["claude", "--print", "--no-session-persistence", "--model", expected_model]` with kwargs `{"input": "prompt text", "capture_output": True, "text": True, "timeout": 120}` and no `stdin` key; a new test `test_judge_sends_a_one_megabyte_prompt_on_stdin_intact` uses a native-runnable fake claude command on each CI platform (no extensionless POSIX-only launcher) that writes its stdin length and argv to a file, calls `judge("x" * 1_000_000, "cheap")`, and asserts the recorded length is 1000000 and `--no-session-persistence` is in the argv; shared FakeClaudeCli and main-test argv consumers are migrated, and their behavioral assertions plus 00034's timeout diagnostic pass; `uv run pytest skills/distil-memory/scripts -q` reports 0 failing.
+- [ ] Change the argv and stdin in `judge()` - Acceptance: `test_judge_invokes_claude_cli_with_model_resolved_from_tier` is updated to expect `["claude", "--print", "--no-session-persistence", "--model", expected_model]` with kwargs `{"input": "prompt text", "capture_output": True, "text": True, "timeout": 120}` and no `stdin` key; a new test `test_judge_sends_a_one_megabyte_prompt_on_stdin_intact` writes a `fake_claude.py` under `tmp_path` that records its stdin length and argv to a file, monkeypatches `funnel.subprocess.run` with a wrapper that swaps argv[0] for `[sys.executable, str(fake_claude)]` and delegates to the real `subprocess.run` (no shell, no executable bit, no platform skip), calls `judge("x" * 1_000_000, "cheap")`, and asserts the recorded length is 1000000 and `--no-session-persistence` is in the argv; shared FakeClaudeCli and main-test argv consumers are migrated, and their behavioral assertions plus 00034's timeout diagnostic pass; `uv run pytest skills/distil-memory/scripts -q` reports 0 failing.
 
 ### Phase 1: Core
 

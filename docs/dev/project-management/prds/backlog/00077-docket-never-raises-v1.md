@@ -15,9 +15,9 @@ followed it verbatim, so four routes still print a traceback where `SKILL.md:203
 and a stderr reason. A traceback with empty stdout reads to the walkthrough driver as "drained or capped", the
 misread PRD 00015 closed for corrupt queues. Source: batch 202609050909 deferred ledger, PRD 00017 rows
 (`out-of-contract` x2, `out-of-scope`, `settled-deferral`, `known-gap` tasks 3 and 4, `assumed-ambiguity`);
-decided 2026-09-06 in the config-audit closure walkthrough (`~/.claude/dev/local/audit-results/2026-09-05.md`).
+decided 2026-09-06 in the config-audit closure walkthrough (`~/.claude/docs/dev/project-management/audit-results/2026-09-05.md`).
 
-1. `_save_from_proposals_dir` (`docket.py:207` and `:218`) and the `decide --file` read (`docket.py:250`)
+1. `_save_from_proposals_dir` (reads at `docket.py:207` and `:218`, `except` at `:223`) and the `decide --file` read (`docket.py:250`)
    catch `(OSError, json.JSONDecodeError)`; a non-UTF-8 file raises `UnicodeDecodeError`, a `ValueError`,
    which escapes `main`. `docket.load()` (`docket.py:50`) already guards its own read with
    `(OSError, UnicodeDecodeError, json.JSONDecodeError)`, so the module's own idiom is wider than the PRD tuple.
@@ -36,7 +36,7 @@ Widen both read guards to `(OSError, ValueError)`: `ValueError` covers `UnicodeD
 `json.JSONDecodeError`, so the dead arm disappears with the gap. Validate the loaded batch shape in
 `_save_from_proposals_dir` before any sibling read or queue write: a non-list top level, a non-object record,
 or a record missing any of the six keys the reader indexes (`name`, `file`, `kind`, `transcript`, `line_no`,
-`evidence_text`, `docket.py:213-217`) exits 1 naming the fault and the record's position; the whole batch is
+`evidence_text`, `docket.py:210-217`) exits 1 naming the fault and the record's position; the whole batch is
 refused and nothing is saved. Guard the queue write where it is called, in the `save`, `decide` and `start`
 verbs (`start` calls `advance()` internally), mapping `OSError` to exit 1 with
 `cannot write the review queue <path>: <error>` on stderr, while `QueueError` keeps exit 2. `decide` keeps

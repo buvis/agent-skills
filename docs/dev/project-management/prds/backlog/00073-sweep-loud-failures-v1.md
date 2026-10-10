@@ -23,13 +23,13 @@ of PRD 00002, verified against HEAD on 2026-09-05:
    scans the registered repo and then scans the subdirectory again as a
    second, non-normalized root, and can report the repo root as a registry
    gap when it is not registered.
-3. `main`'s `except RuntimeError` (line 581) is dead: `scan` catches every
+3. `main`'s `except RuntimeError` (line 584) is dead: `scan` catches every
    exception per repo (lines 264 and 291), `verify_control` catches its own,
    and `enumerate_repos` never raises one.
 4. `enumerate_repos` opens the registry unguarded inside a list
    comprehension (line 142), so a missing `--registry` is a raw
    `FileNotFoundError` traceback.
-5. `_needs_yaml_quoting` (line 402, 43 lines) and `_yaml_scalar` (line 445)
+5. `_needs_yaml_quoting` (line 402, 34 lines, plus the `_YAML_SCALAR_ESCAPES` table to 444) and `_yaml_scalar` (line 445)
    reimplement YAML scalar quoting that `json.dumps` already provides (a JSON
    string is a valid YAML double-quoted scalar).
 6. `_resolve_report_path` (line 546) builds `sweep-<slug>-<date>.md` with no
@@ -100,7 +100,7 @@ root appears as a false registry gap while only the subdirectory is scanned.
 
 ### Module: tests
 
-- **Location**: `skills/sweep-fix/scripts/` (`test_sweep_main.py`, `test_sweep_scan.py`, `test_sweep_render_report.py`, `test_sweep_resolvers.py`)
+- **Location**: `skills/sweep-fix/scripts/` (`test_sweep_main.py`, `test_sweep_scan.py`, `test_sweep_render_report.py`, `test_sweep_resolvers.py`, `test_sweep_verify_control.py`, `test_sweep_enumerate.py`)
 - **Responsibility**: Pin each exit path and the YAML equivalence.
 - **Exports**: pytest cases
 
@@ -113,8 +113,8 @@ root appears as a false registry gap while only the subdirectory is scanned.
 
 ### Phase 0: Foundation
 
-- [ ] Hoist tool resolution into `main`, make `verify_control` raise on a failed control search or an unscannable control repo, and guard the registry open - Acceptance: new tests `test_an_unresolvable_scan_tool_exits_one_and_writes_no_report`, `test_a_failed_control_search_exits_one` and `test_a_missing_registry_exits_one_naming_the_path` (patch `sweep.resolve_rg` and `sweep._run_rg`, and pass a nonexistent registry) pass; an invalid-output-plus-missing-tool case proves output refusal wins; setup failures reach the diagnostic handler while per-repo scan isolation remains; `uv run pytest skills/sweep-fix/scripts -q` reports 0 failing.
-- [ ] Walk `cwd` up to its git root in `enumerate_repos` - Acceptance: a new test `test_a_subdirectory_cwd_resolves_to_its_repo_root_and_is_not_a_gap` builds a `tmp_path` repo with `.git` and a nested directory, calls `enumerate_repos(registry, nested)`, and asserts repos equals the expected registered root set, nested cwd is absent, the root is not a gap, and scanning sees a fixture file at the root outside the nested directory; `uv run pytest skills/sweep-fix/scripts -q` reports 0 failing.
+- [ ] Hoist tool resolution into `main`, make `verify_control` raise on a failed control search or an unscannable control repo, and guard the registry open - Acceptance: new tests `test_an_unresolvable_scan_tool_exits_one_and_writes_no_report`, `test_a_failed_control_search_exits_one` and `test_a_missing_registry_exits_one_naming_the_path` (patch `sweep.resolve_rg` and `sweep._run_rg`, and pass a nonexistent registry) pass; `test_verify_control_warns_to_stderr_when_fallback_check_cannot_run` in `test_sweep_verify_control.py` is rewritten and renamed `test_verify_control_raises_when_the_fallback_check_cannot_run`, expecting `RuntimeError` naming the control repo instead of `result is None` (premise: `rg -n "result is None" skills/sweep-fix/scripts/test_sweep_verify_control.py` matches inside that test, line 85 at 2026-10-10; the two other `result is None` asserts at lines 19 and 33 are success cases and stay; this rewrite is mandated by the reversed contract, not a weakened test; skip and report on a mismatch); an invalid-output-plus-missing-tool case proves output refusal wins; setup failures reach the diagnostic handler while per-repo scan isolation remains; `uv run pytest skills/sweep-fix/scripts -q` reports 0 failing.
+- [ ] Walk `cwd` up to its git root in `enumerate_repos` - Acceptance: a new test `test_a_subdirectory_cwd_resolves_to_its_repo_root_and_is_not_a_gap` builds a `tmp_path` repo with `.git` and a nested directory, calls `enumerate_repos(registry, nested)`, and asserts repos equals the expected registered root set, nested cwd is absent, the root is not a gap, and scanning sees a fixture file at the root outside the nested directory; the existing cwd append/dedup tests in `test_sweep_enumerate.py` (lines 67 and 82 at 2026-10-10) are updated to the walk-up semantics where they assume an exact-path cwd, keeping their names; `uv run pytest skills/sweep-fix/scripts -q` reports 0 failing.
 
 ### Phase 1: Core
 
@@ -124,7 +124,6 @@ root appears as a false registry gap while only the subdirectory is scanned.
 ## Success Criteria
 
 - Every new test passes and every existing sweep-fix test passes, including
-  `test_resolve_rg_exits_naming_both_candidates_when_neither_resolves`, whose
-  `RuntimeError` now reaches `main`'s handler.
+  `test_resolve_rg_exits_naming_both_candidates_when_neither_resolves`.
 - The batch's two live reproductions give an exit-1 message and a full repo
   scan respectively.

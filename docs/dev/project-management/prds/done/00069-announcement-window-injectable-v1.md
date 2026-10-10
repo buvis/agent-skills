@@ -6,6 +6,10 @@ design: skip
 
 # The smoke suite spends 2.2 of its 4.5 seconds sleeping through one announcement window
 
+> **Closed as superseded, 2026-10-10.** Never started. `af1b704` removed the whole brief-portfolio
+> skill (superseded by the postup gem, PRD 00070), so every file this PRD edits is gone. Closed by
+> the 2026-10-10 backlog review.
+
 ## Problem
 
 `skills/brief-portfolio/app/smoke.todos.status.test.js` line 204, `A newer status
