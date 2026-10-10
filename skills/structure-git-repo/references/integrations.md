@@ -33,14 +33,20 @@ the user to opt in:
   and a prose request to read AGENTS.md are insufficient evidence of an active import.
 - For every maintained nested AGENTS.md, create/preserve an
   adjacent CLAUDE.md import using the same rule. Inventory project-owned scopes;
-  exclude vendored content, generated trees and test fixtures. Preserve working
+  exclude disposable scratch (`docs/dev/tmp`, including worktrees under it),
+  vendored content, generated trees and test fixtures. Preserve working
   native instruction entry points while moving their shared prose. A root import
   loads the root file only; the root's explicit-reading fallback remains in place.
 - Run `check /path/to/repo`. It accepts a standalone `@AGENTS.md` or
   `@./AGENTS.md` line outside comments/code, or a direct symlink to that AGENTS.md.
   It fails on missing or ineffective root bridges and never rewrites existing files.
   Other valid import spellings need manual reconciliation to the supported shape.
-  Inspect each maintained nested bridge yourself; the helper does not scan them.
+  Pass `--nested` to scan every tracked maintained nested AGENTS.md scope and
+  report each as `claude-imports-AGENTS.md@<scope>`. Discovery is tracked-only, so
+  ignored/untracked scratch (such as disposable worktrees under `docs/dev/tmp`)
+  never appears; it also skips vendored/generated trees and fixtures. The scan is
+  report-only and never writes a nested bridge, so you still create or merge each
+  missing nested bridge yourself, applying the same import rule as the root.
   For a bridge waived as a Fit deviation (native-format CLAUDE.md), run
   `check ... --deviation claude-imports-AGENTS.md="<reason>"`. The check becomes
   `DEVIATION` and no longer fails the gate, while the pasted JSON keeps the reason

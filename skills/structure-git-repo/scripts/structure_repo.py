@@ -38,6 +38,19 @@ KNOWN_PATHS = (
     ".kiro/specs",
 )
 LIMIT = 100
+# Path segments whose subtree never holds a *maintained* nested AGENTS.md scope:
+# disposable scratch, vendored/generated trees, and test fixtures. Tracked-only
+# discovery already drops ignored/untracked scratch; this is a defensive second
+# layer for repositories that mistakenly track such content.
+NESTED_SCOPE_EXCLUDES = (
+    "docs/dev/tmp",
+    "node_modules",
+    "vendor",
+    "third_party",
+    ".venv",
+    "fixtures",
+    "testdata",
+)
 
 
 def run_git(
@@ -228,11 +241,38 @@ def check_claude_bridge(target: Path) -> tuple[bool, dict[str, Any]]:
     }
 
 
+def nested_agents_scopes(target: Path, git_dir: Path | None = None) -> list[str]:
+    """Tracked, maintained nested AGENTS.md directories relative to the root.
+
+    Discovery is tracked-only (``git ls-files``), so ignored/untracked scratch
+    such as disposable worktrees never appears. ``NESTED_SCOPE_EXCLUDES`` is a
+    defensive second layer for repositories that mistakenly track scratch,
+    vendored or fixture trees. The root AGENTS.md is excluded; it has its own
+    check.
+    """
+    listed = read_git(
+        target, "ls-files", "-z", "--", ":(top)**/AGENTS.md", ":(top)AGENTS.md", git_dir=git_dir
+    )
+    scopes: list[str] = []
+    for rel in sorted(set(listed.rstrip("\0").split("\0")) if listed else set()):
+        if not rel or rel == "AGENTS.md":
+            continue
+        parent = str(Path(rel).parent).replace(os.sep, "/")
+        segments = set(parent.split("/"))
+        if any(exclude in parent for exclude in NESTED_SCOPE_EXCLUDES) or (
+            segments & set(NESTED_SCOPE_EXCLUDES)
+        ):
+            continue
+        scopes.append(parent)
+    return scopes
+
+
 def check_repo(
     target: Path,
     git_dir: Path | None = None,
     deviations: dict[str, str] | None = None,
     not_applicable: dict[str, str] | None = None,
+    nested: bool = False,
 ) -> dict[str, Any]:
     accepted = dict(deviations or {})
     excused = dict(not_applicable or {})
@@ -263,6 +303,12 @@ def check_repo(
         record(f"nonempty-{name}", valid, inspect_path(path))
     valid, evidence = check_claude_bridge(target)
     record("claude-imports-AGENTS.md", valid, evidence)
+    scanned_scopes: list[str] = []
+    if nested and git["kind"] == "worktree":
+        scanned_scopes = nested_agents_scopes(target, git_dir)
+        for scope in scanned_scopes:
+            scope_valid, scope_evidence = check_claude_bridge(target / scope)
+            record(f"claude-imports-AGENTS.md@{scope}", scope_valid, scope_evidence)
     if git["kind"] == "worktree":
         for name in ("docs/dev/tmp", ".agents/autopilot/runtime"):
             tracked = read_git(
@@ -303,9 +349,14 @@ def check_repo(
         "checks": checks,
         "deviations": applied,
         "not_applicable": skipped,
+        "nested_scanned": nested,
+        "nested_scopes": scanned_scopes,
         "limitations": [
             "Checks core docs, Git boundary, tracked scratch/runtime, known links and shim modes.",
-            "Checks the root Claude bridge only; inspect maintained nested scopes separately.",
+            "Without --nested, checks the root Claude bridge only. With --nested, also checks each "
+            "tracked maintained nested AGENTS.md scope, excluding ignored/untracked scratch "
+            "(including docs/dev/tmp), vendored/generated trees and fixtures; it reports gaps and "
+            "never writes a nested bridge.",
             "Import checks do not prove host loading under the session's settings/exclusions.",
             "No task/hook/release execution or approval/path-consumer validation.",
             "DEVIATION marks a FAIL waived under Fit; it does not fail the gate but is not a PASS.",
@@ -509,6 +560,94 @@ def run_selftest() -> int:
             verify("reject a check marked both deviation and not-applicable", True)
         else:
             verify("reject a check marked both deviation and not-applicable", False)
+        # Nested-scope scan (--nested): discover maintained nested AGENTS.md,
+        # exclude scratch/untracked, report bridge gaps, write nothing.
+        nested_repo = base / "nested"
+        scaffold_repo(nested_repo, "Nested", "Exercise nested scopes.", True)
+        read_git(nested_repo, "init", "--quiet")
+        read_git(nested_repo, "add", "--", "README.md", "AGENTS.md", "CLAUDE.md")
+        # A maintained nested scope WITH a bridge.
+        good = nested_repo / "packages/api"
+        good.mkdir(parents=True)
+        (good / "AGENTS.md").write_text("# API\n\nScope instructions.\n", encoding="utf-8")
+        (good / "CLAUDE.md").write_text("@AGENTS.md\n", encoding="utf-8")
+        # A maintained nested scope WITHOUT a bridge.
+        bad = nested_repo / "packages/web"
+        bad.mkdir(parents=True)
+        (bad / "AGENTS.md").write_text("# Web\n\nScope instructions.\n", encoding="utf-8")
+        # A nested AGENTS.md under scratch: must be excluded even if tracked.
+        scratch_scope = nested_repo / "docs/dev/tmp/worktrees/wt1"
+        scratch_scope.mkdir(parents=True)
+        (scratch_scope / "AGENTS.md").write_text("# Scratch\n", encoding="utf-8")
+        read_git(
+            nested_repo,
+            "add",
+            "--",
+            "packages/api/AGENTS.md",
+            "packages/api/CLAUDE.md",
+            "packages/web/AGENTS.md",
+        )
+        read_git(nested_repo, "add", "--force", "--", "docs/dev/tmp/worktrees/wt1/AGENTS.md")
+        # An UNTRACKED nested AGENTS.md: must be excluded by tracked-only discovery.
+        untracked_scope = nested_repo / "packages/experimental"
+        untracked_scope.mkdir(parents=True)
+        (untracked_scope / "AGENTS.md").write_text("# Experimental\n", encoding="utf-8")
+        scopes = nested_agents_scopes(nested_repo)
+        verify(
+            "nested discovery finds maintained scopes only",
+            scopes == ["packages/api", "packages/web"],
+        )
+        default_run = check_repo(nested_repo)
+        verify(
+            "nested scopes ignored without --nested",
+            default_run["nested_scanned"] is False
+            and not any("@" in c["check"] for c in default_run["checks"]),
+        )
+        scanned = check_repo(nested_repo, nested=True)
+        scanned_checks = {c["check"]: c["status"] for c in scanned["checks"]}
+        verify(
+            "nested scan reports bridged scope PASS and unbridged scope FAIL",
+            scanned["nested_scanned"] is True
+            and scanned["nested_scopes"] == ["packages/api", "packages/web"]
+            and scanned_checks["claude-imports-AGENTS.md@packages/api"] == "PASS"
+            and scanned_checks["claude-imports-AGENTS.md@packages/web"] == "FAIL"
+            and scanned["structural_gate"] == "FAIL",
+        )
+        verify(
+            "nested scan excludes scratch and untracked scopes",
+            not any(
+                "docs/dev/tmp" in c or "experimental" in c
+                for c in scanned_checks
+                if "@" in c
+            ),
+        )
+        before_web = (bad / "AGENTS.md").read_bytes()
+        verify(
+            "nested scan writes no nested bridge",
+            not (bad / "CLAUDE.md").exists() and (bad / "AGENTS.md").read_bytes() == before_web,
+        )
+        # The fixture tracks a scratch AGENTS.md on purpose (to exercise segment
+        # exclusion), so untracked-docs/dev/tmp fails independently; waive it too
+        # to confirm nested waivers resolve and the gate then clears.
+        waived_nested = check_repo(
+            nested_repo,
+            nested=True,
+            not_applicable={
+                "claude-imports-AGENTS.md@packages/web": "web scope documented, bridge deferred",
+                "untracked-docs/dev/tmp": "fixture tracks scratch to test exclusion",
+            },
+        )
+        web_status = next(
+            c["status"]
+            for c in waived_nested["checks"]
+            if c["check"] == "claude-imports-AGENTS.md@packages/web"
+        )
+        verify(
+            "waivers apply to nested check names",
+            waived_nested["structural_gate"] == "PASS"
+            and web_status == "NOT-APPLICABLE"
+            and "claude-imports-AGENTS.md@packages/web" in waived_nested["not_applicable"],
+        )
         for label, content in (
             ("prose", "Read AGENTS.md before working.\n"),
             ("inline code", "`@AGENTS.md`\n"),
@@ -662,6 +801,11 @@ def run_main() -> int:
                 dest="not_applicable",
                 help="mark one failing check out of scope for this repo kind; repeatable",
             )
+            command.add_argument(
+                "--nested",
+                action="store_true",
+                help="also check the Claude bridge for each maintained nested AGENTS.md scope",
+            )
         if name == "scaffold":
             command.add_argument("--name", required=True)
             command.add_argument("--purpose", required=True)
@@ -696,7 +840,9 @@ def run_main() -> int:
 
             deviations = parse_waivers(getattr(args, "deviation", []), "deviation")
             not_applicable = parse_waivers(getattr(args, "not_applicable", []), "not-applicable")
-            result = check_repo(target, git_dir, deviations, not_applicable)
+            result = check_repo(
+                target, git_dir, deviations, not_applicable, getattr(args, "nested", False)
+            )
         else:
             result = scaffold_repo(target, args.name, args.purpose, args.apply)
         print(json.dumps(result, indent=2, ensure_ascii=True))

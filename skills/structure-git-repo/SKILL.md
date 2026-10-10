@@ -96,7 +96,11 @@ no approvals, publish nothing unasked) hold regardless.
    whole-structure misfit, conflicting ownership, destructive replacement or work
    outside the selected repository.
 5. Run the bundled `check` command and the applicable validation described in the
-   mode reference. Paste the helper's actual JSON result, then name operational
+   mode reference. Pass `--nested` to also verify the Claude bridge for every
+   tracked maintained nested AGENTS.md scope; it excludes ignored/untracked scratch
+   (including `docs/dev/tmp`), vendored/generated trees and fixtures, reports each
+   gap as `claude-imports-AGENTS.md@<scope>`, and never writes a nested bridge.
+   Paste the helper's actual JSON result, then name operational
    checks performed, unavailable capabilities and remaining migrations. A `PASS`
    gate certifies only the structural subset; it is not evidence that hooks,
    releases, host instruction loading or workflow recovery actually work. Record a
@@ -111,6 +115,7 @@ python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py inspect /p
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo --deviation claude-imports-AGENTS.md="native plugin CLAUDE.md, no AGENTS.md owner"
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo --not-applicable nonempty-AGENTS.md="no agent-instructions convention" --not-applicable claude-imports-AGENTS.md="no AGENTS.md to import"
+python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo --nested
 ```
 
 When validating the skill installation itself, run the helper with `--selftest`;
