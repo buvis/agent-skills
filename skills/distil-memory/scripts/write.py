@@ -202,17 +202,25 @@ def _parse_args(argv):
     return parser.parse_args(argv)
 
 
+def _read_entry() -> dict | None:
+    """Parse the stdin entry; print the fault and return None when unusable."""
+    try:
+        entry = json.loads(sys.stdin.read())
+    except json.JSONDecodeError as exc:
+        print(f"stdin is not valid JSON: {exc}", file=sys.stderr)
+        return None
+    if not isinstance(entry, dict):
+        print("stdin JSON is not an object", file=sys.stderr)
+        return None
+    return entry
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.command == "write":
-        try:
-            entry = json.loads(sys.stdin.read())
-        except json.JSONDecodeError as exc:
-            print(f"stdin is not valid JSON: {exc}", file=sys.stderr)
-            return 1
-        if not isinstance(entry, dict):
-            print("stdin JSON is not an object", file=sys.stderr)
+        entry = _read_entry()
+        if entry is None:
             return 1
         store_path = Path(args.store)
         try:
