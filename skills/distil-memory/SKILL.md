@@ -285,9 +285,14 @@ approval or rejection:
 
    - Exit 0 with no output: nothing in that store is unpublished.
    - Exit 1 with ids on stdout (one per line, in queue order): those kept
-     entries are not fully published. Show the user each listed entry: its
-     id, its target name, and why (file missing, text differs, or pointer
-     missing). Ask, per entry, whether to publish it now. A memory the user
+     entries are not fully published. `unpublished` prints ids only, so
+     work out the reason yourself: the target is `<store-path>/<name>.md`,
+     where `<name>` is the name after `update ` in the entry's `kind`, or
+     the entry's `name` for a new one. Read that file and `MEMORY.md`: the
+     file is missing, its text differs from the entry's `file_text`, or no
+     `MEMORY.md` line links `<name>.md` with the entry's description. Show
+     the user each listed entry: its id, its target name, and that reason.
+     Ask, per entry, whether to publish it now. A memory the user
      deleted or hand-edited on purpose is declined, not restored. For each
      confirmed id, rebuild `entry.json` from that queue entry:
 
