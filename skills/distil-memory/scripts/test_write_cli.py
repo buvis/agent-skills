@@ -6,6 +6,7 @@ import json
 import sys
 
 import docket
+import proposal
 import write
 
 import pytest
@@ -252,27 +253,51 @@ def test_main_write_reports_the_frontmatter_parse_failure_and_returns_one_leavin
     assert list(store_path.iterdir()) == []
 
 
-def test_main_write_rejects_a_null_kind_and_returns_one_leaving_store_and_index_bytes_unchanged(
-    tmp_path, store_path, monkeypatch, capsys
+def _tree_bytes(root):
+    """Every path under `root`, mapped to its bytes (None for a directory)."""
+    return {
+        str(path.relative_to(root)): None if path.is_dir() else path.read_bytes()
+        for path in root.rglob("*")
+    }
+
+
+def _refuse_disk_change(*args, **kwargs):
+    pytest.fail("the store was written to before the entry was refused")
+
+
+@pytest.mark.parametrize("kind", [None, 42, [], {}], ids=["null", "int", "list", "dict"])
+@pytest.mark.parametrize("name", ["widget-fact", "gadget-fact"])
+@pytest.mark.parametrize("seeded", [True, False], ids=["seeded-store", "empty-store"])
+def test_main_write_refuses_a_kind_that_is_not_a_string_and_returns_one_without_touching_disk(
+    tmp_path, store_path, monkeypatch, capsys, kind, name, seeded
 ):
     monkeypatch.chdir(tmp_path)
     store_path.mkdir()
-    (store_path / "widget-fact.md").write_text(
-        _file_text(name="widget-fact", description="keeps facts about widgets straight")
-    )
-    (store_path / "MEMORY.md").write_text(
-        "- [Widget fact](widget-fact.md) — keeps facts about widgets straight\n"
-    )
-    before = {path.name: path.read_bytes() for path in store_path.iterdir()}
-    # a different name, so treating a null kind as "new" would write a file
-    entry = _entry(name="gadget-fact", kind=None)
+    if seeded:
+        (store_path / "widget-fact.md").write_text(
+            _file_text(name="widget-fact", description="keeps facts about widgets straight")
+        )
+        (store_path / "MEMORY.md").write_text(
+            "- [Widget fact](widget-fact.md) — keeps facts about widgets straight\n"
+        )
+    before = _tree_bytes(tmp_path)
+    try:
+        proposal.updated_name(kind)
+    except AttributeError as exc:
+        expected_message = str(exc)
+    else:
+        pytest.fail(f"expected proposal.updated_name to raise AttributeError for {kind!r}")
+    for method in ("write_text", "write_bytes", "replace", "unlink"):
+        monkeypatch.setattr(write.Path, method, _refuse_disk_change)
+    entry = _entry(name=name, kind=kind)
     monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
 
     status = write.main(["write", "--store", str(store_path)])
 
     assert status == 1
     captured = capsys.readouterr()
-    assert captured.err.strip() != ""
+    assert expected_message in captured.err
     assert "Traceback" not in captured.err
     assert captured.out == ""
-    assert {path.name: path.read_bytes() for path in store_path.iterdir()} == before
+    monkeypatch.undo()
+    assert _tree_bytes(tmp_path) == before
