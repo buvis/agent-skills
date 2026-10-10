@@ -211,6 +211,29 @@ def scaffold_repo(target: Path, name: str, purpose: str, apply: bool) -> dict[st
     }
 
 
+def has_standalone_import(text: str, target_pattern: str = r"@(?:\./)?[^\s/]+") -> bool:
+    """True if an import line (``@target``) sits on its own outside comments/code.
+
+    ``target_pattern`` defaults to any single-token import; pass a specific
+    pattern (such as ``@(?:\\./)?AGENTS\\.md``) to require a particular target.
+    """
+    stripped = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+    fence = ""
+    for line in stripped.splitlines():
+        if fence:
+            if re.fullmatch(
+                r" {0,3}" + re.escape(fence[0]) + "{" + str(len(fence)) + r",}\s*", line
+            ):
+                fence = ""
+            continue
+        match = re.match(r" {0,3}(`{3,}|~{3,})", line)
+        if match:
+            fence = match.group(1)
+        elif re.fullmatch(r" {0,3}" + target_pattern + r"[ \t]*", line):
+            return True
+    return False
+
+
 def check_claude_bridge(target: Path) -> tuple[bool, dict[str, Any]]:
     """Recognize an adjacent import or direct symlink; do not simulate host loading."""
     bridge = target / "CLAUDE.md"
@@ -221,20 +244,8 @@ def check_claude_bridge(target: Path) -> tuple[bool, dict[str, Any]]:
     if bridge.is_symlink():
         valid = bridge.resolve() == agents.resolve()
         return valid, {**evidence, "imports_adjacent_agents": valid}
-    text = re.sub(r"<!--.*?-->", "", bridge.read_text(encoding="utf-8"), flags=re.DOTALL)
-    fence = ""
-    for line in text.splitlines():
-        if fence:
-            if re.fullmatch(
-                r" {0,3}" + re.escape(fence[0]) + "{" + str(len(fence)) + r",}\s*", line
-            ):
-                fence = ""
-            continue
-        match = re.match(r" {0,3}(`{3,}|~{3,})", line)
-        if match:
-            fence = match.group(1)
-        elif re.fullmatch(r" {0,3}@(?:\./)?AGENTS\.md[ \t]*", line):
-            return True, {**evidence, "imports_adjacent_agents": True}
+    if has_standalone_import(bridge.read_text(encoding="utf-8"), r"@(?:\./)?AGENTS\.md"):
+        return True, {**evidence, "imports_adjacent_agents": True}
     return False, {
         **evidence,
         "reason": "Add @AGENTS.md on its own line outside comments/code; preserve other content",
@@ -248,7 +259,9 @@ def nested_agents_scopes(target: Path, git_dir: Path | None = None) -> list[str]
     such as disposable worktrees never appears. ``NESTED_SCOPE_EXCLUDES`` is a
     defensive second layer for repositories that mistakenly track scratch,
     vendored or fixture trees. The root AGENTS.md is excluded; it has its own
-    check.
+    check. A nested AGENTS.md that is a symlink, or is itself a pointer whose only
+    directive is an ``@import`` line, is not an authored instruction scope and
+    needs no adjacent bridge, so it is skipped.
     """
     listed = read_git(
         target, "ls-files", "-z", "--", ":(top)**/AGENTS.md", ":(top)AGENTS.md", git_dir=git_dir
@@ -263,6 +276,20 @@ def nested_agents_scopes(target: Path, git_dir: Path | None = None) -> list[str]
             segments & set(NESTED_SCOPE_EXCLUDES)
         ):
             continue
+        agents_path = target / rel
+        if agents_path.is_symlink():
+            continue
+        try:
+            body = agents_path.read_text(encoding="utf-8", errors="surrogateescape")
+        except OSError:
+            continue
+        # A pointer-only AGENTS.md (just an @import, with no authored prose beyond
+        # comments/blank lines) delegates upward and owns no scope of its own.
+        if has_standalone_import(body):
+            residue = re.sub(r"<!--.*?-->", "", body, flags=re.DOTALL)
+            residue = re.sub(r" {0,3}@(?:\./)?[^\s/]+[ \t]*$", "", residue, flags=re.MULTILINE)
+            if not residue.strip():
+                continue
         scopes.append(parent)
     return scopes
 
@@ -592,11 +619,40 @@ def run_selftest() -> int:
         untracked_scope = nested_repo / "packages/experimental"
         untracked_scope.mkdir(parents=True)
         (untracked_scope / "AGENTS.md").write_text("# Experimental\n", encoding="utf-8")
+        # A pointer-only nested AGENTS.md (just an @import + a comment): delegates
+        # upward, owns no scope, needs no bridge.
+        pointer_scope = nested_repo / "packages/pointer"
+        pointer_scope.mkdir(parents=True)
+        (pointer_scope / "AGENTS.md").write_text(
+            "@AGENTS.md\n\n<!-- pointer only; edit the root -->\n", encoding="utf-8"
+        )
+        read_git(nested_repo, "add", "--", "packages/pointer/AGENTS.md")
+        # A pointer that also carries authored prose IS a scope and must be kept.
+        hybrid_scope = nested_repo / "packages/hybrid"
+        hybrid_scope.mkdir(parents=True)
+        (hybrid_scope / "AGENTS.md").write_text(
+            "@AGENTS.md\n\nExtra scope-specific rules live here.\n", encoding="utf-8"
+        )
+        read_git(nested_repo, "add", "--", "packages/hybrid/AGENTS.md")
         scopes = nested_agents_scopes(nested_repo)
         verify(
             "nested discovery finds maintained scopes only",
-            scopes == ["packages/api", "packages/web"],
+            scopes == ["packages/api", "packages/hybrid", "packages/web"],
         )
+        verify(
+            "nested discovery skips pointer-only AGENTS.md",
+            "packages/pointer" not in scopes,
+        )
+        if os.name != "nt":
+            # A symlinked nested AGENTS.md is not an authored scope either.
+            link_scope = nested_repo / "packages/linked"
+            link_scope.mkdir(parents=True)
+            (link_scope / "AGENTS.md").symlink_to("../api/AGENTS.md")
+            read_git(nested_repo, "add", "--", "packages/linked/AGENTS.md")
+            verify(
+                "nested discovery skips symlinked AGENTS.md",
+                "packages/linked" not in nested_agents_scopes(nested_repo),
+            )
         default_run = check_repo(nested_repo)
         verify(
             "nested scopes ignored without --nested",
@@ -608,9 +664,12 @@ def run_selftest() -> int:
         verify(
             "nested scan reports bridged scope PASS and unbridged scope FAIL",
             scanned["nested_scanned"] is True
-            and scanned["nested_scopes"] == ["packages/api", "packages/web"]
+            and scanned["nested_scopes"]
+            == ["packages/api", "packages/hybrid", "packages/web"]
             and scanned_checks["claude-imports-AGENTS.md@packages/api"] == "PASS"
             and scanned_checks["claude-imports-AGENTS.md@packages/web"] == "FAIL"
+            and scanned_checks["claude-imports-AGENTS.md@packages/hybrid"] == "FAIL"
+            and "claude-imports-AGENTS.md@packages/pointer" not in scanned_checks
             and scanned["structural_gate"] == "FAIL",
         )
         verify(
@@ -634,6 +693,7 @@ def run_selftest() -> int:
             nested=True,
             not_applicable={
                 "claude-imports-AGENTS.md@packages/web": "web scope documented, bridge deferred",
+                "claude-imports-AGENTS.md@packages/hybrid": "hybrid scope bridge deferred",
                 "untracked-docs/dev/tmp": "fixture tracks scratch to test exclusion",
             },
         )
