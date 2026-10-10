@@ -178,6 +178,20 @@ def test_unpublished_never_lists_a_kept_new_entry_superseded_by_a_later_update_o
     assert docket.unpublished(store, path=queue_path) == []
 
 
+def test_unpublished_lists_a_superseding_owner_at_its_own_queue_position(tmp_path):
+    # A1, B1, A2: A2 replaces A1 as the owner of A's target, so it is listed
+    # after B1, where it sits in the queue, not in A1's earlier slot.
+    queue_path = tmp_path / "queue.json"
+    project = _project(tmp_path)
+    store = project / "memory"
+    a1 = _kept(project, 3, "widget-fact", file_text=V1)
+    b1 = _kept(project, 2, "other-fact")
+    a2 = _update(project, 1, V2, V1)
+    _queue_kept(queue_path, [a1, b1, a2])
+
+    assert docket.unpublished(store, path=queue_path) == [_id(b1), _id(a2)]
+
+
 @pytest.mark.parametrize("later_decision", ["undecided", "dropped"])
 def test_unpublished_lets_only_a_kept_entry_supersede_another_for_the_same_target(
     tmp_path, later_decision
