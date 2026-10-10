@@ -1569,3 +1569,5 @@
 {"id":"ee00fe55","kind":"carl","task":"review-00014-c1","queued_at":1791201894,"prompt_bytes":6501}
 {"id":"0a1b0ec6","ended_at":1791202369,"elapsed_s":477,"outcome":"ok","detail":null}
 {"id":"ee00fe55","ended_at":1791202371,"elapsed_s":477,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"resume","at":1791618728,"phase":"build","prd":"00071-distil-publish-recovery-v1.md"}
+{"kind":"handoff","site":"build","edge":"leave","at":1791619528,"phase":"build","prd":"00071-distil-publish-recovery-v1.md"}

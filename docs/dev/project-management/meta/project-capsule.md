@@ -46,6 +46,7 @@ Updated: 2026-09-26T15:12Z (full catchup, PRD 00065 selection, same batch, local
 Updated: 2026-09-26T16:39Z (full catchup, PRD 00066 selection, same batch, local HEAD `42443b2`; batch cache missed on HEAD only (last recorded `7353bcf`, 4 commits behind — PRD 00065's own task 2 plus its CHANGELOG/finalize). PRD 00065 finished 2/2 tasks at cycle 1 since the last pass, now in `done/` — batch has drained 26 PRDs. `git fetch origin master` **failed** again this pass with the same intermittent `sign_and_send_pubkey` SSH-agent error (RSA "buvis" refused) — ahead-count is against the stale cached ref: local `master` is 53 commits ahead of `origin/master`, 0 behind (grew from 49; still all unpushed, needs a human `git push`). GitHub state re-measured: same 6 open Renovate PRs (#5-#10), same 1 open issue (Dependency Dashboard, bookkeeping); master CI still `completed/failure`, still pinned to run 35569127166 at `f394bd5` (2026-09-21) with the same 4 known `PureWindowsPath` failures, no CI run for any of the 53 unpushed commits — 00066's target (`Todos.svelte`'s clipboard export) is unrelated to `spec.py`, expect the same 4 CI-only failures in any full-suite run and do not attribute them to 00066. `design: skip` per frontmatter (single-file replace-expression fix, one additive smoke test). engram: repo still unregistered (`engram index`/`harvest` both refuse `no_repo`, same gap as every prior pass); portfolio query for this session's topic (PRD 00066's title) not yet distinct from noise-floor pattern seen on every recent pass. Working tree clean.)
 Updated: 2026-09-26T17:59Z (full catchup, PRD 00067 selection, same batch, local HEAD `9921133`; batch cache missed on HEAD only (last recorded `42443b2`, 5 commits behind — PRD 00066's own task 2 plus its CHANGELOG/finalize). PRD 00066 finished 2/2 tasks at cycle 1 since the last pass, now in `done/` — batch has drained 27 PRDs. `git fetch origin master` **failed** again this pass with the same intermittent `sign_and_send_pubkey` SSH-agent error (RSA "buvis" refused) — ahead-count is against the stale cached ref: local `master` is 59 commits ahead of `origin/master`, 0 behind (grew from 53; still all unpushed, needs a human `git push`). GitHub state re-measured: same 6 open Renovate PRs (#5-#10), same 1 open issue (Dependency Dashboard, bookkeeping); master CI still `completed/failure`, still pinned to run 35569127166 at `f394bd5` (2026-09-21) with the same 4 known `PureWindowsPath` failures, no CI run for any of the 59 unpushed commits — 00067's target (`collect.py`'s `REMOTE_RE`/`repo_slug`) is unrelated to `spec.py`, expect the same 4 CI-only failures in any full-suite run and do not attribute them to 00067. `design: skip` per frontmatter (one regex tightening, additive tests). Test file location confirmed post-00053-split: `test_collect_repo.py` still exists standalone (the PRD's Solution section names it correctly, no stale path). engram: repo still unregistered (`engram index`/`harvest` both refuse `no_repo`, same gap as every prior pass); portfolio query for this session's topic (PRD 00067's title) returned 5 hits, all ≤0.0164 — noise floor, none about remote-URL parsing; `engram status --scope portfolio` unchanged in shape (memory stale=23/dead=1, prd stale=9/dead=61, code stale=48/dead=188). Working tree clean.)
 Updated: 2026-09-26T19:15Z (full catchup, PRD 00068 selection, same batch, local HEAD `a30de2d`; batch cache missed on HEAD only (last recorded `9921133`, 4 commits behind — PRD 00067's own task 2 plus its CHANGELOG/finalize). PRD 00067 finished 2/2 tasks at cycle 1 since the last pass, now in `done/` — batch has drained 28 PRDs. `git fetch origin master` **failed** again this pass with the same intermittent `sign_and_send_pubkey` SSH-agent error (RSA "buvis" refused) — ahead-count is against the stale cached ref: local `master` is 63 commits ahead of `origin/master`, 0 behind (grew from 59; still all unpushed, needs a human `git push`). GitHub state re-measured: same 6 open Renovate PRs (#5-#10), same 1 open issue (Dependency Dashboard, bookkeeping); master CI still `completed/failure`, still pinned to run 35569127166 at `f394bd5` (2026-09-21) with the same 4 known `PureWindowsPath` failures, no CI run for any of the 63 unpushed commits — 00068's target (`collect.py`'s `collect_branches`/`collect_local`, hoisting the duplicate `git rev-parse --abbrev-ref HEAD`) is unrelated to `spec.py`, expect the same 4 CI-only failures in any full-suite run and do not attribute them to 00068. `design: skip` per frontmatter (two-signature hoist, one additive counting test). engram: repo still unregistered (`engram index`/`harvest` both refuse `no_repo`, same gap as every prior pass); portfolio query for this session's topic (PRD 00068's title) returned 5 hits, all ≤0.0164, none about the redundant rev-parse hoist itself (nearest: a different repo's collector-feature PRD, plus two review files mentioning `rev-parse`/`collect_repo` subprocess handling in passing); `engram status --scope portfolio` unchanged in shape (memory stale=23/dead=1, prd stale=9/dead=61, code stale=48/dead=188). Working tree clean.)
+Updated: 2026-10-10 (full catchup, interactive batch 202610100952, PRD 00071 selection, HEAD 9a87317; Active Work, Related context, GitHub State and the dev/local invariant refreshed; task restore skipped)
 
 ## Key Invariants
 
@@ -64,7 +65,10 @@ Updated: 2026-09-26T19:15Z (full catchup, PRD 00068 selection, same batch, local
   (fixed 2026-08-26).
 - This repo is public: no personal paths, usernames, hostnames, employer
   names, or private project names, including in examples.
-- `dev/local/meta/` is the only home for the capsule/decisions/keeper files
+- Working documents moved from `dev/local/` to `docs/dev/project-management/`
+  (temporary assets to `docs/dev/tmp/`) in cdcb888; any `dev/local/` path in
+  older notes is pre-move. `docs/dev/project-management/meta/` is the only
+  home for the capsule/decisions/keeper files
   (root went directories-only 2026-08-27 per `~/.claude` PRD 00139); an
   unmigrated store may still carry a root copy, so code that reads keepers
   checks `meta/` first and falls back to root.
@@ -127,7 +131,25 @@ Updated: 2026-09-26T19:15Z (full catchup, PRD 00068 selection, same batch, local
 
 ## Active Work
 
-### Batch 202609050909 (started 2026-09-05, headless loop, HEAD aaf190c)
+### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317)
+- [ ] 00071-distil-publish-recovery-v1.md — selected (PRD 1), lane `full`,
+  `design: run`, `catchup: force`, opus floor. Idempotent publish
+  (`write_memory`/`append_pointer`), `decide --name/--file` on a kept entry,
+  new `docket.py unpublished`, null-`kind` guard, SKILL.md steps 5-7 rewrite.
+  Re-grounded at HEAD by the 2026-10-10 backlog review: all cited lines hold;
+  null `kind` still raises AttributeError (`proposal.py:64`); nothing yet
+  implemented.
+- Remaining backlog after the 2026-10-10 review (GO): 00072 judge
+  no-persistence, 00073 sweep loud failures, 00075 grounding gate, 00076
+  distil test binding (absorbed 00074), 00077 docket never raises, 00079
+  split test_survey.py, 00080 frontmatter keys + Path rule. 00069 closed as
+  superseded (brief-portfolio removed in af1b704); 00074 parked in `hold/` as
+  absorbed. Report: `audit-results/backlog-review-2026-10-10.md`.
+- Rebase hotspot: `docket.py` `main` decide branch is edited by 00071, 00076
+  and 00077 in that order; `test_docket_exit_codes.py`
+  `..._reads_the_queue_once_...` must stay green across all three.
+
+### Batch 202609050909 (closed 2026-10-07, headless loop, HEAD aaf190c)
 - [ ] 00068-redundant-branch-resolve-v1.md — selected this pass (PRD 29 of the
   batch), not yet started. Hoist `collect_branches`'/`collect_local`'s
   duplicate `git rev-parse --abbrev-ref HEAD` (one call per repo instead of
@@ -615,32 +637,28 @@ Everything from that batch is pushed: `origin/master` == local `master` at
 
 ## Related context
 
-Topic this pass: branch `master` + PRD 00068's title, "collect.py spawns one
-redundant git rev-parse per repo" (wip/ holds exactly this one PRD).
-- Repo scope: skipped — `engram index` exited 1 ("not inside a registered
-  repo"), the same registration gap as every prior pass (now 46 passes old).
-  Same follow-up as before, not repeated here.
-- Portfolio scope: re-queried this pass with the new topic — 5 hits, all
-  ≤0.0164 (the noise-floor line every pass has used as the cutoff). Nearest
-  is a different repo's collector-feature PRD
-  (`~/git/src/github.com/buvis/gems/dev/local/prds/backlog/00063-postup-scaffold-collector-v1.md`)
-  plus two review files (`00126-...-review-1.md`, `00133-...-review-1.md`/
-  `-review-2.md`) mentioning `collect_repo`'s subprocess handling and a
-  `rev_parse`-dispatch-count test in passing — topically adjacent, none about
-  this PRD's actual hoist. Staleness stamp (`engram status --scope
-  portfolio`, exit 1, unchanged in shape from every prior pass): memory
-  192/stale 23/dead 1, prd 5203/stale 9/dead 61, code 42722/stale 48/dead 188,
-  transcripts 17713/dead 17604 — the same standing staleness this repo's
-  passes have reported all along, not a new regression.
-- Task restore (catchup Phase 4): `list-task-sessions.sh` returned
-  `no_tasks_dir` this pass — skipped silently per the skill's error table.
-- This PRD is standalone (no prior-PRD dependency named in frontmatter or
-  body); source is the same 2026-09-05 agoge run as the rest of this
-  batch's items, finding 24 (LOW, performance lane, status "mocked": gh
-  canned, git real).
+Topic this pass (2026-10-10): branch `master` + PRD 00071's title,
+"distil-memory cannot recover a kept proposal whose publication failed".
+- Repo scope: skipped — `engram query --scope repo` exited 1 ("not inside a
+  registered repo"), the same standing registration gap as every prior pass.
+- Portfolio scope: not queried this pass (interactive session, the repo-scope
+  gap makes portfolio hits the only signal and every prior pass found them at
+  the noise floor). No staleness stamp taken.
+- Prior work this PRD builds on: done PRDs 00015 (corrupt queue reads as
+  drained), 00016 (queue lands in wrong repo), 00017 (malformed memory half
+  written; the guarded rollback this PRD must preserve) under
+  `docs/dev/project-management/prds/done/`.
 
 ## GitHub State
 
+- **Current (2026-10-10, HEAD 9a87317, pushed, 0 ahead):** 1 open issue (#2
+  Renovate dashboard); 6 open Renovate PRs (#5-#10, routine). Master CI red
+  on the Windows lane: run 37618980030 (bd25d1b, 2026-10-07) had 47 failed /
+  3373 passed, all in `skills/use-qwen/scripts/` eval-harness tests (empty
+  clone-path lists, a sha mismatch in `test_run_eval_vet.py`, two
+  `test_module_finished_inside_its_runtime_budget` overruns). Not touched by
+  this batch's PRDs; attribute nothing to them. A run on 9a87317 was in
+  progress. The entries below are older history.
 - 1 open issue: #2 Renovate Dependency Dashboard (bookkeeping, not actionable).
 - 6 open Renovate PRs (re-measured 2026-09-26T02:29Z; every prior pass wrote
   "5" while listing six — the count was the typo, the list was right): #10 `jsdom` → v30.1.0 (new,
