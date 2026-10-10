@@ -113,14 +113,17 @@ def _pointer_line(stem: str, description: str) -> str:
     return f"- [{_title(stem)}]({stem}.md) — {_hook(description)}"
 
 
-def _pointer_state(lines: list[str], stem: str, description) -> tuple[int | None, bool]:
-    """The index of the first line pointing at `stem` (None when no line
-    does), and whether that line's hook is current for `description`."""
+def _pointer_state(lines: list[str], stem: str, description) -> tuple[list[int], bool]:
+    """The indexes of every line pointing at `stem`, and whether the pointer
+    is current: exactly one such line, carrying the hook for `description`."""
+    indexes = []
+    hooks = []
     for i, line in enumerate(lines):
         parsed = dedup.parse_index_line(line)
         if parsed is not None and parsed[1] == stem:
-            return i, parsed[2] == _hook(description)
-    return None, False
+            indexes.append(i)
+            hooks.append(parsed[2])
+    return indexes, hooks == [_hook(description)]
 
 
 def _index_lines(index_path: Path) -> list[str]:
@@ -131,8 +134,9 @@ def append_pointer(store_path: Path, entry: dict) -> str | None:
     """Upsert `entry`'s pointer line in `store_path`'s MEMORY.md.
 
     When a line for the target stem already carries the current hook,
-    nothing is written and None is returned. Otherwise the first line for
-    that stem is replaced in place, or the new line is appended when none
+    and it is the only one, nothing is written and None is returned.
+    Otherwise the first line for that stem is replaced in place and any
+    further lines for it are dropped, or the new line is appended when none
     exists. Every other line keeps its place and its bytes. An update's
     `existing_text` must still parse, before the index is touched.
     """
@@ -142,12 +146,14 @@ def append_pointer(store_path: Path, entry: dict) -> str | None:
         proposal.parse_frontmatter(entry["existing_text"])
     index_path = store_path / "MEMORY.md"
     lines = _index_lines(index_path)
-    idx, current = _pointer_state(lines, stem, description)
+    indexes, current = _pointer_state(lines, stem, description)
     if current:
         return None
     line = _pointer_line(stem, description)
-    if idx is not None:
-        lines[idx] = line
+    if indexes:
+        lines[indexes[0]] = line
+        for i in reversed(indexes[1:]):
+            del lines[i]
     else:
         lines.append(line)
     _atomic_write(index_path, "\n".join(lines) + "\n")
@@ -200,7 +206,14 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.command == "write":
-        entry = json.loads(sys.stdin.read())
+        try:
+            entry = json.loads(sys.stdin.read())
+        except json.JSONDecodeError as exc:
+            print(f"stdin is not valid JSON: {exc}", file=sys.stderr)
+            return 1
+        if not isinstance(entry, dict):
+            print("stdin JSON is not an object", file=sys.stderr)
+            return 1
         store_path = Path(args.store)
         try:
             # naming the target reads the entry envelope, so a malformed one
@@ -221,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise WriteError(f"{target}: {exc}") from exc
             previous = _readable_bytes(target) if exists else None
             written = write_memory(entry, store_path)
-        except (WriteError, KeyError, AttributeError) as exc:
+        except (WriteError, proposal.ProposalError, KeyError, AttributeError) as exc:
             print(str(exc), file=sys.stderr)
             return 1
         try:
