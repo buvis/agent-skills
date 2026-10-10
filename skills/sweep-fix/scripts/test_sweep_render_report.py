@@ -297,7 +297,10 @@ def test_render_report_astgrep_rule_block_contains_expected_fields(tmp_path):
     assert "language: javascript" in rule_text
     assert "severity: warning" in rule_text
     assert "message:" in rule_text
-    assert "pattern: processInput($X)" in rule_text
+    documents = list(yaml.safe_load_all(rule_text))
+    assert len(documents) == 2
+    for document in documents:
+        assert document["rule"]["pattern"] == "processInput($X)"
 
 
 def test_render_report_astgrep_rule_block_runs_unedited_and_finds_planted_matches(
@@ -531,6 +534,41 @@ def test_render_report_astgrep_rule_block_roundtrips_control_and_special_float_v
     ids=["carriage-return", "tab", "nul"],
 )
 def test_render_report_astgrep_rule_block_roundtrips_escaped_control_char_value(value):
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert isinstance(parsed["message"], str)
+    assert parsed["rule"]["pattern"] == value
+    assert isinstance(parsed["rule"]["pattern"], str)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        'say "hi"',
+        "a\\b",
+        "a: b",
+        "a #b",
+        "- leading dash",
+        "café",
+        "rocket 🚀 launch",
+        "a\x7fb",
+        "a\x85b",
+    ],
+    ids=[
+        "double-quote",
+        "backslash",
+        "colon-space",
+        "hash",
+        "leading-dash",
+        "non-ascii",
+        "astral",
+        "del-u007f",
+        "nel-u0085",
+    ],
+)
+def test_rendered_rule_block_round_trips_every_awkward_scalar(value):
     rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
     parsed = yaml.safe_load(rule_text)
 
