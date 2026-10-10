@@ -1663,3 +1663,5 @@
 {"id":"ef0fdd1b","kind":"pat","task":"13","queued_at":1791649773,"prompt_bytes":6499}
 {"id":"ef0fdd1b","ended_at":1791649790,"elapsed_s":17,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1791650135,"phase":"done","prd":"00071-distil-publish-recovery-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1791652233,"phase":"done","prd":"00071-distil-publish-recovery-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1791652300,"phase":"build","prd":"00071-distil-publish-recovery-v1.md"}

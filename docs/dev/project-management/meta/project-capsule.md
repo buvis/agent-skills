@@ -133,13 +133,15 @@ Updated: 2026-10-10 (full catchup, `catchup: force`, PRD 00071 build entry, HEAD
 ## Active Work
 
 ### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317)
-- [ ] 00071-distil-publish-recovery-v1.md — selected (PRD 1), lane `full`,
-  `design: run`, `catchup: force`, opus floor. Idempotent publish
-  (`write_memory`/`append_pointer`), `decide --name/--file` on a kept entry,
-  new `docket.py unpublished`, null-`kind` guard, SKILL.md steps 5-7 rewrite.
-  Re-grounded at HEAD by the 2026-10-10 backlog review: all cited lines hold;
-  null `kind` still raises AttributeError (`proposal.py:64`); nothing yet
-  implemented.
+- [x] 00071-distil-publish-recovery-v1.md (13/13 tasks, 3 cycles) — idempotent
+  publish (`write_memory`/`append_pointer`), `decide kept --name --file`
+  recovery edit, new `docket.py unpublished`, null-`kind` guard, SKILL.md
+  steps 5-7 rewrite. 5 items deferred (3 settled design re-raises, ledger
+  size, `_save_queue` traceback -> 00077 territory).
+- [ ] 00072, 00073, 00075, 00076, 00077, 00079, 00080 (backlog)
+
+  Observations: reviewers kept finding the same class (input faults escaping
+  as tracebacks) across cycles 1-2; 00077 should sweep that class wholesale.
 - Remaining backlog after the 2026-10-10 review (GO): 00072 judge
   no-persistence, 00073 sweep loud failures, 00075 grounding gate, 00076
   distil test binding (absorbed 00074), 00077 docket never raises, 00079

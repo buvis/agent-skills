@@ -1,0 +1,52 @@
+{
+  "batch_id": "202610100952",
+  "items": [
+    {
+      "type": "deferred_decision",
+      "cycle": 1,
+      "severity": "medium",
+      "file": "skills/distil-memory/scripts/docket.py:205",
+      "issue": "`docket.py unpublished` silently skips kept entries whose `Path(transcript).parent / \"memory\"` does not resolve to `--store` (docket.py:205). The PRD never specifies this filter. An entry whose transcript sits elsewhere is never listed, so the check can return a false empty (exit 0) for a store the user passes. The PRD says \"never a false empty result\".",
+      "reason": "deferred by review-close: settled design decision (per-entry store routing, one distil run spans several stores)",
+      "prd": "00071-distil-publish-recovery-v1.md"
+    },
+    {
+      "type": "deferred_decision",
+      "cycle": 1,
+      "severity": "medium",
+      "file": "skills/distil-memory/scripts/docket.py:211",
+      "issue": "`unpublished` has an unrequested \"only the last kept entry for a target owns it\" rule (docket.py:193-212). An earlier kept entry that is unpublished but shares a target stem with a later one is hidden. The spec lists \"kept entries whose intended target content or pointer is missing/mismatched\" and does not mention this rule.",
+      "reason": "deferred by review-close: settled design decision (one owner per target stem so a re-publish never reverts a newer memory)",
+      "prd": "00071-distil-publish-recovery-v1.md"
+    },
+    {
+      "type": "deferred_decision",
+      "cycle": 1,
+      "severity": "medium",
+      "file": "skills/distil-memory/scripts/docket.py:154",
+      "issue": "`decide <id> kept` on an already-kept entry with neither `--file` nor `--name` raises `no-undecided-entry` (docket.py:154-157). The PRD says re-deciding the same state is allowed. SKILL.md:214 documents the refusal, so the code and doc agree, but both are narrower than the spec text.",
+      "reason": "deferred by review-close: settled design decision (a recovery edit needs --file)",
+      "prd": "00071-distil-publish-recovery-v1.md"
+    },
+    {
+      "type": "deferred_decision",
+      "cycle": 1,
+      "severity": "low",
+      "file": "N/A",
+      "issue": "F6: Existing changed artifacts exceed 800 lines: both dispatch ledgers have 1,612 lines and the project capsule has 880.",
+      "reason": "deferred by review-close",
+      "prd": "00071-distil-publish-recovery-v1.md"
+    },
+    {
+      "type": "out-of-scope",
+      "cycle": 3,
+      "severity": "low",
+      "consensus": "1/4",
+      "action": "defer",
+      "file": "skills/distil-memory/scripts/docket.py",
+      "issue": "`_save_queue` is not wrapped in the `decide` CLI path: a queue write failure (read-only dir, full disk) gives a traceback instead of exit 1 with a reason. Pre-existing, outside PRD scope; no corruption (single save).",
+      "reason": "cycle 3: pre-existing behavior outside PRD 00071 scope; fix separately",
+      "prd": "00071-distil-publish-recovery-v1.md"
+    }
+  ]
+}
