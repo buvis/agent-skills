@@ -5,6 +5,7 @@ import sweep
 from sweep_test_helpers import (
     _init_git_repo_with_tracked_files,
     _make_repo,
+    _plant_matches,
     _write_registry,
 )
 
@@ -159,6 +160,104 @@ def test_enumerate_repos_excludes_repos_deeper_than_two_levels_from_gaps(
     _repos, gaps = sweep.enumerate_repos(registry, cwd)
 
     assert gaps == []
+
+
+# -- cwd walk-up to the git root ---------------------------------------------
+
+
+def test_a_subdirectory_cwd_resolves_to_its_repo_root_and_is_not_a_gap(
+    tmp_path, monkeypatch
+):
+    portfolio_root = tmp_path / "portfolio"
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", portfolio_root)
+
+    repo = _make_repo(portfolio_root / "org" / "repo")
+    nested = repo / "a" / "b"
+    nested.mkdir(parents=True)
+    _plant_matches(repo, "SUBDIRWALKUPMARKER", 1)  # at the root, outside a/b
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(repo)])
+
+    repos, gaps = sweep.enumerate_repos(registry, nested)
+
+    assert repos == [repo]
+    assert nested not in repos
+    assert gaps == []
+
+    hits, _suppressed, _failed = sweep.scan("SUBDIRWALKUPMARKER", "rg", repos)
+
+    matched_files = {Path(hit["file"]).name for hit in hits}
+    assert matched_files == {"match_000.txt"}
+
+
+def test_an_unregistered_repo_run_from_its_subdirectory_is_scanned_and_not_a_gap(
+    tmp_path, monkeypatch
+):
+    portfolio_root = tmp_path / "portfolio"
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", portfolio_root)
+
+    repo = _make_repo(portfolio_root / "org" / "repo")
+    nested = repo / "a" / "b"
+    nested.mkdir(parents=True)
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [])
+
+    repos, gaps = sweep.enumerate_repos(registry, nested)
+
+    assert repo in repos
+    assert repos.count(repo) == 1
+    assert nested not in repos
+    assert gaps == []
+
+
+def test_a_relative_subdirectory_cwd_walks_up_to_the_absolute_repo_root(
+    tmp_path, monkeypatch
+):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    repo = _make_repo(tmp_path / "org" / "repo")
+    nested = repo / "a" / "b"
+    nested.mkdir(parents=True)
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [])
+    monkeypatch.chdir(nested)
+
+    repos, _gaps = sweep.enumerate_repos(registry, Path("."))
+
+    assert repo in repos
+    assert nested not in repos
+    path_entries = [Path(entry) for entry in repos if not isinstance(entry, dict)]
+    assert all(entry.is_absolute() for entry in path_entries)
+
+
+def test_git_root_walks_up_to_a_repo_whose_git_entry_is_a_file(tmp_path):
+    repo = tmp_path / "worktree"
+    repo.mkdir()
+    (repo / ".git").write_text("gitdir: /elsewhere/.git/worktrees/worktree\n")
+    nested = repo / "a" / "b"
+    nested.mkdir(parents=True)
+
+    assert sweep._git_root(nested) == repo
+
+
+def test_git_root_picks_the_nearest_repo_including_the_path_itself(tmp_path):
+    outer = _make_repo(tmp_path / "outer")
+    inner = _make_repo(outer / "vendor" / "inner")
+    inner_sub = inner / "src"
+    inner_sub.mkdir()
+
+    assert sweep._git_root(inner) == inner
+    assert sweep._git_root(inner_sub) == inner
+    assert sweep._git_root(outer / "vendor") == outer
+
+
+def test_git_root_returns_the_path_unchanged_when_no_ancestor_holds_git(tmp_path):
+    plain = tmp_path / "plain" / "dir"
+    plain.mkdir(parents=True)
+
+    assert sweep._git_root(plain) == plain
 
 
 def _setup_buvis_bare_fixture(tmp_path, monkeypatch, tracked, untracked=()):
