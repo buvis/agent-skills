@@ -32,3 +32,20 @@
 - "List every id still printed, with its write's stderr" means every confirmed id; declined ids go in their own list. (Ivan)
 - A store-check failure (exit 1, empty stdout) is reported inside the sitting report and does not block it; only exit 2 blocks the report. (Ivan)
 - No guidance on re-asking about a declined id in later passes; the contract is silent. (Ivan)
+
+## 5: [D1] write.py malformed envelopes and duplicate pointer lines (rework cycle 1)
+
+- The empty-stem case uses name "!!!" with a quoted `"!!!"` frontmatter name, so the empty stem comes from either source. (Tess)
+- Empty stdin counts as the same "not valid JSON" fault as other bad input. (Tess)
+- An empty stem surfaces as `proposal.ProposalError`, so no separate empty-stem check was added. (Ivan)
+
+## 6: [D1] docket.py malformed entries, name-only recovery refusal, stdlib-only verbs (rework cycle 1)
+
+- "Transcript not a string" is tested with an int; the no-id case asserts only QueueError, since there is no id to name. (Tess)
+- A kept entry with an empty-string `transcript` is valid; only missing, null or non-string is rejected. (Ivan)
+- Entry validation checks `id` and `decision` on every entry, `transcript` only on kept ones, and runs before the MEMORY.md read, so a malformed queue wins over a store error. (Ivan)
+- Two pre-existing tests pinned the reversed name-only behavior; the orchestrator deleted the name-only success test and added `--file` to the read-once recovery test. (orchestrator)
+
+## 7: [D1] walkthrough integration tests (rework cycle 1)
+
+- The new orphaned-memory test counts pointer lines by the stem substring `orphaned-memory`, and seeds MEMORY.md with one unrelated line instead of leaving it absent. (Ivan)
