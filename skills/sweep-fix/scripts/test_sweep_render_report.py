@@ -578,6 +578,82 @@ def test_rendered_rule_block_round_trips_every_awkward_scalar(value):
     assert isinstance(parsed["rule"]["pattern"], str)
 
 
+# Broad corpus, none of it otherwise in this file: every message and pattern
+# is always a double-quoted, escaped scalar, so each must load back verbatim.
+_NULL_BOOL_TOKENS = [
+    "null", "Null", "NULL", "~", "true", "True", "TRUE", "false", "False",
+    "FALSE", "yes", "Yes", "YES", "no", "No", "NO", "on", "On", "ON", "off",
+    "Off", "OFF", "y", "Y", "n", "N",
+]
+_LEADING_INDICATORS = [
+    "[x]", "{a}", "*ref", "&a", "!t", "|", ">", "%", "@", "`tick", "'lead",
+    '"lead', "? q", ", x", "#lead", ":lead", "-", "- x",
+]
+_COLON_FORMS = ["foo:", "foo: bar: baz", "key: value # note", "a:b"]
+_QUOTE_AND_BACKSLASH = [
+    'a: "b"', "a: \\d", '"lead', "\\", "a\\\"b", "'single: q'", 'x\\n"y"',
+]
+_CONTROL_CHARS = [
+    f"a{chr(code)}b"
+    for code in (*range(0x01, 0x20), 0x80, 0x9F, 0x2028, 0x2029)
+]
+_TYPE_COERCION = [
+    "+1", "-1", ".5", "1e3", "0b101", "0o17", "017", "1_000.5", "2025-01-01",
+    "2026-08-29 10:00:00", "2001-12-14t21:59:43.10-05:00", "1:30", "=",
+    ".NaN", "+.inf",
+]
+_BROAD_SCALAR_CORPUS = (
+    _NULL_BOOL_TOKENS
+    + _LEADING_INDICATORS
+    + _COLON_FORMS
+    + _QUOTE_AND_BACKSLASH
+    + _CONTROL_CHARS
+    + _TYPE_COERCION
+)
+
+
+@pytest.mark.parametrize("value", _BROAD_SCALAR_CORPUS, ids=ascii)
+def test_rendered_rule_block_round_trips_broad_scalar_corpus(value):
+    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
+    parsed = yaml.safe_load(rule_text)
+
+    assert parsed["message"] == value
+    assert isinstance(parsed["message"], str)
+    assert parsed["rule"]["pattern"] == value
+    assert isinstance(parsed["rule"]["pattern"], str)
+
+
+@pytest.mark.parametrize("value", ["a: b", "false", '"lead: \\d'], ids=ascii)
+def test_rendered_rule_block_round_trips_awkward_value_in_every_language_document(
+    value,
+):
+    derivation = {
+        "kind": "astgrep",
+        "pattern": value,
+        "reason": value,
+        "control_term": "control-term",
+    }
+    hits = [
+        {"repo": "/repo/multi", "file": "a.py", "line": 1, "snippet": "s", "lang": "python"},
+        {"repo": "/repo/multi", "file": "a.js", "line": 1, "snippet": "s", "lang": "javascript"},
+    ]
+
+    report = sweep.render_report(derivation, hits, [], {}, {})
+
+    blocks = _extract_rule_pack_blocks(report)
+    assert blocks, "expected an ast-grep rule-pack block in the report"
+    documents = list(yaml.safe_load_all("\n---\n".join(blocks)))
+    assert sorted(document["language"] for document in documents) == [
+        "javascript",
+        "python",
+    ]
+    for document in documents:
+        assert document["message"] == value
+        assert isinstance(document["message"], str)
+        assert document["rule"]["pattern"] == value
+        assert isinstance(document["rule"]["pattern"], str)
+
+
 # -- render_report: how-to-proceed block states the safety rule -------------
 
 
