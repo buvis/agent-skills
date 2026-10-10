@@ -1,0 +1,26 @@
+[
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: tests, skill validation, and braid checks pass; supplied evidence reports success. Run `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/distil-memory`, and `braid --check`.",
+    "file": null,
+    "command": "uv run pytest",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: tests, skill validation, and braid checks pass; supplied evidence reports success. Run `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/distil-memory`, and `braid --check`.",
+    "file": null,
+    "command": "uv run python3 skills/create-skill/scripts/validate_skill.py skills/distil-memory",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: tests, skill validation, and braid checks pass; supplied evidence reports success. Run `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/distil-memory`, and `braid --check`.",
+    "file": null,
+    "command": "braid --check",
+    "source": "bob",
+    "result": {"exit": 127}
+  }
+]

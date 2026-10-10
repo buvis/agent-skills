@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The one touched test that passes against pre-change code (`test_main_with_distil_still_selects_transcripts_over_the_requested_days_and_still_judges_them`, skills/distil-memory/scripts/test_funnel_main.py:558) is a behavior-preserving argv-consumer migration (locate `--model` by name), so passing at base is by design and not a defect",
+    "file": "skills/distil-memory/scripts/test_funnel_main.py",
+    "reason": "Not actionable: the reviewer and the replay agree the test migrates an argv consumer and is meant to pass at base; the new behavior is pinned by test_judge_invokes_claude_cli_with_model_resolved_from_tier and the 1 MB stdin test, both red at base."
+  }
+]

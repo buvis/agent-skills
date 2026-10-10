@@ -47,6 +47,14 @@
       "issue": "`_save_queue` is not wrapped in the `decide` CLI path: a queue write failure (read-only dir, full disk) gives a traceback instead of exit 1 with a reason. Pre-existing, outside PRD scope; no corruption (single save).",
       "reason": "cycle 3: pre-existing behavior outside PRD 00071 scope; fix separately",
       "prd": "00071-distil-publish-recovery-v1.md"
+    },
+    {
+      "type": "verify-escape",
+      "issue": "queued check failed: braid --check -> exit 127 (braid not on PATH in the session shell; the same check via ~/.agents/bin/braid --check exited 0, 0 drift)",
+      "severity": "low",
+      "command": "braid --check",
+      "exit": 127,
+      "prd": "00072-distil-judge-no-persistence-v1.md"
     }
   ]
 }
