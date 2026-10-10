@@ -1,5 +1,7 @@
 """Headless integration coverage for the proposal walkthrough."""
 
+import io
+import json
 from pathlib import Path
 
 import docket
@@ -85,6 +87,122 @@ def _attempt_edit_then_publish(
     )
     proposal.validate(candidate)
     return _keep_and_publish(entry, queue_path, store_path, file_text=new_file_text)
+
+
+def _memory_text(name: str, description: str, body: str) -> str:
+    return (
+        "---\n"
+        f"name: {name}\n"
+        f"description: {description}\n"
+        "metadata:\n"
+        "  type: project\n"
+        "---\n\n"
+        f"{body}\n"
+    )
+
+
+def _session_store(tmp_path: Path) -> tuple[str, Path]:
+    """A transcript path whose derived store (`<transcript dir>/memory`) is
+    the returned store, so `docket.unpublished` attributes entries to it."""
+    sessions = tmp_path / "sessions"
+    store = sessions / "memory"
+    store.mkdir(parents=True)
+    return str(sessions / "walkthrough.jsonl"), store
+
+
+def _proposal(transcript: str, line_no: int, name: str, file_text: str) -> dict:
+    return {
+        "name": name,
+        "kind": "new",
+        "transcript": transcript,
+        "line_no": line_no,
+        "evidence_text": f"evidence for line {line_no}",
+        "file_text": file_text,
+        "existing_text": None,
+    }
+
+
+def _queued(entry_id: str, queue_path: Path) -> dict:
+    return next(
+        e for e in docket.load(path=queue_path)["entries"] if e["id"] == entry_id
+    )
+
+
+def _run_write(entry: dict, store: Path, monkeypatch: pytest.MonkeyPatch) -> int:
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(entry)))
+    try:
+        return write.main(["write", "--store", str(store)])
+    except SystemExit as exc:
+        return exc.code
+
+
+def test_collision_is_refused_then_rename_via_decide_kept_lets_the_second_memory_publish(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    queue_path = tmp_path / "queue.json"
+    transcript, store = _session_store(tmp_path)
+    first_text = _memory_text("shared-memory", "the first claim", "First body.")
+    second_text = _memory_text("shared-memory", "the second claim", "Second body.")
+    docket.save(
+        [
+            _proposal(transcript, 1, "shared-memory", first_text),
+            _proposal(transcript, 2, "shared-memory", second_text),
+        ],
+        path=queue_path,
+    )
+    first = _next_entry(queue_path)
+    docket.decide(first["id"], "kept", path=queue_path)
+    assert _run_write(_queued(first["id"], queue_path), store, monkeypatch) == 0
+    second = _next_entry(queue_path)
+    docket.decide(second["id"], "kept", path=queue_path)
+    capsys.readouterr()
+    assert _run_write(_queued(second["id"], queue_path), store, monkeypatch) == 1
+    err = capsys.readouterr().err
+    assert "shared-memory.md" in err and "already exists" in err
+    assert (store / "shared-memory.md").read_text() == first_text
+    assert docket.unpublished(store, path=queue_path) == [second["id"]]
+
+    cursor_before = docket.cursor(path=queue_path)
+    renamed_text = _memory_text("shared-memory-two", "the second claim", "Second body.")
+    docket.decide(
+        second["id"], "kept", file_text=renamed_text, path=queue_path,
+        name="shared-memory-two",
+    )
+    assert docket.cursor(path=queue_path) == cursor_before
+    renamed = _queued(second["id"], queue_path)
+    assert renamed["decision"] == "kept"
+    assert renamed["name"] == "shared-memory-two"
+    assert renamed["file_text"] == renamed_text
+    assert _run_write(renamed, store, monkeypatch) == 0
+    assert (store / "shared-memory-two.md").read_text() == renamed_text
+    assert (store / "shared-memory.md").read_text() == first_text
+    assert docket.unpublished(store, path=queue_path) == []
+
+
+def test_pointer_failure_rolls_back_the_memory_and_a_rerun_publishes_it_fully(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    queue_path = tmp_path / "queue.json"
+    transcript, store = _session_store(tmp_path)
+    text = _memory_text("pointer-retry-memory", "survives a pointer failure", "Body.")
+    docket.save([_proposal(transcript, 1, "pointer-retry-memory", text)], path=queue_path)
+    entry = _next_entry(queue_path)
+    docket.decide(entry["id"], "kept", path=queue_path)
+    kept = _queued(entry["id"], queue_path)
+
+    def _fail_pointer(*args, **kwargs):
+        raise OSError("simulated MEMORY.md write failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(write, "append_pointer", _fail_pointer)
+        assert _run_write(kept, store, patch) == 1
+    assert not (store / "pointer-retry-memory.md").exists()
+    assert docket.unpublished(store, path=queue_path) == [entry["id"]]
+
+    assert _run_write(kept, store, monkeypatch) == 0
+    assert (store / "pointer-retry-memory.md").read_text() == text
+    assert "pointer-retry-memory" in (store / "MEMORY.md").read_text()
+    assert docket.unpublished(store, path=queue_path) == []
 
 
 def test_scripted_walkthrough_writes_keeps_filters_drops_and_resumes_without_gaps(
