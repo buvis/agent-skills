@@ -134,7 +134,16 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
 
 ## Active Work
 
-### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317)
+### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-11 full catchup at PRD 00075 selection, local HEAD da94491)
+- [ ] 00075-ground-prd-claims-against-installed-code-v1.md — selected this
+  pass (PRD 4 of the batch), moved wip, not yet started. `ground_prd.py`
+  checker (citation/symbol/library claim extraction + verification) plus a
+  create-prd step 5.55 and a review-prd-backlog gate-lens bullet. `design:
+  run`, `catchup: force`. `gh` not authenticated this pass — GitHub state
+  skipped, noted as a gap, not re-measured. Working tree carries unrelated
+  pre-existing uncommitted edits to `skills/structure-git-repo/` (not part
+  of this PRD's scope, left untouched) and dispatch-metrics.jsonl churn from
+  prior sessions.
 - [x] 00071-distil-publish-recovery-v1.md (13/13 tasks, 3 cycles) — idempotent
   publish (`write_memory`/`append_pointer`), `decide kept --name --file`
   recovery edit, new `docket.py unpublished`, null-`kind` guard, SKILL.md
@@ -659,7 +668,15 @@ Everything from that batch is pushed: `origin/master` == local `master` at
 
 ## Related context
 
-Topic this pass (2026-10-10): branch `master` + PRD 00071's title,
+Topic this pass (2026-10-11): branch `master` + PRD 00075's title, "Ground
+PRD claims against installed code".
+- Repo scope: skipped — `engram index` exited 1 ("not inside a registered
+  repo"), the same standing registration gap as every prior pass.
+- Portfolio scope: not queried this pass (same gap makes portfolio hits the
+  only signal; prior passes found them at the noise floor, not worth the
+  query cost here).
+
+Topic prior pass (2026-10-10): branch `master` + PRD 00071's title,
 "distil-memory cannot recover a kept proposal whose publication failed".
 - Repo scope: skipped — `engram query --scope repo` exited 1 ("not inside a
   registered repo"), the same standing registration gap as every prior pass.
@@ -673,6 +690,10 @@ Topic this pass (2026-10-10): branch `master` + PRD 00071's title,
 
 ## GitHub State
 
+- **2026-10-11 pass: skipped.** `gh` not authenticated this pass
+  (`gh auth login` required); GitHub state not re-measured, no new gap
+  introduced beyond the auth block itself. Last known state is the
+  2026-10-10 entry below.
 - **Current (2026-10-10, HEAD 20d4d02, 1 ahead of origin - the build-state
   chore commit):** 1 open issue (#2
   Renovate dashboard); 6 open Renovate PRs (#5-#10, routine). Master CI red

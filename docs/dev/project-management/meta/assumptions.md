@@ -1,29 +1,21 @@
-## 1: Hoist tool resolution into main, make verify_control raise, guard the registry open
+## 1: ground_prd.py: claim extraction, citation lens, symbol lens
 
-- "stderr is that line" for a missing registry means the stripped stderr equals exactly `registry not found: <path>`, with no `sweep:` prefix. (Tess)
-- "printed to stderr as one line" means stripped stderr is exactly one line for every setup-failure test through `main`. (Tess)
-- `main` prints the resolver's `RuntimeError` message verbatim, so the fake's text (`Could not resolve rg: not found on PATH`) reaches stderr unchanged. (Tess)
-- Every exception type's collapsed text (RuntimeError, TimeoutExpired, OSError) appears in the control-term failure message. (Tess)
-- The control-repo pattern-scan stub keys on `Path(cwd).resolve()`, `_run_rg` taking cwd as its second argument. (Tess)
-- The CHANGELOG line goes first in the existing Unreleased `### Fixed` list. (Ivan)
-
-## 2: Walk cwd up to its git root in enumerate_repos
-
-- No ancestor of pytest's tmp_path holds `.git`; the "unchanged" and non-repo-cwd tests depend on it. (Tess)
-- The real `sweep.BUVIS_BARE` work tree ($HOME) is not an ancestor of tmp_path. (Tess)
-- pytest's tmp_path is already symlink-resolved, so `Path(".").absolute()` after chdir equals the tmp_path-built path. (Tess)
-- "A cwd not inside any git repo stays as given" still allows making a relative cwd absolute first. (Tess)
-
-## 3: Replace the two YAML helpers with json.dumps
-
-- The two-language rule block holds exactly 2 YAML documents (python and javascript). (Tess)
-- The empty string is left out of the round-trip corpus; an empty pattern is not assumed valid. (Tess)
-- Task 3 is a user-visible `fix`, not a refactor (see task 3 commit): the old renderer emitted timestamps, `1:30`, `=` and C1 characters bare, so they changed type or failed to load. (orchestrator)
-
-## 5: [D1] Tail sweep: skills/sweep-fix/scripts/sweep.py
-
-- The relative-`..` test chdirs into `repo/a/b` and passes `../../a/b/..` (= `repo/a`), expecting `repos == [repo]`. (Tess)
-- The `..` tests base on `tmp_path.resolve()` so the macOS `/private` symlink does not affect comparisons. (Tess)
-- `main` calls `resolve_ast_grep` before any other `subprocess.run`, so patching `subprocess.run` globally only trips the resolver. (Tess)
-- OSError from `mise which` and the non-UTF-8 registry are tested below `main` only. (Tess)
-- Error message wording (`registry unreadable: <path>: <exc>`, `Could not resolve ast-grep: \`mise which ast-grep\` failed: <exc>`) and the CHANGELOG wording are the implementor's. (Ivan)
+- `check_citations` receives the full `extract_claims` list (citations plus symbols); it cannot otherwise see the same-line symbols the spec requires. (Tess)
+- `Claim.line` for content after frontmatter is the line number in the original text, not the stripped text. (Tess)
+- `extract_claims` returns claims in order of appearance within a line. (Tess)
+- `ground_prd` is importable as a top-level module from its own directory (pytest prepend import mode, no `__init__.py`), matching the `check_links` test convention. (Tess)
+- `rg` exit-2 propagation is left untested (would require mocking `subprocess`, which contradicts "use real code paths"). (Tess)
+- In the any-of symbol-in-range check, "occurs in the range" is a plain text match (`beta` counts as found inside `def beta():`). (Tess, strengthen round)
+- `codec.def` resolves because `def` appears as a whole word in the fixture; the spec puts no keyword filter on segments. (Tess, strengthen round)
+- A Makefile (a file with no extension) is searched like any other file, since the spec's `rg` call only excludes `docs/dev/**`. (Tess, strengthen round)
+- `XXXX`/`YYYY_mm` stay excluded as placeholders even though the spec's literal list names only `*?<>{}$`, `...` and `NNNNN`. (Tess, strengthen round)
+- The rule that drops `` `ab` `` is read as "token shorter than 3 chars is not a symbol" (other readings would also pass the tests). (Ivan)
+- File-name exclusion uses a fixed extension list made of exactly the ones the tests exercise; a dotted symbol ending in any other extension stays a symbol. (Ivan)
+- The symbol-in-range check matches only the last segment of each symbol (`module.beta` matches on `beta`). (Ivan)
+- A citation range is also `"missing"` when it starts below 1 or runs backwards (no test covers this). (Ivan)
+- A symbol whose segments are all shorter than 3 chars resolves `"ok"`, since nothing is checked. (Ivan)
+- Only backtick fences (```` ``` ````) count as fenced blocks; `~~~` does not. (Ivan)
+- Frontmatter is detected only when line 1 is exactly `---`. (Ivan)
+- `RuntimeError` is the exception type for an `rg` exit-2 error; the review finding said only "raise". (Ivan, fix round)
+- Running `rg` with `cwd=root` and `.` as the search path is the intended meaning of "search under root" with `--glob '!docs/dev/**'` — passing the absolute root as the path made the glob never match, since `rg` matches `--glob` against paths relative to its cwd. (Ivan, fix round)
+- `rg` results are not cached per segment, so a segment shared by several symbols runs `rg` more than once; nothing asked for caching. (Ivan, fix round)

@@ -1744,3 +1744,17 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1791702400,"phase":"done","prd":"00073-sweep-loud-failures-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1791711105,"phase":"done","prd":"00073-sweep-loud-failures-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1791711185,"phase":"build","prd":"00073-sweep-loud-failures-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1791713330,"phase":"build","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
+{"id":"02a53b0c","kind":"tess","task":"1","queued_at":1791714663,"prompt_bytes":17818}
+{"id":"ab7688ba","kind":"devon","task":"1","queued_at":1791714904,"prompt_bytes":10633}
+{"id":"ab7688ba","ended_at":1791715016,"elapsed_s":112,"outcome":"ok","detail":null}
+{"id":"48592766","kind":"ivan","task":"1","queued_at":1791715189,"prompt_bytes":20386}
+{"id":"861071a8","kind":"pat","task":"1","queued_at":1791715362,"prompt_bytes":27837}
+{"id":"1d438acd","kind":"ivan","task":"1","queued_at":1791715474,"prompt_bytes":17500}
+{"id":"ccdcb0f3","kind":"pat","task":"1","queued_at":1791715580,"prompt_bytes":6074}
+{"id":"02a53b0c","ended_at":1791715713,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"48592766","ended_at":1791715713,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"861071a8","ended_at":1791715713,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"1d438acd","ended_at":1791715713,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"ccdcb0f3","ended_at":1791715713,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1791715713,"phase":"build","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
