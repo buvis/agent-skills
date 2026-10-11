@@ -139,6 +139,8 @@ def known_packages(root: Path, registry: Path) -> dict[str, dict]:
         for name, version in LOCK_PACKAGE_RE.findall(lock.read_text(errors="replace")):
             unpacked = [d for d in registry.glob(f"*/{name}-{version}") if d.is_dir()]
             packages[name] = {"version": version, "source": unpacked[0] if unpacked else None}
+            # Rust code names a hyphenated crate with underscores (tree_sitter::Parser)
+            packages[name.replace("-", "_")] = packages[name]
     node_modules = root / "node_modules"
     if node_modules.is_dir():
         packages.update({d.name: {"source": d} for d in node_modules.iterdir() if d.is_dir()})
