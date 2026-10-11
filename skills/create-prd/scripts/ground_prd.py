@@ -38,6 +38,7 @@ CITATION_RE = re.compile(
     r"(?<![\w./~-])(?:~/|/)?[\w.-]+(?:/[\w.-]+)*\.[A-Za-z]\w*:\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*"
 )
 BACKTICK_RE = re.compile(r"`([^`\n]+)`")
+NEW_SYMBOLS_RE = re.compile(r"^\s*(?:[-*]\s*)?New symbols:\s*(.*)$")
 SYMBOL_RE = re.compile(r"[A-Za-z_]\w*(?:(?:\.|::)[A-Za-z_]\w*)*")
 SEGMENT_SPLIT = re.compile(r"\.|::")
 # tokens that are patterns/placeholders, not real names
@@ -253,8 +254,13 @@ def run(files: list[Path], root: Path, registry: Path) -> dict:
     declared: set[str] = set()
     for text in texts.values():
         for line in text.splitlines():
-            if "New symbols:" in line:
-                declared.update(BACKTICK_RE.findall(line))
+            m = NEW_SYMBOLS_RE.match(line)
+            if m:
+                declared.update(
+                    piece.strip().strip("`")
+                    for piece in m.group(1).split(",")
+                    if piece.strip()
+                )
 
     packages = known_packages(root, registry)
     rows = []
@@ -297,6 +303,12 @@ def main(argv: list[str] | None = None) -> None:
         else:
             missing.append(p)
 
+    for f in files:
+        try:
+            f.read_text()
+        except (OSError, UnicodeDecodeError):
+            missing.append(f)
+
     if missing:
         for m in missing:
             print(f"ground_prd: {m}: not found or unreadable", file=sys.stderr)
@@ -309,7 +321,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        SORT_ORDER = {"missing": 0, "unresolved": 1, "unverified": 2, "ok": 3, "declared-new": 4}
+        SORT_ORDER = {
+            "missing": 0, "unresolved": 1, "unverified": 2, "waived": 3, "ok": 4, "declared-new": 5,
+        }
         rows = sorted(result["rows"], key=lambda r: (SORT_ORDER[r["status"]], r["file"], r["line"]))
         for row in rows:
             status, kind, token, file, line, detail = (
