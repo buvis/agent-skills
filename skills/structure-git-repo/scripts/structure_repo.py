@@ -51,6 +51,29 @@ NESTED_SCOPE_EXCLUDES = (
     "fixtures",
     "testdata",
 )
+# Superseded locations the target structure migrates away from. A restructure is
+# not finished while these are still *tracked*: the content must move to its new
+# home (verb-named tools/, .agents/autopilot/records + ignored runtime, specs under
+# project-management/). Each maps a tracked legacy path to the structure note that
+# supersedes it. The check is tracked-only, so ignored/untracked scratch left on
+# disk never trips it; only committed legacy layout counts as unfinished migration.
+LEGACY_PATHS: tuple[tuple[str, str], ...] = (
+    ("dev/bin", "retired in favor of tools/ with its callers (layout.md)"),
+    ("dev/local", "classify into tracked intake/specs instead of a dev/work bucket"),
+    (
+        "docs/dev/project-management/autopilot",
+        "Autopilot records -> .agents/autopilot/records; runtime -> ignored "
+        ".agents/autopilot/runtime (layout.md Workflow storage)",
+    ),
+    (
+        "docs/dev/project-management/prds",
+        "PRD buckets retire into intake/ and specs/ (layout.md)",
+    ),
+    (
+        "docs/dev/project-management/runs",
+        "no runs/ category; use reviews/ by scope linked to records (layout.md)",
+    ),
+)
 
 
 def run_git(
@@ -112,6 +135,7 @@ def inspect_git(target: Path, git_dir: Path | None = None) -> dict[str, Any]:
     hooks = run_git(root, "config", "--get", "core.hooksPath", git_dir=git_dir)
     if hooks.returncode not in (0, 1):
         raise ValueError(hooks.stderr.strip() or "Cannot read hook configuration")
+    hooks_path = hooks.stdout.strip() if hooks.returncode == 0 else None
     status = read_git(
         root, "status", "--porcelain=v1", "-z", "--untracked-files=normal", git_dir=git_dir
     )
@@ -121,10 +145,37 @@ def inspect_git(target: Path, git_dir: Path | None = None) -> dict[str, Any]:
         "root": str(root),
         "git_dir": str(resolved_git_dir),
         "explicit_worktree": git_dir is not None,
-        "hooks_path_config": hooks.stdout.strip() if hooks.returncode == 0 else None,
+        "hooks_path_config": hooks_path,
+        "hooks_path_foreign": foreign_hooks_path(hooks_path, root, resolved_git_dir),
         "status_porcelain_v1_tokens": entries[:LIMIT],
         "status_truncated": len(entries) > LIMIT,
     }
+
+
+def foreign_hooks_path(hooks_path: str | None, root: Path, git_dir: Path) -> str | None:
+    """Flag a core.hooksPath that points outside this worktree and its Git dir.
+
+    A copied or relocated repository keeps the source checkout's absolute
+    ``core.hooksPath`` in ``.git/config``. The hooks then run (or silently fail
+    to run) from the *original* location, not the one being inspected. A relative
+    path, or an absolute path under the current worktree or its Git directory, is
+    local and returns ``None``; any other absolute path is reported as the foreign
+    location so a move/restructure can repoint or clear it. Resolution does not
+    require the path to exist, so a dangling foreign path is still reported.
+    """
+    if not hooks_path:
+        return None
+    candidate = Path(hooks_path).expanduser()
+    if not candidate.is_absolute():
+        return None
+    resolved = candidate.resolve()
+    for base in (root, git_dir):
+        try:
+            resolved.relative_to(base.resolve())
+            return None
+        except ValueError:
+            continue
+    return str(resolved)
 
 
 def inspect_path(path: Path) -> dict[str, Any]:
@@ -337,6 +388,14 @@ def check_repo(
             scope_valid, scope_evidence = check_claude_bridge(target / scope)
             record(f"claude-imports-AGENTS.md@{scope}", scope_valid, scope_evidence)
     if git["kind"] == "worktree":
+        record(
+            "local-hooks-path",
+            git.get("hooks_path_foreign") is None,
+            {
+                "hooks_path_config": git.get("hooks_path_config"),
+                "foreign_hooks_path": git.get("hooks_path_foreign"),
+            },
+        )
         for name in ("docs/dev/tmp", ".agents/autopilot/runtime"):
             tracked = read_git(
                 target, "ls-files", "-z", "--", f":(top,literal){name}", git_dir=git_dir
@@ -344,6 +403,16 @@ def check_repo(
             entries = tracked.rstrip("\0").split("\0") if tracked else []
             record(
                 f"untracked-{name}", not entries, {"count": len(entries), "paths": entries[:LIMIT]}
+            )
+        for name, supersedes in LEGACY_PATHS:
+            tracked = read_git(
+                target, "ls-files", "-z", "--", f":(top,literal){name}", git_dir=git_dir
+            )
+            entries = tracked.rstrip("\0").split("\0") if tracked else []
+            record(
+                f"migrated-{name}",
+                not entries,
+                {"supersedes": supersedes, "count": len(entries), "paths": entries[:LIMIT]},
             )
     for name in KNOWN_PATHS:
         path = target / name
@@ -379,11 +448,17 @@ def check_repo(
         "nested_scanned": nested,
         "nested_scopes": scanned_scopes,
         "limitations": [
-            "Checks core docs, Git boundary, tracked scratch/runtime, known links and shim modes.",
+            "Checks core docs, Git boundary, tracked scratch/runtime, superseded layout, known "
+            "links and shim modes.",
             "Without --nested, checks the root Claude bridge only. With --nested, also checks each "
             "tracked maintained nested AGENTS.md scope, excluding ignored/untracked scratch "
             "(including docs/dev/tmp), vendored/generated trees and fixtures; it reports gaps and "
             "never writes a nested bridge.",
+            "local-hooks-path fails when core.hooksPath is an absolute path outside this worktree "
+            "and its Git dir (a copied/relocated checkout pointing at the source). It does not "
+            "prove hooks are installed or run, only that the configured path is local.",
+            "migrated-<path> fails while a superseded layout is still tracked; it does not verify "
+            "the content reached its new home, only that the old location is no longer committed.",
             "Import checks do not prove host loading under the session's settings/exclusions.",
             "No task/hook/release execution or approval/path-consumer validation.",
             "DEVIATION marks a FAIL waived under Fit; it does not fail the gate but is not a PASS.",
@@ -395,6 +470,82 @@ def check_repo(
             "mode reference's operational evidence.",
         ],
     }
+
+
+def check_many(
+    targets: list[Path],
+    nested: bool = False,
+) -> dict[str, Any]:
+    """Walk several repositories and roll up their structural gates.
+
+    Each target runs through ``check_repo`` with no waivers: a portfolio sweep is
+    a readable signal, so every deviation/not-applicable is a per-repository
+    judgement made in a focused run, never applied in bulk here. A target that
+    errors (not a repository, unreadable Git) is recorded as ERROR rather than
+    aborting the sweep. The roll-up gate FAILs if any repository FAILs or ERRORs.
+    """
+    repositories: list[dict[str, Any]] = []
+    counts = {"PASS": 0, "FAIL": 0, "ERROR": 0}
+    for target in targets:
+        entry: dict[str, Any] = {"target": str(target)}
+        try:
+            result = check_repo(target, nested=nested)
+            gate = result["structural_gate"]
+            entry["gate"] = gate
+            entry["failed_checks"] = [
+                c["check"] for c in result["checks"] if c["status"] == "FAIL"
+            ]
+            counts[gate] += 1
+        except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+            entry["gate"] = "ERROR"
+            entry["error"] = str(error)
+            counts["ERROR"] += 1
+        repositories.append(entry)
+    return {
+        "mode": "check-all",
+        "count": len(repositories),
+        "summary": counts,
+        "rollup_gate": "FAIL" if (counts["FAIL"] or counts["ERROR"]) else "PASS",
+        "repositories": repositories,
+        "nested_scanned": nested,
+        "limitations": [
+            "A portfolio roll-up applies no waivers; mark a per-repository DEVIATION or "
+            "NOT-APPLICABLE in a focused `check` run, not in bulk.",
+            "FAIL counts both structural failures and repositories that errored (not a "
+            "repository, unreadable Git).",
+            "Each repository carries the same structural-only caveats as a single `check`.",
+        ],
+    }
+
+
+def discover_repositories(roots: list[Path]) -> list[Path]:
+    """Return immediate child directories under each root that are Git worktrees.
+
+    A portfolio lives as sibling checkouts under one or more parent directories
+    (``check-all PARENT``). Only direct children are considered, each kept when it
+    is its own worktree root; nested, bare and parent-identified directories are
+    skipped so the sweep never recurses into a repository's internals. A root that
+    is itself a worktree is returned as a single target.
+    """
+    discovered: list[Path] = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        try:
+            if inspect_git(root)["kind"] == "worktree":
+                discovered.append(root)
+                continue
+        except (OSError, ValueError, subprocess.TimeoutExpired):
+            pass
+        for child in sorted(root.iterdir()):
+            if not child.is_dir() or child.is_symlink():
+                continue
+            try:
+                if inspect_git(child)["kind"] == "worktree":
+                    discovered.append(child)
+            except (OSError, ValueError, subprocess.TimeoutExpired):
+                continue
+    return discovered
 
 
 def run_selftest() -> int:
@@ -761,6 +912,65 @@ def run_selftest() -> int:
         verify(
             "untracked scratch/runtime accepted", check_repo(git_only)["structural_gate"] == "PASS"
         )
+        # Superseded layout: a tracked legacy path fails migrated-<path> until moved.
+        legacy = git_only / "docs/dev/project-management/autopilot/ledger.json"
+        legacy.parent.mkdir(parents=True)
+        legacy.write_text("{}\n", encoding="utf-8")
+        read_git(git_only, "add", "--force", "--", "docs/dev/project-management/autopilot/ledger.json")
+        legacy_run = check_repo(git_only)
+        legacy_check = next(
+            c for c in legacy_run["checks"]
+            if c["check"] == "migrated-docs/dev/project-management/autopilot"
+        )
+        verify(
+            "tracked superseded layout fails migrated check",
+            legacy_run["structural_gate"] == "FAIL"
+            and legacy_check["status"] == "FAIL"
+            and "supersedes" in legacy_check["evidence"],
+        )
+        waived_legacy = check_repo(
+            git_only,
+            deviations={
+                "migrated-docs/dev/project-management/autopilot": "migration group deferred"
+            },
+        )
+        verify(
+            "superseded layout waivable as a Fit deviation",
+            waived_legacy["structural_gate"] == "PASS",
+        )
+        read_git(
+            git_only, "rm", "--cached", "--",
+            "docs/dev/project-management/autopilot/ledger.json",
+        )
+        verify(
+            "untracked superseded layout no longer fails",
+            check_repo(git_only)["structural_gate"] == "PASS",
+        )
+        # Foreign hooks path: an absolute core.hooksPath outside the worktree and
+        # its Git dir (a copied/relocated checkout) fails local-hooks-path.
+        read_git(git_only, "config", "core.hooksPath", str(base / "elsewhere" / "hooks"))
+        foreign_run = check_repo(git_only)
+        foreign_check = next(
+            c for c in foreign_run["checks"] if c["check"] == "local-hooks-path"
+        )
+        verify(
+            "foreign hooks path fails local-hooks-path",
+            foreign_run["structural_gate"] == "FAIL"
+            and foreign_check["status"] == "FAIL"
+            and foreign_check["evidence"]["foreign_hooks_path"] is not None,
+        )
+        # A hooks path inside the worktree is local and passes.
+        read_git(git_only, "config", "core.hooksPath", str(git_only / ".githooks"))
+        verify(
+            "worktree-local hooks path passes",
+            check_repo(git_only)["structural_gate"] == "PASS",
+        )
+        read_git(git_only, "config", "--unset", "core.hooksPath")
+        verify(
+            "cleared hooks path passes",
+            check_repo(git_only)["structural_gate"] == "PASS"
+            and inspect_git(git_only)["hooks_path_foreign"] is None,
+        )
         shim = git_only / "tools/check"
         shim.parent.mkdir()
         shim.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
@@ -828,6 +1038,43 @@ def run_selftest() -> int:
             "recognize linked-worktree .git file",
             inspect_git(worktree)["kind"] == "worktree" and (worktree / ".git").is_file(),
         )
+        # check-all: discover sibling repositories under a parent and roll up gates.
+        portfolio = base / "portfolio"
+        portfolio.mkdir()
+        passing = portfolio / "passing"
+        scaffold_repo(passing, "Passing", "A well-structured repository.", True)
+        read_git(passing, "init", "--quiet")
+        failing = portfolio / "failing"
+        failing.mkdir()
+        (failing / "README.md").write_text("# Failing\n\nNo AGENTS.md.\n", encoding="utf-8")
+        read_git(failing, "init", "--quiet")
+        (portfolio / "not-a-repo").mkdir()
+        discovered = discover_repositories([portfolio])
+        verify(
+            "check-all discovers only worktree children",
+            sorted(p.name for p in discovered) == ["failing", "passing"],
+        )
+        rollup = check_many(discovered)
+        gates = {Path(r["target"]).name: r["gate"] for r in rollup["repositories"]}
+        verify(
+            "check-all rolls up mixed gates to FAIL",
+            rollup["rollup_gate"] == "FAIL"
+            and gates == {"failing": "FAIL", "passing": "PASS"}
+            and rollup["summary"] == {"PASS": 1, "FAIL": 1, "ERROR": 0},
+        )
+        # A parent of only-passing repositories rolls up to PASS.
+        read_git(failing, "init", "--quiet")
+        (failing / "AGENTS.md").write_text("# Instructions\n\nScope.\n", encoding="utf-8")
+        (failing / "CLAUDE.md").write_text("@AGENTS.md\n", encoding="utf-8")
+        verify(
+            "check-all rolls up all-pass to PASS",
+            check_many(discover_repositories([portfolio]))["rollup_gate"] == "PASS",
+        )
+        # A root that is itself a worktree is treated as a single target.
+        verify(
+            "check-all accepts a direct repository root",
+            [p.name for p in discover_repositories([passing])] == ["passing"],
+        )
     passed = all(result for _, result in results)
     verdict = "DELIVERABLE" if passed else "NOT DELIVERABLE"
     print(f"{verdict}: helper self-test only ({len(results)} checks)")
@@ -872,6 +1119,17 @@ def run_main() -> int:
             command.add_argument(
                 "--apply", action="store_true", help="write the seed; default previews"
             )
+    sweep = commands.add_parser("check-all")
+    sweep.add_argument(
+        "roots",
+        nargs="+",
+        help="parent directories of sibling repositories, or repository paths",
+    )
+    sweep.add_argument(
+        "--nested",
+        action="store_true",
+        help="also check each maintained nested AGENTS.md scope in every repository",
+    )
     args = parser.parse_args()
     try:
         if args.selftest:
@@ -879,7 +1137,13 @@ def run_main() -> int:
                 parser.error("--selftest cannot be combined with a repository command")
             return run_selftest()
         if not args.command:
-            parser.error("select inspect, check or scaffold, or use --selftest")
+            parser.error("select inspect, check, check-all or scaffold, or use --selftest")
+        if args.command == "check-all":
+            roots = [Path(value).expanduser().resolve() for value in args.roots]
+            targets = discover_repositories(roots)
+            result = check_many(targets, getattr(args, "nested", False))
+            print(json.dumps(result, indent=2, ensure_ascii=True))
+            return 1 if result.get("rollup_gate") == "FAIL" else 0
         target = resolve_target(args.target)
         selected_git_dir = getattr(args, "git_dir", None)
         git_dir = Path(selected_git_dir).expanduser().resolve() if selected_git_dir else None

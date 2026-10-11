@@ -10,6 +10,12 @@ repository instead of the selected path, resolve that mismatch before editing.
 Bare repositories need an explicitly selected worktree; never scaffold into bare
 Git internals. Preserve unrelated dirty/staged work; do not stash/reset it automatically.
 
+When a repository has been copied or moved, its `.git/config` can keep the source
+checkout's absolute `core.hooksPath`, so hooks run from (or silently fail at) the old
+location. `inspect` reports this as `hooks_path_foreign` and `check` fails
+`local-hooks-path`. Repoint the path to the current worktree, clear it, or record a
+Fit deviation; never leave a relocated repository's hooks aimed at another checkout.
+
 For an intentional bare-backed worktree (such as dotfiles), pass the declared Git
 directory to both helper commands: `inspect /path/to/worktree --git-dir /path/to/git-dir`
 and `check /path/to/worktree --git-dir /path/to/git-dir`. Use that identity for every
@@ -65,7 +71,14 @@ For each group:
 Run the helper's check command and paste its
 output into the report. It checks the root import bridge and a
 small structural subset only, and a `PASS` gate is structural evidence only, not
-proof that hooks, releases, host loading or recovery work. Record a deliberate
+proof that hooks, releases, host loading or recovery work. It also reports
+`migrated-<path>` for each superseded layout still tracked (`dev/bin`, `dev/local`,
+legacy `docs/dev/project-management/autopilot|prds|runs`) and `local-hooks-path`
+when `core.hooksPath` points outside this worktree. A `migrated-*` FAIL marks an
+unfinished migration group — the old location is still committed — and is not proof
+the content reached its new home; verify that move with the diff and the new
+location's consumers. Leave a `migrated-*` check as a `--deviation` only while its
+group is deliberately deferred. Record a deliberate
 skip with `--deviation CHECK=REASON` (a part skipped on purpose) or
 `--not-applicable CHECK=REASON` (a part out of scope for this repository kind) so
 the pasted JSON carries the judgement. Separately record actual evidence for each

@@ -100,12 +100,28 @@ no approvals, publish nothing unasked) hold regardless.
    tracked maintained nested AGENTS.md scope; it excludes ignored/untracked scratch
    (including `docs/dev/tmp`), vendored/generated trees and fixtures, reports each
    gap as `claude-imports-AGENTS.md@<scope>`, and never writes a nested bridge.
-   Paste the helper's actual JSON result, then name operational
+   `check` also reports `migrated-<path>` for any still-tracked superseded layout
+   (`dev/bin`, `dev/local`, legacy `docs/dev/project-management/autopilot|prds|runs`)
+   and `local-hooks-path` when `core.hooksPath` is an absolute path outside the
+   worktree and its Git dir — the signature of a copied or relocated checkout still
+   pointing at its source. A `migrated-*` FAIL means the old location is still
+   committed, not that the content failed to reach its new home; verify the move
+   separately. Paste the helper's actual JSON result, then name operational
    checks performed, unavailable capabilities and remaining migrations. A `PASS`
    gate certifies only the structural subset; it is not evidence that hooks,
    releases, host instruction loading or workflow recovery actually work. Record a
    deliberate skip as `--deviation`/`--not-applicable` so the pasted JSON carries
    the judgement instead of a bare `FAIL`.
+
+The `inspect`, `check` and `check-all` commands are read-only: they issue only
+read-only Git queries and read files, and never write to the target. `scaffold`
+writes only with `--apply`, and only the three seed files. There is therefore no
+need to copy a repository to a sandbox merely to inspect or check it. If you do
+sandbox a repository anyway, copy its `.git` directory and every tracked file
+faithfully: `inspect`/`check` read the Git index and `git status`, so excluding a
+tracked file (a lockfile, for example) makes it show as deleted and a copied
+`.git/config` keeps the source's absolute `core.hooksPath`, which `local-hooks-path`
+then reports as foreign.
 
 Use the installed helper through the shared discovery path. Scaffolding and checking
 include the root Claude bridge automatically:
@@ -116,7 +132,14 @@ python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /pat
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo --deviation claude-imports-AGENTS.md="native plugin CLAUDE.md, no AGENTS.md owner"
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo --not-applicable nonempty-AGENTS.md="no agent-instructions convention" --not-applicable claude-imports-AGENTS.md="no AGENTS.md to import"
 python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check /path/to/repo --nested
+python3 ~/.agents/skills/structure-git-repo/scripts/structure_repo.py check-all /path/to/parent-of-repos
 ```
+
+`check-all` discovers the immediate worktree children under one or more parent
+directories (or accepts repository paths directly) and rolls their gates into one
+`rollup_gate` with a PASS/FAIL/ERROR summary. It is a read-only portfolio signal and
+applies no waivers: record a per-repository `DEVIATION`/`NOT-APPLICABLE` in a focused
+`check` run, never in bulk. `--nested` extends the sweep to nested scopes.
 
 When validating the skill installation itself, run the helper with `--selftest`;
 it exercises disposable fixtures, not the selected repository.
