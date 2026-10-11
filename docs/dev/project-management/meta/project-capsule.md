@@ -144,10 +144,19 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
   `judge()` runs with `--no-session-persistence` and the prompt on stdin;
   FakeClaudeCli and argv consumers migrated; 1 MB stdin test. Full suite
   3560 passed at 2b9cebc. Nothing deferred.
-- [ ] 00073-sweep-loud-failures-v1.md (wip, build started 2026-10-11) —
-  six `sweep-fix/scripts/sweep.py` defects: hoist tool resolution into
-  `main`, `verify_control` raises, cwd walk-up to git root, guarded
-  registry open, `json.dumps` replaces YAML helpers, report-path suffixing.
+- [x] 00073-sweep-loud-failures-v1.md (8/8 tasks, 1 cycle) — six
+  `sweep-fix/scripts/sweep.py` defects: hoist tool resolution into `main`,
+  `verify_control` raises, cwd walk-up to git root, guarded registry open,
+  `json.dumps` replaces YAML helpers, report-path suffixing. Converged at
+  cycle 1 (0 C/H); tail swept as tasks 5-8. Full suite 3716 passed / 6
+  skipped at b8d635b. 2 items deferred (concurrent-write collision check,
+  subdirectory report path vs git root — both low-severity, flagged not
+  failed).
+- [ ] 00075-ground-prd-claims-against-installed-code-v1.md (backlog)
+- [ ] 00076-distil-tests-see-non-atomic-writes-v1.md (backlog)
+- [ ] 00077-docket-never-raises-v1.md (backlog)
+- [ ] 00079-split-test-survey-under-the-cap-v1.md (backlog)
+- [ ] 00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md (backlog)
 - [ ] 00075, 00076, 00077, 00079, 00080 (backlog)
 
   Observations: reviewers kept finding the same class (input faults escaping

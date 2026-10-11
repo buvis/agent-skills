@@ -1742,3 +1742,5 @@
 {"id":"00e1cd71","kind":"pat","task":"7","queued_at":1791701999,"prompt_bytes":5156}
 {"id":"00e1cd71","ended_at":1791702012,"elapsed_s":13,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1791702400,"phase":"done","prd":"00073-sweep-loud-failures-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1791711105,"phase":"done","prd":"00073-sweep-loud-failures-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1791711185,"phase":"build","prd":"00073-sweep-loud-failures-v1.md"}

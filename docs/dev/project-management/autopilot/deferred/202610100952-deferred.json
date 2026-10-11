@@ -71,6 +71,24 @@
       "issue": "Default report path is built under the --cwd subdirectory, not the walked git root; symlinked cwd may not dedupe against a registered real path (sweep.py:151)",
       "reason": "out of PRD scope; design lists anchoring the default report at the git root as the next change",
       "prd": "00073-sweep-loud-failures-v1.md"
+    },
+    {
+      "type": "deferred_decision",
+      "issue": "The default-report collision check is check-then-act. `exists()` runs in `_resolve_report_path` (sweep.py:524) and the later `write_text` (sweep.py:579) overwrites unconditionally. Two concurrent same-reason sweeps could still clobber each other. This is not the sequential case the PRD requires.",
+      "severity": "\u26aa",
+      "file": "skills/sweep-fix/scripts/sweep.py:524",
+      "reason": "deferred by review-close",
+      "prd": "00073-sweep-loud-failures-v1.md",
+      "cycle": 1
+    },
+    {
+      "type": "deferred_decision",
+      "issue": "When a sweep runs from a subdirectory, the repo scan covers the whole repo, but the default report path is still built under the resolved --cwd subdirectory, not the git root (sweep.py:557-558). The PRD does not specify this, so it is flagged, not failed. cwd walk-up also uses .absolute() while main passes the unresolved args.cwd, so a symlinked cwd (for example /tmp versus /private/tmp) may not dedupe against a registered real path.",
+      "severity": "\u26aa",
+      "file": "skills/sweep-fix/scripts/sweep.py:151",
+      "reason": "deferred by review-close",
+      "prd": "00073-sweep-loud-failures-v1.md",
+      "cycle": 1
     }
   ]
 }
