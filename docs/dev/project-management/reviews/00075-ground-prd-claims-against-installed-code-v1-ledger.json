@@ -1,16 +1,226 @@
 [
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "medium", "issue": "The diff includes unrelated work outside PRD 00075: `skills/glean/SKILL.md`, `skills/glean/scripts/glean.py`, `skills/glean/scripts/test_glean.py`, and the `**glean**` CHANGELOG entry (`git log` shows glean landed in separate commits b389276 and c161810). None of the six tasks cover it. Confirm it belongs to another PRD and exclude it from this PRD's review.", "file": "CHANGELOG.md:12", "reason": "Confirmed: commit b389276 (glean skill) sits inside work_start_sha..HEAD but is not this PRD's work. A review-scope artefact of the diff range, not a defect in the implementation; nothing to fix in 00075."},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "medium", "issue": "The table output is not the specified column layout. It prints space-padded columns with no separators. The `detail` column is only \"<kind> <token>\" repeated, so it never says why a row is `missing` (file absent, line out of range, or symbol not in the cited range).", "file": "skills/create-prd/scripts/ground_prd.py:332", "reason": "scope-overflow: cycle 1 raised 24 findings; top 10 by severity routed to rework. The `detail` half of this finding is covered by R8, which is being fixed."},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "medium", "issue": "Cargo parsing requires adjacent name/version lines and ignores package boundaries, violating the specified within-three-lines contract.", "file": "skills/create-prd/scripts/ground_prd.py:37", "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "medium", "issue": "Symbol searches are never cached, despite the explicit requirement; repeated claims launch repeated repo scans.", "file": "skills/create-prd/scripts/ground_prd.py:143", "reason": "duplicate of R2, which is being fixed this cycle"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "medium", "issue": "CLI root and registry paths are neither expanded nor resolved. A quoted `--cargo-registry '~/...'` therefore misses installed source.", "file": "skills/create-prd/scripts/ground_prd.py:293", "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "medium", "issue": "Citation extraction silently omits numeric-leading extensions such as `manual.1:7`, although the contract permits `\\w+` extensions.", "file": "skills/create-prd/scripts/ground_prd.py:39", "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "medium", "issue": "Package discovery scans every Python environment and takes an unsorted Cargo match, contrary to the specified first Python match and sorted Cargo selection.", "file": "skills/create-prd/scripts/ground_prd.py:153", "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "medium", "issue": "Citation claims are unchanged during reclassification, so pairing original and reclassified lists adds unnecessary bookkeeping.", "file": "skills/create-prd/scripts/ground_prd.py:228", "reason": "scope-overflow: cosmetic refactor, deferred to batch end"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "low", "issue": "`check_library_claims(..., line_text=None)` silently disables the `(unverified library claim)` waiver when the argument is omitted.", "file": "skills/create-prd/scripts/ground_prd.py:175", "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "low", "issue": "`main()` does not resolve `root` to an absolute path, and `--cargo-registry ~/x` is not expanduser'd.", "file": "skills/create-prd/scripts/ground_prd.py:293", "reason": "scope-overflow: overlaps R15, both deferred to batch end"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "low", "issue": "The checker goes beyond the spec in small ways: the placeholder filter adds `XXXX|YYYY`, `resolve_symbols` takes an extra `exclude` argument, crate names are aliased with underscores.", "file": "skills/create-prd/scripts/ground_prd.py:45", "reason": "scope-overflow: the exclude argument is covered by R7's test; the rest are defensible extensions"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "low", "issue": "Citation detection can false-block on non-path tokens that look like `name.ext:digits`, for example `example.com:443`.", "file": "skills/create-prd/scripts/ground_prd.py:38", "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "low", "issue": "Frontmatter handling treats any first-line `---` without a closing `---` as frontmatter, so the whole file is silently skipped (fail-open). `~~~` fences are scanned.", "file": "skills/create-prd/scripts/ground_prd.py:67", "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"},
-  {"cycle": 1, "disposition": "settled-deferral", "severity": "low", "issue": "Package classification treats any `node_modules` directory or site-packages module name as a library root, downgrading a colliding repo symbol to non-blocking `unverified`.", "file": "skills/create-prd/scripts/ground_prd.py:217", "reason": "scope-overflow: faithful to the PRD's stated design (fail-open by intent); deferred to batch end"}
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "The diff includes unrelated work outside PRD 00075: `skills/glean/SKILL.md`, `skills/glean/scripts/glean.py`, `skills/glean/scripts/test_glean.py`, and the `**glean**` CHANGELOG entry (`git log` shows glean landed in separate commits b389276 and c161810). None of the six tasks cover it. Confirm it belongs to another PRD and exclude it from this PRD's review.",
+    "file": "CHANGELOG.md:12",
+    "reason": "Confirmed: commit b389276 (glean skill) sits inside work_start_sha..HEAD but is not this PRD's work. A review-scope artefact of the diff range, not a defect in the implementation; nothing to fix in 00075."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "The table output is not the specified column layout. It prints space-padded columns with no separators. The `detail` column is only \"<kind> <token>\" repeated, so it never says why a row is `missing` (file absent, line out of range, or symbol not in the cited range).",
+    "file": "skills/create-prd/scripts/ground_prd.py:332",
+    "reason": "scope-overflow: cycle 1 raised 24 findings; top 10 by severity routed to rework. The `detail` half of this finding is covered by R8, which is being fixed."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Cargo parsing requires adjacent name/version lines and ignores package boundaries, violating the specified within-three-lines contract.",
+    "file": "skills/create-prd/scripts/ground_prd.py:37",
+    "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Symbol searches are never cached, despite the explicit requirement; repeated claims launch repeated repo scans.",
+    "file": "skills/create-prd/scripts/ground_prd.py:143",
+    "reason": "duplicate of R2, which is being fixed this cycle"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "CLI root and registry paths are neither expanded nor resolved. A quoted `--cargo-registry '~/...'` therefore misses installed source.",
+    "file": "skills/create-prd/scripts/ground_prd.py:293",
+    "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Citation extraction silently omits numeric-leading extensions such as `manual.1:7`, although the contract permits `\\w+` extensions.",
+    "file": "skills/create-prd/scripts/ground_prd.py:39",
+    "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Package discovery scans every Python environment and takes an unsorted Cargo match, contrary to the specified first Python match and sorted Cargo selection.",
+    "file": "skills/create-prd/scripts/ground_prd.py:153",
+    "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Citation claims are unchanged during reclassification, so pairing original and reclassified lists adds unnecessary bookkeeping.",
+    "file": "skills/create-prd/scripts/ground_prd.py:228",
+    "reason": "scope-overflow: cosmetic refactor, deferred to batch end"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`check_library_claims(..., line_text=None)` silently disables the `(unverified library claim)` waiver when the argument is omitted.",
+    "file": "skills/create-prd/scripts/ground_prd.py:175",
+    "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`main()` does not resolve `root` to an absolute path, and `--cargo-registry ~/x` is not expanduser'd.",
+    "file": "skills/create-prd/scripts/ground_prd.py:293",
+    "reason": "scope-overflow: overlaps R15, both deferred to batch end"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The checker goes beyond the spec in small ways: the placeholder filter adds `XXXX|YYYY`, `resolve_symbols` takes an extra `exclude` argument, crate names are aliased with underscores.",
+    "file": "skills/create-prd/scripts/ground_prd.py:45",
+    "reason": "scope-overflow: the exclude argument is covered by R7's test; the rest are defensible extensions"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Citation detection can false-block on non-path tokens that look like `name.ext:digits`, for example `example.com:443`.",
+    "file": "skills/create-prd/scripts/ground_prd.py:38",
+    "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Frontmatter handling treats any first-line `---` without a closing `---` as frontmatter, so the whole file is silently skipped (fail-open). `~~~` fences are scanned.",
+    "file": "skills/create-prd/scripts/ground_prd.py:67",
+    "reason": "scope-overflow: deferred to batch end per the >10 follow-up scope rule"
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Package classification treats any `node_modules` directory or site-packages module name as a library root, downgrading a colliding repo symbol to non-blocking `unverified`.",
+    "file": "skills/create-prd/scripts/ground_prd.py:217",
+    "reason": "scope-overflow: faithful to the PRD's stated design (fail-open by intent); deferred to batch end"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "R1 only half fixed. `main()` now catches `RuntimeError` and exits 2, but a nonexistent `--root` still raises an uncaught `FileNotFoundError` from `subprocess.run(cwd=root)`. A traceback follows and the gates read exit 1 (\"blocking\"). The cycle-1 finding named this case explicitly. Fix: validate `root.is_dir()` in `main()` next to the unreadable-input check and exit 2 with a stderr message, or catch `OSError` alongside `RuntimeError`. Add a test. Blake adds the same class for `Cargo.lock`'s unguarded `read_text` in `known_packages`.",
+    "file": "skills/create-prd/scripts/ground_prd.py:377",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "Relative PRD exclusions now resolve against `root` instead of the process cwd. With cwd `/work`, `--root repo`, and input `repo/prd.md`, the exclusion targets `/work/repo/repo/prd.md`; the real PRD can confirm its own invented symbols. Resolve input paths against the original cwd. Replace the regression fixture with a CLI call using these differing paths.",
+    "file": "skills/create-prd/scripts/ground_prd.py:157",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "R6 only half tested. `_scannable_lines` now feeds the `declared` scan, so frontmatter and `link-ok:` lines are skipped as well as fences. Only the fenced region has a regression test (`test_new_symbols_line_inside_fence_does_not_declare_the_symbol`). The finding asked for tests on all three regions. Add one for a `New symbols:` line inside frontmatter and one for a line carrying `link-ok:`.",
+    "file": "skills/create-prd/scripts/test_ground_prd.py:695",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Tautological PRD-named test. `test_a_cited_line_without_the_named_symbol_blocks` cites a symbol that is itself `unresolved` in the repo, so exit 1 comes from the symbol lens whether or not the citation lens works. The test cannot fail if `check_citations` is broken. Fix: use a symbol that exists in the repo but not on the cited line, and assert the single row is a `missing` citation.",
+    "file": "skills/create-prd/scripts/test_ground_prd.py:832",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Tautological PRD-named tests. `test_a_library_api_in_installed_crate_source_is_ok` and `test_the_unverified_marker_and_link_ok_waive_their_lines` assert only exit 0. `unverified` rows exit 0 as well, so neither test can tell `ok` from `unverified` or `waived` from `unverified`. Fix: parse `--json` and assert the row status, and that no `link-ok:` line produced a row.",
+    "file": "skills/create-prd/scripts/test_ground_prd.py:792",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Weak PRD-named tests. `test_a_grounded_prd_exits_zero_with_only_ok_rows` has no citation, no `declared-new` symbol and no library claim, so it does not match the Happy-path scenario in the PRD. `test_cli_prints_table_json_and_exit_codes` checks substrings and never asserts the table sort order or the JSON row fields the scenario calls for.",
+    "file": "skills/create-prd/scripts/test_ground_prd.py:782",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Simplification (behavior-preserving) in `check_citations`/`_rows_for_file`. The `reasons: dict \\| None = None` parameter forces four `if reasons is not None:` guards, and `_rows_for_file` re-guards with a 100+ character conditional. `reasons` is only populated for `missing`, so `detail = citation_reasons.get(orig, f\"citation {rc.token}\")` is equivalent. Also, the `OSError` branch reports \"not found\" for an unreadable file, which is misleading.",
+    "file": "skills/create-prd/scripts/ground_prd.py:271",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Locked crates without a `source =` line (path or workspace-local) are dropped from `known_packages`. The spec says known packages are \"every `name = \"<crate>\"` in `<root>/Cargo.lock`\". The deviation is defensible and a test pins it, but it contradicts the spec's package-identity rule.",
+    "file": "skills/create-prd/scripts/ground_prd.py:189",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Two Test Strategy scenarios lack the exact test names the Success Metrics require. `test_fenced_blocks_and_frontmatter_are_not_scanned` and `test_a_directory_argument_expands_to_its_markdown_files` do not exist; near-equivalents cover the behavior. The contract is a literal name match.",
+    "file": "skills/create-prd/scripts/test_ground_prd.py:109",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Both search helpers retain `--no-messages` and discard subprocess stderr, so exit-2 handling reports only a generic failure instead of the underlying diagnostic. Capture stderr, enable diagnostics, and assert the error text reaches CLI stderr; the current test only checks that stderr is nonempty.",
+    "file": "skills/create-prd/scripts/ground_prd.py:141",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Added acceptance tests do not fully enforce their named scenarios: the installed-library test accepts `unverified` because it checks only exit 0; the citation-symbol mismatch test can pass from the independently unresolved symbol; the happy-path fixture omits citations, declarations, and libraries. The computed fail-first replay confirms 10 of the touched tests pass against the pre-change code.",
+    "file": "skills/create-prd/scripts/test_ground_prd.py:852",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "The test file now exceeds the 800-line limit: the mechanical facts place its final test at line 941. Split supporting fixtures and lower-level tests into focused modules while retaining the PRD-required named scenarios in `test_ground_prd.py`.",
+    "file": "skills/create-prd/scripts/test_ground_prd.py:941",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Redundant assertion. `assert \"workspace_crate\" not in packages.values()` can never fail, since the values are dicts. The `not in packages` line above it already covers the check.",
+    "file": "skills/create-prd/scripts/test_ground_prd.py:759",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Duplicate identical claims on one line each produce a row and each increment `blocking`, so the counts are inflated. Also, `check_citations` counts declared-new and library symbols as \"names on the citing line\", so a citation beside a not-yet-existing symbol would be marked `missing`.",
+    "file": "skills/create-prd/scripts/ground_prd.py:94",
+    "reason": "cap-overflow: rework cap 2 reached with this finding unresolved"
+  }
 ]
