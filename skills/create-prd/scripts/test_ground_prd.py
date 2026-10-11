@@ -1,5 +1,9 @@
 """Tests for ground_prd.py: claim extraction, citation lens, symbol lens (PRD 00075)."""
+import json
+import shutil
 from pathlib import Path
+
+import pytest
 
 import ground_prd
 from ground_prd import Claim
@@ -558,3 +562,155 @@ class TestLibraryLens:
         assert ground_prd.check_library_claims(
             [claim], tmp_path, registry, {2: "(unverified library claim)"}
         ) == {claim: "unverified"}
+
+
+# --- run() -------------------------------------------------------------------
+
+
+def test_run_returns_rows_blocking_and_unverified_counts(tmp_path):
+    make_repo(tmp_path)
+    prd = tmp_path / "prd.md"
+    prd.write_text("see src/ghost.py:1\ncalls `totally_missing_symbol`\nuses `alpha`\n")
+    result = ground_prd.run([prd], tmp_path, tmp_path / "registry")
+    assert result["blocking"] == 2
+    assert result["unverified"] == 0
+    assert {r["status"] for r in result["rows"]} == {"missing", "unresolved", "ok"}
+    assert all(r["file"] == str(prd) for r in result["rows"])
+
+
+def plant_pkg_without_symbol(tmp_path: Path, symbol: str) -> None:
+    pkg = tmp_path / "node_modules" / "mypkg"
+    pkg.mkdir(parents=True)
+    (pkg / "index.js").write_text(f"function present() {{ return '{symbol}_not_here'; }}\n")
+
+
+def test_run_reclassifies_known_package_symbol_claims_to_library_before_dispatch(tmp_path):
+    plant_pkg_without_symbol(tmp_path, "missingFn")
+    prd = tmp_path / "prd.md"
+    prd.write_text("calls `mypkg.missingFn`\n")
+    result = ground_prd.run([prd], tmp_path, tmp_path / "registry")
+    assert [(r["kind"], r["status"]) for r in result["rows"]] == [("library", "unverified")]
+    assert result["unverified"] == 1
+    assert result["blocking"] == 0
+
+
+def test_run_declared_new_set_is_built_once_across_every_file_in_the_run(tmp_path):
+    make_repo(tmp_path)
+    declare = tmp_path / "declare.md"
+    declare.write_text("New symbols: `brand_new_fn`, `other_new_fn`\n")
+    use = tmp_path / "use.md"
+    use.write_text("calls `brand_new_fn`\n")
+    result = ground_prd.run([declare, use], tmp_path, tmp_path / "registry")
+    row = next(r for r in result["rows"] if r["token"] == "brand_new_fn" and r["file"] == str(use))
+    assert row["status"] == "declared-new"
+
+
+def test_run_library_waiver_resolves_end_to_end_via_run(tmp_path):
+    plant_pkg_without_symbol(tmp_path, "missingFn")
+    prd = tmp_path / "prd.md"
+    prd.write_text("calls `mypkg.missingFn` (unverified library claim)\n")
+    result = ground_prd.run([prd], tmp_path, tmp_path / "registry")
+    assert [r["status"] for r in result["rows"]] == ["waived"]
+
+
+# --- main() / CLI surface ----------------------------------------------------
+
+
+def run_cli(argv, tmp_path, extra_root=None):
+    args = list(argv)
+    if "--root" not in args and extra_root is not None:
+        args += ["--root", str(extra_root)]
+    with pytest.raises(SystemExit) as excinfo:
+        ground_prd.main(args)
+    return excinfo.value.code
+
+
+def test_cli_exits_two_when_rg_not_on_path(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(shutil, "which", lambda name: None)
+    prd = tmp_path / "x.md"
+    prd.write_text("hello\n")
+    code = run_cli([str(prd)], tmp_path)
+    assert code == 2
+    assert "rg" in capsys.readouterr().err
+
+
+def test_cli_exits_two_for_missing_path_argument(tmp_path, capsys):
+    missing = tmp_path / "ghost.md"
+    code = run_cli([str(missing)], tmp_path)
+    assert code == 2
+    assert str(missing) in capsys.readouterr().err
+
+
+def test_cli_exits_two_naming_missing_path_even_when_other_args_are_valid(tmp_path, capsys):
+    valid = tmp_path / "ok.md"
+    valid.write_text("hi\n")
+    missing = tmp_path / "ghost.md"
+    code = run_cli([str(valid), str(missing)], tmp_path)
+    assert code == 2
+    assert str(missing) in capsys.readouterr().err
+
+
+def test_cli_directory_argument_expands_non_recursively_to_sorted_md_files(tmp_path, capsys):
+    prds = tmp_path / "prds"
+    prds.mkdir()
+    (prds / "b.md").write_text("see `beta_two`\n")
+    (prds / "a.md").write_text("see `alpha_one`\n")
+    (prds / "skip.txt").write_text("see `txt_three`\n")
+    sub = prds / "sub"
+    sub.mkdir()
+    (sub / "c.md").write_text("see `gamma_three`\n")
+    code = run_cli(["--json", str(prds)], tmp_path)
+    assert code == 1
+    data = json.loads(capsys.readouterr().out)
+    files = {r["file"] for r in data["rows"]}
+    assert files == {str(prds / "a.md"), str(prds / "b.md")}
+
+
+def test_cli_directory_with_zero_markdown_files_is_not_reported_as_missing(tmp_path, capsys):
+    empty_dir = tmp_path / "emptydir"
+    empty_dir.mkdir()
+    code = run_cli([str(empty_dir)], tmp_path)
+    assert code == 0
+    assert capsys.readouterr().err == ""
+
+
+def test_cli_table_output_prints_sorted_rows_with_summary_line(tmp_path, capsys):
+    make_repo(tmp_path)
+    prd = tmp_path / "prd.md"
+    prd.write_text(
+        "see src/ghost.py:1\ncalls `totally_missing_symbol`\nuses `alpha`\n"
+    )
+    code = run_cli([str(prd)], tmp_path)
+    assert code == 1
+    lines = capsys.readouterr().out.strip().splitlines()
+    assert len(lines) == 4
+    assert lines[0].startswith("missing") and "src/ghost.py:1" in lines[0] and str(prd) in lines[0]
+    assert lines[1].startswith("unresolved") and "totally_missing_symbol" in lines[1]
+    assert lines[2].startswith("ok") and "alpha" in lines[2]
+    assert lines[3] == "2 blocking, 0 unverified, 0 declared new"
+
+
+def test_cli_json_output_prints_only_json_with_rows_blocking_unverified(tmp_path, capsys):
+    make_repo(tmp_path)
+    prd = tmp_path / "prd.md"
+    prd.write_text(
+        "see src/ghost.py:1\ncalls `totally_missing_symbol`\nuses `alpha`\n"
+    )
+    code = run_cli(["--json", str(prd)], tmp_path)
+    assert code == 1
+    data = json.loads(capsys.readouterr().out)
+    assert set(data.keys()) == {"rows", "blocking", "unverified"}
+    assert data["blocking"] == 2
+    assert data["unverified"] == 0
+    assert all("file" in r for r in data["rows"])
+
+
+def test_cli_exits_zero_when_only_unverified_rows_are_present(tmp_path, capsys):
+    plant_pkg_without_symbol(tmp_path, "missingFn")
+    prd = tmp_path / "prd.md"
+    prd.write_text("calls `mypkg.missingFn`\n")
+    code = run_cli(["--json", str(prd)], tmp_path)
+    assert code == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["unverified"] == 1
+    assert data["blocking"] == 0
