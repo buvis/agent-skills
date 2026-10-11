@@ -616,10 +616,10 @@ def test_run_library_waiver_resolves_end_to_end_via_run(tmp_path):
 # --- main() / CLI surface ----------------------------------------------------
 
 
-def run_cli(argv, tmp_path, extra_root=None):
+def run_cli(argv, tmp_path, root=None):
     args = list(argv)
-    if "--root" not in args and extra_root is not None:
-        args += ["--root", str(extra_root)]
+    if "--root" not in args:
+        args += ["--root", str(root if root is not None else tmp_path)]
     with pytest.raises(SystemExit) as excinfo:
         ground_prd.main(args)
     return excinfo.value.code
