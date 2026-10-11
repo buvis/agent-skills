@@ -543,40 +543,17 @@ def test_render_report_astgrep_rule_block_roundtrips_escaped_control_char_value(
     assert isinstance(parsed["rule"]["pattern"], str)
 
 
-@pytest.mark.parametrize(
-    "value",
-    [
-        'say "hi"',
-        "a\\b",
-        "a: b",
-        "a #b",
-        "- leading dash",
-        "café",
-        "rocket 🚀 launch",
-        "a\x7fb",
-        "a\x85b",
-    ],
-    ids=[
-        "double-quote",
-        "backslash",
-        "colon-space",
-        "hash",
-        "leading-dash",
-        "non-ascii",
-        "astral",
-        "del-u007f",
-        "nel-u0085",
-    ],
-)
-def test_rendered_rule_block_round_trips_every_awkward_scalar(value):
-    rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
-    parsed = yaml.safe_load(rule_text)
-
-    assert parsed["message"] == value
-    assert isinstance(parsed["message"], str)
-    assert parsed["rule"]["pattern"] == value
-    assert isinstance(parsed["rule"]["pattern"], str)
-
+_MUST_HAVE_SCALARS = [
+    pytest.param('say "hi"', id="double-quote"),
+    pytest.param("a\\b", id="backslash"),
+    pytest.param("a: b", id="colon-space"),
+    pytest.param("a #b", id="hash"),
+    pytest.param("- leading dash", id="leading-dash"),
+    pytest.param("café", id="non-ascii"),
+    pytest.param("rocket 🚀 launch", id="astral"),
+    pytest.param("a\x7fb", id="del-u007f"),
+    pytest.param("a\x85b", id="nel-u0085"),
+]
 
 # Broad corpus, none of it otherwise in this file: every message and pattern
 # is always a double-quoted, escaped scalar, so each must load back verbatim.
@@ -612,8 +589,12 @@ _BROAD_SCALAR_CORPUS = (
 )
 
 
-@pytest.mark.parametrize("value", _BROAD_SCALAR_CORPUS, ids=ascii)
-def test_rendered_rule_block_round_trips_broad_scalar_corpus(value):
+@pytest.mark.parametrize(
+    "value",
+    _MUST_HAVE_SCALARS
+    + [pytest.param(value, id=ascii(value)) for value in _BROAD_SCALAR_CORPUS],
+)
+def test_rendered_rule_block_round_trips_every_awkward_scalar(value):
     rule_text = _render_astgrep_rule_text(reason=value, pattern=value)
     parsed = yaml.safe_load(rule_text)
 
@@ -698,7 +679,7 @@ def test_render_report_how_to_proceed_states_fixes_apply_only_in_invoking_repo()
     block = _how_to_proceed_block().lower()
 
     assert "only in the repo" in block
-    assert "report-only" in block or "report only" in block
+    assert "report-only" in block
 
 
 def test_render_report_how_to_proceed_states_fix_applied_only_after_approval():
