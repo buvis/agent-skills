@@ -14,13 +14,22 @@ check_citations marks a citation "ok" when the file exists and every range fits
 in it; when the same line names symbols, at least one must appear in the cited
 lines. resolve_symbols marks a symbol "ok" when every segment of 3+ chars is a
 whole word (per `rg -w`) somewhere in the repo outside docs/dev.
+
+known_packages maps installed packages (Cargo.lock crates unpacked in the cargo
+registry, node_modules dirs, .venv site-packages modules) to their source.
+check_library_claims marks a library claim "ok" when every segment after the
+package is a whole word in that package's source, "waived" when its line holds
+LIBRARY_MARKER, else "unverified".
 """
+import functools
 import re
 import subprocess
 from pathlib import Path
 from typing import NamedTuple
 
 WAIVER = "link-ok:"
+LIBRARY_MARKER = "(unverified library claim)"
+LOCK_PACKAGE_RE = re.compile(r'^name = "([^"]+)"\nversion = "([^"]+)"', re.MULTILINE)
 CITATION_RE = re.compile(
     r"(?<![\w./~-])(?:~/|/)?[\w.-]+(?:/[\w.-]+)*\.[A-Za-z]\w*:\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*"
 )
@@ -118,5 +127,54 @@ def resolve_symbols(claims: list[Claim], root: Path, declared: set[str]) -> dict
                 raise RuntimeError(f"rg failed searching {s!r} in {root}")
             if code == 1:
                 result[c] = "unresolved"
+                break
+    return result
+
+
+@functools.lru_cache(maxsize=None)
+def known_packages(root: Path, registry: Path) -> dict[str, dict]:
+    packages: dict[str, dict] = {}
+    lock = root / "Cargo.lock"
+    if lock.is_file():
+        for name, version in LOCK_PACKAGE_RE.findall(lock.read_text(errors="replace")):
+            unpacked = [d for d in registry.glob(f"*/{name}-{version}") if d.is_dir()]
+            packages[name] = {"version": version, "source": unpacked[0] if unpacked else None}
+    node_modules = root / "node_modules"
+    if node_modules.is_dir():
+        packages.update({d.name: {"source": d} for d in node_modules.iterdir() if d.is_dir()})
+    for site in root.glob(".venv/lib/python*/site-packages"):
+        for p in site.iterdir():
+            if p.is_dir() and p.name.isidentifier():
+                packages[p.name] = {"source": p}
+            elif p.suffix == ".py":
+                packages[p.stem] = {"source": p}
+    return packages
+
+
+def check_library_claims(
+    claims: list[Claim], root: Path, registry: Path, line_text: dict[int, str] | None = None
+) -> dict[Claim, str]:
+    packages = known_packages(root, registry)
+    result = {}
+    for c in claims:
+        if c.kind != "library":
+            continue
+        if line_text and LIBRARY_MARKER in line_text.get(c.line, ""):
+            result[c] = "waived"
+            continue
+        package, *names = SEGMENT_SPLIT.split(c.token)
+        source = packages.get(package, {}).get("source")
+        if source is None:
+            result[c] = "unverified"
+            continue
+        result[c] = "ok"
+        for s in names:
+            # --no-ignore: .venv and node_modules are usually gitignored
+            rg = ["rg", "-F", "-w", "-q", "--no-messages", "--no-ignore", "--", s, str(source)]
+            code = subprocess.run(rg).returncode
+            if code == 2:
+                raise RuntimeError(f"rg failed searching {s!r} in {source}")
+            if code == 1:
+                result[c] = "unverified"
                 break
     return result
