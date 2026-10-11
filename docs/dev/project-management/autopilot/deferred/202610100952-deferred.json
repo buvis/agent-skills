@@ -89,6 +89,123 @@
       "reason": "deferred by review-close",
       "prd": "00073-sweep-loud-failures-v1.md",
       "cycle": 1
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R12] The table output is not the specified column layout. It prints space-padded columns with no separators. The `detail` column is only \"<kind> <token>\" repeated, so it never says why a row is `missing`.",
+      "severity": "medium",
+      "file": "skills/create-prd/scripts/ground_prd.py:332",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R13] Cargo parsing requires adjacent name/version lines and ignores package boundaries, violating the specified within-three-lines contract.",
+      "severity": "medium",
+      "file": "skills/create-prd/scripts/ground_prd.py:37",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R14] Symbol searches are never cached, despite the explicit requirement; repeated claims launch repeated repo scans. (Same defect as R2, which is being fixed this cycle.)",
+      "severity": "medium",
+      "file": "skills/create-prd/scripts/ground_prd.py:143",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R15] CLI root and registry paths are neither expanded nor resolved. A quoted `--cargo-registry '~/...'` therefore misses installed source.",
+      "severity": "medium",
+      "file": "skills/create-prd/scripts/ground_prd.py:293",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R16] Citation extraction silently omits numeric-leading extensions such as `manual.1:7`, although the contract permits `\\w+` extensions.",
+      "severity": "medium",
+      "file": "skills/create-prd/scripts/ground_prd.py:39",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R17] Package discovery scans every Python environment and takes an unsorted Cargo match, contrary to the specified first Python match and sorted Cargo selection.",
+      "severity": "medium",
+      "file": "skills/create-prd/scripts/ground_prd.py:153",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R18] Citation claims are unchanged during reclassification, so pairing original and reclassified lists adds unnecessary bookkeeping.",
+      "severity": "medium",
+      "file": "skills/create-prd/scripts/ground_prd.py:228",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R19] `check_library_claims(..., line_text=None)` silently disables the `(unverified library claim)` waiver when the argument is omitted.",
+      "severity": "low",
+      "file": "skills/create-prd/scripts/ground_prd.py:175",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R20] `main()` does not resolve `root` to an absolute path, and `--cargo-registry ~/x` is not expanduser'd.",
+      "severity": "low",
+      "file": "skills/create-prd/scripts/ground_prd.py:293",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R21] The checker goes beyond the spec in small ways: the placeholder filter adds `XXXX|YYYY`, `resolve_symbols` takes an extra `exclude` argument, crate names are aliased with underscores.",
+      "severity": "low",
+      "file": "skills/create-prd/scripts/ground_prd.py:45",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R22] Citation detection can false-block on non-path tokens that look like `name.ext:digits`, for example `example.com:443`.",
+      "severity": "low",
+      "file": "skills/create-prd/scripts/ground_prd.py:38",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R23] Frontmatter handling treats any first-line `---` without a closing `---` as frontmatter, so the whole file is silently skipped (fail-open). `~~~` fences are scanned.",
+      "severity": "low",
+      "file": "skills/create-prd/scripts/ground_prd.py:67",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "scope-overflow",
+      "issue": "[R24] Package classification treats any `node_modules` directory or site-packages module name as a library root, downgrading a colliding repo symbol to non-blocking `unverified`.",
+      "severity": "low",
+      "file": "skills/create-prd/scripts/ground_prd.py:217",
+      "consensus": "1/3",
+      "reason": "review cycle 1 raised 24 findings; top 10 by severity routed to rework, this one deferred to batch end per the >10 follow-up scope rule",
+      "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
     }
   ]
 }
