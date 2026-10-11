@@ -283,6 +283,7 @@ def _rows_for_file(
                 "line": rc.line,
                 "status": status,
                 "detail": detail,
+                "prd:line": f"{p}:{rc.line}",
             }
         )
     return rows
@@ -317,6 +318,22 @@ def run(files: list[Path], root: Path, registry: Path) -> dict:
                 unverified += 1
 
     return {"rows": rows, "blocking": blocking, "unverified": unverified}
+
+
+SORT_ORDER = {
+    "missing": 0, "unresolved": 1, "unverified": 2, "waived": 3, "ok": 4, "declared-new": 5,
+}
+
+
+def render_table(result: dict) -> None:
+    rows = sorted(result["rows"], key=lambda r: (SORT_ORDER[r["status"]], r["file"], r["line"]))
+    for row in rows:
+        status, kind, token, file, line, detail = (
+            row["status"], row["kind"], row["token"], row["file"], row["line"], row["detail"],
+        )
+        print(f"{status:10} {kind:9} {token:40} {file}:{line}  {detail}")
+    declared_new = sum(1 for r in result["rows"] if r["status"] == "declared-new")
+    print(f"{result['blocking']} blocking, {result['unverified']} unverified, {declared_new} declared new")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -366,17 +383,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        SORT_ORDER = {
-            "missing": 0, "unresolved": 1, "unverified": 2, "waived": 3, "ok": 4, "declared-new": 5,
-        }
-        rows = sorted(result["rows"], key=lambda r: (SORT_ORDER[r["status"]], r["file"], r["line"]))
-        for row in rows:
-            status, kind, token, file, line, detail = (
-                row["status"], row["kind"], row["token"], row["file"], row["line"], row["detail"],
-            )
-            print(f"{status:10} {kind:9} {token:40} {file}:{line}  {detail}")
-        declared_new = sum(1 for r in result["rows"] if r["status"] == "declared-new")
-        print(f"{result['blocking']} blocking, {result['unverified']} unverified, {declared_new} declared new")
+        render_table(result)
 
     sys.exit(1 if result["blocking"] else 0)
 
