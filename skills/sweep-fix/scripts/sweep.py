@@ -66,12 +66,17 @@ def resolve_ast_grep():
             "Could not resolve ast-grep: not on PATH and mise is not available"
         )
 
-    result = subprocess.run(
-        ["mise", "which", "ast-grep"],
-        capture_output=True,
-        text=True,
-        timeout=DEFAULT_SCAN_TIMEOUT,
-    )
+    try:
+        result = subprocess.run(
+            ["mise", "which", "ast-grep"],
+            capture_output=True,
+            text=True,
+            timeout=DEFAULT_SCAN_TIMEOUT,
+        )
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        raise RuntimeError(
+            f"Could not resolve ast-grep: `mise which ast-grep` failed: {exc}"
+        ) from exc
     if result.returncode != 0:
         raise RuntimeError(
             "Could not resolve ast-grep: not on PATH and `mise which ast-grep` failed"
@@ -148,12 +153,15 @@ def enumerate_repos(registry, cwd):
     The registry file is only ever read, never written.
     """
     registry = Path(registry)
-    cwd = _git_root(Path(cwd).absolute())
+    cwd = _git_root(Path(os.path.abspath(cwd)))
     if not registry.is_file():
         raise RuntimeError(f"registry not found: {registry}")
 
-    with registry.open() as fh:
-        registered = [Path(row[0].strip()) for row in csv.reader(fh) if row and row[0].strip()]
+    try:
+        with registry.open() as fh:
+            registered = [Path(row[0].strip()) for row in csv.reader(fh) if row and row[0].strip()]
+    except (OSError, UnicodeDecodeError) as exc:
+        raise RuntimeError(f"registry unreadable: {registry}: {exc}") from exc
 
     work_tree = BUVIS_BARE["work_tree"]
     repos = [path for path in registered if path != work_tree and (path / ".git").exists()]
