@@ -46,6 +46,11 @@ because a pattern that misses a known-present term is broken, and an
 unverified empty sweep is not a clean sweep). It then renders the report and
 writes it under `docs/dev/project-management/audit-results/`.
 
+When the scan tool cannot be resolved, the registry is missing or unreadable,
+or the control repo cannot be scanned or searched, `main()` exits 1 with one
+line on stderr naming the cause and writes no report. Report that line to the
+user and stop; do not treat it as an empty sweep.
+
 ### 3. Report
 
 Read the report file `main()` wrote back (its path is printed on exit).
