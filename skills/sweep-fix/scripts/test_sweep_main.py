@@ -209,7 +209,7 @@ def test_main_refuses_relative_out_that_escapes_cwd_repo_via_dotdot(
     assert not target.exists()
     message = capsys.readouterr().err
     assert message.strip() != ""
-    assert escaping_out in message or str(target) in message
+    assert str(target) in message
 
 
 def test_main_refuses_absolute_out_outside_cwd_repo(tmp_path, monkeypatch, capsys):
