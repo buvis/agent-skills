@@ -56,6 +56,10 @@ verdict to the directory path (trailing `/`), not to a file inside it. Paths are
 
 First run: if the local ledger is missing, ask the user for the bare repo's
 git dir and where the public ledger should live, then create both files.
+Then offer to install `<git_dir>/hooks/pre-commit`, which runs `glean.py
+check-staged` and exits non-zero when `ok` is false. That gates every commit,
+including manual ones made outside this skill. Hooks are not tracked, so
+check for this hook on every run.
 
 ## Procedure
 
