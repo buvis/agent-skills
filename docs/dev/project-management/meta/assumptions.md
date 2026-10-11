@@ -19,3 +19,26 @@
 - `RuntimeError` is the exception type for an `rg` exit-2 error; the review finding said only "raise". (Ivan, fix round)
 - Running `rg` with `cwd=root` and `.` as the search path is the intended meaning of "search under root" with `--glob '!docs/dev/**'` — passing the absolute root as the path made the glob never match, since `rg` matches `--glob` against paths relative to its cwd. (Ivan, fix round)
 - `rg` results are not cached per segment, so a segment shared by several symbols runs `rg` more than once; nothing asked for caching. (Ivan, fix round)
+
+## 2: ground_prd.py: library lens (Cargo/node/python)
+
+- `known_packages` returns one merged dict keyed by package name; Cargo entries are `{"version": str, "source": Path | None}`, node/python entries are `{"source": ...}`. (Tess)
+- A bare package token (`fake`, no segments after the name) is "ok" when the source exists, since all zero of its segments pass. (Tess)
+- Library segments have no 3+-char minimum, unlike `resolve_symbols`. (Tess)
+- Memoization keys on the exact `(root, registry)` pair; a different value of either triggers a fresh walk. (Tess)
+- `check_library_claims` gets an optional 4th keyword parameter `line_text: dict[int, str] | None = None` for the waiver lookup, since the pinned 3-arg `Claim(kind, token, line)` carries no line text itself — resolved by the orchestrator as an autonomous decision after Tess flagged the contract gap (PRD/design doc pin only 3 positional args). (orchestrator decision, confirmed in Pat's review as a noted but accepted deviation)
+- For the Cargo-lock-index-name test, a new crate under a differently-named index subdirectory was added rather than moving an existing fixture, so both the old `idx/` case and the general case stay covered. (Tess, strengthen round)
+- The venv test now plants only under `python3.11`; no test covers `python3.12` specifically, since the PRD's `python*` glob is version-agnostic. (Tess, strengthen round)
+- The project runs Python 3.10 (no `tomllib`), so `Cargo.lock` is parsed with a line-oriented regex expecting `name = "..."` directly followed by `version = "..."` — the layout Cargo actually writes. (Ivan)
+- Every library-claim segment is checked regardless of length (no 3-char floor, matching Tess's assumption above). (Ivan)
+- The `rg` search for library segments passes `--no-ignore`, since `.venv`/`node_modules` are typically gitignored and would otherwise be skipped. (Ivan)
+- Every `Cargo.lock` `[[package]]` block counts as a crate, including local workspace entries with no `source = ` line. (Ivan)
+- In site-packages, any directory with an identifier name counts as a package (excludes `*.dist-info`, includes `__pycache__`). (Ivan)
+- A crate with no hyphen in its name gets the same dict key written twice (harmless) when aliasing hyphen/underscore forms; if a lock held both `foo-bar` and `foo_bar` literally, the underscore alias key would go to whichever block parses last. (Ivan, fix round)
+
+## 3: ground_prd.py: CLI surface (run, main, table/json)
+
+- `resolve_symbols` gained a 4th optional keyword parameter `exclude: frozenset[Path] = frozenset()`, excluding the PRD files being graded from the whole-repo `rg` symbol search, since otherwise every symbol claim would self-confirm by matching its own backtick-quoted token inside the PRD file being graded itself. (Ivan; orchestrator accepted this as a necessary correctness fix exposed only once `--root` correctly points at the graded files' own directory, not a scope-creep addition — noted by Pat's review as outside task 3's literal contract but not disputed as wrong)
+- Table-mode output sorts by `(SORT_ORDER[status], file, line)`; JSON-mode output keeps `run()`'s natural (unsorted) row order, since no acceptance criterion or test requires JSON rows to be sorted. (Ivan)
+- `--root`'s pinned default of `"."` is implemented literally (no path-inference); every CLI test passes `--root <tmp_path>` explicitly via a fixed `run_cli` helper, so the plain default is never exercised by any test but remains spec-correct. (orchestrator decision, after Ivan's first pass had silently substituted path-inference to paper over a real `run_cli` wiring bug in Tess's tests)
+- Deferred (Pat review, LOW severity, not fixed this cycle): `resolve_symbols`'s `exclude` glob (`!{rel}`) is unanchored and could over-exclude a same-named file in a subdirectory; no regression test covers the three MEDIUM fixes (waived-row table sort, declared-set regex, unreadable-file handling); an `rg` exit-2 `RuntimeError` inside `run()` still surfaces as an uncaught traceback (exit 1) instead of exit 2; `main()` reads each file twice (once to validate, once inside `run()`); `check_citations` receives all claims instead of only citation-kind ones; `SORT_ORDER` is defined inside `main()`'s `else` branch rather than at module level; `_rows_for_file`'s `zip(claims, reclassified)` is more complex than needed since citation claims are identical in both lists. None of these block correctness for Phase 0's own acceptance criteria; left for a future cleanup pass if revisited.

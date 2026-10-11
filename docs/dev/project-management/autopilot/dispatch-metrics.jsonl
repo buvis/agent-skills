@@ -1758,3 +1758,33 @@
 {"id":"1d438acd","ended_at":1791715713,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"id":"ccdcb0f3","ended_at":1791715713,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1791715713,"phase":"build","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1791715735,"phase":"build","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
+{"id":"ea1f2693","kind":"tess","task":"2","queued_at":1791715803,"prompt_bytes":25543}
+{"id":"ce7ef45b","kind":"devon","task":"2","queued_at":1791716190,"prompt_bytes":12465}
+{"id":"ce7ef45b","ended_at":1791716315,"elapsed_s":125,"outcome":"ok","detail":null}
+{"id":"63bfaec1","kind":"ivan","task":"2","queued_at":1791716507,"prompt_bytes":31542}
+{"id":"9933a9a4","kind":"pat","task":"2","queued_at":1791716677,"prompt_bytes":25154}
+{"id":"aa2cc308","kind":"ivan","task":"2","queued_at":1791716748,"prompt_bytes":11341}
+{"id":"a7855217","kind":"pat","task":"2","queued_at":1791716802,"prompt_bytes":2978}
+{"id":"e4d5cda5","kind":"tess","task":"3","queued_at":1791716965,"prompt_bytes":41718}
+{"id":"23ad5f35","kind":"ivan","task":"3","queued_at":1791717252,"prompt_bytes":40124}
+{"id":"d034b955","kind":"pat","task":"3","queued_at":1791718239,"prompt_bytes":23967}
+{"id":"b86fc776","kind":"ivan","task":"3","queued_at":1791718316,"prompt_bytes":18353}
+{"id":"13cddbbf","kind":"pat","task":"3","queued_at":1791718402,"prompt_bytes":5865}
+{"id":"33e6a5ce","kind":"pat","task":"4","queued_at":1791719195,"prompt_bytes":13431}
+{"id":"5aff839c","kind":"pat","task":"5","queued_at":1791719789,"prompt_bytes":11853}
+{"id":"c5b3cbf7","kind":"pat","task":"6","queued_at":1791720049,"prompt_bytes":9049}
+{"id":"ea1f2693","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"63bfaec1","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"9933a9a4","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"aa2cc308","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"a7855217","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"e4d5cda5","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"23ad5f35","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"d034b955","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"b86fc776","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"13cddbbf","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"33e6a5ce","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"5aff839c","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"c5b3cbf7","ended_at":1791723330,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1791723330,"phase":"review","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
