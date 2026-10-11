@@ -61,8 +61,10 @@ def is_symbol(token: str) -> bool:
     return SEGMENT_SPLIT.split(token)[-1] not in FILE_EXTENSIONS
 
 
-def extract_claims(text: str) -> list[Claim]:
-    claims = []
+def _scannable_lines(text: str):
+    """Yield (line_number, line) pairs, skipping frontmatter, fenced blocks, and
+    lines holding the WAIVER marker. Shared by extract_claims and the
+    declared-new-symbol scan so both honor the same skip rules."""
     lines = text.splitlines()
     in_front = bool(lines) and lines[0] == "---"
     in_fence = False
@@ -75,12 +77,20 @@ def extract_claims(text: str) -> list[Claim]:
             continue
         if in_fence or WAIVER in line:
             continue
+        yield ln, line
+
+
+def extract_claims(text: str) -> list[Claim]:
+    claims = []
+    for ln, line in _scannable_lines(text):
         claims += [Claim("citation", m.group(0), ln) for m in CITATION_RE.finditer(line)]
         claims += [Claim("symbol", t, ln) for t in BACKTICK_RE.findall(line) if is_symbol(t)]
     return claims
 
 
-def check_citations(claims: list[Claim], root: Path) -> dict[Claim, str]:
+def check_citations(
+    claims: list[Claim], root: Path, reasons: dict[Claim, str] | None = None
+) -> dict[Claim, str]:
     names_by_line: dict[int, list[str]] = {}
     for c in claims:
         if c.kind == "symbol":
@@ -95,24 +105,45 @@ def check_citations(claims: list[Claim], root: Path) -> dict[Claim, str]:
             p = root / p
         if not p.is_file():
             result[c] = "missing"
+            if reasons is not None:
+                reasons[c] = f"{path} not found"
             continue
         try:
             lines = p.read_text(errors="replace").splitlines()
         except OSError:
             result[c] = "missing"
+            if reasons is not None:
+                reasons[c] = f"{path} not found"
             continue
         ranges = [(int(a), int(b or a)) for a, _, b in (s.partition("-") for s in spans.split(","))]
         if not all(1 <= a <= b <= len(lines) for a, b in ranges):
             result[c] = "missing"
+            if reasons is not None:
+                reasons[c] = f"{path} line range exceeds file length ({len(lines)} lines)"
             continue
         names = names_by_line.get(c.line)
         if names:
             cited = [line for a, b in ranges for line in lines[a - 1:b]]
             hit = any(n in text_line for text_line in cited for n in names)
             result[c] = "ok" if hit else "missing"
+            if not hit and reasons is not None:
+                reasons[c] = f"no match for {', '.join(names)} in {path}:{spans}"
         else:
             result[c] = "ok"
     return result
+
+
+@functools.lru_cache(maxsize=None)
+def _rg_hit(segment: str, root: Path, exclude_globs: tuple[str, ...]) -> int:
+    # cwd=root: rg matches --glob against paths relative to cwd, not the search root
+    rg = [
+        "rg", "-F", "-w", "-q", "--no-messages", "--glob", "!docs/dev/**",
+        *exclude_globs, "--", segment, ".",
+    ]
+    code = subprocess.run(rg, cwd=root).returncode
+    if code == 2:
+        raise RuntimeError(f"rg failed searching {segment!r} in {root}")
+    return code
 
 
 def resolve_symbols(
@@ -121,11 +152,15 @@ def resolve_symbols(
     # exclude: PRD files being graded, so a claim can't self-confirm by quoting its own token
     exclude_globs = []
     for p in exclude:
+        p = Path(p)
+        if not p.is_absolute():
+            p = Path(root) / p
         try:
-            rel = Path(p).resolve().relative_to(Path(root).resolve())
+            rel = p.resolve().relative_to(Path(root).resolve())
         except ValueError:
             continue
         exclude_globs += ["--glob", f"!{rel}"]
+    exclude_globs = tuple(exclude_globs)
     result = {}
     for c in claims:
         if c.token in declared:
@@ -135,14 +170,7 @@ def resolve_symbols(
         for s in SEGMENT_SPLIT.split(c.token):
             if len(s) < 3:
                 continue
-            # cwd=root: rg matches --glob against paths relative to cwd, not the search root
-            rg = [
-                "rg", "-F", "-w", "-q", "--no-messages", "--glob", "!docs/dev/**",
-                *exclude_globs, "--", s, ".",
-            ]
-            code = subprocess.run(rg, cwd=root).returncode
-            if code == 2:
-                raise RuntimeError(f"rg failed searching {s!r} in {root}")
+            code = _rg_hit(s, Path(root), exclude_globs)
             if code == 1:
                 result[c] = "unresolved"
                 break
@@ -154,7 +182,13 @@ def known_packages(root: Path, registry: Path) -> dict[str, dict]:
     packages: dict[str, dict] = {}
     lock = root / "Cargo.lock"
     if lock.is_file():
-        for name, version in LOCK_PACKAGE_RE.findall(lock.read_text(errors="replace")):
+        # split on the block header: a path/workspace-local crate has no `source =`
+        # line in its own block and must not be registered
+        for block in lock.read_text(errors="replace").split("[[package]]")[1:]:
+            m = LOCK_PACKAGE_RE.search(block)
+            if not m or "source = " not in block:
+                continue
+            name, version = m.group(1), m.group(2)
             unpacked = [d for d in registry.glob(f"*/{name}-{version}") if d.is_dir()]
             packages[name] = {"version": version, "source": unpacked[0] if unpacked else None}
             # Rust code names a hyphenated crate with underscores (tree_sitter::Parser)
@@ -169,6 +203,16 @@ def known_packages(root: Path, registry: Path) -> dict[str, dict]:
             elif p.suffix == ".py":
                 packages[p.stem] = {"source": p}
     return packages
+
+
+@functools.lru_cache(maxsize=None)
+def _rg_hit_in_source(segment: str, source: Path) -> int:
+    # --no-ignore: .venv and node_modules are usually gitignored
+    rg = ["rg", "-F", "-w", "-q", "--no-messages", "--no-ignore", "--", segment, str(source)]
+    code = subprocess.run(rg).returncode
+    if code == 2:
+        raise RuntimeError(f"rg failed searching {segment!r} in {source}")
+    return code
 
 
 def check_library_claims(
@@ -189,11 +233,7 @@ def check_library_claims(
             continue
         result[c] = "ok"
         for s in names:
-            # --no-ignore: .venv and node_modules are usually gitignored
-            rg = ["rg", "-F", "-w", "-q", "--no-messages", "--no-ignore", "--", s, str(source)]
-            code = subprocess.run(rg).returncode
-            if code == 2:
-                raise RuntimeError(f"rg failed searching {s!r} in {source}")
+            code = _rg_hit_in_source(s, Path(source))
             if code == 1:
                 result[c] = "unverified"
                 break
@@ -211,7 +251,8 @@ def _rows_for_file(
 ) -> list[dict]:
     claims = extract_claims(text)
     line_text = dict(enumerate(text.splitlines(), 1))
-    citation_result = check_citations(claims, root)
+    citation_reasons: dict[Claim, str] = {}
+    citation_result = check_citations(claims, root, citation_reasons)
     reclassified = [
         c._replace(kind="library")
         if c.kind == "symbol" and SEGMENT_SPLIT.split(c.token)[0] in packages
@@ -227,7 +268,7 @@ def _rows_for_file(
     for orig, rc in zip(claims, reclassified):
         if rc.kind == "citation":
             status = citation_result[orig]
-            detail = f"citation {rc.token}"
+            detail = citation_reasons.get(orig, f"citation {rc.token}") if status == "missing" else f"citation {rc.token}"
         elif rc.kind == "symbol":
             status = symbol_result[rc]
             detail = f"symbol {rc.token}"
@@ -253,7 +294,7 @@ def run(files: list[Path], root: Path, registry: Path) -> dict:
 
     declared: set[str] = set()
     for text in texts.values():
-        for line in text.splitlines():
+        for _, line in _scannable_lines(text):
             m = NEW_SYMBOLS_RE.match(line)
             if m:
                 declared.update(
@@ -316,7 +357,11 @@ def main(argv: list[str] | None = None) -> None:
 
     root = Path(args.root)
 
-    result = run(files, root, registry)
+    try:
+        result = run(files, root, registry)
+    except RuntimeError as e:
+        print(f"ground_prd: {e}", file=sys.stderr)
+        sys.exit(2)
 
     if args.json:
         print(json.dumps(result, indent=2))
