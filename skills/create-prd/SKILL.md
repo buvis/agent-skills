@@ -19,6 +19,7 @@ Transform a plan or design document into an RPG-compliant PRD and save to the ba
   so plan and implement it by hand.
 - Personal skill (optional): `spike`, offered by the guess-density gate when
   the draft is too fuzzy to freeze.
+- Scripts: scripts/ground_prd.py (step 5.55; tests in scripts/test_ground_prd.py); CLI: rg
 
 ## Workflow
 
@@ -79,6 +80,8 @@ Apply the full RPG structure. All four sections are mandatory; none may be omitt
 
 While drafting, mark every contract detail you invented rather than sourced from the input (an input/output shape, an interface, a behavior under an edge case) with `(guess)`. Never resolve ambiguity silently - the step 5.5 gate counts these markers.
 
+**New-symbols rule:** When a Module block introduces a brand-new symbol (a function, class, or file) that does not exist yet in the codebase, list it on a `New symbols:` line inside that Module block (backtick-wrapped, comma-separated) so the grounding gate added in step 5.55 does not flag it as an unresolved reference.
+
 **Unattended rule (no human mid-implementation):** The saved PRD executes in an unattended loop - nobody answers questions, tests by hand, or picks between options mid-run. A PRD whose text needs the user to test, validate, or decide anything ("user confirms", "manual check", "decide during implementation", an Open Question left for the implementer) is incorrectly created. User input belongs in the attended phases BEFORE this skill (`/spike`, `/elicit-requirements`, `/review-discovery-doc`, plan discussion - the human drives those): resolve every such point with the user now and write the answer into the PRD, or send the fuzzy part back to those phases. Acceptance criteria must be checkable headlessly by a command, test, or file assertion.
 
 **Premise rule (observed-state tasks):** Any task whose action deletes, moves, overwrites, or edits content justified by observed repo state MUST (a) state that premise in its Feature or task text (e.g. `Premise: path X is an unused scaffold, not a live skill`) and (b) include an execution-time re-check in its acceptance criteria — a failed premise means skip and report, never force. Rationale: during the 2026-07-07 skill audit a queued task nearly archived a skill the user was actively building (`brief-portfolio` went live between audit read and PRD write), and only a lucky mid-session refresh caught it. This is authoring guidance, not structure — the `assets/` templates are unaffected.
@@ -131,7 +134,15 @@ Walk the chosen template top-to-bottom and confirm every `##`/`###` heading the 
 
 ### 5.5. Guess-density gate
 
-Count unresolved contract markers in the draft: `(guess)`, `TBD`, `TODO`, plus Open Questions that bear on any Feature's Inputs/Outputs/Behavior. **3 or more:** do not save yet - offer via AskUserQuestion: **Spike the fuzzy part** (run the spike skill with the draft as its rough spec; on convergence rewrite the guessed fields from observed behavior, then re-run this gate), **Resolve now** (answer them in conversation), or **Save anyway** (explicit override - the markers stay in the PRD and plan-tasks will freeze them as written). **2 or fewer:** proceed to step 5.6.
+Count unresolved contract markers in the draft: `(guess)`, `TBD`, `TODO`, plus Open Questions that bear on any Feature's Inputs/Outputs/Behavior. **3 or more:** do not save yet - offer via AskUserQuestion: **Spike the fuzzy part** (run the spike skill with the draft as its rough spec; on convergence rewrite the guessed fields from observed behavior, then re-run this gate), **Resolve now** (answer them in conversation), or **Save anyway** (explicit override - the markers stay in the PRD and plan-tasks will freeze them as written). **2 or fewer:** proceed to step 5.55.
+
+### 5.55. Grounding gate
+
+Run `python3 ~/.agents/skills/create-prd/scripts/ground_prd.py --root . <draft path>` (table mode) on the draft and block the save on exit 1.
+
+Fix each `missing` row by re-reading the file and correcting the citation. Fix each `unresolved` row by correcting the name or adding it to a `New symbols:` line in the Module block that creates it. Fix each `unverified` row by appending `(unverified library claim)` to that line. Exit 2 is reported and stops the save.
+
+On a reviewed backlog, half of all Blocking findings were implementations that could not work -- this gate catches that class before the PRD is saved.
 
 ### 5.6. Model-tier gate
 
