@@ -1,5 +1,8 @@
 """Tests for sweep.py: enumerate_repos."""
+import os
 from pathlib import Path
+
+import pytest
 
 import sweep
 from sweep_test_helpers import (
@@ -483,3 +486,102 @@ def test_scan_bare_entry_with_no_tracked_files_finds_no_hits_and_does_not_walk_c
     assert hits == []
 
 
+# -- enumerate_repos: `..` segments in cwd -----------------------------------
+
+
+def test_enumerate_repos_normalises_dotdot_cwd_to_the_registered_repo_once(
+    tmp_path, monkeypatch
+):
+    base = tmp_path.resolve()
+    empty_portfolio_root = base / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    registered = _make_repo(base / "org" / "repo-a")
+    (registered / "a").mkdir()
+    registry = base / "repos.csv"
+    _write_registry(registry, [str(registered)])
+
+    repos, _gaps = sweep.enumerate_repos(registry, registered / "a" / "..")
+
+    assert repos.count(registered) == 1
+    assert not [repo for repo in repos if ".." in str(repo)]
+
+
+def test_enumerate_repos_resolves_dotdot_cwd_into_unregistered_portfolio_repo(
+    tmp_path, monkeypatch
+):
+    portfolio_root = tmp_path.resolve() / "portfolio"
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", portfolio_root)
+
+    repo = _make_repo(portfolio_root / "org" / "repo")
+    (repo / "a" / "b").mkdir(parents=True)
+    registry = tmp_path.resolve() / "repos.csv"
+    _write_registry(registry, [])
+
+    repos, gaps = sweep.enumerate_repos(registry, repo / "a" / ".." / "a" / "b")
+
+    assert Path(repo) in repos
+    assert not [entry for entry in repos if ".." in str(entry)]
+    assert gaps == []
+
+
+def test_enumerate_repos_resolves_a_relative_dotdot_cwd_to_the_absolute_repo_root(
+    tmp_path, monkeypatch
+):
+    portfolio_root = tmp_path.resolve() / "portfolio"
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", portfolio_root)
+
+    repo = _make_repo(portfolio_root / "org" / "repo")
+    (repo / "a" / "b").mkdir(parents=True)
+    registry = tmp_path.resolve() / "repos.csv"
+    _write_registry(registry, [])
+    monkeypatch.chdir(repo / "a" / "b")
+
+    repos, gaps = sweep.enumerate_repos(registry, Path("../../a/b/.."))
+
+    assert repos == [repo]
+    assert gaps == []
+
+
+# -- enumerate_repos: unreadable registry ------------------------------------
+
+
+def test_enumerate_repos_raises_runtimeerror_naming_an_unreadable_registry(
+    tmp_path, monkeypatch
+):
+    if os.geteuid() == 0:
+        pytest.skip("root can read a chmod 0o000 file")
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(tmp_path / "org" / "repo-a")])
+    registry.chmod(0o000)
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()
+
+    try:
+        with pytest.raises(RuntimeError) as exc_info:
+            sweep.enumerate_repos(registry, cwd)
+    finally:
+        registry.chmod(0o600)
+
+    assert str(registry) in str(exc_info.value)
+
+
+def test_enumerate_repos_raises_runtimeerror_naming_a_non_utf8_registry(
+    tmp_path, monkeypatch
+):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+    registry = tmp_path / "repos.csv"
+    registry.write_bytes(b"\xff\xfe\xfa\n")
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()
+
+    with pytest.raises(RuntimeError) as exc_info:
+        sweep.enumerate_repos(registry, cwd)
+
+    assert str(registry) in str(exc_info.value)

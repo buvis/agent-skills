@@ -199,3 +199,30 @@ def test_sweep_module_imports_only_stdlib_modules():
     assert not non_stdlib, f"sweep.py imports non-stdlib module(s): {non_stdlib}"
 
 
+# -- resolve_ast_grep: `mise which` fallback failures -----------------------
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        subprocess.TimeoutExpired(cmd=["mise", "which", "ast-grep"], timeout=10),
+        OSError("exec format error"),
+    ],
+    ids=["timeout", "oserror"],
+)
+def test_resolve_ast_grep_raises_runtimeerror_when_mise_which_cannot_complete(
+    monkeypatch, failure
+):
+    monkeypatch.setattr(
+        shutil, "which", lambda name, *a, **k: "/fake/mise" if name == "mise" else None
+    )
+
+    def _fail(*args, **kwargs):
+        raise failure
+
+    monkeypatch.setattr(subprocess, "run", _fail)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        sweep.resolve_ast_grep()
+
+    assert "ast-grep" in str(exc_info.value)
