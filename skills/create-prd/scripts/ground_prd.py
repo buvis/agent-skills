@@ -13,14 +13,14 @@ claims. Line numbers count from the original text.
 check_citations marks a citation "ok" when the file exists and every range fits
 in it; when the same line names symbols, at least one must appear in the cited
 lines. resolve_symbols marks a symbol "ok" when every segment of 3+ chars is a
-whole word somewhere in the repo outside docs/dev/project-management.
+whole word (per `rg -w`) somewhere in the repo outside docs/dev.
 """
 import re
+import subprocess
 from pathlib import Path
 from typing import NamedTuple
 
 WAIVER = "link-ok:"
-WORKING_DOCS = ("docs", "dev", "project-management")
 CITATION_RE = re.compile(
     r"(?<![\w./~-])(?:~/|/)?[\w.-]+(?:/[\w.-]+)*\.[A-Za-z]\w*:\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*"
 )
@@ -44,7 +44,7 @@ class Claim(NamedTuple):
 def is_symbol(token: str) -> bool:
     if len(token) < 3 or PLACEHOLDER.search(token) or not SYMBOL_RE.fullmatch(token):
         return False
-    return "." not in token or token.rsplit(".", 1)[1] not in FILE_EXTENSIONS
+    return SEGMENT_SPLIT.split(token)[-1] not in FILE_EXTENSIONS
 
 
 def extract_claims(text: str) -> list[Claim]:
@@ -82,32 +82,41 @@ def check_citations(claims: list[Claim], root: Path) -> dict[Claim, str]:
         if not p.is_file():
             result[c] = "missing"
             continue
-        lines = p.read_text(errors="replace").splitlines()
+        try:
+            lines = p.read_text(errors="replace").splitlines()
+        except OSError:
+            result[c] = "missing"
+            continue
         ranges = [(int(a), int(b or a)) for a, _, b in (s.partition("-") for s in spans.split(","))]
         if not all(1 <= a <= b <= len(lines) for a, b in ranges):
             result[c] = "missing"
             continue
         names = names_by_line.get(c.line)
         if names:
-            words = {w for a, b in ranges for line in lines[a - 1:b] for w in re.findall(r"\w+", line)}
-            result[c] = "ok" if any(n in words for n in names) else "missing"
+            cited = [line for a, b in ranges for line in lines[a - 1:b]]
+            hit = any(n in text_line for text_line in cited for n in names)
+            result[c] = "ok" if hit else "missing"
         else:
             result[c] = "ok"
     return result
 
 
 def resolve_symbols(claims: list[Claim], root: Path, declared: set[str]) -> dict[Claim, str]:
-    words: set[str] = set()
-    for f in root.rglob("*"):
-        parts = f.relative_to(root).parts
-        if parts[:3] == WORKING_DOCS or ".git" in parts or not f.is_file():
-            continue
-        words.update(re.findall(r"\w+", f.read_text(errors="replace")))
     result = {}
     for c in claims:
         if c.token in declared:
             result[c] = "declared-new"
             continue
-        segments = [s for s in SEGMENT_SPLIT.split(c.token) if len(s) >= 3]
-        result[c] = "ok" if all(s in words for s in segments) else "unresolved"
+        result[c] = "ok"
+        for s in SEGMENT_SPLIT.split(c.token):
+            if len(s) < 3:
+                continue
+            # cwd=root: rg matches --glob against paths relative to cwd, not the search root
+            rg = ["rg", "-F", "-w", "-q", "--no-messages", "--glob", "!docs/dev/**", "--", s, "."]
+            code = subprocess.run(rg, cwd=root).returncode
+            if code == 2:
+                raise RuntimeError(f"rg failed searching {s!r} in {root}")
+            if code == 1:
+                result[c] = "unresolved"
+                break
     return result
