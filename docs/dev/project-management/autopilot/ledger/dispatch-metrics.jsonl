@@ -1726,3 +1726,19 @@
 {"id":"7b1c2d3c","kind":"pat","task":"4","queued_at":1791674580,"prompt_bytes":15477}
 {"id":"7b1c2d3c","ended_at":1791674602,"elapsed_s":22,"outcome":"ok","detail":"3 LOW"}
 {"kind":"handoff","site":"build","edge":"leave","at":1791674957,"phase":"review","prd":"00073-sweep-loud-failures-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1791701293,"phase":"review","prd":"00073-sweep-loud-failures-v1.md"}
+{"id":"fe161866","kind":"bob","task":"review-00073c1-20261011","queued_at":1791701308,"prompt_bytes":9560}
+{"id":"4edfade0","kind":"carl","task":"review-00073c1-20261011","queued_at":1791701308,"prompt_bytes":6561}
+{"id":"fe161866","ended_at":1791701461,"elapsed_s":153,"outcome":"ok","detail":"retry"}
+{"id":"4edfade0","ended_at":1791701462,"elapsed_s":154,"outcome":"error","detail":"retry: exit 1"}
+{"id":"9ef9e20d","kind":"tess","task":"5","queued_at":1791701661,"prompt_bytes":16832}
+{"id":"9ef9e20d","ended_at":1791701725,"elapsed_s":64,"outcome":"ok","detail":null}
+{"id":"2dc444fa","kind":"ivan","task":"5","queued_at":1791701759,"prompt_bytes":16956}
+{"id":"2dc444fa","ended_at":1791701797,"elapsed_s":38,"outcome":"ok","detail":null}
+{"id":"2909c123","kind":"pat","task":"5","queued_at":1791701837,"prompt_bytes":16905}
+{"id":"2909c123","ended_at":1791701867,"elapsed_s":30,"outcome":"ok","detail":null}
+{"id":"8c49806c","kind":"pat","task":"6","queued_at":1791701939,"prompt_bytes":7683}
+{"id":"8c49806c","ended_at":1791701962,"elapsed_s":23,"outcome":"ok","detail":null}
+{"id":"00e1cd71","kind":"pat","task":"7","queued_at":1791701999,"prompt_bytes":5156}
+{"id":"00e1cd71","ended_at":1791702012,"elapsed_s":13,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1791702400,"phase":"done","prd":"00073-sweep-loud-failures-v1.md"}

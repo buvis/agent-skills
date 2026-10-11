@@ -55,6 +55,22 @@
       "command": "braid --check",
       "exit": 127,
       "prd": "00072-distil-judge-no-persistence-v1.md"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "severity": "low",
+      "issue": "Default-report collision check is check-then-act; two concurrent same-reason sweeps can still clobber each other (sweep.py:524)",
+      "reason": "design accepted the race (single operator, CLI); PRD requires only the sequential case",
+      "prd": "00073-sweep-loud-failures-v1.md"
+    },
+    {
+      "type": "review-deferral",
+      "cycle": 1,
+      "severity": "low",
+      "issue": "Default report path is built under the --cwd subdirectory, not the walked git root; symlinked cwd may not dedupe against a registered real path (sweep.py:151)",
+      "reason": "out of PRD scope; design lists anchoring the default report at the git root as the next change",
+      "prd": "00073-sweep-loud-failures-v1.md"
     }
   ]
 }

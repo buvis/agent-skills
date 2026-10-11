@@ -19,3 +19,11 @@
 - The two-language rule block holds exactly 2 YAML documents (python and javascript). (Tess)
 - The empty string is left out of the round-trip corpus; an empty pattern is not assumed valid. (Tess)
 - Task 3 is a user-visible `fix`, not a refactor (see task 3 commit): the old renderer emitted timestamps, `1:30`, `=` and C1 characters bare, so they changed type or failed to load. (orchestrator)
+
+## 5: [D1] Tail sweep: skills/sweep-fix/scripts/sweep.py
+
+- The relative-`..` test chdirs into `repo/a/b` and passes `../../a/b/..` (= `repo/a`), expecting `repos == [repo]`. (Tess)
+- The `..` tests base on `tmp_path.resolve()` so the macOS `/private` symlink does not affect comparisons. (Tess)
+- `main` calls `resolve_ast_grep` before any other `subprocess.run`, so patching `subprocess.run` globally only trips the resolver. (Tess)
+- OSError from `mise which` and the non-UTF-8 registry are tested below `main` only. (Tess)
+- Error message wording (`registry unreadable: <path>: <exc>`, `Could not resolve ast-grep: \`mise which ast-grep\` failed: <exc>`) and the CHANGELOG wording are the implementor's. (Ivan)
