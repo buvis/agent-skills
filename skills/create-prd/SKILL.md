@@ -138,11 +138,15 @@ Count unresolved contract markers in the draft: `(guess)`, `TBD`, `TODO`, plus O
 
 ### 5.55. Grounding gate
 
+The draft must exist as a file before this gate runs - write a conversation-only draft to `docs/dev/tmp/` first.
+
 Run `python3 ~/.agents/skills/create-prd/scripts/ground_prd.py --root . <draft path>` (table mode) on the draft and block the save on exit 1.
+
+Each row carries one of these statuses: `missing` (the cited file is absent, the range exceeds it, or none of the line's backticked symbols occur in the cited range), `unresolved` (a symbol that does not resolve in the repo and is not declared new), `unverified` (a library-qualified symbol absent from the installed package source - a warning, not blocking), `ok` (the citation or symbol resolved), `declared-new` (the symbol is listed on a `New symbols:` line in the Module block that creates it), and `waived` (the citing line carries `(unverified library claim)`).
 
 Fix each `missing` row by re-reading the file and correcting the citation. Fix each `unresolved` row by correcting the name or adding it to a `New symbols:` line in the Module block that creates it. Fix each `unverified` row by appending `(unverified library claim)` to that line. Exit 2 is reported and stops the save.
 
-On a reviewed backlog, half of all Blocking findings were implementations that could not work -- this gate catches that class before the PRD is saved.
+On a reviewed backlog, half of all Blocking findings were implementations that could not work - this gate catches that class before the PRD is saved.
 
 ### 5.6. Model-tier gate
 
