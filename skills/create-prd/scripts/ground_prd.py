@@ -199,6 +199,53 @@ def check_library_claims(
     return result
 
 
+def _rows_for_file(
+    p: Path,
+    text: str,
+    root: Path,
+    registry: Path,
+    packages: dict,
+    declared: set[str],
+    paths: list[Path],
+) -> list[dict]:
+    claims = extract_claims(text)
+    line_text = dict(enumerate(text.splitlines(), 1))
+    citation_result = check_citations(claims, root)
+    reclassified = [
+        c._replace(kind="library")
+        if c.kind == "symbol" and SEGMENT_SPLIT.split(c.token)[0] in packages
+        else c
+        for c in claims
+    ]
+    symbols = [c for c in reclassified if c.kind == "symbol"]
+    libraries = [c for c in reclassified if c.kind == "library"]
+    symbol_result = resolve_symbols(symbols, root, declared, exclude=frozenset(paths))
+    library_result = check_library_claims(libraries, root, registry, line_text)
+
+    rows = []
+    for orig, rc in zip(claims, reclassified):
+        if rc.kind == "citation":
+            status = citation_result[orig]
+            detail = f"citation {rc.token}"
+        elif rc.kind == "symbol":
+            status = symbol_result[rc]
+            detail = f"symbol {rc.token}"
+        else:
+            status = library_result[rc]
+            detail = f"library {rc.token}"
+        rows.append(
+            {
+                "file": str(p),
+                "kind": rc.kind,
+                "token": rc.token,
+                "line": rc.line,
+                "status": status,
+                "detail": detail,
+            }
+        )
+    return rows
+
+
 def run(files: list[Path], root: Path, registry: Path) -> dict:
     paths = [Path(f) for f in files]
     texts = {p: p.read_text() for p in paths}
@@ -214,44 +261,12 @@ def run(files: list[Path], root: Path, registry: Path) -> dict:
     blocking = 0
     unverified = 0
     for p in paths:
-        text = texts[p]
-        claims = extract_claims(text)
-        line_text = dict(enumerate(text.splitlines(), 1))
-        citation_result = check_citations(claims, root)
-        reclassified = [
-            c._replace(kind="library")
-            if c.kind == "symbol" and SEGMENT_SPLIT.split(c.token)[0] in packages
-            else c
-            for c in claims
-        ]
-        symbols = [c for c in reclassified if c.kind == "symbol"]
-        libraries = [c for c in reclassified if c.kind == "library"]
-        symbol_result = resolve_symbols(symbols, root, declared, exclude=frozenset(paths))
-        library_result = check_library_claims(libraries, root, registry, line_text)
-
-        for orig, rc in zip(claims, reclassified):
-            if rc.kind == "citation":
-                status = citation_result[orig]
-                detail = f"citation {rc.token}"
-            elif rc.kind == "symbol":
-                status = symbol_result[rc]
-                detail = f"symbol {rc.token}"
-            else:
-                status = library_result[rc]
-                detail = f"library {rc.token}"
-            rows.append(
-                {
-                    "file": str(p),
-                    "kind": rc.kind,
-                    "token": rc.token,
-                    "line": rc.line,
-                    "status": status,
-                    "detail": detail,
-                }
-            )
-            if status in ("missing", "unresolved"):
+        file_rows = _rows_for_file(p, texts[p], root, registry, packages, declared, paths)
+        rows.extend(file_rows)
+        for row in file_rows:
+            if row["status"] in ("missing", "unresolved"):
                 blocking += 1
-            elif status == "unverified":
+            elif row["status"] == "unverified":
                 unverified += 1
 
     return {"rows": rows, "blocking": blocking, "unverified": unverified}
