@@ -21,9 +21,13 @@ check_library_claims marks a library claim "ok" when every segment after the
 package is a whole word in that package's source, "waived" when its line holds
 LIBRARY_MARKER, else "unverified".
 """
+import argparse
 import functools
+import json
 import re
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import NamedTuple
 
@@ -110,7 +114,17 @@ def check_citations(claims: list[Claim], root: Path) -> dict[Claim, str]:
     return result
 
 
-def resolve_symbols(claims: list[Claim], root: Path, declared: set[str]) -> dict[Claim, str]:
+def resolve_symbols(
+    claims: list[Claim], root: Path, declared: set[str], exclude: frozenset[Path] = frozenset()
+) -> dict[Claim, str]:
+    # exclude: PRD files being graded, so a claim can't self-confirm by quoting its own token
+    exclude_globs = []
+    for p in exclude:
+        try:
+            rel = Path(p).resolve().relative_to(Path(root).resolve())
+        except ValueError:
+            continue
+        exclude_globs += ["--glob", f"!{rel}"]
     result = {}
     for c in claims:
         if c.token in declared:
@@ -121,7 +135,10 @@ def resolve_symbols(claims: list[Claim], root: Path, declared: set[str]) -> dict
             if len(s) < 3:
                 continue
             # cwd=root: rg matches --glob against paths relative to cwd, not the search root
-            rg = ["rg", "-F", "-w", "-q", "--no-messages", "--glob", "!docs/dev/**", "--", s, "."]
+            rg = [
+                "rg", "-F", "-w", "-q", "--no-messages", "--glob", "!docs/dev/**",
+                *exclude_globs, "--", s, ".",
+            ]
             code = subprocess.run(rg, cwd=root).returncode
             if code == 2:
                 raise RuntimeError(f"rg failed searching {s!r} in {root}")
@@ -180,3 +197,115 @@ def check_library_claims(
                 result[c] = "unverified"
                 break
     return result
+
+
+def run(files: list[Path], root: Path, registry: Path) -> dict:
+    paths = [Path(f) for f in files]
+    texts = {p: p.read_text() for p in paths}
+
+    declared: set[str] = set()
+    for text in texts.values():
+        for line in text.splitlines():
+            if "New symbols:" in line:
+                declared.update(BACKTICK_RE.findall(line))
+
+    packages = known_packages(root, registry)
+    rows = []
+    blocking = 0
+    unverified = 0
+    for p in paths:
+        text = texts[p]
+        claims = extract_claims(text)
+        line_text = dict(enumerate(text.splitlines(), 1))
+        citation_result = check_citations(claims, root)
+        reclassified = [
+            c._replace(kind="library")
+            if c.kind == "symbol" and SEGMENT_SPLIT.split(c.token)[0] in packages
+            else c
+            for c in claims
+        ]
+        symbols = [c for c in reclassified if c.kind == "symbol"]
+        libraries = [c for c in reclassified if c.kind == "library"]
+        symbol_result = resolve_symbols(symbols, root, declared, exclude=frozenset(paths))
+        library_result = check_library_claims(libraries, root, registry, line_text)
+
+        for orig, rc in zip(claims, reclassified):
+            if rc.kind == "citation":
+                status = citation_result[orig]
+                detail = f"citation {rc.token}"
+            elif rc.kind == "symbol":
+                status = symbol_result[rc]
+                detail = f"symbol {rc.token}"
+            else:
+                status = library_result[rc]
+                detail = f"library {rc.token}"
+            rows.append(
+                {
+                    "file": str(p),
+                    "kind": rc.kind,
+                    "token": rc.token,
+                    "line": rc.line,
+                    "status": status,
+                    "detail": detail,
+                }
+            )
+            if status in ("missing", "unresolved"):
+                blocking += 1
+            elif status == "unverified":
+                unverified += 1
+
+    return {"rows": rows, "blocking": blocking, "unverified": unverified}
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("paths", nargs="+")
+    parser.add_argument("--root", default=".")
+    parser.add_argument("--cargo-registry", dest="registry", default=None)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args(argv)
+
+    if shutil.which("rg") is None:
+        print("ground_prd: rg not found on PATH", file=sys.stderr)
+        sys.exit(2)
+
+    registry = Path(args.registry) if args.registry else Path.home() / ".cargo" / "registry" / "src"
+
+    files = []
+    missing = []
+    for raw in args.paths:
+        p = Path(raw)
+        if p.is_dir():
+            files += sorted(p.glob("*.md"))
+        elif p.is_file():
+            files.append(p)
+        else:
+            missing.append(p)
+
+    if missing:
+        for m in missing:
+            print(f"ground_prd: {m}: not found or unreadable", file=sys.stderr)
+        sys.exit(2)
+
+    root = Path(args.root)
+
+    result = run(files, root, registry)
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        SORT_ORDER = {"missing": 0, "unresolved": 1, "unverified": 2, "ok": 3, "declared-new": 4}
+        rows = sorted(result["rows"], key=lambda r: (SORT_ORDER[r["status"]], r["file"], r["line"]))
+        for row in rows:
+            status, kind, token, file, line, detail = (
+                row["status"], row["kind"], row["token"], row["file"], row["line"], row["detail"],
+            )
+            print(f"{status:10} {kind:9} {token:40} {file}:{line}  {detail}")
+        declared_new = sum(1 for r in result["rows"] if r["status"] == "declared-new")
+        print(f"{result['blocking']} blocking, {result['unverified']} unverified, {declared_new} declared new")
+
+    sys.exit(1 if result["blocking"] else 0)
+
+
+if __name__ == "__main__":
+    main()
