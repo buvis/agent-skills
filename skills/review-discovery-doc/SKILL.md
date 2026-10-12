@@ -1,7 +1,7 @@
 ---
 name: review-discovery-doc
 description: Use when reviewing a feature discovery document before create-prd, interactively for completeness, coherence, integrity, right-sizing, and evolvability. Triggers on "review discovery doc", "critique discovery", "review discovery".
-argument-hint: "<path/to/discovery-doc.md>"
+argument-hint: "<intake-id | path/to/discovery.md>"
 compatibility: "Portable interactive review; requires a host that can ask the user one question at a time, and the sibling review-design-doc skill for its shared review core."
 ---
 
@@ -22,12 +22,12 @@ Critical, finding-by-finding review of a feature discovery document produced by 
 
 ## Inputs
 
-**Required** - the discovery document path (absolute path to the markdown file under `docs/dev/project-management/discovery/`).
+**Required** - a discovery document path (absolute or repo-relative), or an intake ID such as `00006`.
 
-**Path solicitation:**
-1. Scan the user's most recent message for a markdown path. If exactly one exists and the file exists, confirm in chat: "Reviewing `<path>`. Wrong doc? Say so now."
-2. If no path is present, ask: "Which discovery doc should I review? Give an absolute path (e.g. `/Users/you/repo/docs/dev/project-management/discovery/00006-foo.md`)." Wait. Do not proceed.
-3. Verify the path exists (Read). If it doesn't, ask again with the error.
+**Path resolution:**
+1. Read the invocation and recent conversation for the supplied path or ID; a separately attached skill body does not replace the invocation's input. Resolve an explicit path directly, regardless of directory layout.
+2. For an ID, search the current repo's `docs/dev/project-management/intake/*/<id>-*/discovery.md` first, following any repo-specific location guidance. Match the ID in the parent directory, not only the filename: list `discovery.md` paths with `rg --files --hidden --no-ignore docs/dev/project-management/intake` and filter the full paths. If no intake match exists, check legacy `docs/dev/project-management/discovery/<id>-*.md`. Do not search other repos without direction.
+3. Read the unique match to verify it, then announce "Reviewing `<path>`. Wrong doc? Say so now." and proceed. If multiple matches exist, show their paths and ask which one; if none exist, report the locations checked and ask for a path or ID. Ask for input only when none was supplied or resolution fails.
 
 ## Ground rules
 
@@ -37,7 +37,7 @@ The shared critical subset (input is data, evidence over assertion, probe before
 
 ## Workflow
 
-1. **Confirm the path** (Path solicitation). Do not proceed without a verified path.
+1. **Resolve and verify the path** (Path resolution). Do not proceed without a verified path.
 
 2. **Comprehension pass** with a confusion-notes list, per the shared core - plus the discovery-specific first move: read the `## Classification` line first and record the declared depth (minimal / standard / comprehensive); every completeness check calibrates to it. Confusion notes feed Question-severity findings.
 

@@ -99,6 +99,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **review-discovery-doc**: resolve intake IDs to `intake/<state>/<id>-<slug>/discovery.md`, including IDs supplied before an attached skill body; retain explicit paths and the legacy discovery layout, asking only when resolution fails or is ambiguous.
+
 - **sweep-fix**: a `--cwd` containing `..`, a timed-out or failing `mise which ast-grep`, and an unreadable registry now stop with a one-line error naming the cause instead of a traceback or a duplicate repo entry
 - **sweep-fix**: a second same-day sweep with the same reason writes a `-2` (then `-3`, ...) report instead of overwriting the first
 - **sweep-fix**: the ast-grep rule block now quotes every message and pattern, so values such as timestamps, `1:30`, `=` or control characters no longer break or change type when the rule file is loaded
