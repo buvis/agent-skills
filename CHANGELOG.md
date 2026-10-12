@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **glean**: `check-staged` always refuses `~/.local` and any nested `.local/` path, and `scan` no longer suggests `~/.local/bin` scripts for tracking.
 - **create-prd**: step 5.55 now runs a grounding check (`ground_prd.py`) on the draft before it can be saved, catching citations, symbols, and library references that do not resolve against the repo or its installed packages.
 - **review-prd-backlog**: step 1 now also runs the same grounding check across the backlog and wip PRDs, flagging unresolved citations and symbols as Blocking findings and unverified library claims as Non-blocking.
 - **glean**: new skill for recurring checkups of a bare-repo dotfiles setup. It lists untracked config in `$HOME` (including hand-written scripts in an ignored `~/.local/bin`), prescreens it for secrets by keyword and line only, walks the verdicts with you, and records them in a split public/local ledger. Settled verdicts stay quiet. Skip and machine-bound ones come back when their content fingerprint changes or after 180 days. `glean.py check-staged` blocks a commit that stages the plaintext of a git-secret file, a `never` path, an unencrypted `.secret` blob, or a credential-shaped string.

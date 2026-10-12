@@ -28,7 +28,12 @@ STABLE = {"never", "noise", "link", "encrypted"}
 RESURFACE_AFTER = timedelta(days=180)
 MAX_FILE = 1_000_000
 MAX_DIR_FILES = 200
-LOCAL_BIN_MAX = 100_000
+# ~/.local holds per-host data and state, and <repo>/.local is agent scratch:
+# neither may reach the dotfiles repo, whatever the ledgers say.
+BUILTIN = [
+    {"path": ".local/", "verdict": "never", "decided": "2026-10-12"},
+    {"path": "*/.local/*", "verdict": "never", "decided": "2026-10-12"},
+]
 
 SOFT = re.compile(
     r"api[_-]?key|secret|token|passw|bearer|private[_-]?key|oauth|client_id|credential",
@@ -61,7 +66,7 @@ def load_ledgers(local_path: Path) -> tuple[dict, list[dict]]:
             f"glean: no config in {local_path}. First run: create it with "
             '{"config": {"git_dir": "~/<bare-repo>", "public_ledger": "~/<path>.json"}, "entries": []}'
         )
-    entries = list(local.get("entries", []))
+    entries = BUILTIN + local.get("entries", [])
     if cfg.get("public_ledger"):
         entries += load_json(Path(cfg["public_ledger"]).expanduser()).get("entries", [])
     for e in entries:
@@ -155,18 +160,6 @@ def describe(rel: str) -> dict:
     return c
 
 
-def local_bin_scripts() -> list[str]:
-    """~/.local is commonly ignored wholesale; surface hand-written scripts there."""
-    d = HOME / ".local/bin"
-    if not d.is_dir():
-        return []
-    return [
-        str(f.relative_to(HOME))
-        for f in sorted(d.iterdir())
-        if f.is_file() and not f.is_symlink() and f.stat().st_size <= LOCAL_BIN_MAX and is_text(f)
-    ]
-
-
 def mapped_secrets() -> set[str]:
     mapping = HOME / ".gitsecret/paths/mapping.cfg"
     if not mapping.exists():
@@ -190,7 +183,7 @@ def cmd_scan(cfg: dict, entries: list[dict]) -> dict:
         ":(top,glob).*", ":(top,glob).*/**", ":(top,glob)bin/**",
         ":(top,exclude).Trash/**", f":(top,exclude){git_dir(cfg).relative_to(HOME)}/**",
     )
-    paths = sorted(set(out.splitlines()) | set(local_bin_scripts()))
+    paths = sorted(set(out.splitlines()))
     link_roots = [Path(r).expanduser().resolve() for r in cfg.get("link_roots", [])]
     today = date.today()
     candidates, resurfaced, settled = [], [], 0

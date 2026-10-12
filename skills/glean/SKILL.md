@@ -37,6 +37,9 @@ Two JSON files share one shape: `{"entries": [{path, verdict, decided, sha256?, 
 - **Local** (`~/.local/state/glean/ledger.local.json`, never tracked): `never`
   and `machine` verdicts, plus a `config` block:
   `{"git_dir": "~/<bare>", "public_ledger": "~/<path>.json", "link_roots": ["~/<repos root>"]}`.
+- **Built in** (`BUILTIN` in `glean.py`): `.local/` and `*/.local/*` are always
+  `never`. `~/.local` holds per-host data and state, and `<repo>/.local` is agent
+  scratch. Neither can reach the dotfiles repo, whatever the ledgers say.
 - **Public** (inside the dotfiles repo, at `config.public_ledger`): `noise`,
   `link` and `skip` verdicts, which reveal nothing sensitive.
 
@@ -56,16 +59,19 @@ verdict to the directory path (trailing `/`), not to a file inside it. Paths are
 
 First run: if the local ledger is missing, ask the user for the bare repo's
 git dir and where the public ledger should live, then create both files.
-Then offer to install `<git_dir>/hooks/pre-commit`, which runs `glean.py
-check-staged` and exits non-zero when `ok` is false. That gates every commit,
-including manual ones made outside this skill. Hooks are not tracked, so
-check for this hook on every run.
+Then offer to install a `pre-commit` hook that runs `glean.py check-staged`
+and exits non-zero when `ok` is false. That gates every commit, including
+manual ones made outside this skill. Prefer a tracked hook inside the work
+tree, with the repo's `core.hooksPath` pointing at its directory, so it
+reaches every machine. `<git_dir>/hooks/` is not tracked. Repo config is not
+tracked either, so check on every run that `core.hooksPath` is set and the
+hook exists.
 
 ## Procedure
 
 1. **Scan**: `python3 ~/.agents/skills/glean/scripts/glean.py scan > <scratch>/glean-scan.json`.
    Read the counts first. The scan lists untracked dotfiles, dotdirs and
-   `~/bin`, plus hand-written scripts in `~/.local/bin`, minus settled
+   `~/bin`, minus settled
    verdicts. It also reports `secret_gaps`: encrypted blobs missing from the
    git-secret mapping, or mapped files with no tracked blob.
 2. **Triage** each candidate and resurfaced item into `track`,

@@ -140,11 +140,23 @@ def test_prescreen_reports_keyword_never_value(home):
     assert hits and "hunter2" not in json.dumps(hits)
 
 
-def test_hand_written_local_bin_script_surfaces_despite_ignore(home):
-    (home / ".gitignore").write_text(".local\n")
+def test_local_dirs_never_surface_as_candidates(home):
     (home / ".local" / "bin").mkdir(parents=True)
     (home / ".local" / "bin" / "tidy").write_text("#!/bin/sh\necho hi\n")
-    assert ".local/bin/tidy" in paths(run(home, "scan", []), "candidates")
+    (home / ".config" / ".local").mkdir()
+    (home / ".config" / ".local" / "notes.md").write_text("x\n")
+    r = run(home, "scan", [])
+    assert not [p for p in paths(r, "candidates") if ".local" in p]
+
+
+@pytest.mark.parametrize("rel", [".local/bin/tidy", ".config/.local/notes.md"])
+def test_check_staged_refuses_local_dirs_without_ledger_entry(home, rel):
+    f = home / rel
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text("x\n")
+    git(home, "add", "-f", rel)
+    r = run(home, "check-staged", [])
+    assert not r["ok"] and r["hard"][0]["why"] == "ledger verdict never"
 
 
 def test_unmapped_secret_blob_is_flagged(home):
