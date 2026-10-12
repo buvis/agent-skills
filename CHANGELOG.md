@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **elicit-requirements**: writes the discovery document into an intake item (`intake/new/NNNNN-slug/discovery.md`), creating `idea.md` from the input when the item is new and reusing an existing item's number and `qa-log.md` answers; the sequence scan counts intake directories and the next-step hint passes the intake ID to `review-discovery-doc` and `create-prd`. Legacy `discovery/` is used only by repos that have it and no `intake/`.
 - **create-prd**: accepts intake discovery docs (`intake/*/NNNNN-*/discovery.md`, by path or ID), lets the first PRD keep its intake item's number and counts intake directories in the sequence scan, and after saving moves the item to `intake/processed/`, repointing the PRD's `Source:` line and the idea's `Status:` line (new step 6.5).
 - **glean**: `check-staged` always refuses `~/.local` and any nested `.local/` path, and `scan` no longer suggests `~/.local/bin` scripts for tracking.
 - **create-prd**: step 5.55 now runs a grounding check (`ground_prd.py`) on the draft before it can be saved, catching citations, symbols, and library references that do not resolve against the repo or its installed packages.

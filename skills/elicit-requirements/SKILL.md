@@ -15,6 +15,7 @@ Turn a rough idea into a validated discovery document that `/create-prd` can con
 - Personal skills: `spike` (the spike fork runs the spike loop on a second non-answer)
 - Harness tool: `AskUserQuestion`
 - Optional pointers, suggested to the user but never invoked here: `review-discovery-doc`, `create-prd`
+- Personal skill (reference only): `structure-git-repo` owns the intake layout this skill writes into (`references/layout.md`); step 5 stands on its own when that skill is absent.
 - Plugin skills (`autopilot` plugin), the pipeline downstream of this skill, never invoked here:
   `autopilot:plan-tasks`, `autopilot:run-autopilot`. Without the plugin the discovery doc still
   lands; only the automated continuation is missing.
@@ -25,11 +26,13 @@ Turn a rough idea into a validated discovery document that `/create-prd` can con
 
 Find source material in this order:
 
-1. **Argument** - user passed a rough idea or file path
-2. **Brainstorming output** - check for recent prior work: plan-mode output in the conversation, `docs/dev/project-management/spikes/` findings, `docs/dev/project-management/discovery/` docs. If found, read it and extract existing requirements, constraints, and decisions. Skip questions that the prior work already answers.
+1. **Argument** - a rough idea, a file path, or an intake item: `docs/dev/project-management/intake/new/NNNNN-slug/` (or its bare `NNNNN` ID), holding `idea.md` and optionally `qa-log.md`. An intake item is the preferred input: read both files, keep its number and slug, and treat every answer in `qa-log.md` as already given.
+2. **Brainstorming output** - check for recent prior work: plan-mode output in the conversation, `docs/dev/project-management/spikes/` findings, `docs/dev/project-management/intake/new/` items, legacy `docs/dev/project-management/discovery/` docs. If found, read it and extract existing requirements, constraints, and decisions. Skip questions that the prior work already answers.
 3. **Conversation context** - idea discussed in current conversation
 
 If the input is a file path, read the file. Extract whatever is available: problem statement, requirements, constraints, success criteria, open questions.
+
+The intake layout (`intake/new/NNNNN-slug/{idea.md,qa-log.md,discovery.md}`, retired to `intake/processed/` by `/create-prd`) is owned by `structure-git-repo` (`references/layout.md`); this skill writes into it and never moves an item.
 
 ### 2. Classify Depth
 
@@ -88,15 +91,19 @@ Read `references/question-bank.md`. Select questions appropriate to the depth le
 Read `references/discovery-template.md`. Generate the discovery document at the classified depth.
 
 **Sequence numbering:**
-1. Scan all `.md` files in `docs/dev/project-management/prds/**` and `docs/dev/project-management/discovery/`
-2. Extract leading 5-digit prefixes matching `^[0-9]{5}-`
-3. New sequence = max + 1, zero-padded to 5 digits
+1. An existing intake item keeps its `NNNNN` and slug; skip the scan.
+2. Otherwise list every `NNNNN-*` entry, file or directory, in `docs/dev/project-management/prds/**`, `docs/dev/project-management/intake/*/` and legacy `docs/dev/project-management/discovery/`
+3. Extract leading 5-digit prefixes matching `^[0-9]{5}-`
+4. New sequence = max + 1, zero-padded to 5 digits
 
-**File path:** `docs/dev/project-management/discovery/{sequence}-{feature-slug}.md`
+**File path:** `docs/dev/project-management/intake/new/{sequence}-{feature-slug}/discovery.md`
 
-Create `docs/dev/project-management/discovery/` if it doesn't exist.
+For a new item, create the directory and write `idea.md` first: `# {title}`, then `Status: intake, not yet specced. Recorded {YYYY-MM-DD}.`, then the input as given (a pasted idea verbatim under `## Idea (from the user)`; a file by path plus its extracted points). `/create-prd` rewrites that status line when it retires the item. Never write `idea.md` over one that exists.
+
+Legacy fallback: when the repo has `docs/dev/project-management/discovery/` and no `intake/` directory, keep writing `discovery/{sequence}-{feature-slug}.md` there, so an unmigrated repo does not get two queues. A repo with neither gets `intake/new/`.
 
 **Content rules:**
+- Under `## Classification`, add `Source: \`idea.md\` beside this file.` (name `qa-log.md` too when it exists) so the document links back to its inputs.
 - Every section that appears must have real content. No stubs, no "N/A", no "TBD".
 - Omit sections that don't apply at the current depth rather than filling them with placeholders.
 - Discovery Log is mandatory at all depths.
@@ -106,8 +113,10 @@ Create `docs/dev/project-management/discovery/` if it doesn't exist.
 
 After writing the document:
 
-> Discovery saved to `docs/dev/project-management/discovery/{filename}`.
-> Review it with `/review-discovery-doc docs/dev/project-management/discovery/{filename}` (a critical five-lens pass), then run `/create-prd docs/dev/project-management/discovery/{filename}` when ready.
+> Discovery saved to `docs/dev/project-management/intake/new/{sequence}-{feature-slug}/discovery.md`.
+> Review it with `/review-discovery-doc {sequence}` (a critical five-lens pass), then run `/create-prd {sequence}` when ready; create-prd moves the item to `intake/processed/`.
+
+On the legacy fallback, print the `discovery/{filename}` path instead and pass it to both commands.
 
 Do not auto-invoke `/review-discovery-doc` or `/create-prd`. The user reviews first.
 
