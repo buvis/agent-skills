@@ -19,6 +19,9 @@ Transform a plan or design document into an RPG-compliant PRD and save to the ba
   so plan and implement it by hand.
 - Personal skill (optional): `spike`, offered by the guess-density gate when
   the draft is too fuzzy to freeze.
+- Personal skill (reference only): `structure-git-repo` owns the
+  `intake/new` -> `intake/processed` lifecycle rule that step 6.5 applies
+  (`references/layout.md`); the step stands on its own when that skill is absent.
 - Scripts: scripts/ground_prd.py (step 5.55; tests in scripts/test_ground_prd.py); CLI: rg
 
 ## Workflow
@@ -27,7 +30,7 @@ Transform a plan or design document into an RPG-compliant PRD and save to the ba
 
 Before proceeding, check whether requirements were elicited:
 
-1. If the user passed a file from `docs/dev/project-management/discovery/`, or a converged spike spec from `docs/dev/project-management/spikes/<slug>/SPEC.md`, requirements were elicited (the spike loop is elicitation by building). Proceed to step 1.
+1. If the user passed an intake discovery doc (`docs/dev/project-management/intake/*/NNNNN-*/discovery.md`, by path or by its `NNNNN` ID), a legacy file from `docs/dev/project-management/discovery/`, or a converged spike spec from `docs/dev/project-management/spikes/<slug>/SPEC.md`, requirements were elicited (the spike loop is elicitation by building). Proceed to step 1.
 2. Otherwise (different file, conversation context, or no argument), warn:
 
 > No discovery doc provided. Run `/elicit-requirements` first to validate requirements, or say "skip" to proceed without one.
@@ -40,7 +43,7 @@ This gate is advisory, not blocking. The user can always skip it for simple, wel
 
 Look for plan/design content in this order:
 
-1. **Discovery doc** - file from `docs/dev/project-management/discovery/` (produced by `/elicit-requirements`)
+1. **Discovery doc** - `docs/dev/project-management/intake/new/NNNNN-*/discovery.md` (an intake item: `idea.md`, optional `qa-log.md`, `discovery.md`) or a legacy file from `docs/dev/project-management/discovery/`, produced by `/elicit-requirements`. For a bare ID, resolve as `/review-discovery-doc` does: `intake/*/<id>-*/discovery.md` first, `discovery/<id>-*.md` second; read the unique match and name it before drafting.
 2. **Explicit file reference** - user points to a specific markdown file (e.g. a plan file in the repo)
 3. **Current conversation context** - a plan just produced by brainstorming or plan mode
 
@@ -198,15 +201,28 @@ This is authoring guidance, not structure - the `assets/` templates carry no fro
 # Create directory if needed
 mkdir -p docs/dev/project-management/prds/backlog
 
-# Determine next sequence number
-# Scan ALL prds in docs/dev/project-management/prds (backlog, wip, done, hold) AND docs/dev/project-management/discovery for highest existing sequence
-# Extract 5-digit prefix from filenames matching pattern NNNNN-*.md
-# Increment by 1, pad to 5 digits
+# Determine the sequence number (see "Sequence Number Logic" below)
+# From an intake item: the first PRD keeps the item's NNNNN
+# Otherwise: scan prds/** (backlog, wip, done, hold), intake/*/ and the legacy
+# discovery/ for the highest NNNNN, increment, pad to 5 digits
 
 # Save PRD with sequence prefix
 ```
 
 **Concurrent-creation collision rule.** The scan-then-write is not atomic — a second `/create-prd` (or a machine PRD writer) running in parallel can claim the same `NNNNN` between your scan above and your save. So **after writing, re-run the sequence scan**: if your `NNNNN` now appears on a file you did NOT just write (a collision), renumber yours to the next free number, save under the new name, delete your original, and re-scan once more to confirm uniqueness. Best-effort, not a lock — two writers who re-scan at the exact same instant can still both pick the next number; `/review-prd-backlog` catches that residual case (it flags colliding prefixes).
+
+### 6.5. Retire the intake item
+
+When the source was an intake item under `docs/dev/project-management/intake/new/`, it is now specced. `structure-git-repo`'s layout rule says processed means a spec exists, not approved and not done, so:
+
+1. `git mv docs/dev/project-management/intake/new/<group/>NNNNN-title docs/dev/project-management/intake/processed/<group/>NNNNN-title` - same name, same group.
+2. Point the PRD's `Source:` line (add one under the title when the draft has none) at the processed `discovery.md` path.
+3. Replace the idea file's `Status:` line with `Status: processed, specced as PRD <NNNNN>. Recorded <original date>.`, naming every PRD the item produced.
+4. Stage the move beside the PRD: a `Source:` line that still points at `new/` after the move is a dangling citation, and `/review-prd-backlog` flags it as Blocking.
+
+An item that splits into several PRDs moves once, after the last part is saved. Later Q&A stays with the processed item. A legacy `discovery/` file stays where it is; nothing moves it.
+
+Rationale: on 2026-10-12 every specced intake item in one repo still sat in `new/` because no skill performed this move, so "what is still pending?" needed a manual sweep.
 
 ## File Naming Convention
 
@@ -215,7 +231,7 @@ mkdir -p docs/dev/project-management/prds/backlog
 
 Where:
 - sequence: 5-digit zero-padded number (00001, 00002, ...)
-- Sequence determined across ALL subdirs in docs/dev/project-management/prds/
+- Sequence determined across ALL subdirs in docs/dev/project-management/prds/, the intake/*/ item directories and the legacy discovery/ files
 
 Examples:
 - 00001-user-auth-v1.md
@@ -225,10 +241,13 @@ Examples:
 
 ## Sequence Number Logic
 
-1. List all `.md` files in `docs/dev/project-management/prds/**` and `docs/dev/project-management/discovery/`
-2. Extract leading 5-digit prefixes matching `^[0-9]{5}-`
-3. Find max sequence number (default 0 if none exist)
-4. New sequence = max + 1, zero-padded to 5 digits
+1. A PRD created from an intake item `intake/*/NNNNN-title/` keeps that `NNNNN` for its first (or only) PRD: the item reserved it. Further parts of a split take fresh numbers from the scan below.
+2. Otherwise list every `NNNNN-*` entry, file or directory, in `docs/dev/project-management/prds/**`, `docs/dev/project-management/intake/*/` and the legacy `docs/dev/project-management/discovery/`
+3. Extract leading 5-digit prefixes matching `^[0-9]{5}-`
+4. Find max sequence number (default 0 if none exist)
+5. New sequence = max + 1, zero-padded to 5 digits
+
+Intake directories count because an item holds its number until it becomes a PRD, and a PRD created from conversation must not take it. Rationale: on 2026-10-12 a renumbered PRD took `00092` while `intake/new/00092-*` already existed, and had to be renumbered again.
 
 ## Versioning (bump `-vN` vs allocate a new number)
 
