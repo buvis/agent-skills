@@ -15,7 +15,7 @@ import run
 
 
 # tree-sitter is an optional dependency. Everything the skill itself owns is
-# tested either way; the two cases below assert on what the parser resolves
+# tested either way; tests marked with this assert on what the parser resolves
 # (an indented method as kind 'method'), which the regex fallback cannot see.
 requires_tree_sitter = pytest.mark.skipif(
     run.try_import_tree_sitter() is None,
