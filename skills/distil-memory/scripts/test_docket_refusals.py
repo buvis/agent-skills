@@ -197,6 +197,77 @@ def test_main_save_reads_an_empty_proposals_list_as_nothing_to_add_not_as_a_refu
     assert docket.load(path=queue_path)["entries"] == []
 
 
+def _write_batch(proposals_dir, names, absent):
+    """A proposals dir whose records are `names`, every sibling on disk except `absent`."""
+    proposals_dir.mkdir()
+    for name in names:
+        if name != absent:
+            (proposals_dir / f"{name}.md").write_text(f"---\nname: {name}\n---\n\nBody.\n")
+    records = [_record(name, n) for n, name in enumerate(names, start=1)]
+    (proposals_dir / "proposals.json").write_text(json.dumps(records))
+
+
+def test_save_blames_only_the_absent_middle_sibling(tmp_path, monkeypatch, capsys, queue_path):
+    # The failing record sits between two innocent ones, so a handler that
+    # blames the first or the last record it saw names an innocent file.
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    _write_batch(proposals_dir, ["gear-note", "spindle-note", "lever-note"], absent="spindle-note")
+
+    exit_code = docket.main(
+        ["save", "--proposals-dir", str(proposals_dir), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 1
+    err = capsys.readouterr().err
+    assert "spindle-note.md" in err
+    assert "gear-note.md" not in err
+    assert "lever-note.md" not in err
+
+
+def test_save_never_partially_saves_after_three_readable_records(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    # Three proposals are already built when the absent sibling is met, so a
+    # refusal that keeps what it has would have something to save.
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    names = ["gear-note", "spindle-note", "lever-note", "ratchet-note"]
+    _write_batch(proposals_dir, names, absent="ratchet-note")
+
+    def _no_save(*args, **kwargs):
+        pytest.fail("a refused batch reached the queue writer")
+
+    monkeypatch.setattr(docket, "save", _no_save)
+    monkeypatch.setattr(docket, "_save_queue", _no_save)
+
+    exit_code = docket.main(
+        ["save", "--proposals-dir", str(proposals_dir), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 1
+    assert "ratchet-note.md" in capsys.readouterr().err
+    assert docket.load(path=queue_path)["entries"] == []
+
+
+def test_save_missing_dir_names_the_directory_not_proposals_json(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    # What the operator has to fix is the directory; naming a file inside it
+    # sends them looking for a file in a directory that is not there.
+    monkeypatch.chdir(tmp_path)
+    missing_dir = tmp_path / "gone"
+
+    exit_code = docket.main(
+        ["save", "--proposals-dir", str(missing_dir), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 1
+    err = capsys.readouterr().err
+    assert str(missing_dir) in err
+    assert "proposals.json" not in err
+
+
 # A decide whose --file cannot be read is a refusal (exit 1), not a queue fault
 # (exit 2) and never a traceback. The two ways in: the path is absent, and the
 # path is there but cannot be read as a file. A refusal is all-or-nothing: the
