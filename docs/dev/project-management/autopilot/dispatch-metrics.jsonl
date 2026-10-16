@@ -1807,3 +1807,15 @@
 {"id":"ee52e636","ended_at":1791727417,"elapsed_s":476,"outcome":"error","detail":"lack-of-input"}
 {"id":"d8fc26af","ended_at":1791727420,"elapsed_s":64,"outcome":"ok","detail":"retry"}
 {"kind":"handoff","site":"review","edge":"leave","at":1791727563,"phase":"done","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792178248,"phase":"build","prd":"00079-split-test-survey-under-the-cap-v1.md"}
+{"id":"266e1165","kind":"ivan","task":"1","queued_at":1792178350,"prompt_bytes":12691}
+{"id":"266e1165","ended_at":1792178534,"elapsed_s":184,"outcome":"ok","detail":null}
+{"id":"1e693fb0","kind":"ivan","task":"2","queued_at":1792178629,"prompt_bytes":16497}
+{"id":"1e693fb0","ended_at":1792178714,"elapsed_s":85,"outcome":"ok","detail":null}
+{"id":"71540c6c","kind":"deslop","task":"2","queued_at":1792178810,"prompt_bytes":8746}
+{"id":"71540c6c","ended_at":1792178840,"elapsed_s":30,"outcome":"ok","detail":null}
+{"id":"d8c6947c","kind":"pat","task":"2","queued_at":1792178857,"prompt_bytes":71213}
+{"id":"056dfa60","kind":"pat","task":"2","queued_at":1792178874,"prompt_bytes":26063}
+{"id":"d8c6947c","ended_at":1792178877,"elapsed_s":20,"outcome":"killed","detail":"oversize render (71213 bytes), trimmed and re-rendered as 056dfa60, never dispatched"}
+{"id":"056dfa60","ended_at":1792178897,"elapsed_s":23,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1792179347,"phase":"review","prd":"00079-split-test-survey-under-the-cap-v1.md"}
