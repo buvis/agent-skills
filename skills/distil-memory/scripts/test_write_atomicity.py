@@ -113,3 +113,72 @@ def test_a_refused_memory_triggers_no_write_call(store_path, monkeypatch, capsys
     assert status == 1
     assert capsys.readouterr().err.strip() != ""
     assert list(store_path.iterdir()) == []
+
+
+# A rollback owes back the one file this run wrote, as it stood when this run
+# read it. Every other byte in the store belongs to someone else, and so does
+# every byte an earlier run left behind.
+
+
+def _run_write(store, entry, monkeypatch):
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+    return write.main(["write", "--store", str(store)])
+
+
+def test_rollback_restores_only_the_target(store_path, monkeypatch, capsys):
+    store_path.mkdir()
+    unrelated_path = store_path / "other-thing.md"
+    unrelated_path.write_text(_file_text(name="other-thing", description="something unrelated"))
+    index_path = store_path / "MEMORY.md"
+    index_path.write_text("- [Other thing](other-thing.md) — something unrelated\n")
+    original_index_bytes = index_path.read_bytes()
+    peer_text = _file_text(name="other-thing", description="what a peer wrote mid-run")
+
+    def _peer_writes_then_the_index_move_fails(self, target, *args, **kwargs):
+        if Path(target).name == "MEMORY.md":
+            # another writer lands its own memory while this run is in flight
+            unrelated_path.write_text(peer_text)
+            raise OSError("index boom")
+        return _REAL_REPLACE(self, target, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "replace", _peer_writes_then_the_index_move_fails)
+
+    status = _run_write(store_path, _entry(name="widget-fact", kind="new"), monkeypatch)
+
+    assert status == 1
+    assert "index boom" in capsys.readouterr().err
+    assert not (store_path / "widget-fact.md").exists()
+    # the peer's write is not this run's to undo
+    assert unrelated_path.read_text() == peer_text
+    assert index_path.read_bytes() == original_index_bytes
+
+
+def test_a_later_fault_does_not_revert_an_earlier_success(store_path, monkeypatch, capsys):
+    store_path.mkdir()
+    target_path = store_path / "widget-fact.md"
+    original_text = _file_text(name="widget-fact", description="original description")
+    target_path.write_text(original_text)
+    index_path = store_path / "MEMORY.md"
+    index_path.write_text("- [Widget fact](widget-fact.md) — original description\n")
+    first_text = _file_text(name="widget-fact", description="what the first run wrote")
+    second_text = _file_text(name="widget-fact", description="what the second run tried")
+
+    first = _entry(kind="update widget-fact", file_text=first_text, existing_text=original_text)
+    assert _run_write(store_path, first, monkeypatch) == 0
+    capsys.readouterr()
+    first_index_bytes = index_path.read_bytes()
+
+    def _index_move_fails(self, target, *args, **kwargs):
+        if Path(target).name == "MEMORY.md":
+            raise OSError("index boom")
+        return _REAL_REPLACE(self, target, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "replace", _index_move_fails)
+    second = _entry(kind="update widget-fact", file_text=second_text, existing_text=first_text)
+
+    assert _run_write(store_path, second, monkeypatch) == 1
+    assert "index boom" in capsys.readouterr().err
+    # the second run owes back what it found, which is the first run's work,
+    # not whatever the target held before the first run
+    assert target_path.read_bytes() == first_text.encode()
+    assert index_path.read_bytes() == first_index_bytes
