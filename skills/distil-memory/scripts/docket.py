@@ -322,6 +322,28 @@ def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
     return 0
 
 
+def _decide_verb(args) -> int:
+    file_text = None
+    if args.file:
+        try:
+            file_text = Path(args.file).read_text()
+        except (OSError, UnicodeDecodeError) as exc:
+            print(f"cannot read the note file {args.file}: {exc}", file=sys.stderr)
+            return 1
+    # Read once, outside the refusal handler below, so an unreadable
+    # queue leaves through main's exit 2 handler instead.
+    data = load(path=args.queue)
+    try:
+        decide(args.id, args.state, file_text=file_text, path=args.queue, data=data, name=args.name)
+    except QueueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    except OSError as exc:
+        print(f"cannot write the review queue {_resolve_path(args.queue)}: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
@@ -342,25 +364,7 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(entry))
             return 0
         elif args.command == "decide":
-            file_text = None
-            if args.file:
-                try:
-                    file_text = Path(args.file).read_text()
-                except (OSError, UnicodeDecodeError) as exc:
-                    print(f"cannot read the note file {args.file}: {exc}", file=sys.stderr)
-                    return 1
-            # Read once, outside the refusal handler below, so an unreadable
-            # queue leaves through the exit 2 handler instead.
-            data = load(path=args.queue)
-            try:
-                decide(args.id, args.state, file_text=file_text, path=args.queue, data=data, name=args.name)
-            except QueueError as exc:
-                print(str(exc), file=sys.stderr)
-                return 1
-            except OSError as exc:
-                print(f"cannot write the review queue {_resolve_path(args.queue)}: {exc}", file=sys.stderr)
-                return 1
-            return 0
+            return _decide_verb(args)
         elif args.command == "unpublished":
             import write
 
