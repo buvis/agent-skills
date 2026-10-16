@@ -1,44 +1,14 @@
-## 1: ground_prd.py: claim extraction, citation lens, symbol lens
+# Assumptions ledger: 00077-docket-never-raises-v1
 
-- `check_citations` receives the full `extract_claims` list (citations plus symbols); it cannot otherwise see the same-line symbols the spec requires. (Tess)
-- `Claim.line` for content after frontmatter is the line number in the original text, not the stripped text. (Tess)
-- `extract_claims` returns claims in order of appearance within a line. (Tess)
-- `ground_prd` is importable as a top-level module from its own directory (pytest prepend import mode, no `__init__.py`), matching the `check_links` test convention. (Tess)
-- `rg` exit-2 propagation is left untested (would require mocking `subprocess`, which contradicts "use real code paths"). (Tess)
-- In the any-of symbol-in-range check, "occurs in the range" is a plain text match (`beta` counts as found inside `def beta():`). (Tess, strengthen round)
-- `codec.def` resolves because `def` appears as a whole word in the fixture; the spec puts no keyword filter on segments. (Tess, strengthen round)
-- A Makefile (a file with no extension) is searched like any other file, since the spec's `rg` call only excludes `docs/dev/**`. (Tess, strengthen round)
-- `XXXX`/`YYYY_mm` stay excluded as placeholders even though the spec's literal list names only `*?<>{}$`, `...` and `NNNNN`. (Tess, strengthen round)
-- The rule that drops `` `ab` `` is read as "token shorter than 3 chars is not a symbol" (other readings would also pass the tests). (Ivan)
-- File-name exclusion uses a fixed extension list made of exactly the ones the tests exercise; a dotted symbol ending in any other extension stays a symbol. (Ivan)
-- The symbol-in-range check matches only the last segment of each symbol (`module.beta` matches on `beta`). (Ivan)
-- A citation range is also `"missing"` when it starts below 1 or runs backwards (no test covers this). (Ivan)
-- A symbol whose segments are all shorter than 3 chars resolves `"ok"`, since nothing is checked. (Ivan)
-- Only backtick fences (```` ``` ````) count as fenced blocks; `~~~` does not. (Ivan)
-- Frontmatter is detected only when line 1 is exactly `---`. (Ivan)
-- `RuntimeError` is the exception type for an `rg` exit-2 error; the review finding said only "raise". (Ivan, fix round)
-- Running `rg` with `cwd=root` and `.` as the search path is the intended meaning of "search under root" with `--glob '!docs/dev/**'` — passing the absolute root as the path made the glob never match, since `rg` matches `--glob` against paths relative to its cwd. (Ivan, fix round)
-- `rg` results are not cached per segment, so a segment shared by several symbols runs `rg` more than once; nothing asked for caching. (Ivan, fix round)
+## 1: Widen the proposals-dir read guard and validate the batch shape
 
-## 2: ground_prd.py: library lens (Cargo/node/python)
+- (Tess) The latin-1 sibling test uses a complete record named `cafe-note` with file `cafe-note.md`, and the sibling holds `"caf\xe9 body\n"` encoded as latin-1.
+- (Tess) The missing-`file` test also writes a sibling `.md` file, so the fault under test is only the missing key.
+- (Tess) The object top-level test uses `{"name": "x"}`.
 
-- `known_packages` returns one merged dict keyed by package name; Cargo entries are `{"version": str, "source": Path | None}`, node/python entries are `{"source": ...}`. (Tess)
-- A bare package token (`fake`, no segments after the name) is "ok" when the source exists, since all zero of its segments pass. (Tess)
-- Library segments have no 3+-char minimum, unlike `resolve_symbols`. (Tess)
-- Memoization keys on the exact `(root, registry)` pair; a different value of either triggers a fresh walk. (Tess)
-- `check_library_claims` gets an optional 4th keyword parameter `line_text: dict[int, str] | None = None` for the waiver lookup, since the pinned 3-arg `Claim(kind, token, line)` carries no line text itself — resolved by the orchestrator as an autonomous decision after Tess flagged the contract gap (PRD/design doc pin only 3 positional args). (orchestrator decision, confirmed in Pat's review as a noted but accepted deviation)
-- For the Cargo-lock-index-name test, a new crate under a differently-named index subdirectory was added rather than moving an existing fixture, so both the old `idx/` case and the general case stay covered. (Tess, strengthen round)
-- The venv test now plants only under `python3.11`; no test covers `python3.12` specifically, since the PRD's `python*` glob is version-agnostic. (Tess, strengthen round)
-- The project runs Python 3.10 (no `tomllib`), so `Cargo.lock` is parsed with a line-oriented regex expecting `name = "..."` directly followed by `version = "..."` — the layout Cargo actually writes. (Ivan)
-- Every library-claim segment is checked regardless of length (no 3-char floor, matching Tess's assumption above). (Ivan)
-- The `rg` search for library segments passes `--no-ignore`, since `.venv`/`node_modules` are typically gitignored and would otherwise be skipped. (Ivan)
-- Every `Cargo.lock` `[[package]]` block counts as a crate, including local workspace entries with no `source = ` line. (Ivan)
-- In site-packages, any directory with an identifier name counts as a package (excludes `*.dist-info`, includes `__pycache__`). (Ivan)
-- A crate with no hyphen in its name gets the same dict key written twice (harmless) when aliasing hyphen/underscore forms; if a lock held both `foo-bar` and `foo_bar` literally, the underscore alias key would go to whichever block parses last. (Ivan, fix round)
+## 2: Guard the queue write in the save, decide and start verbs
 
-## 3: ground_prd.py: CLI surface (run, main, table/json)
-
-- `resolve_symbols` gained a 4th optional keyword parameter `exclude: frozenset[Path] = frozenset()`, excluding the PRD files being graded from the whole-repo `rg` symbol search, since otherwise every symbol claim would self-confirm by matching its own backtick-quoted token inside the PRD file being graded itself. (Ivan; orchestrator accepted this as a necessary correctness fix exposed only once `--root` correctly points at the graded files' own directory, not a scope-creep addition — noted by Pat's review as outside task 3's literal contract but not disputed as wrong)
-- Table-mode output sorts by `(SORT_ORDER[status], file, line)`; JSON-mode output keeps `run()`'s natural (unsorted) row order, since no acceptance criterion or test requires JSON rows to be sorted. (Ivan)
-- `--root`'s pinned default of `"."` is implemented literally (no path-inference); every CLI test passes `--root <tmp_path>` explicitly via a fixed `run_cli` helper, so the plain default is never exercised by any test but remains spec-correct. (orchestrator decision, after Ivan's first pass had silently substituted path-inference to paper over a real `run_cli` wiring bug in Tess's tests)
-- Deferred (Pat review, LOW severity, not fixed this cycle): `resolve_symbols`'s `exclude` glob (`!{rel}`) is unanchored and could over-exclude a same-named file in a subdirectory; no regression test covers the three MEDIUM fixes (waived-row table sort, declared-set regex, unreadable-file handling); an `rg` exit-2 `RuntimeError` inside `run()` still surfaces as an uncaught traceback (exit 1) instead of exit 2; `main()` reads each file twice (once to validate, once inside `run()`); `check_citations` receives all claims instead of only citation-kind ones; `SORT_ORDER` is defined inside `main()`'s `else` branch rather than at module level; `_rows_for_file`'s `zip(claims, reclassified)` is more complex than needed since citation claims are identical in both lists. None of these block correctness for Phase 0's own acceptance criteria; left for a future cleanup pass if revisited.
+- (Tess) `_proposal(line_no=1)` replaces the brief's `_proposal(1)`: `make_proposal`'s first positional argument is `transcript`, so `_proposal(1)` would not build the `t.jsonl:1` entry.
+- (Tess) The save test's proposals-dir record is `gear-note` at line 2, so it does not collide with the seeded line-1 entry.
+- (Tess) The decide test patches the write only after seeding and makes no `start` call first.
+- (Qwen) `main()` grew to 56 lines under the per-call-site prescription; the step-5.65 style fix (5b341be) moved the decide verb into `_decide_verb`.
