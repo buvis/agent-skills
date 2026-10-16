@@ -134,6 +134,18 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
 
 ## Active Work
 
+### Batch 202610162125 (worktree prd/00080-frontmatter-keys; same id as the 00076-00077 lane below, minted the same minute; merged to master 2026-10-16)
+- [x] 00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md
+  (5/5 tasks, 1 cycle) — create-prd and review-prd-backlog recognize all
+  twelve frontmatter keys and the lane Path rule; prose test
+  `scripts/test_frontmatter_keys_prose.py`. Solo lane escalated to full
+  (security_diff). Converged cycle 1, 0 C/H/M; R2 (251-char description)
+  swept as task 5. Its one deferred item (the 3.14 `is_file()` probe in
+  `tests/test_conftest_fixtures.py`) was fixed at batch end, as in 00079.
+
+  Observations: a deferred record written without `issue` text trips
+  `render report` exit 12; write `issue` at defer time.
+
 ### Batch 202610162125 (lane worktree prd-00076-00077-distil-docket, interactive; 00076 merged to master 2026-10-16)
 - [x] 00076-distil-tests-see-non-atomic-writes-v1.md (9/9 tasks, 1 cycle) —
   test-only: atomicity module, rollback/batch-refusal/decide tests rebound to
