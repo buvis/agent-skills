@@ -1,7 +1,10 @@
 """Tests for docket.py: main()'s refusals when the proposals directory or the
 decide --file cannot be read."""
 
+import builtins
+import io
 import json
+from pathlib import Path
 
 import docket
 
@@ -195,6 +198,94 @@ def test_main_save_reads_an_empty_proposals_list_as_nothing_to_add_not_as_a_refu
     assert "added 0 of 0" in captured.out
     assert captured.err == ""
     assert docket.load(path=queue_path)["entries"] == []
+
+
+def _write_batch(proposals_dir, names, absent):
+    """A proposals dir whose records are `names`, every sibling on disk except `absent`."""
+    proposals_dir.mkdir()
+    for name in names:
+        if name != absent:
+            (proposals_dir / f"{name}.md").write_text(f"---\nname: {name}\n---\n\nBody.\n")
+    records = [_record(name, n) for n, name in enumerate(names, start=1)]
+    (proposals_dir / "proposals.json").write_text(json.dumps(records))
+
+
+def test_save_blames_only_the_absent_middle_sibling(tmp_path, monkeypatch, capsys, queue_path):
+    # The failing record sits between two innocent ones, so a handler that
+    # blames the first or the last record it saw names an innocent file.
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    _write_batch(proposals_dir, ["gear-note", "spindle-note", "lever-note"], absent="spindle-note")
+
+    exit_code = docket.main(
+        ["save", "--proposals-dir", str(proposals_dir), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 1
+    err = capsys.readouterr().err
+    assert "spindle-note.md" in err
+    assert "gear-note.md" not in err
+    assert "lever-note.md" not in err
+
+
+def test_save_never_partially_saves_after_three_readable_records(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    # Three proposals are already built when the absent sibling is met, so a
+    # refusal that keeps what it has would have something to save.
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    names = ["gear-note", "spindle-note", "lever-note", "ratchet-note"]
+    _write_batch(proposals_dir, names, absent="ratchet-note")
+
+    def _no_save(*args, **kwargs):
+        pytest.fail("a refused batch reached the queue writer")
+
+    monkeypatch.setattr(docket, "save", _no_save)
+    monkeypatch.setattr(docket, "_save_queue", _no_save)
+
+    exit_code = docket.main(
+        ["save", "--proposals-dir", str(proposals_dir), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 1
+    assert "ratchet-note.md" in capsys.readouterr().err
+    assert docket.load(path=queue_path)["entries"] == []
+
+
+def test_save_missing_dir_names_the_directory_not_proposals_json(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    # What the operator has to fix is the directory; naming a file inside it
+    # sends them looking for a file in a directory that is not there.
+    monkeypatch.chdir(tmp_path)
+    missing_dir = tmp_path / "gone"
+
+    exit_code = docket.main(
+        ["save", "--proposals-dir", str(missing_dir), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 1
+    err = capsys.readouterr().err
+    assert str(missing_dir) in err
+    assert "proposals.json" not in err
+
+
+def test_save_does_not_call_a_proposals_dir_that_is_a_file_missing(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    # the path is right there, it is just not a directory: a refusal that says
+    # it does not exist sends the operator looking for something they can see
+    monkeypatch.chdir(tmp_path)
+    a_file = tmp_path / "proposals"
+    a_file.write_text("")
+
+    exit_code = docket.main(["save", "--proposals-dir", str(a_file), "--queue", str(queue_path)])
+
+    assert exit_code == 1
+    err = capsys.readouterr().err
+    assert str(a_file) in err
+    assert "no such" not in err
 
 
 # A decide whose --file cannot be read is a refusal (exit 1), not a queue fault
@@ -495,3 +586,161 @@ def test_main_decide_without_a_file_flag_still_returns_zero_and_leaves_file_text
     entry = docket.load(path=queue_path)["entries"][0]
     assert entry["decision"] == "dropped"
     assert entry["file_text"] == "original"
+
+
+# How decide treats the --file read itself: an empty note is a note, a refusal
+# writes nothing at all, an interrupt is the user's and not a refusal, and the
+# note is read once, before the queue is touched.
+
+
+def _queue_with_one_entry(queue_path):
+    docket.save(
+        [_proposal(transcript="t.jsonl", line_no=1, file_text="original")], path=queue_path
+    )
+    return docket.slice_key("t.jsonl", 1)
+
+
+def _counting_reads_of(monkeypatch, note):
+    # a second read can take any route, so count them all: the Path helpers,
+    # and open() as a builtin or through io. The open() a helper makes inside
+    # itself belongs to the read already counted, not to a second one.
+    reads = []
+    depth = [0]
+
+    def _counting(real):
+        def _call(target, *args, **kwargs):
+            if depth[0] == 0 and isinstance(target, (str, Path)) and Path(target) == note:
+                reads.append(note)
+            depth[0] += 1
+            try:
+                return real(target, *args, **kwargs)
+            finally:
+                depth[0] -= 1
+
+        return _call
+
+    for owner, name in [
+        (Path, "read_text"),
+        (Path, "read_bytes"),
+        (Path, "open"),
+        (builtins, "open"),
+        (io, "open"),
+    ]:
+        monkeypatch.setattr(owner, name, _counting(getattr(owner, name)))
+    return reads
+
+
+def test_decide_accepts_an_empty_file(tmp_path, monkeypatch, capsys, queue_path):
+    # an empty note is still the text the user chose, not "no --file given"
+    monkeypatch.chdir(tmp_path)
+    entry_id = _queue_with_one_entry(queue_path)
+    empty = tmp_path / "blank-note.md"
+    empty.write_text("")
+
+    exit_code = docket.main(
+        ["decide", entry_id, "kept", "--file", str(empty), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 0
+    assert capsys.readouterr().err == ""
+    entry = docket.load(path=queue_path)["entries"][0]
+    assert entry["decision"] == "kept"
+    assert entry["file_text"] == ""
+
+
+def test_decide_refusal_never_calls_save_queue(tmp_path, monkeypatch, capsys, queue_path):
+    # equal bytes after a refusal could still be a load-and-save round trip,
+    # which reverts any decision a peer wrote in between: forbid the write
+    monkeypatch.chdir(tmp_path)
+    entry_id = _queue_with_one_entry(queue_path)
+
+    def _no_save(*args, **kwargs):
+        pytest.fail("a refused decide wrote the queue")
+
+    monkeypatch.setattr(docket, "_save_queue", _no_save)
+
+    exit_code = docket.main(
+        [
+            "decide",
+            entry_id,
+            "kept",
+            "--file",
+            str(tmp_path / "nowhere.md"),
+            "--queue",
+            str(queue_path),
+        ]
+    )
+
+    assert exit_code == 1
+    assert "nowhere.md" in capsys.readouterr().err
+
+
+def test_decide_propagates_keyboard_interrupt(tmp_path, monkeypatch, queue_path):
+    monkeypatch.chdir(tmp_path)
+    entry_id = _queue_with_one_entry(queue_path)
+    note = tmp_path / "interrupted-note.md"
+    note.write_text("body")
+    real_read_text = Path.read_text
+
+    def _interrupted(self, *args, **kwargs):
+        if self == note:
+            raise KeyboardInterrupt
+        return real_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", _interrupted)
+
+    with pytest.raises(KeyboardInterrupt):
+        docket.main(["decide", entry_id, "kept", "--file", str(note), "--queue", str(queue_path)])
+
+    monkeypatch.setattr(Path, "read_text", real_read_text)
+    assert docket.load(path=queue_path)["entries"][0]["decision"] == "undecided"
+
+
+def test_decide_reads_the_file_once(tmp_path, monkeypatch, capsys, queue_path):
+    # a second read can see different bytes than the first, so the text that
+    # lands must come from the one read that was checked
+    monkeypatch.chdir(tmp_path)
+    entry_id = _queue_with_one_entry(queue_path)
+    note = tmp_path / "read-once-note.md"
+    note.write_text("edited body")
+    reads = _counting_reads_of(monkeypatch, note)
+
+    exit_code = docket.main(
+        ["decide", entry_id, "kept", "--file", str(note), "--queue", str(queue_path)]
+    )
+
+    assert reads == [note]
+    assert exit_code == 0
+    assert capsys.readouterr().err == ""
+
+
+def test_decide_both_faults_loads_nothing_before_refusing(tmp_path, monkeypatch, capsys):
+    # the order of the two reads, not just which fault is reported: the
+    # refusal must arrive before the queue is read at all
+    monkeypatch.chdir(tmp_path)
+    corrupt_queue = tmp_path / "broken-queue.json"
+    corrupt_queue.write_text('{"cursor": 0, "entries": [')
+    real_load = docket.load
+    loads = []
+
+    def _counting_load(*args, **kwargs):
+        loads.append(args or kwargs)
+        return real_load(*args, **kwargs)
+
+    monkeypatch.setattr(docket, "load", _counting_load)
+
+    exit_code = docket.main(
+        [
+            "decide",
+            docket.slice_key("t.jsonl", 1),
+            "kept",
+            "--file",
+            str(tmp_path / "absent-note.md"),
+            "--queue",
+            str(corrupt_queue),
+        ]
+    )
+
+    assert exit_code == 1
+    assert loads == []
+    assert "absent-note.md" in capsys.readouterr().err

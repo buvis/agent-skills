@@ -101,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **distil-memory**: `docket.py save` names a missing or non-directory `--proposals-dir` as the path to fix, instead of reporting a `proposals.json` inside it.
 - **review-discovery-doc**: resolve intake IDs to `intake/<state>/<id>-<slug>/discovery.md`, including IDs supplied before an attached skill body; retain explicit paths and the legacy discovery layout, asking only when resolution fails or is ambiguous.
 
 - **sweep-fix**: a `--cwd` containing `..`, a timed-out or failing `mise which ast-grep`, and an unreadable registry now stop with a one-line error naming the cause instead of a traceback or a duplicate repo entry

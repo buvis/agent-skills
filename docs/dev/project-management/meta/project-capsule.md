@@ -134,6 +134,17 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
 
 ## Active Work
 
+### Batch 202610162125 (lane worktree prd-00076-00077-distil-docket, interactive; 00076 merged to master 2026-10-16)
+- [x] 00076-distil-tests-see-non-atomic-writes-v1.md (9/9 tasks, 1 cycle) —
+  test-only: atomicity module, rollback/batch-refusal/decide tests rebound to
+  intent, 00074 absorbed; plus `docket.py` "not a directory" refusal wording.
+  Converged at cycle 1 (13 findings, 0 C/H); tail swept as tasks 7-9. R8
+  (`_save_from_proposals_dir` tracebacks) settled-deferred to 00077.
+- [ ] 00077-docket-never-raises-v1.md (in progress on the lane branch, not
+  merged)
+
+  Observations: `braid --check` cannot run from a lane worktree.
+
 ### Batch 202610162120 (started 2026-10-16, interactive, worktree prd/00079-survey-split; merged to master 2026-10-16)
 - [x] 00079-split-test-survey-under-the-cap-v1.md (2/2 tasks, 1 cycle) —
   `test_survey.py` split into `test_survey_scan.py` and

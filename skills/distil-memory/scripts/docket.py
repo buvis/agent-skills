@@ -266,6 +266,12 @@ def _parse_args(argv):
 def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
     if path is None:
         path = proposals_dir.parent / "distil-memory-queue.json"
+    if not proposals_dir.is_dir():
+        print(
+            f"cannot read the proposals directory {proposals_dir}: not a directory",
+            file=sys.stderr,
+        )
+        return 1
     # `source` always names the file whose read is next, so the handler below
     # blames the one that actually failed rather than the last one seen.
     source = proposals_dir / "proposals.json"
