@@ -313,7 +313,11 @@ def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
     except (OSError, ValueError) as error:
         print(f"cannot read the proposals {source}: {error}", file=sys.stderr)
         return 1
-    added = save(proposals, path=path)
+    try:
+        added = save(proposals, path=path)
+    except OSError as error:
+        print(f"cannot write the review queue {path}: {error}", file=sys.stderr)
+        return 1
     print(f"added {added} of {len(proposals)}")
     return 0
 
@@ -325,7 +329,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "save":
             return _save_from_proposals_dir(Path(args.proposals_dir), path=args.queue)
         elif args.command == "start":
-            advance(path=args.queue)
+            try:
+                advance(path=args.queue)
+            except OSError as error:
+                print(f"cannot write the review queue {_resolve_path(args.queue)}: {error}", file=sys.stderr)
+                return 1
             return 0
         elif args.command == "next":
             entry = next_undecided(path=args.queue)
@@ -348,6 +356,9 @@ def main(argv: list[str] | None = None) -> int:
                 decide(args.id, args.state, file_text=file_text, path=args.queue, data=data, name=args.name)
             except QueueError as exc:
                 print(str(exc), file=sys.stderr)
+                return 1
+            except OSError as exc:
+                print(f"cannot write the review queue {_resolve_path(args.queue)}: {exc}", file=sys.stderr)
                 return 1
             return 0
         elif args.command == "unpublished":
