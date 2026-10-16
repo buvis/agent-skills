@@ -1819,3 +1819,13 @@
 {"id":"d8c6947c","ended_at":1792178877,"elapsed_s":20,"outcome":"killed","detail":"oversize render (71213 bytes), trimmed and re-rendered as 056dfa60, never dispatched"}
 {"id":"056dfa60","ended_at":1792178897,"elapsed_s":23,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1792179347,"phase":"review","prd":"00079-split-test-survey-under-the-cap-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792179660,"phase":"review","prd":"00079-split-test-survey-under-the-cap-v1.md"}
+{"id":"3f7e66b1","kind":"bob","task":"review-00079c1","queued_at":1792180015,"prompt_bytes":9588}
+{"id":"f0014c7d","kind":"carl","task":"review-00079c1","queued_at":1792180015,"prompt_bytes":6575}
+{"id":"b5fe60d7","kind":"carl","task":"review-00079c1","queued_at":1792180427,"prompt_bytes":6575}
+{"id":"79a24077","kind":"bob","task":"review-00079c1","queued_at":1792180429,"prompt_bytes":105996}
+{"id":"3f7e66b1","ended_at":1792180441,"elapsed_s":426,"outcome":"error","detail":"lack-of-input"}
+{"id":"f0014c7d","ended_at":1792180442,"elapsed_s":427,"outcome":"error","detail":"format-invalid"}
+{"id":"79a24077","ended_at":1792180468,"elapsed_s":39,"outcome":"ok","detail":"retry"}
+{"id":"b5fe60d7","ended_at":1792180587,"elapsed_s":160,"outcome":"ok","detail":"retry"}
+{"kind":"handoff","site":"review","edge":"leave","at":1792180695,"phase":"done","prd":"00079-split-test-survey-under-the-cap-v1.md"}
