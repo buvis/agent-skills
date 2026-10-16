@@ -101,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **distil-memory**: `docket.py save` refuses a non-UTF-8 `proposals.json` or sibling file, and a `proposals.json` that is not a list, holds a non-object record, or has a record missing `name`, `file`, `kind`, `transcript`, `line_no` or `evidence_text`, with exit 1 and a reason naming the record's position, instead of a traceback; nothing is saved.
 - **distil-memory**: `docket.py save` names a missing or non-directory `--proposals-dir` as the path to fix, instead of reporting a `proposals.json` inside it.
 - **review-discovery-doc**: resolve intake IDs to `intake/<state>/<id>-<slug>/discovery.md`, including IDs supplied before an attached skill body; retain explicit paths and the legacy discovery layout, asking only when resolution fails or is ambiguous.
 

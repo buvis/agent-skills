@@ -263,6 +263,20 @@ def _parse_args(argv):
     return parser.parse_args(argv)
 
 
+def _check_batch(records, source):
+    """Validate the whole proposals batch before any sibling is read; return
+    the first fault message, or None when the batch is clean."""
+    if not isinstance(records, list):
+        return f"invalid proposals schema in {source}: expected a JSON list, not a {type(records).__name__}"
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            return f"invalid proposals schema in {source}: the record at position {index} is not an object"
+        for key in ("name", "file", "kind", "transcript", "line_no", "evidence_text"):
+            if key not in record:
+                return f"invalid proposals schema in {source}: the record at position {index} is missing {key}"
+    return None
+
+
 def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
     if path is None:
         path = proposals_dir.parent / "distil-memory-queue.json"
@@ -277,6 +291,10 @@ def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
     source = proposals_dir / "proposals.json"
     try:
         records = json.loads(source.read_text())
+        fault = _check_batch(records, source)
+        if fault is not None:
+            print(fault, file=sys.stderr)
+            return 1
         proposals = []
         for record in records:
             source = proposals_dir / record["file"]
@@ -292,7 +310,7 @@ def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
                     "dedup_error": record.get("dedup_error"),
                 }
             )
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, ValueError) as error:
         print(f"cannot read the proposals {source}: {error}", file=sys.stderr)
         return 1
     added = save(proposals, path=path)
