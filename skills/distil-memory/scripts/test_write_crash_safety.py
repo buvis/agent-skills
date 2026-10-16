@@ -421,6 +421,12 @@ def test_main_write_leaves_the_update_target_and_the_index_untouched_when_the_fi
     assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
 
 
+def _assert_stderr_is_exactly_the_two_faults(err, index_fault, rollback_report):
+    # one line per fault, each pinned whole: no extra line, and no text added
+    # to either line, is left to claim the store was put back
+    assert err.splitlines() == [index_fault, f"rollback failed: {rollback_report}"]
+
+
 def test_main_write_reports_both_the_pointer_error_and_the_rollback_error_when_the_rollback_itself_fails(
     store_path, monkeypatch, capsys
 ):
@@ -441,12 +447,10 @@ def test_main_write_reports_both_the_pointer_error_and_the_rollback_error_when_t
     assert "Traceback" not in captured.err
     assert captured.out == ""
     # the memory file the rollback could not remove is still there, so stderr
-    # has to name it, and every line it prints reports one of the two faults:
-    # no line is left over to claim the store was put back
+    # has to name it
     assert (store_path / "widget-fact.md").exists()
-    assert "widget-fact.md" in captured.err
-    assert all(
-        index_fault in line or rollback_fault in line for line in captured.err.splitlines()
+    _assert_stderr_is_exactly_the_two_faults(
+        captured.err, index_fault, f"{rollback_fault}: {store_path / 'widget-fact.md'}"
     )
     assert sorted(p.name for p in store_path.iterdir()) == ["widget-fact.md"]
 
@@ -464,8 +468,11 @@ def test_main_write_reports_both_the_pointer_error_and_the_rollback_error_when_r
     index_fault = f"index boom {uuid.uuid4()}"
     rollback_fault = f"rollback boom {uuid.uuid4()}"
 
+    refused = []
+
     # the rollback of an update is the only write in this run that passes bytes
     def _refuse_to_write_the_previous_bytes_back(self, *args, **kwargs):
+        refused.append(self)
         raise OSError(f"{rollback_fault}: {self}")
 
     monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
@@ -482,6 +489,9 @@ def test_main_write_reports_both_the_pointer_error_and_the_rollback_error_when_r
     assert captured.out == ""
     # the target still holds this run's text, so stderr must not claim otherwise
     assert target_path.read_text() == new_text
+    _assert_stderr_is_exactly_the_two_faults(
+        captured.err, index_fault, f"{rollback_fault}: {refused[0]}"
+    )
     assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
 
 
