@@ -134,6 +134,20 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
 
 ## Active Work
 
+### Batch 202610162125 (lane worktree prd-00076-00077-distil-docket, interactive)
+- [x] 00076-distil-tests-see-non-atomic-writes-v1.md (9/9 tasks, 1 cycle) —
+  test-only: atomicity module, rollback/batch-refusal/decide tests rebound to
+  intent, 00074 absorbed; plus `docket.py` "not a directory" refusal wording.
+  Converged at cycle 1 (13 findings, 0 C/H); tail swept as tasks 7-9. R8
+  (`_save_from_proposals_dir` tracebacks) settled-deferred to 00077.
+- [ ] 00077-docket-never-raises-v1.md (backlog, next on this branch)
+- 00079, 00080 run in their own lane worktrees; this lane stops after 00077.
+  00075 moved wip->done here to mirror master 7dbd401 (branch forked first).
+
+  Observations: `braid --check` cannot run from a lane worktree;
+  `tests/test_conftest_fixtures.py::test_armed_directory_refuses_a_childs_stat`
+  fails at base too (env, not a regression).
+
 ### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-11 full catchup at PRD 00075 selection, local HEAD da94491)
 - [ ] 00075-ground-prd-claims-against-installed-code-v1.md — selected this
   pass (PRD 4 of the batch), moved wip, not yet started. `ground_prd.py`
