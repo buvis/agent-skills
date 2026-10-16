@@ -134,6 +134,20 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
 
 ## Active Work
 
+### Batch 202610162120 (started 2026-10-16, interactive, worktree prd/00079-survey-split)
+- [x] 00079-split-test-survey-under-the-cap-v1.md (2/2 tasks, 1 cycle) —
+  `test_survey.py` split into `test_survey_scan.py` and
+  `test_survey_brief.py` with shared `conftest.py` and
+  `survey_test_helpers.py`, each under 800 lines; pre/post inventory
+  identical. 1 item deferred (pre-existing
+  `test_armed_directory_refuses_a_childs_stat` failure on Python 3.14).
+- [ ] 00075-ground-prd-claims-against-installed-code-v1.md (wip)
+- [ ] 00076, 00077, 00080 (backlog)
+
+  Observations: the split-hygiene gate false-positives on names a helper
+  module exports for other modules (flagged `PINNED_KINDS`,
+  `requires_tree_sitter` as unused).
+
 ### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-11 full catchup at PRD 00075 selection, local HEAD da94491)
 - [ ] 00075-ground-prd-claims-against-installed-code-v1.md — selected this
   pass (PRD 4 of the batch), moved wip, not yet started. `ground_prd.py`

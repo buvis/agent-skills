@@ -1829,3 +1829,5 @@
 {"id":"79a24077","ended_at":1792180468,"elapsed_s":39,"outcome":"ok","detail":"retry"}
 {"id":"b5fe60d7","ended_at":1792180587,"elapsed_s":160,"outcome":"ok","detail":"retry"}
 {"kind":"handoff","site":"review","edge":"leave","at":1792180695,"phase":"done","prd":"00079-split-test-survey-under-the-cap-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1792180765,"phase":"done","prd":"00079-split-test-survey-under-the-cap-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1792180850,"phase":"build","prd":"00079-split-test-survey-under-the-cap-v1.md"}

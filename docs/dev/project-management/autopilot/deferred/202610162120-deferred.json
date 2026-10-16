@@ -3,6 +3,11 @@
   "items": [
     {
       "type": "out-of-scope",
+      "issue": "test_armed_directory_refuses_a_childs_stat fails on Python 3.14 (pre-existing, outside PRD scope)",
+      "severity": "low",
+      "cycle": 1,
+      "status": "deferred",
+      "reason": "pre-existing on master; nothing under tests/ changed; belongs in a tests/ PRD",
       "detail": "tests/test_conftest_fixtures.py::test_armed_directory_refuses_a_childs_stat fails under the worktree venv's Python 3.14.8: Path.is_file() returns False instead of raising PermissionError on an unreadable parent dir. Pre-existing, nothing under tests/ changed on this branch. Fix belongs in a tests/ PRD (assert on os.stat, which still raises).",
       "prd": "00079-split-test-survey-under-the-cap-v1.md"
     }
