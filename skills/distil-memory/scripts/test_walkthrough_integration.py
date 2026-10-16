@@ -4,6 +4,7 @@ import io
 import json
 from pathlib import Path
 
+import dedup
 import docket
 import proposal
 import write
@@ -74,8 +75,9 @@ def _attempt_edit_then_publish(
     store_path: Path,
     queue_path: Path,
 ) -> tuple[dict, Path, str | None]:
-    """Walkthrough's documented step-6 ordering: validate the re-emitted
-    file_text first, and only decide/write when validation passes."""
+    """Walkthrough's documented step 6: validate the re-emitted file_text with
+    the distil rules against the store's own index first, and only
+    decide/write when validation passes."""
     entry = next(
         e for e in docket.load(path=queue_path)["entries"] if e["id"] == entry_id
     )
@@ -86,8 +88,12 @@ def _attempt_edit_then_publish(
             line_no=entry["line_no"],
             text=entry["evidence_text"],
         ),
+        kind=entry["kind"],
+        existing_text=entry["existing_text"],
+        dedup_error=entry.get("dedup_error"),
     )
-    proposal.validate(candidate)
+    index_has_names = bool(dedup.parse_index(dedup.read_index(store_path)))
+    proposal.validate_distil_output(candidate, index_has_names)
     return _keep_and_publish(entry, queue_path, store_path, file_text=new_file_text)
 
 
@@ -324,3 +330,37 @@ def test_edit_path_writes_and_decides_only_when_the_re_emitted_file_text_passes_
     assert pointer in (store_path / "MEMORY.md").read_text()
     assert kept["decision"] == "kept"
     assert kept["file_text"] == valid_file_text
+
+
+def test_edit_path_refuses_a_linkless_edit_against_a_store_whose_index_names_memories(
+    tmp_path: Path,
+) -> None:
+    # The edit passes the general memory-file contract but breaks a distil
+    # rule: the store already indexes a memory, so the body must link to one.
+    # Validating with the general contract alone would write it.
+    queue_path = tmp_path / "queue.json"
+    store_path = tmp_path / "memory"
+    store_path.mkdir()
+    existing = _file_text(name="other-thing", description="something unrelated")
+    (store_path / "other-thing.md").write_text(existing)
+    index_text = "- [Other thing](other-thing.md) — something unrelated\n"
+    (store_path / "MEMORY.md").write_text(index_text)
+    docket.save(_PROPOSALS, path=queue_path)
+    entry = _next_entry(queue_path)
+    linkless_edit = _file_text(
+        name="walkthrough-memory-1", description="edited without any wiki link"
+    )
+    proposal.validate(
+        proposal.Proposal(
+            file_text=linkless_edit,
+            evidence=proposal.Evidence(transcript=Path("t.jsonl"), line_no=1, text="e"),
+        )
+    )
+
+    with pytest.raises(proposal.ProposalError, match="links to no other memory"):
+        _attempt_edit_then_publish(entry["id"], linkless_edit, store_path, queue_path)
+
+    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "other-thing.md"]
+    assert (store_path / "MEMORY.md").read_text() == index_text
+    assert (store_path / "other-thing.md").read_text() == existing
+    assert _queued(entry["id"], queue_path)["decision"] == "undecided"

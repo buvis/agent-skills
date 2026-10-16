@@ -119,12 +119,27 @@ def test_main_save_prints_added_n_of_m_counting_m_as_every_record_read_not_just_
     assert "added 1 of 2" in captured.out
 
 
-def test_main_start_returns_zero(tmp_path, monkeypatch):
+def test_main_start_returns_zero(tmp_path, monkeypatch, capsys):
+    # A sitting that hit the cap still has one undecided entry. start must
+    # re-arm the sitting, so next hands that entry out only after it; the
+    # lifetime cursor is history and start leaves it alone.
     monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(line_no=n) for n in range(1, docket.PER_RUN_CAP + 2)])
+    for n in range(1, docket.PER_RUN_CAP + 1):
+        docket.decide(docket.slice_key("t.jsonl", n), "kept")
+    cursor_before = docket.cursor()
+    capsys.readouterr()
+
+    assert docket.main(["next"]) == 1
+    assert capsys.readouterr().out == ""
 
     exit_code = docket.main(["start"])
 
     assert exit_code == 0
+    assert docket.main(["next"]) == 0
+    remaining = json.loads(capsys.readouterr().out)
+    assert remaining["id"] == docket.slice_key("t.jsonl", docket.PER_RUN_CAP + 1)
+    assert docket.cursor() == cursor_before == docket.PER_RUN_CAP
 
 
 def test_main_next_prints_the_next_undecided_entry_as_one_line_of_json_and_returns_zero(
@@ -396,7 +411,7 @@ def test_main_decide_with_a_non_utf8_file_returns_one_with_a_reason_and_leaves_t
     assert queue_file.read_bytes() == before
 
 
-def test_main_save_carries_a_records_dedup_error_into_the_stored_entry(tmp_path, monkeypatch, capsys):
+def test_main_save_carries_a_records_dedup_error_into_the_stored_entry(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     proposals_dir = tmp_path / "proposals"
     proposals_dir.mkdir()
@@ -422,7 +437,7 @@ def test_main_save_carries_a_records_dedup_error_into_the_stored_entry(tmp_path,
 
 
 def test_main_save_ingests_a_record_whose_dedup_error_key_is_absent_and_stores_none(
-    tmp_path, monkeypatch, capsys
+    tmp_path, monkeypatch
 ):
     monkeypatch.chdir(tmp_path)
     proposals_dir = tmp_path / "proposals"
@@ -447,7 +462,7 @@ def test_main_save_ingests_a_record_whose_dedup_error_key_is_absent_and_stores_n
 
 
 def test_main_save_keeps_each_entrys_dedup_error_matched_to_the_right_entry_in_a_mixed_batch(
-    tmp_path, monkeypatch, capsys
+    tmp_path, monkeypatch
 ):
     monkeypatch.chdir(tmp_path)
     proposals_dir = tmp_path / "proposals"
