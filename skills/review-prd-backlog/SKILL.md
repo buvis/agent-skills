@@ -1,6 +1,6 @@
 ---
 name: review-prd-backlog
-description: Use to review the PRD backlog (docs/dev/project-management/prds/backlog) before /run-autopilot - create-prd compliance, collisions, sizing/regrouping, gaps, goal alignment. Triggers on "review backlog", "review prds", "audit backlog", "backlog ready".
+description: Use to review PRD backlog (docs/dev/project-management/prds/backlog) before /run-autopilot - create-prd compliance, collisions, sizing/regrouping, gaps, goal alignment. Triggers on "review backlog", "review prds", "audit backlog", "backlog ready".
 argument-hint: "[backlog dir, default docs/dev/project-management/prds/backlog]"
 compatibility: "Portable backlog gate; large backlogs want a host that can dispatch sub-agents for the grounding lens, and full budget/tier coverage needs the autopilot plugin."
 ---
