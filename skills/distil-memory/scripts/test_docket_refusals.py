@@ -269,6 +269,23 @@ def test_save_missing_dir_names_the_directory_not_proposals_json(
     assert "proposals.json" not in err
 
 
+def test_save_does_not_call_a_proposals_dir_that_is_a_file_missing(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    # the path is right there, it is just not a directory: a refusal that says
+    # it does not exist sends the operator looking for something they can see
+    monkeypatch.chdir(tmp_path)
+    a_file = tmp_path / "proposals"
+    a_file.write_text("")
+
+    exit_code = docket.main(["save", "--proposals-dir", str(a_file), "--queue", str(queue_path)])
+
+    assert exit_code == 1
+    err = capsys.readouterr().err
+    assert str(a_file) in err
+    assert "no such" not in err
+
+
 # A decide whose --file cannot be read is a refusal (exit 1), not a queue fault
 # (exit 2) and never a traceback. The two ways in: the path is absent, and the
 # path is there but cannot be read as a file. A refusal is all-or-nothing: the
