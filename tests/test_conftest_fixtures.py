@@ -187,8 +187,9 @@ def test_armed_directory_refuses_a_childs_stat(tmp_path: Path, deny_access) -> N
     child = vault / "child.txt"
     child.write_text(PLAIN_TEXT, encoding="utf-8")
     allow = deny_access(vault)
+    # Path.is_file() swallows PermissionError from Python 3.14 on; stat() still raises.
     with pytest.raises(PermissionError):
-        child.is_file()
+        child.stat()
     allow()
     assert child.is_file(), "the child must exist, or refusing to stat it proves nothing"
 
