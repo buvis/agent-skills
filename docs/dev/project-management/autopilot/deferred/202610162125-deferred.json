@@ -1,0 +1,10 @@
+{
+  "batch_id": "202610162125",
+  "items": [
+    {
+      "type": "pre-existing-failure",
+      "detail": "tests/test_conftest_fixtures.py::test_armed_directory_refuses_a_childs_stat fails (DID NOT RAISE PermissionError) at base bde94d7 too; outside the 00080 diff, likely environment-dependent (stat through a mode-000 dir succeeds in this session)",
+      "prd": "00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md"
+    }
+  ]
+}
