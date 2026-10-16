@@ -90,6 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **create-prd**: the optional frontmatter list names every key the autopilot pipeline reads (`pause_on_ambiguity`, `eligibility`, `plan_expansion`, `session_model` and `lane` join the seven), and step 3 gains the Path rule for lane-routed PRDs (repo-relative, no globs, every task-touched file in the tree).
+- **review-prd-backlog**: lens A recognizes the same twelve frontmatter keys with their valid values instead of flagging five of them as unknown, and lens C checks the Path rule.
 - **structure-git-repo**: create and check Claude's AGENTS.md import bridge by default with no opt-in; preserve existing native instructions and add adjacent bridges for maintained nested instruction scopes.
 - **working documents**: store durable project-management artifacts under
   `docs/dev/project-management/` and disposable assets under the globally
