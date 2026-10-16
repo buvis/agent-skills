@@ -107,7 +107,7 @@ def _install_call_guards(monkeypatch, armed: list[str]) -> None:
     is the descriptor-level call underneath both. `listdir` and `scandir` are
     both wrapped because which one `Path.iterdir` uses changed in 3.13, and
     both 3.10 and 3.13 are in the matrix. `stat` and `lstat` deny only paths
-    strictly inside an armed directory, so a child's `is_file()` refuses while
+    strictly inside an armed directory, so a child's `stat()` refuses while
     the armed path itself still reports that it exists.
     """
     monkeypatch.setattr(io, "open", _guard(io.open, armed))
