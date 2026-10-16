@@ -1807,3 +1807,6 @@
 {"id":"ee52e636","ended_at":1791727417,"elapsed_s":476,"outcome":"error","detail":"lack-of-input"}
 {"id":"d8fc26af","ended_at":1791727420,"elapsed_s":64,"outcome":"ok","detail":"retry"}
 {"kind":"handoff","site":"review","edge":"leave","at":1791727563,"phase":"done","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792178498,"phase":"build","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1792178508,"phase":"done","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1792178603,"phase":"build","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}

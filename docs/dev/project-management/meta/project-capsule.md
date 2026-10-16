@@ -134,16 +134,16 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
 
 ## Active Work
 
-### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-11 full catchup at PRD 00075 selection, local HEAD da94491)
-- [ ] 00075-ground-prd-claims-against-installed-code-v1.md — selected this
-  pass (PRD 4 of the batch), moved wip, not yet started. `ground_prd.py`
-  checker (citation/symbol/library claim extraction + verification) plus a
-  create-prd step 5.55 and a review-prd-backlog gate-lens bullet. `design:
-  run`, `catchup: force`. `gh` not authenticated this pass — GitHub state
-  skipped, noted as a gap, not re-measured. Working tree carries unrelated
-  pre-existing uncommitted edits to `skills/structure-git-repo/` (not part
-  of this PRD's scope, left untouched) and dispatch-metrics.jsonl churn from
-  prior sessions.
+### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-16 at PRD 00075 finalize)
+- [x] 00075-ground-prd-claims-against-installed-code-v1.md (9/9 tasks, 2
+  cycles) — `ground_prd.py` checker (citation/symbol/library claim
+  extraction + verification), create-prd step 5.55, and a
+  review-prd-backlog gate-lens bullet. Cycle 2 hit the rework cap with 14
+  findings (2 high, no critical) still open; deferred to the batch ledger
+  and minted two hold stubs (00084, 00085) for the two high-severity ones.
+  Working tree still carries unrelated pre-existing uncommitted edits to
+  `skills/structure-git-repo/` (not part of this PRD's scope, left
+  untouched).
 - [x] 00071-distil-publish-recovery-v1.md (13/13 tasks, 3 cycles) — idempotent
   publish (`write_memory`/`append_pointer`), `decide kept --name --file`
   recovery edit, new `docket.py unpublished`, null-`kind` guard, SKILL.md
@@ -161,12 +161,10 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
   skipped at b8d635b. 2 items deferred (concurrent-write collision check,
   subdirectory report path vs git root — both low-severity, flagged not
   failed).
-- [ ] 00075-ground-prd-claims-against-installed-code-v1.md (backlog)
 - [ ] 00076-distil-tests-see-non-atomic-writes-v1.md (backlog)
 - [ ] 00077-docket-never-raises-v1.md (backlog)
 - [ ] 00079-split-test-survey-under-the-cap-v1.md (backlog)
 - [ ] 00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md (backlog)
-- [ ] 00075, 00076, 00077, 00079, 00080 (backlog)
 
   Observations: reviewers kept finding the same class (input faults escaping
   as tracebacks) across cycles 1-2; 00077 should sweep that class wholesale.
