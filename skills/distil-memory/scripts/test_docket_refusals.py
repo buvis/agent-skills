@@ -1,6 +1,8 @@
 """Tests for docket.py: main()'s refusals when the proposals directory or the
 decide --file cannot be read."""
 
+import builtins
+import io
 import json
 from pathlib import Path
 
@@ -599,15 +601,32 @@ def _queue_with_one_entry(queue_path):
 
 
 def _counting_reads_of(monkeypatch, note):
-    real_read_text = Path.read_text
+    # a second read can take any route, so count them all: the Path helpers,
+    # and open() as a builtin or through io. The open() a helper makes inside
+    # itself belongs to the read already counted, not to a second one.
     reads = []
+    depth = [0]
 
-    def _read_text(self, *args, **kwargs):
-        if self == note:
-            reads.append(self)
-        return real_read_text(self, *args, **kwargs)
+    def _counting(real):
+        def _call(target, *args, **kwargs):
+            if depth[0] == 0 and isinstance(target, (str, Path)) and Path(target) == note:
+                reads.append(note)
+            depth[0] += 1
+            try:
+                return real(target, *args, **kwargs)
+            finally:
+                depth[0] -= 1
 
-    monkeypatch.setattr(Path, "read_text", _read_text)
+        return _call
+
+    for owner, name in [
+        (Path, "read_text"),
+        (Path, "read_bytes"),
+        (Path, "open"),
+        (builtins, "open"),
+        (io, "open"),
+    ]:
+        monkeypatch.setattr(owner, name, _counting(getattr(owner, name)))
     return reads
 
 
