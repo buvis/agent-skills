@@ -1,11 +1,13 @@
 """Tests for docket.py: pins that docket's CLI exits 1 with a stderr reason
 instead of raising a traceback when the proposals directory holds bytes that
-are not UTF-8 or a batch whose shape is wrong, and that such a refusal saves
-nothing to the queue."""
+are not UTF-8 or a batch whose shape is wrong, or when the queue write fails,
+and that such a refusal saves nothing to the queue."""
 
 import json
+from pathlib import Path
 
 import docket
+from docket_test_helpers import make_proposal as _proposal
 
 import pytest
 
@@ -116,3 +118,51 @@ def test_save_refuses_a_record_missing_evidence_text_after_readable_records(
     assert _save(proposals_dir, queue_path) == 1
 
     _assert_refused(capsys, queue_path, "missing evidence_text", "position 2")
+
+
+def _fail_write(self, *args, **kwargs):
+    raise OSError(28, "No space left on device")
+
+
+def _assert_write_refused(capsys, queue_path, before):
+    captured = capsys.readouterr()
+    assert captured.err.startswith("cannot write the review queue")
+    assert captured.out == ""
+    assert queue_path.read_bytes() == before
+
+
+def test_save_reports_a_failed_queue_write(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(line_no=1)], path=queue_path)
+    before = queue_path.read_bytes()
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "gear-note.md").write_text("---\nname: gear-note\n---\n\nBody.\n")
+    (proposals_dir / "proposals.json").write_text(json.dumps([_record("gear-note", 2)]))
+    monkeypatch.setattr(Path, "write_text", _fail_write)
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_write_refused(capsys, queue_path, before)
+
+
+def test_decide_reports_a_failed_queue_write(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(line_no=1)], path=queue_path)
+    before = queue_path.read_bytes()
+    monkeypatch.setattr(Path, "write_text", _fail_write)
+
+    argv = ["decide", docket.slice_key("t.jsonl", 1), "kept", "--queue", str(queue_path)]
+    assert docket.main(argv) == 1
+
+    _assert_write_refused(capsys, queue_path, before)
+
+
+def test_start_reports_a_failed_queue_write(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(line_no=1)], path=queue_path)
+    before = queue_path.read_bytes()
+    monkeypatch.setattr(Path, "write_text", _fail_write)
+
+    assert docket.main(["start", "--queue", str(queue_path)]) == 1
+
+    _assert_write_refused(capsys, queue_path, before)
