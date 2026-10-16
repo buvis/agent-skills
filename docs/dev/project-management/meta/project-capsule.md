@@ -134,6 +134,22 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
 
 ## Active Work
 
+### Batch 202610162125 (started 2026-10-16, worktree prd/00080-frontmatter-keys)
+- [x] 00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md
+  (5/5 tasks, 1 cycle) — create-prd and review-prd-backlog recognize all
+  twelve frontmatter keys and the lane Path rule; prose test
+  `scripts/test_frontmatter_keys_prose.py`. Solo lane escalated to full
+  (security_diff). Converged cycle 1, 0 C/H/M; R2 (251-char description)
+  swept as task 5. 1 deferred item, fixed at batch-end review:
+  `tests/test_conftest_fixtures.py::test_armed_directory_refuses_a_childs_stat`
+  probed `is_file()`, which Python 3.14 makes swallow OSError; it now
+  probes `stat()`.
+- [ ] 00075-ground-prd-claims-against-installed-code-v1.md (wip, batch 202610100952)
+- [ ] 00076, 00077, 00079 (backlog)
+
+  Observations: a deferred record written without `issue` text trips
+  `render report` exit 12; write `issue` at defer time.
+
 ### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-11 full catchup at PRD 00075 selection, local HEAD da94491)
 - [ ] 00075-ground-prd-claims-against-installed-code-v1.md — selected this
   pass (PRD 4 of the batch), moved wip, not yet started. `ground_prd.py`

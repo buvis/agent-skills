@@ -1817,3 +1817,4 @@
 {"id":"efb8195d","ended_at":1792180475,"elapsed_s":424,"outcome":"ok","detail":null}
 {"id":"8f6d455d","ended_at":1792180517,"elapsed_s":44,"outcome":"ok","detail":"retry"}
 {"kind":"handoff","site":"review","edge":"leave","at":1792181025,"phase":"done","prd":"00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1792182137,"phase":"done","prd":"00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md"}

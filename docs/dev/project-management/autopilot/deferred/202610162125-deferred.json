@@ -3,8 +3,16 @@
   "items": [
     {
       "type": "pre-existing-failure",
+      "issue": "Pre-existing test failure: tests/test_conftest_fixtures.py::test_armed_directory_refuses_a_childs_stat",
+      "severity": "low",
+      "cycle": 1,
       "detail": "tests/test_conftest_fixtures.py::test_armed_directory_refuses_a_childs_stat fails (DID NOT RAISE PermissionError) at base bde94d7 too; outside the 00080 diff, likely environment-dependent (stat through a mode-000 dir succeeds in this session)",
-      "prd": "00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md"
+      "prd": "00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md",
+      "resolved": {
+        "note": "Fixed at batch-end review (user: fix now). Not the sandbox: Python 3.14's Path.is_file() returns False on any OSError, so it can never raise. The test now probes child.stat(), which the kernel refuses."
+      },
+      "decision": "fix now",
+      "resolution": "fixed: probe Path.stat() instead of is_file()"
     }
   ]
 }
