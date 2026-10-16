@@ -209,244 +209,184 @@ def _break_removal_of_the_memory_file(monkeypatch, fault_message):
     monkeypatch.setattr(os, "remove", _refuse_os_remove)
 
 
-def test_main_write_removes_only_the_new_memory_file_when_the_pointer_write_fails_and_a_retry_then_succeeds(
-    store_path, monkeypatch, capsys
-):
-    store_path.mkdir()
-    unrelated_path = store_path / "other-thing.md"
-    unrelated_text = _file_text(name="other-thing", description="something unrelated")
-    unrelated_path.write_text(unrelated_text)
-    index_path = store_path / "MEMORY.md"
-    unrelated_line = "- [Other thing](other-thing.md) — something unrelated"
-    index_path.write_text(unrelated_line + "\n")
-    original_index_bytes = index_path.read_bytes()
-    entry = _entry(
-        name="widget-fact",
-        kind="new",
-        file_text=_file_text(name="widget-fact", description="keeps facts about widgets straight"),
-    )
-    index_fault = f"index boom {uuid.uuid4()}"
-    monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+# Every rollback case below starts from the store files in `before`, feeds one
+# entry, and fails it at the index step: either the MEMORY.md move faults
+# (`reason` None, so the run's own minted fault message is what stderr must
+# carry), or the entry's frontmatter cannot yield what the pointer line needs,
+# which reaches that step only after the memory file has landed and needs no
+# monkeypatching at all. Either way the store must come back byte for byte. A
+# case with `retry` then runs the same entry again with the fault gone and
+# checks the pointer it prints and the store it lands in.
 
-    status = write.main(["write", "--store", str(store_path)])
+_OTHER_TEXT = _file_text(name="other-thing", description="something unrelated")
+_OTHER_LINE = "- [Other thing](other-thing.md) — something unrelated\n"
+_OLD_TEXT = _file_text(name="widget-fact", description="old description")
+_NEW_TEXT = _file_text(name="widget-fact", description="new, more accurate description")
+_SOMETHING_LINE = "- [Something](something.md) — unrelated\n"
+_OLD_LINE = "- [Widget fact](widget-fact.md) — old description\n"
+_NEW_POINTER = "- [Widget fact](widget-fact.md) — new, more accurate description"
+_KEEPS_TEXT = _file_text(name="widget-fact", description="keeps facts about widgets straight")
+_KEEPS_POINTER = "- [Widget fact](widget-fact.md) — keeps facts about widgets straight"
+_DEFAULT_POINTER = "- [Widget fact](widget-fact.md) — a fact worth keeping"
+_QUEUE_CURSOR_TEXT = _file_text(name="queue-cursor", description="old description")
+_ON_DISK_TEXT = _file_text(name="widget-fact", description="what the store really holds")
+_UNPARSEABLE_EXISTING = "no frontmatter here\n"
 
-    assert status == 1
-    failed = capsys.readouterr()
-    assert index_fault in failed.err
-    assert "Traceback" not in failed.err
-    assert failed.out == ""
-    # only the file this run created goes away: the memories the store already
-    # held, and the index itself, come through byte for byte
-    assert not (store_path / "widget-fact.md").exists()
-    assert unrelated_path.read_text() == unrelated_text
-    assert index_path.read_bytes() == original_index_bytes
-    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "other-thing.md"]
-
-    monkeypatch.setattr(Path, "replace", _REAL_REPLACE)
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
-
-    retry_status = write.main(["write", "--store", str(store_path)])
-
-    assert retry_status == 0
-    retried = capsys.readouterr()
-    lines = retried.out.splitlines()
-    assert lines[0] == str(store_path / "widget-fact.md")
-    assert lines[1] == "- [Widget fact](widget-fact.md) — keeps facts about widgets straight"
-    assert (store_path / "widget-fact.md").read_text() == entry["file_text"]
-    assert index_path.read_text().splitlines() == [unrelated_line, lines[1]]
-
-
-def test_main_write_leaves_a_store_that_had_no_index_without_one_when_the_pointer_write_fails_and_a_retry_then_succeeds(
-    store_path, monkeypatch, capsys
-):
-    store_path.mkdir()
-    index_path = store_path / "MEMORY.md"
-    entry = _entry(name="widget-fact", kind="new")
-    index_fault = f"index boom {uuid.uuid4()}"
-    monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
-
-    status = write.main(["write", "--store", str(store_path)])
-
-    assert status == 1
-    failed = capsys.readouterr()
-    assert index_fault in failed.err
-    assert "Traceback" not in failed.err
-    assert failed.out == ""
+_ROLLBACK_CASES = [
+    pytest.param(
+        {"other-thing.md": _OTHER_TEXT, "MEMORY.md": _OTHER_LINE},
+        _entry(name="widget-fact", kind="new", file_text=_KEEPS_TEXT),
+        None,
+        (
+            _KEEPS_POINTER,
+            {
+                "other-thing.md": _OTHER_TEXT,
+                "MEMORY.md": _OTHER_LINE + _KEEPS_POINTER + "\n",
+                "widget-fact.md": _KEEPS_TEXT,
+            },
+        ),
+        id="removes_only_the_new_memory_file_when_the_pointer_write_fails_and_a_retry_then_succeeds",
+    ),
     # the store had no index when the run started, so it owes that absence back
-    assert not index_path.exists()
-    assert sorted(p.name for p in store_path.iterdir()) == []
-
-    monkeypatch.setattr(Path, "replace", _REAL_REPLACE)
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
-
-    retry_status = write.main(["write", "--store", str(store_path)])
-
-    assert retry_status == 0
-    assert (store_path / "widget-fact.md").read_text() == entry["file_text"]
-    assert index_path.read_text() == "- [Widget fact](widget-fact.md) — a fact worth keeping\n"
-
-
-def test_main_write_restores_the_updated_targets_original_text_and_the_index_when_the_pointer_write_fails_and_a_retry_then_succeeds(
-    store_path, monkeypatch, capsys
-):
-    store_path.mkdir()
-    target_path = store_path / "widget-fact.md"
-    original_text = _file_text(name="widget-fact", description="old description")
-    target_path.write_text(original_text)
-    index_path = store_path / "MEMORY.md"
-    index_path.write_text(
-        "- [Something](something.md) — unrelated\n"
-        "- [Widget fact](widget-fact.md) — old description\n"
-    )
-    original_index_bytes = index_path.read_bytes()
-    new_text = _file_text(name="widget-fact", description="new, more accurate description")
-    entry = _entry(
-        name="widget-fact", kind="update widget-fact", file_text=new_text, existing_text=original_text
-    )
-    index_fault = f"index boom {uuid.uuid4()}"
-    monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
-
-    status = write.main(["write", "--store", str(store_path)])
-
-    assert status == 1
-    failed = capsys.readouterr()
-    assert index_fault in failed.err
-    assert "Traceback" not in failed.err
-    assert failed.out == ""
-    assert target_path.read_text() == original_text
-    assert index_path.read_bytes() == original_index_bytes
-    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
-
-    monkeypatch.setattr(Path, "replace", _REAL_REPLACE)
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
-
-    retry_status = write.main(["write", "--store", str(store_path)])
-
-    assert retry_status == 0
-    retried = capsys.readouterr()
-    lines = retried.out.splitlines()
-    assert lines[0] == str(target_path)
-    assert lines[1] == "- [Widget fact](widget-fact.md) — new, more accurate description"
-    assert target_path.read_text() == new_text
-    assert index_path.read_text().splitlines() == [
-        "- [Something](something.md) — unrelated",
-        "- [Widget fact](widget-fact.md) — new, more accurate description",
-    ]
-
-
-def test_main_write_restores_the_target_named_by_kind_when_the_pointer_write_fails_even_when_the_file_texts_own_name_field_differs(
-    store_path, monkeypatch, capsys
-):
-    store_path.mkdir()
-    target_path = store_path / "queue-cursor.md"
-    original_text = _file_text(name="queue-cursor", description="old description")
-    target_path.write_text(original_text)
-    index_path = store_path / "MEMORY.md"
-    index_path.write_text("- [Queue cursor](queue-cursor.md) — old description\n")
-    original_index_bytes = index_path.read_bytes()
-    new_text = _file_text(name="widget-fact", description="new, more accurate description")
-    entry = _entry(
-        name="queue-cursor",
-        kind="update queue-cursor",
-        file_text=new_text,
-        existing_text=original_text,
-    )
-    index_fault = f"index boom {uuid.uuid4()}"
-    monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
-
-    status = write.main(["write", "--store", str(store_path)])
-
-    assert status == 1
-    captured = capsys.readouterr()
-    assert index_fault in captured.err
-    assert "Traceback" not in captured.err
-    assert captured.out == ""
+    pytest.param(
+        {},
+        _entry(name="widget-fact", kind="new"),
+        None,
+        (
+            _DEFAULT_POINTER,
+            {"widget-fact.md": _file_text(), "MEMORY.md": _DEFAULT_POINTER + "\n"},
+        ),
+        id="leaves_a_store_that_had_no_index_without_one_when_the_pointer_write_fails_and_a_retry_then_succeeds",
+    ),
+    pytest.param(
+        {"widget-fact.md": _OLD_TEXT, "MEMORY.md": _SOMETHING_LINE + _OLD_LINE},
+        _entry(
+            name="widget-fact", kind="update widget-fact", file_text=_NEW_TEXT, existing_text=_OLD_TEXT
+        ),
+        None,
+        (
+            _NEW_POINTER,
+            {"widget-fact.md": _NEW_TEXT, "MEMORY.md": _SOMETHING_LINE + _NEW_POINTER + "\n"},
+        ),
+        id="restores_the_updated_targets_original_text_and_the_index_when_the_pointer_write_fails_and_a_retry_then_succeeds",
+    ),
     # the file kind named is the file that has to come back, and the name the
     # file_text carries never becomes a path of its own
-    assert target_path.read_text() == original_text
-    assert index_path.read_bytes() == original_index_bytes
-    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "queue-cursor.md"]
-
-
-def test_main_write_restores_the_targets_bytes_from_disk_when_the_pointer_write_fails_and_the_entrys_existing_text_is_stale(
-    store_path, monkeypatch, capsys
-):
-    store_path.mkdir()
-    target_path = store_path / "widget-fact.md"
-    text_on_disk = _file_text(name="widget-fact", description="what the store really holds")
-    target_path.write_text(text_on_disk)
-    index_path = store_path / "MEMORY.md"
-    index_path.write_text("- [Widget fact](widget-fact.md) — what the store really holds\n")
-    original_index_bytes = index_path.read_bytes()
+    pytest.param(
+        {
+            "queue-cursor.md": _QUEUE_CURSOR_TEXT,
+            "MEMORY.md": "- [Queue cursor](queue-cursor.md) — old description\n",
+        },
+        _entry(
+            name="queue-cursor",
+            kind="update queue-cursor",
+            file_text=_NEW_TEXT,
+            existing_text=_QUEUE_CURSOR_TEXT,
+        ),
+        None,
+        None,
+        id="restores_the_target_named_by_kind_when_the_pointer_write_fails_even_when_the_file_texts_own_name_field_differs",
+    ),
     # the entry's own copy of the previous text is stale: the store moved on
     # after the proposal was built, so only the bytes on disk are the truth
-    stale_text = _file_text(name="widget-fact", description="a description from two runs ago")
-    assert stale_text != text_on_disk
-    new_text = _file_text(name="widget-fact", description="new, more accurate description")
-    entry = _entry(
-        name="widget-fact",
-        kind="update widget-fact",
-        file_text=new_text,
-        existing_text=stale_text,
-    )
-    index_fault = f"index boom {uuid.uuid4()}"
-    monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+    pytest.param(
+        {
+            "widget-fact.md": _ON_DISK_TEXT,
+            "MEMORY.md": "- [Widget fact](widget-fact.md) — what the store really holds\n",
+        },
+        _entry(
+            name="widget-fact",
+            kind="update widget-fact",
+            file_text=_NEW_TEXT,
+            existing_text=_file_text(name="widget-fact", description="a description from two runs ago"),
+        ),
+        None,
+        None,
+        id="restores_the_targets_bytes_from_disk_when_the_pointer_write_fails_and_the_entrys_existing_text_is_stale",
+    ),
+    # the memory on disk was written with CRLF line endings, so a rollback that
+    # snapshots it as text and writes it back loses every \r without noticing;
+    # the proposal's copy of the previous text carries plain newlines
+    pytest.param(
+        {"widget-fact.md": _OLD_TEXT.replace("\n", "\r\n"), "MEMORY.md": _OLD_LINE},
+        _entry(
+            name="widget-fact", kind="update widget-fact", file_text=_NEW_TEXT, existing_text=_OLD_TEXT
+        ),
+        None,
+        None,
+        id="restores_the_update_targets_crlf_bytes_exactly_when_the_pointer_write_fails",
+    ),
+    # frontmatter the parser happily accepts, carrying everything except the
+    # one key the pointer line is built from; that key is the whole reason, so
+    # a refusal that does not name it leaves the caller guessing
+    pytest.param(
+        {"other-thing.md": _OTHER_TEXT, "MEMORY.md": _OTHER_LINE},
+        _entry(name="widget-fact", kind="new", file_text="---\nname: widget-fact\n---\n\nBody.\n"),
+        "description",
+        None,
+        id="removes_the_new_memory_file_and_reports_the_reason_when_the_file_text_carries_no_description",
+    ),
+    # the new text is faultless; the entry's own copy of the previous text is
+    # the broken half, needed only after the target has been overwritten, and
+    # the parser's own complaint is what says which half is broken
+    pytest.param(
+        {"widget-fact.md": _OLD_TEXT, "MEMORY.md": _SOMETHING_LINE + _OLD_LINE},
+        _entry(
+            name="widget-fact",
+            kind="update widget-fact",
+            file_text=_NEW_TEXT,
+            existing_text=_UNPARSEABLE_EXISTING,
+        ),
+        _parser_message(_UNPARSEABLE_EXISTING),
+        None,
+        id="restores_the_update_targets_original_bytes_and_reports_the_reason_when_the_entrys_existing_text_will_not_parse",
+    ),
+]
 
-    status = write.main(["write", "--store", str(store_path)])
 
-    assert status == 1
-    captured = capsys.readouterr()
-    assert index_fault in captured.err
-    assert "Traceback" not in captured.err
-    assert captured.out == ""
-    assert target_path.read_text() == text_on_disk
-    assert index_path.read_bytes() == original_index_bytes
-    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
+def _store_bytes(store):
+    return {p.name: p.read_bytes() for p in store.iterdir()}
 
 
-def test_main_write_restores_the_update_targets_crlf_bytes_exactly_when_the_pointer_write_fails(
-    store_path, monkeypatch, capsys
+def _encoded(files):
+    return {name: text.encode() for name, text in files.items()}
+
+
+@pytest.mark.parametrize("before, entry, reason, retry", _ROLLBACK_CASES)
+def test_main_write_rolls_the_store_back_byte_for_byte_when_the_index_step_fails(
+    store_path, monkeypatch, capsys, before, entry, reason, retry
 ):
     store_path.mkdir()
-    target_path = store_path / "widget-fact.md"
-    # the memory on disk was written with CRLF line endings, so a rollback that
-    # snapshots it as text and writes it back loses every \r without noticing
-    original_target_bytes = (
-        _file_text(name="widget-fact", description="old description").replace("\n", "\r\n").encode()
-    )
-    target_path.write_bytes(original_target_bytes)
-    assert b"\r\n" in original_target_bytes
-    index_path = store_path / "MEMORY.md"
-    index_path.write_text("- [Widget fact](widget-fact.md) — old description\n")
-    original_index_bytes = index_path.read_bytes()
-    new_text = _file_text(name="widget-fact", description="new, more accurate description")
-    entry = _entry(
-        name="widget-fact",
-        kind="update widget-fact",
-        file_text=new_text,
-        # the proposal's copy of the previous text carries plain newlines: only
-        # the bytes on disk say how that memory is really punctuated
-        existing_text=_file_text(name="widget-fact", description="old description"),
-    )
-    index_fault = f"index boom {uuid.uuid4()}"
-    monkeypatch.setattr(Path, "replace", _replace_failing_on_index(index_fault))
+    for name, text in before.items():
+        (store_path / name).write_bytes(text.encode())
+    if reason is None:
+        reason = f"index boom {uuid.uuid4()}"
+        monkeypatch.setattr(Path, "replace", _replace_failing_on_index(reason))
     monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
 
     status = write.main(["write", "--store", str(store_path)])
 
     assert status == 1
-    captured = capsys.readouterr()
-    assert index_fault in captured.err
-    assert "Traceback" not in captured.err
-    assert captured.out == ""
-    assert target_path.read_bytes() == original_target_bytes
-    assert index_path.read_bytes() == original_index_bytes
-    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
+    failed = capsys.readouterr()
+    assert reason in failed.err
+    assert "Traceback" not in failed.err
+    assert failed.out == ""
+    # only the file this run wrote goes back, to the bytes it held: the
+    # memories the store already held, and the index itself, come through
+    # byte for byte
+    assert _store_bytes(store_path) == _encoded(before)
+
+    if retry is None:
+        return
+    pointer, after = retry
+    monkeypatch.setattr(Path, "replace", _REAL_REPLACE)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
+
+    retry_status = write.main(["write", "--store", str(store_path)])
+
+    assert retry_status == 0
+    assert capsys.readouterr().out.splitlines() == [str(store_path / "widget-fact.md"), pointer]
+    assert _store_bytes(store_path) == _encoded(after)
 
 
 def test_main_write_leaves_the_update_target_and_the_index_untouched_when_the_file_text_will_not_parse(
@@ -501,10 +441,13 @@ def test_main_write_reports_both_the_pointer_error_and_the_rollback_error_when_t
     assert "Traceback" not in captured.err
     assert captured.out == ""
     # the memory file the rollback could not remove is still there, so stderr
-    # has to name it and must not claim the store was put back
+    # has to name it, and every line it prints reports one of the two faults:
+    # no line is left over to claim the store was put back
     assert (store_path / "widget-fact.md").exists()
     assert "widget-fact.md" in captured.err
-    assert "rolled back" not in captured.err
+    assert all(
+        index_fault in line or rollback_fault in line for line in captured.err.splitlines()
+    )
     assert sorted(p.name for p in store_path.iterdir()) == ["widget-fact.md"]
 
 
@@ -539,86 +482,6 @@ def test_main_write_reports_both_the_pointer_error_and_the_rollback_error_when_r
     assert captured.out == ""
     # the target still holds this run's text, so stderr must not claim otherwise
     assert target_path.read_text() == new_text
-    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
-
-
-# The index step can fail on the entry itself, not just on the filesystem: the
-# pointer line is built from frontmatter, and an entry whose frontmatter cannot
-# yield a description reaches that step only after the memory file has landed.
-# These two faults need no monkeypatching at all, and the store still has to be
-# put back exactly as it was.
-
-
-def test_main_write_removes_the_new_memory_file_and_reports_the_reason_when_the_file_text_carries_no_description(
-    store_path, monkeypatch, capsys
-):
-    store_path.mkdir()
-    unrelated_path = store_path / "other-thing.md"
-    unrelated_text = _file_text(name="other-thing", description="something unrelated")
-    unrelated_path.write_text(unrelated_text)
-    index_path = store_path / "MEMORY.md"
-    index_path.write_text("- [Other thing](other-thing.md) — something unrelated\n")
-    original_index_bytes = index_path.read_bytes()
-    # frontmatter the parser happily accepts, carrying everything except the one
-    # key the pointer line is built from
-    no_description = "---\nname: widget-fact\n---\n\nBody.\n"
-    assert "description" not in proposal.parse_frontmatter(no_description)
-    entry = _entry(name="widget-fact", kind="new", file_text=no_description)
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
-
-    status = write.main(["write", "--store", str(store_path)])
-
-    assert status == 1
-    captured = capsys.readouterr()
-    # the missing key is the whole reason, so a refusal that does not name it
-    # leaves the caller guessing which half of the frontmatter to fix
-    assert "description" in captured.err
-    assert "Traceback" not in captured.err
-    assert captured.out == ""
-    assert not (store_path / "widget-fact.md").exists()
-    assert unrelated_path.read_text() == unrelated_text
-    assert index_path.read_bytes() == original_index_bytes
-    assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "other-thing.md"]
-
-
-def test_main_write_restores_the_update_targets_original_bytes_and_reports_the_reason_when_the_entrys_existing_text_will_not_parse(
-    store_path, monkeypatch, capsys
-):
-    store_path.mkdir()
-    target_path = store_path / "widget-fact.md"
-    original_text = _file_text(name="widget-fact", description="old description")
-    target_path.write_text(original_text)
-    original_target_bytes = target_path.read_bytes()
-    index_path = store_path / "MEMORY.md"
-    index_path.write_text(
-        "- [Something](something.md) — unrelated\n"
-        "- [Widget fact](widget-fact.md) — old description\n"
-    )
-    original_index_bytes = index_path.read_bytes()
-    # the new text is faultless; the entry's own copy of the previous text is the
-    # broken half, and it is only needed after the target has been overwritten
-    new_text = _file_text(name="widget-fact", description="new, more accurate description")
-    proposal.parse_frontmatter(new_text)
-    unparseable_existing = "no frontmatter here\n"
-    assert _parser_message(unparseable_existing)
-    entry = _entry(
-        name="widget-fact",
-        kind="update widget-fact",
-        file_text=new_text,
-        existing_text=unparseable_existing,
-    )
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
-
-    status = write.main(["write", "--store", str(store_path)])
-
-    assert status == 1
-    captured = capsys.readouterr()
-    # the parser's own complaint is what says which half of the entry is broken
-    assert _parser_message(unparseable_existing) in captured.err
-    assert "Traceback" not in captured.err
-    assert captured.out == ""
-    assert target_path.read_bytes() == original_target_bytes
-    assert index_path.read_bytes() == original_index_bytes
     assert sorted(p.name for p in store_path.iterdir()) == ["MEMORY.md", "widget-fact.md"]
 
 
