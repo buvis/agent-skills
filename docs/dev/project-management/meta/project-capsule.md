@@ -50,6 +50,7 @@ Updated: 2026-10-10 (full catchup, interactive batch 202610100952, PRD 00071 sel
 Updated: 2026-10-10 (full catchup, `catchup: force`, PRD 00071 build entry, HEAD 20d4d02; GitHub State re-measured, unchanged except a newer red Windows run at 5e07853 with the same 47 use-qwen failures)
 Updated: 2026-10-10 (full catchup, PRD 00072 selection, same batch, HEAD 3b6c1dd; GitHub State unchanged: 6 Renovate PRs, 1 issue, master CI red on Windows use-qwen harness tests (51 failed at b615fdb), unrelated to distil-memory; engram skipped, repo unregistered)
 Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same batch, HEAD 267c263; GitHub State NOT re-measured: `gh` unauthenticated this pass; engram repo scope still unregistered)
+Updated: 2026-10-16 (full catchup, `catchup: force`, PRD 00077 selection, batch 202610162125, HEAD b7112b5; Active Work only)
 
 ## Key Invariants
 
@@ -140,7 +141,13 @@ Updated: 2026-10-11 (full catchup, `catchup: force`, PRD 00073 build entry, same
   intent, 00074 absorbed; plus `docket.py` "not a directory" refusal wording.
   Converged at cycle 1 (13 findings, 0 C/H); tail swept as tasks 7-9. R8
   (`_save_from_proposals_dir` tracebacks) settled-deferred to 00077.
-- [ ] 00077-docket-never-raises-v1.md (backlog, next on this branch)
+- [ ] 00077-docket-never-raises-v1.md — selected 2026-10-16 (full catchup,
+  `catchup: force`, HEAD b7112b5), moved wip, `design: skip`, lane full.
+  PRD line numbers predate 00076: `_save_from_proposals_dir` is now
+  `docket.py:266-300` (except clause line 295), `_save_queue` 30-34.
+  GitHub: master CI red on `test_glean.py::test_local_dirs_never_surface_as_candidates`
+  (run 38305930121 at 76ae82f, Linux, unrelated); 6 Renovate PRs, all CI red.
+  engram: repo unregistered (`engram index` refuses), skipped.
 - 00079, 00080 run in their own lane worktrees; this lane stops after 00077.
   00075 moved wip->done here to mirror master 7dbd401 (branch forked first).
 

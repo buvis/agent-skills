@@ -1825,3 +1825,5 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1792181400,"phase":"done","prd":"00076-distil-tests-see-non-atomic-writes-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1792181634,"phase":"done","prd":"00076-distil-tests-see-non-atomic-writes-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1792181698,"phase":"build","prd":"00076-distil-tests-see-non-atomic-writes-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792181785,"phase":"build","prd":"00077-docket-never-raises-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792181789,"phase":"build","prd":"00077-docket-never-raises-v1.md"}
