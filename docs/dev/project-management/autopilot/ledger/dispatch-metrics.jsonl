@@ -1809,3 +1809,11 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1791727563,"phase":"done","prd":"00075-ground-prd-claims-against-installed-code-v1.md"}
 {"kind":"handoff","site":"build","edge":"resume","at":1792178286,"phase":"build","prd":"00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md"}
 {"kind":"handoff","site":"build","edge":"leave","at":1792178885,"phase":"review","prd":"00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792179697,"phase":"review","prd":"00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md"}
+{"id":"7360cb93","kind":"bob","task":"review-00080c1","queued_at":1792180051,"prompt_bytes":9604}
+{"id":"efb8195d","kind":"carl","task":"review-00080c1","queued_at":1792180051,"prompt_bytes":6583}
+{"id":"8f6d455d","kind":"bob","task":"review-00080c1","queued_at":1792180473,"prompt_bytes":52905}
+{"id":"7360cb93","ended_at":1792180474,"elapsed_s":423,"outcome":"error","detail":"format-invalid"}
+{"id":"efb8195d","ended_at":1792180475,"elapsed_s":424,"outcome":"ok","detail":null}
+{"id":"8f6d455d","ended_at":1792180517,"elapsed_s":44,"outcome":"ok","detail":"retry"}
+{"kind":"handoff","site":"review","edge":"leave","at":1792181025,"phase":"done","prd":"00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md"}
