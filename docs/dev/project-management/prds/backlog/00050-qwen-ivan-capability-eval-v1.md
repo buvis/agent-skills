@@ -3,6 +3,7 @@ catchup: run
 design: run
 default_model: opus
 model_tier_rationale: experimental isolation, timed engine dispatch, evidence classification, and comparative analysis
+eligibility: test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md
 ---
 
 # Qwen in the Ivan Implementation Role
@@ -15,7 +16,7 @@ PRD 00010 tested implementation plus test authoring; Ivan receives prepared test
 Its September 4 review rejected the scores for partial pre-solving, missing baselines
 and gate gaps. Mixed 40/60-minute budgets also do not establish success in the 20-minute lane.
 
-Sources: the 2026-09-05 retrospective; `dev/local/reviews/00010-qwen38-multifile-capability-eval-v1-review-01.md`;
+Sources: the 2026-09-05 retrospective; `docs/dev/project-management/reviews/00010-qwen38-multifile-capability-eval-v1-review-01.md`;
 the canonical autopilot `agents/ivan.md` and Qwen/subagent-dispatch references.
 Read the installed plugin or source checkout at execution and record versions.
 
@@ -86,7 +87,9 @@ Measure the complete attempted replacement, including unsuccessful work.
 - **Behavior**: Run through the harness:
   `python3 ~/.agents/skills/use-qwen/scripts/run_eval_harness.py run <evidence-dir>
   --run-id <id> --shape tdd --engines qwen,sonnet --bound 1200 --gate-bound 1800
-  --alternate --retry-discarded harness-only --server-reasoning-effort <level>`,
+  --alternate --retry-discarded harness-only --server-reasoning-effort <level>
+  --qwen-provider llamacpp8002 --qwen-model unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL
+  --sonnet-model claude-sonnet-5-5`,
   which preflights both engines and records resolved identities, Pi,
   llama.cpp and Claude CLI versions, effective context/output limits, and
   sampling/thinking settings without credentials; applies the 1,200-second
@@ -106,10 +109,13 @@ Measure the complete attempted replacement, including unsuccessful work.
   operator runs the harness on one non-scored task at `medium` and at `xhigh`
   (restarting the server with `--reasoning-effort <level>` between them),
   picks the highest level whose calibration attempt completed inside 1,200
-  seconds, starts the server at that level, and records the level and the
-  two calibration attempt directories in `protocol.md`. The operator records
-  the server restart time, launch command's effort value and an attestation
-  that the current server is that instance. The harness's declared_effort
+  seconds, starts the server at that level, and writes the calibration record
+  `docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md`:
+  one line `effort: <level>`, the two calibration attempt directories, the
+  server restart time, the launch command's effort value and an attestation
+  that the current server is that instance. The `eligibility:` guard reads
+  that line, so the PRD is never picked before the record exists; Phase 0
+  copies the record into the bundle's `protocol.md`. The harness's declared_effort
   must match this record; /props does not verify the effective level.
   Every scored Qwen attempt runs at that one level; missing calibration or
   attestation leaves the PRD unstarted and parked, never completed with
@@ -128,7 +134,7 @@ Measure the complete attempted replacement, including unsuccessful work.
 - **Inputs**: Both engine traces, frozen gates, diffs, independent reviews, and failed Qwen snapshots.
 - **Outputs**: Durable evidence bundle and a report whose counts derive from per-attempt records.
 - **Behavior**: Autopilot's escalation resets the tree to the test commit
-  before dispatching Sonnet (`claude-autopilot/skills/work/references/gate-failure.md`),
+  before dispatching Sonnet (the autopilot plugin's work skill, reference gate-failure.md),
   so the rescue of a failed Qwen attempt is the direct Sonnet attempt already in
   the run: Qwen-plus-rescue wall time is the Qwen attempt plus that Sonnet
   attempt, and no separate dispatch from Qwen's partial tree is made. Preserve
@@ -147,7 +153,7 @@ Measure the complete attempted replacement, including unsuccessful work.
 ### Repository Structure
 
 ```text
-dev/local/audit-results/qwen-ivan-<run-id>/   # the harness evidence dir (00051 layout), copied here whole
+docs/dev/project-management/audit-results/qwen-ivan-<run-id>/   # the harness evidence dir (00051 layout), copied here whole
 ├── protocol.md                     # Budgets, source versions, effort level, scoring rules (hand-written)
 ├── tasks/<n>-<slug>/               # spec.json, vetting.json, pretask.json, canonical.patch, oracle/
 └── runs/<run-id>/
@@ -197,15 +203,17 @@ from the harness. Task specs are source inputs, not fabricated run evidence.
 
 **Tasks**:
 - [ ] Verify 00049, 00051 and 00052 landed, engine availability, and current
-  role contracts; author six spec files, run `vet` on each, verify the
-  operator's effort calibration record, and seal `protocol.md` (depends on:
-  PRD 00049, PRD 00051, PRD 00052).
+  role contracts; author six spec files, run `vet` over them, verify the
+  operator's calibration record at
+  `docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md`,
+  and seal the bundle's `protocol.md` (depends on: PRD 00049, PRD 00051, PRD 00052).
   Acceptance: recorded preflights name both engines; the six `vetting.json`
   files confirm fresh tasks, both write-set strata and two languages/repos,
   matching snapshot hashes, intended baseline failures and canonical gate
-  passes; `protocol.md` names the chosen effort level and the two calibration
-  attempt directories it came from, and the operator's current-instance
-  attestation names the intended --server-reasoning-effort value; Phase 1
+  passes; the bundle's `protocol.md` repeats the calibration record's `effort:`
+  level, the two calibration attempt directories and the operator's
+  current-instance attestation, which names the intended
+  --server-reasoning-effort value; Phase 1
   verifies run.json.server.declared_effort matches it. Missing prerequisites,
   calibration or six valid tasks -> record the shortfall and stop with the
   PRD unstarted; do not mark it complete.
