@@ -12,3 +12,9 @@
 - (Tess) The save test's proposals-dir record is `gear-note` at line 2, so it does not collide with the seeded line-1 entry.
 - (Tess) The decide test patches the write only after seeding and makes no `start` call first.
 - (Qwen) `main()` grew to 56 lines under the per-call-site prescription; the step-5.65 style fix (5b341be) moved the decide verb into `_decide_verb`.
+
+## 4: [D1] Tail sweep: skills/distil-memory/scripts/docket.py
+
+- (Tess) The single-record wrong-type tests use the sibling `gear-note.md` and `_record("gear-note", 1)`, with the bad value overridden after the record is built; a null `file` therefore points at no sibling, which is fine because the type check must run before any read.
+- (Tess) The `file` tests assert the substring `has a file that is not a string` plus `position 0`, not the full `invalid proposals schema in ...` line.
+- (Ivan) The type check lives in a small module-level helper `_has_valid_type` placed right after `_check_batch`, keeping `_check_batch` under 50 lines.
