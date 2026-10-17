@@ -1,15 +1,20 @@
-## 1: Record the execution-time pre-split inventory
+# Assumptions ledger: 00077-docket-never-raises-v1
 
-- The inventory script runs pytest from the caller's working directory, so it must be launched from the repo root. (Ivan)
-- Only top-level statements are inventoried; test methods inside classes and nested functions are not covered, and none exist today. (Ivan)
-- A marker assignment such as `requires_tree_sitter` is listed both under markers (full value, so the reason is recorded) and under constants (value hash). (Ivan)
-- Line formats are the implementor's choice: `name count`, `test name [dec1 | dec2]`, `marker name = value`. (Ivan)
-- Helpers and fixtures carry their decorators and a body hash, not only their names, so a helper changed during the split shows up as a diff; the orchestrator added this after Ivan's name-only version. (orchestrator)
+## 1: Widen the proposals-dir read guard and validate the batch shape
 
-## 2: Split test_survey.py into test_survey_scan.py and test_survey_brief.py with shared conftest.py and survey_test_helpers.py
+- (Tess) The latin-1 sibling test uses a complete record named `cafe-note` with file `cafe-note.md`, and the sibling holds `"caf\xe9 body\n"` encoded as latin-1.
+- (Tess) The missing-`file` test also writes a sibling `.md` file, so the fault under test is only the missing key.
+- (Tess) The object top-level test uses `{"name": "x"}`.
 
-- The old "# Helpers" banner was dropped, since every name under it moved to `survey_test_helpers.py` or `conftest.py`. (Ivan)
-- The "Tree-sitter symbol extraction + degraded gating" banner went with the degraded tests into `test_survey_brief.py`. The orchestrator then renamed it "Tree-sitter degraded gating" and gave the extraction tests in `test_survey.py` their own "Tree-sitter symbol extraction" banner. (Ivan, orchestrator)
-- `test_survey_scan.py` and `test_survey_brief.py` got short new module docstrings. (Ivan)
-- Following Pat's LOW finding, the `requires_tree_sitter` comment no longer says "the two cases below". Comment only; the inventory is unchanged. (orchestrator)
-- `VALID_ERROR_STYLES`, `MD_SECTIONS`, `TRUNCATION_FOOTER`, `_COMPLETE_MD_LINE` and the `_repo_with_many_layers` / `_make_repo_*` helpers live in `test_survey_brief.py`, the one module that uses them. Only the four names the PRD lists went to `survey_test_helpers.py`. (orchestrator)
+## 2: Guard the queue write in the save, decide and start verbs
+
+- (Tess) `_proposal(line_no=1)` replaces the brief's `_proposal(1)`: `make_proposal`'s first positional argument is `transcript`, so `_proposal(1)` would not build the `t.jsonl:1` entry.
+- (Tess) The save test's proposals-dir record is `gear-note` at line 2, so it does not collide with the seeded line-1 entry.
+- (Tess) The decide test patches the write only after seeding and makes no `start` call first.
+- (Qwen) `main()` grew to 56 lines under the per-call-site prescription; the step-5.65 style fix (5b341be) moved the decide verb into `_decide_verb`.
+
+## 4: [D1] Tail sweep: skills/distil-memory/scripts/docket.py
+
+- (Tess) The single-record wrong-type tests use the sibling `gear-note.md` and `_record("gear-note", 1)`, with the bad value overridden after the record is built; a null `file` therefore points at no sibling, which is fine because the type check must run before any read.
+- (Tess) The `file` tests assert the substring `has a file that is not a string` plus `position 0`, not the full `invalid proposals schema in ...` line.
+- (Ivan) The type check lives in a small module-level helper `_has_valid_type` placed right after `_check_batch`, keeping `_check_batch` under 50 lines.

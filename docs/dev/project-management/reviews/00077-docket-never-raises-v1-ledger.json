@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The spec names `test_docket_refusals.py` as the test module, but the nine new tests are in `test_docket_never_raises.py`. All nine named tests exist with the exact spec names, so this is a placement deviation only.",
+    "file": "skills/distil-memory/scripts/test_docket_never_raises.py:52",
+    "reason": "PRD-sanctioned: the PRD's test_docket_refusals module note says split it if it nears 800 lines; the module is 746 lines, so the plan-time autonomous decision placed the nine new tests in a new module. All nine spec-named tests exist and pass. Not a defect."
+  }
+]

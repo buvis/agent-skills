@@ -1,0 +1,274 @@
+"""Tests for docket.py: pins that docket's CLI exits 1 with a stderr reason
+instead of raising a traceback when the proposals directory holds bytes that
+are not UTF-8 or a batch whose shape is wrong, or when the queue write fails,
+and that such a refusal saves nothing to the queue."""
+
+import json
+from pathlib import Path
+
+import docket
+from docket_test_helpers import make_proposal as _proposal
+
+import pytest
+
+
+@pytest.fixture
+def queue_path(tmp_path):
+    return tmp_path / "queue.json"
+
+
+def _record(name, line_no, file=None):
+    """One proposals.json record, the shape save reads from a proposals dir."""
+    return {
+        "name": name,
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": line_no,
+        "evidence_text": f"evidence for {name.split('-')[0]}",
+        "existing_text": None,
+        "file": file or f"{name}.md",
+    }
+
+
+def _proposals_dir(tmp_path):
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    return proposals_dir
+
+
+def _assert_refused(capsys, queue_path, *needles):
+    captured = capsys.readouterr()
+    assert captured.err.strip() != ""
+    for needle in needles:
+        assert needle in captured.err
+    assert captured.out == ""
+    assert not queue_path.exists()
+
+
+def _save(proposals_dir, queue_path):
+    return docket.main(["save", "--proposals-dir", str(proposals_dir), "--queue", str(queue_path)])
+
+
+def test_save_refuses_a_latin1_proposals_file(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "proposals.json").write_bytes('[{"name": "caf\xe9"}]'.encode("latin-1"))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_refused(capsys, queue_path, "proposals.json")
+
+
+def test_save_refuses_a_latin1_sibling(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "cafe-note.md").write_bytes("caf\xe9 body\n".encode("latin-1"))
+    (proposals_dir / "proposals.json").write_text(json.dumps([_record("cafe-note", 1)]))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_refused(capsys, queue_path, "cafe-note.md")
+
+
+def test_save_refuses_an_object_top_level(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "proposals.json").write_text(json.dumps({"name": "x"}))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_refused(capsys, queue_path, "list")
+
+
+def test_save_refuses_a_non_object_record(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "proposals.json").write_text(json.dumps(["just a string"]))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_refused(capsys, queue_path, "position 0")
+
+
+def test_save_refuses_a_record_missing_file(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    record = _record("gizmo-note", 1)
+    del record["file"]
+    (proposals_dir / "gizmo-note.md").write_text("---\nname: gizmo-note\n---\n\nBody.\n")
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_refused(capsys, queue_path, "missing file", "position 0")
+
+
+def test_save_refuses_a_record_missing_evidence_text_after_readable_records(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    names = ["gear-note", "spindle-note", "lever-note"]
+    for name in names:
+        (proposals_dir / f"{name}.md").write_text(f"---\nname: {name}\n---\n\nBody.\n")
+    records = [_record(name, n) for n, name in enumerate(names, start=1)]
+    del records[2]["evidence_text"]
+    (proposals_dir / "proposals.json").write_text(json.dumps(records))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_refused(capsys, queue_path, "missing evidence_text", "position 2")
+
+
+def test_save_validates_the_whole_batch_before_reading_any_sibling(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    names = ["gear-note", "spindle-note", "lever-note"]
+    for name in names[1:]:
+        (proposals_dir / f"{name}.md").write_text(f"---\nname: {name}\n---\n\nBody.\n")
+    records = [_record(name, n) for n, name in enumerate(names, start=1)]
+    del records[2]["evidence_text"]
+    (proposals_dir / "proposals.json").write_text(json.dumps(records))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    # The first sibling is missing, so a read interleaved with validation would
+    # blame gear-note.md; the later record's schema fault must win instead.
+    _assert_refused(capsys, queue_path, "missing evidence_text", "position 2")
+
+
+def _fail_write(self, *args, **kwargs):
+    raise OSError(28, "No space left on device")
+
+
+def _assert_write_refused(capsys, queue_path, before):
+    captured = capsys.readouterr()
+    assert captured.err.startswith("cannot write the review queue")
+    assert captured.out == ""
+    assert queue_path.read_bytes() == before
+
+
+def test_save_reports_a_failed_queue_write(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(line_no=1)], path=queue_path)
+    before = queue_path.read_bytes()
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "gear-note.md").write_text("---\nname: gear-note\n---\n\nBody.\n")
+    (proposals_dir / "proposals.json").write_text(json.dumps([_record("gear-note", 2)]))
+    monkeypatch.setattr(Path, "write_text", _fail_write)
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_write_refused(capsys, queue_path, before)
+
+
+def test_decide_reports_a_failed_queue_write(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(line_no=1)], path=queue_path)
+    before = queue_path.read_bytes()
+    monkeypatch.setattr(Path, "write_text", _fail_write)
+
+    argv = ["decide", docket.slice_key("t.jsonl", 1), "kept", "--queue", str(queue_path)]
+    assert docket.main(argv) == 1
+
+    _assert_write_refused(capsys, queue_path, before)
+
+
+def test_start_reports_a_failed_queue_write(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(line_no=1)], path=queue_path)
+    before = queue_path.read_bytes()
+    monkeypatch.setattr(Path, "write_text", _fail_write)
+
+    assert docket.main(["start", "--queue", str(queue_path)]) == 1
+
+    _assert_write_refused(capsys, queue_path, before)
+
+
+def _save_one_wrong_typed(tmp_path, queue_path, **overrides):
+    """Save a one-record batch whose sibling is readable but a value is mistyped."""
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "gear-note.md").write_text("---\nname: gear-note\n---\n\nBody.\n")
+    record = {**_record("gear-note", 1), **overrides}
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+    return _save(proposals_dir, queue_path)
+
+
+def test_save_refuses_a_record_whose_file_is_not_a_string(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+
+    assert _save_one_wrong_typed(tmp_path, queue_path, file=5) == 1
+
+    _assert_refused(capsys, queue_path, "has a file that is not a string", "position 0")
+
+
+def test_save_refuses_a_record_whose_file_is_null(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+
+    assert _save_one_wrong_typed(tmp_path, queue_path, file=None) == 1
+
+    _assert_refused(capsys, queue_path, "has a file that is not a string", "position 0")
+
+
+def test_save_refuses_a_record_whose_transcript_is_not_a_string(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+
+    assert _save_one_wrong_typed(tmp_path, queue_path, transcript=7) == 1
+
+    _assert_refused(capsys, queue_path, "has a transcript that is not a string", "position 0")
+
+
+@pytest.mark.parametrize("bad_line_no", ["3", True])
+def test_save_refuses_a_record_whose_line_no_is_not_an_integer(
+    tmp_path, monkeypatch, capsys, queue_path, bad_line_no
+):
+    monkeypatch.chdir(tmp_path)
+
+    assert _save_one_wrong_typed(tmp_path, queue_path, line_no=bad_line_no) == 1
+
+    _assert_refused(capsys, queue_path, "has a line_no that is not an integer", "position 0")
+
+
+def test_save_refuses_a_wrong_typed_record_behind_readable_records(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    names = ["gear-note", "spindle-note", "lever-note"]
+    for name in names:
+        (proposals_dir / f"{name}.md").write_text(f"---\nname: {name}\n---\n\nBody.\n")
+    records = [_record(name, n) for n, name in enumerate(names, start=1)]
+    records[2]["file"] = 5
+    (proposals_dir / "proposals.json").write_text(json.dumps(records))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_refused(capsys, queue_path, "has a file that is not a string", "position 2")
+
+
+def test_save_leaves_no_temp_file_after_a_failed_queue_write(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(line_no=1)], path=queue_path)
+    before = queue_path.read_bytes()
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "gear-note.md").write_text("---\nname: gear-note\n---\n\nBody.\n")
+    (proposals_dir / "proposals.json").write_text(json.dumps([_record("gear-note", 2)]))
+
+    def partial_write(self, *args, **kwargs):
+        self.write_bytes(b"partial")
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(Path, "write_text", partial_write)
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_write_refused(capsys, queue_path, before)
+    assert not queue_path.with_suffix(".json.tmp").exists()

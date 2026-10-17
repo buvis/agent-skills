@@ -30,7 +30,11 @@ def _resolve_path(path) -> Path:
 def _save_queue(data: dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(data, indent=2))
+    try:
+        tmp.write_text(json.dumps(data, indent=2))
+    except OSError:
+        tmp.unlink(missing_ok=True)
+        raise
     tmp.replace(path)
 
 
@@ -263,6 +267,29 @@ def _parse_args(argv):
     return parser.parse_args(argv)
 
 
+def _check_batch(records, source):
+    """Validate the whole proposals batch before any sibling is read; return
+    the first fault message, or None when the batch is clean."""
+    if not isinstance(records, list):
+        return f"invalid proposals schema in {source}: expected a JSON list, not a {type(records).__name__}"
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            return f"invalid proposals schema in {source}: the record at position {index} is not an object"
+        for key in ("name", "file", "kind", "transcript", "line_no", "evidence_text"):
+            if key not in record:
+                return f"invalid proposals schema in {source}: the record at position {index} is missing {key}"
+            if not _has_valid_type(key, record[key]):
+                kind = "an integer" if key == "line_no" else "a string"
+                return f"invalid proposals schema in {source}: the record at position {index} has a {key} that is not {kind}"
+    return None
+
+
+def _has_valid_type(key, value):
+    if key == "line_no":
+        return isinstance(value, int) and not isinstance(value, bool)
+    return isinstance(value, str)
+
+
 def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
     if path is None:
         path = proposals_dir.parent / "distil-memory-queue.json"
@@ -277,6 +304,10 @@ def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
     source = proposals_dir / "proposals.json"
     try:
         records = json.loads(source.read_text())
+        fault = _check_batch(records, source)
+        if fault is not None:
+            print(fault, file=sys.stderr)
+            return 1
         proposals = []
         for record in records:
             source = proposals_dir / record["file"]
@@ -292,11 +323,37 @@ def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
                     "dedup_error": record.get("dedup_error"),
                 }
             )
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, ValueError) as error:
         print(f"cannot read the proposals {source}: {error}", file=sys.stderr)
         return 1
-    added = save(proposals, path=path)
+    try:
+        added = save(proposals, path=path)
+    except OSError as error:
+        print(f"cannot write the review queue {path}: {error}", file=sys.stderr)
+        return 1
     print(f"added {added} of {len(proposals)}")
+    return 0
+
+
+def _decide_verb(args) -> int:
+    file_text = None
+    if args.file:
+        try:
+            file_text = Path(args.file).read_text()
+        except (OSError, UnicodeDecodeError) as exc:
+            print(f"cannot read the note file {args.file}: {exc}", file=sys.stderr)
+            return 1
+    # Read once, outside the refusal handler below, so an unreadable
+    # queue leaves through main's exit 2 handler instead.
+    data = load(path=args.queue)
+    try:
+        decide(args.id, args.state, file_text=file_text, path=args.queue, data=data, name=args.name)
+    except QueueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    except OSError as exc:
+        print(f"cannot write the review queue {_resolve_path(args.queue)}: {exc}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -307,7 +364,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "save":
             return _save_from_proposals_dir(Path(args.proposals_dir), path=args.queue)
         elif args.command == "start":
-            advance(path=args.queue)
+            try:
+                advance(path=args.queue)
+            except OSError as error:
+                print(f"cannot write the review queue {_resolve_path(args.queue)}: {error}", file=sys.stderr)
+                return 1
             return 0
         elif args.command == "next":
             entry = next_undecided(path=args.queue)
@@ -316,22 +377,7 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(entry))
             return 0
         elif args.command == "decide":
-            file_text = None
-            if args.file:
-                try:
-                    file_text = Path(args.file).read_text()
-                except (OSError, UnicodeDecodeError) as exc:
-                    print(f"cannot read the note file {args.file}: {exc}", file=sys.stderr)
-                    return 1
-            # Read once, outside the refusal handler below, so an unreadable
-            # queue leaves through the exit 2 handler instead.
-            data = load(path=args.queue)
-            try:
-                decide(args.id, args.state, file_text=file_text, path=args.queue, data=data, name=args.name)
-            except QueueError as exc:
-                print(str(exc), file=sys.stderr)
-                return 1
-            return 0
+            return _decide_verb(args)
         elif args.command == "unpublished":
             import write
 
