@@ -30,7 +30,11 @@ def _resolve_path(path) -> Path:
 def _save_queue(data: dict, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(data, indent=2))
+    try:
+        tmp.write_text(json.dumps(data, indent=2))
+    except OSError:
+        tmp.unlink(missing_ok=True)
+        raise
     tmp.replace(path)
 
 
@@ -274,7 +278,16 @@ def _check_batch(records, source):
         for key in ("name", "file", "kind", "transcript", "line_no", "evidence_text"):
             if key not in record:
                 return f"invalid proposals schema in {source}: the record at position {index} is missing {key}"
+            if not _has_valid_type(key, record[key]):
+                kind = "an integer" if key == "line_no" else "a string"
+                return f"invalid proposals schema in {source}: the record at position {index} has a {key} that is not {kind}"
     return None
+
+
+def _has_valid_type(key, value):
+    if key == "line_no":
+        return isinstance(value, int) and not isinstance(value, bool)
+    return isinstance(value, str)
 
 
 def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
