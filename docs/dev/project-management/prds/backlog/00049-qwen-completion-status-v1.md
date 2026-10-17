@@ -3,6 +3,7 @@ catchup: run
 design: run
 default_model: opus
 model_tier_rationale: streamed process completion, cancellation, and compatibility across dispatch and qualification
+eligibility: test "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)"
 ---
 
 # Qwen Completion Status
@@ -29,6 +30,13 @@ Scope: make noninteractive completion status trustworthy and qualification
 one-shot. Runtime upgrades, automatic continuation/retry, task correctness,
 test protection, and routing policy are separate responsibilities. Autopilot
 PRD 00174 already owns no-edit rejection, test protection, and routing.
+
+Run it in a lane worktree only. `~/.agents/skills/use-qwen` links to the main
+checkout, so autopilot dispatches qwen through the main checkout's
+`qwen-run.sh`; editing that file there mid-drain would change the live
+dispatch path under the loop. The `eligibility:` check passes only in a linked
+worktree (its git dir differs from the common dir), so a drain on the main
+checkout skips this PRD and a lane worktree picks it up.
 
 ### Target Users
 
