@@ -166,3 +166,90 @@ def test_start_reports_a_failed_queue_write(tmp_path, monkeypatch, capsys, queue
     assert docket.main(["start", "--queue", str(queue_path)]) == 1
 
     _assert_write_refused(capsys, queue_path, before)
+
+
+def _save_one_wrong_typed(tmp_path, queue_path, **overrides):
+    """Save a one-record batch whose sibling is readable but a value is mistyped."""
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "gear-note.md").write_text("---\nname: gear-note\n---\n\nBody.\n")
+    record = {**_record("gear-note", 1), **overrides}
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+    return _save(proposals_dir, queue_path)
+
+
+def test_save_refuses_a_record_whose_file_is_not_a_string(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+
+    assert _save_one_wrong_typed(tmp_path, queue_path, file=5) == 1
+
+    _assert_refused(capsys, queue_path, "has a file that is not a string", "position 0")
+
+
+def test_save_refuses_a_record_whose_file_is_null(tmp_path, monkeypatch, capsys, queue_path):
+    monkeypatch.chdir(tmp_path)
+
+    assert _save_one_wrong_typed(tmp_path, queue_path, file=None) == 1
+
+    _assert_refused(capsys, queue_path, "has a file that is not a string", "position 0")
+
+
+def test_save_refuses_a_record_whose_transcript_is_not_a_string(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+
+    assert _save_one_wrong_typed(tmp_path, queue_path, transcript=7) == 1
+
+    _assert_refused(capsys, queue_path, "has a transcript that is not a string", "position 0")
+
+
+@pytest.mark.parametrize("bad_line_no", ["3", True])
+def test_save_refuses_a_record_whose_line_no_is_not_an_integer(
+    tmp_path, monkeypatch, capsys, queue_path, bad_line_no
+):
+    monkeypatch.chdir(tmp_path)
+
+    assert _save_one_wrong_typed(tmp_path, queue_path, line_no=bad_line_no) == 1
+
+    _assert_refused(capsys, queue_path, "has a line_no that is not an integer", "position 0")
+
+
+def test_save_refuses_a_wrong_typed_record_behind_readable_records(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    names = ["gear-note", "spindle-note", "lever-note"]
+    for name in names:
+        (proposals_dir / f"{name}.md").write_text(f"---\nname: {name}\n---\n\nBody.\n")
+    records = [_record(name, n) for n, name in enumerate(names, start=1)]
+    records[2]["file"] = 5
+    (proposals_dir / "proposals.json").write_text(json.dumps(records))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_refused(capsys, queue_path, "has a file that is not a string", "position 2")
+
+
+def test_save_leaves_no_temp_file_after_a_failed_queue_write(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(line_no=1)], path=queue_path)
+    before = queue_path.read_bytes()
+    proposals_dir = _proposals_dir(tmp_path)
+    (proposals_dir / "gear-note.md").write_text("---\nname: gear-note\n---\n\nBody.\n")
+    (proposals_dir / "proposals.json").write_text(json.dumps([_record("gear-note", 2)]))
+
+    def partial_write(self, *args, **kwargs):
+        self.write_bytes(b"partial")
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(Path, "write_text", partial_write)
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    _assert_write_refused(capsys, queue_path, before)
+    assert not queue_path.with_suffix(".json.tmp").exists()
