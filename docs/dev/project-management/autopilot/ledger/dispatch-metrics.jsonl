@@ -1862,3 +1862,4 @@
 {"id":"d69b8f1d","kind":"pat","task":"5","queued_at":1792221792,"prompt_bytes":7030}
 {"id":"d69b8f1d","ended_at":1792221830,"elapsed_s":38,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1792222289,"phase":"done","prd":"00077-docket-never-raises-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1792222898,"phase":"done","prd":"00077-docket-never-raises-v1.md"}

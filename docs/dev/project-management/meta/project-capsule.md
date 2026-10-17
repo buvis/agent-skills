@@ -141,13 +141,13 @@ Updated: 2026-10-16 (full catchup, `catchup: force`, PRD 00077 selection, batch 
   intent, 00074 absorbed; plus `docket.py` "not a directory" refusal wording.
   Converged at cycle 1 (13 findings, 0 C/H); tail swept as tasks 7-9. R8
   (`_save_from_proposals_dir` tracebacks) settled-deferred to 00077.
-- [ ] 00077-docket-never-raises-v1.md — selected 2026-10-16 (full catchup,
-  `catchup: force`, HEAD b7112b5), moved wip, `design: skip`, lane full.
-  PRD line numbers predate 00076: `_save_from_proposals_dir` is now
-  `docket.py:266-300` (except clause line 295), `_save_queue` 30-34.
-  GitHub: master CI red on `test_glean.py::test_local_dirs_never_surface_as_candidates`
+- [x] 00077-docket-never-raises-v1.md (5/5 tasks, 1 cycle) — `save
+  --proposals-dir` refuses undecodable input and malformed batches (whole
+  batch validated before any sibling read, wrong-typed values included);
+  `save`/`decide`/`start` map a failed queue write to exit 1. Converged at
+  cycle 1 (5 findings, 0 C/H); R1-R4 tail swept as tasks 4-5, R5 discarded.
+  GitHub at selection: master CI red on `test_glean.py::test_local_dirs_never_surface_as_candidates`
   (run 38305930121 at 76ae82f, Linux, unrelated); 6 Renovate PRs, all CI red.
-  engram: repo unregistered (`engram index` refuses), skipped.
 - 00079, 00080 run in their own lane worktrees; this lane stops after 00077.
   00075 moved wip->done here to mirror master 7dbd401 (branch forked first).
 
