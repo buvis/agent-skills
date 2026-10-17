@@ -120,6 +120,25 @@ def test_save_refuses_a_record_missing_evidence_text_after_readable_records(
     _assert_refused(capsys, queue_path, "missing evidence_text", "position 2")
 
 
+def test_save_validates_the_whole_batch_before_reading_any_sibling(
+    tmp_path, monkeypatch, capsys, queue_path
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = _proposals_dir(tmp_path)
+    names = ["gear-note", "spindle-note", "lever-note"]
+    for name in names[1:]:
+        (proposals_dir / f"{name}.md").write_text(f"---\nname: {name}\n---\n\nBody.\n")
+    records = [_record(name, n) for n, name in enumerate(names, start=1)]
+    del records[2]["evidence_text"]
+    (proposals_dir / "proposals.json").write_text(json.dumps(records))
+
+    assert _save(proposals_dir, queue_path) == 1
+
+    # The first sibling is missing, so a read interleaved with validation would
+    # blame gear-note.md; the later record's schema fault must win instead.
+    _assert_refused(capsys, queue_path, "missing evidence_text", "position 2")
+
+
 def _fail_write(self, *args, **kwargs):
     raise OSError(28, "No space left on device")
 
