@@ -78,5 +78,29 @@
     "issue": "Redundant tests: test_survey_trim.py repeats work the PRD-named tests already do (cycle 1 R1, re-raisable after the R2/R3 fix restores the PRD-named tests)",
     "file": "skills/survey/scripts/test_survey_trim.py",
     "reason": "Direction settled for the rest of this PRD: the PRD contract wins over dedup. Cycle 1 resolved R1 by deleting the PRD-named tests test_trim_matches_the_pop_loop_byte_for_byte and test_trim_encodes_a_logarithmic_number_of_times from test_survey_brief.py, which broke the PRD's own acceptance commands (cycle 2 R2/R3, 3 of 4 reviewers, Carl ran both commands to exit 4). The cycle-2 fix restores both tests with the PRD's stated parameters in test_survey_brief.py and removes the test_survey_trim.py copies of exactly those two, keeping one shared oracle. Do not re-raise the restored tests as duplicates."
+  },
+  {
+    "cycle": 3,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Task 2 acceptance says every `read_text` in `run.py` must sit on a `text is None` or `texts`-miss fallback, but skills/survey/scripts/run.py:419 is the primary read in `_read_sampled_texts`. The intent (one read per file) is met; a literal reading of the criterion is not.",
+    "file": "skills/survey/scripts/run.py",
+    "reason": "The primary read is the single read the PRD must-have asks for; the acceptance wording describes the consumer reads, not the one pass that populates the mapping. No code change can satisfy the literal reading without reintroducing a second read."
+  },
+  {
+    "cycle": 3,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "2 touched test(s) pass against the pre-change code: test_trim_matches_the_pop_loop_byte_for_byte, test_trim_encodes_a_logarithmic_number_of_times",
+    "file": "skills/survey/scripts/test_survey_brief.py",
+    "reason": "Restoration, not new behavior: these two PRD-named tests were restored in cycle-2 rework over a trimmer that already landed in cycle 1, so the incremental base (d4d73c0) already contains the behavior they pin. The fail-first evidence is the cycle-1 replay, not this cycle's."
+  },
+  {
+    "cycle": 3,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "1 touched test(s) pass against the pre-change code: test_survey_empty_file_is_read_from_disk_only_once",
+    "file": "skills/survey/scripts/test_survey_single_read.py",
+    "reason": "Same restoration case: the empty-file single-read behavior landed in cycle 1, and this test re-pins it after cycle-2 rework deleted its predecessor. It fails against an `if not text` mutation, which is the pin that matters."
   }
 ]
