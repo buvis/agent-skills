@@ -6,6 +6,7 @@ Every round drives the real `run` driver with the fake engine (or a test-local
 module, so each run pays only for its own attempts and owns its run id (P13).
 """
 import hashlib
+import re
 import time
 from pathlib import Path
 
@@ -284,6 +285,9 @@ def test_baseline_and_gate_timeouts_are_suspect(rounds, slow):
     # each timeout fires at that bound, well before the 15 s sleep it cuts short
     assert 3.5 <= base["baseline"]["wall_s"] < 15
     assert 3.5 <= _gate(gate, "gate")["wall_s"] < 15
+    # the kill hides the sleep length, so read it from the spec: both sleeps run 15 s
+    slow_cmd = " ".join(_read_json(slow.task / "spec.json")["raw_test_cmd"])
+    assert re.findall(r"\bsleep (\d+)", slow_cmd) == ["15", "15"]
 
     # a baseline past its bound stops the attempt before any engine runs
     assert (base["outcome"], base["validity"]) == ("SUSPECT", "DISCARDED:baseline")
