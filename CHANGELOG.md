@@ -262,11 +262,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it ships, the banner it carries, and why plugin paths are written
   `<name-plugin-root>/...` instead of a placeholder that expands to nothing.
 
-- **work**: the qwen helper paths in the documentation copy resolve again. They
-  named `~/.agents/skills/use-qwen/` while `use-qwen` sat outside the union, so
-  all three pointed at nothing. Publishing `use-qwen` here fixes it at the
-  source; the copy is byte-identical to the released plugin again.
-
 ### Changed
 
 - **create-prd**: the optional frontmatter list names every key the autopilot pipeline reads (`pause_on_ambiguity`, `eligibility`, `plan_expansion`, `session_model` and `lane` join the seven), and step 3 gains the Path rule for lane-routed PRDs (repo-relative, no globs, every task-touched file in the tree).
@@ -616,3 +611,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carry no Claude coupling, so publishing them as documentation was wrong, and
   it broke a path Codex's own rules file allow-lists. Their SKILL.md now points
   at `~/.agents/skills/<name>/scripts/`, which resolves on every host.
+- **work**: the qwen helper paths in the documentation copy resolve again. They
+  named `~/.agents/skills/use-qwen/` while `use-qwen` sat outside the union, so
+  all three pointed at nothing. Publishing `use-qwen` here fixes it at the
+  source; the copy is byte-identical to the released plugin again.
