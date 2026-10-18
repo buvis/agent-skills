@@ -378,11 +378,7 @@ def _fit_to_budget(content: str) -> tuple[str, bool]:
     return _append_footer(content), True
 
 
-def _survey(repo_path: Path) -> str:
-    """Survey `repo_path` and return the brief as markdown. Writes nothing."""
-    degraded = try_import_tree_sitter() is None
-    layers, truncated = _scan_layers(repo_path)
-
+def _read_sampled_texts(layers: dict[str, list[Path]]) -> dict[Path, str]:
     # Read each sampled file once; every consumer gets this text. A file that
     # fails to read is absent here and skipped by the extractors.
     texts: dict[Path, str] = {}
@@ -392,6 +388,14 @@ def _survey(repo_path: Path) -> str:
                 texts[f] = f.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 pass
+    return texts
+
+
+def _survey(repo_path: Path) -> str:
+    """Survey `repo_path` and return the brief as markdown. Writes nothing."""
+    degraded = try_import_tree_sitter() is None
+    layers, truncated = _scan_layers(repo_path)
+    texts = _read_sampled_texts(layers)
 
     symbols_by_layer: dict[str, list[tuple[str, str, int]]] = {}
     file_syms_by_layer: dict[str, list[tuple[str, str, str, int]]] = {}
