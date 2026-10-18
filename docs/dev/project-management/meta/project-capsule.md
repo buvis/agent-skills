@@ -179,7 +179,12 @@ Updated: 2026-10-18 (full catchup, PRD 00029 selection, same batch, HEAD 32aafe3
   module exports for other modules (flagged `PINNED_KINDS`,
   `requires_tree_sitter` as unused).
 
-### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-18 at PRD 00023 finalize)
+### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-18 at PRD 00029 finalize)
+- [x] 00029-cut-v010-clean-changelog-v1.md (9/9 tasks, 1 cycle) — v0.1.0
+  CHANGELOG cut and tag. Converged cycle 1 (4 findings, all low: 1 routed to
+  verification and run green, 1 fixed inline, 2 informational); tail sweep
+  skipped (zero actionable medium/low). Nothing deferred. Human follow-up
+  outside autopilot: `git push origin v0.1.0`.
 - [x] 00023-one-message-three-failures-v1.md (6/6 tasks, 1 cycle) —
   debrief-meeting parser pins the unreadable-sentence message and the
   three-failure document stub. Converged cycle 1 (5 findings, no C/H); tail
@@ -211,7 +216,6 @@ Updated: 2026-10-18 (full catchup, PRD 00029 selection, same batch, HEAD 32aafe3
   skipped at b8d635b. 2 items deferred (concurrent-write collision check,
   subdirectory report path vs git root — both low-severity, flagged not
   failed).
-- [ ] 00029-cut-v010-clean-changelog-v1.md (backlog)
 - [ ] 00031-sweep-parallel-with-deadline-v1.md (backlog)
 - [ ] 00045-survey-single-read-and-log-time-trim-v1.md (backlog)
 - [ ] 00048-trash-untracked-preview-default-v1.md (backlog)
