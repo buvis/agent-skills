@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
 
@@ -302,6 +303,9 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT):
     search raises for any reason (crashes, times out, does not exist) does
     not abort the sweep: it is recorded in `failed` (`str(repo)` -> reason
     string) and the remaining repos are still scanned.
+
+    Repos are searched concurrently (up to 8 at a time); `hits`, `suppressed`
+    and `failed` still follow the order of `repos`, not completion order.
     """
     if kind not in ("rg", "astgrep"):
         raise ValueError(f"unknown kind: {kind!r}")
@@ -313,11 +317,17 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT):
         except Exception as exc:
             ast_grep_error = str(exc)
 
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = [
+            executor.submit(_scan_repo, repo, pattern, kind, ast_grep_error, timeout)
+            for repo in repos
+        ]
+        results = [future.result() for future in futures]
+
     hits = []
     suppressed = {}
     failed = {}
-    for repo in repos:
-        cwd_key, repo_hits, error = _scan_repo(repo, pattern, kind, ast_grep_error, timeout)
+    for cwd_key, repo_hits, error in results:
         if error is not None:
             failed[cwd_key] = error
             continue
