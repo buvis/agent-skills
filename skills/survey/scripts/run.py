@@ -383,13 +383,25 @@ def _survey(repo_path: Path) -> str:
     degraded = try_import_tree_sitter() is None
     layers, truncated = _scan_layers(repo_path)
 
+    # Read each sampled file once; every consumer gets this text. A file that
+    # fails to read is absent here and skipped by the extractors.
+    texts: dict[Path, str] = {}
+    for files in layers.values():
+        for f in files:
+            try:
+                texts[f] = f.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                pass
+
     symbols_by_layer: dict[str, list[tuple[str, str, int]]] = {}
     file_syms_by_layer: dict[str, list[tuple[str, str, str, int]]] = {}
     for layer_name, files in layers.items():
         syms: list[tuple[str, str, int]] = []
         file_syms: list[tuple[str, str, str, int]] = []
         for f in files:
-            extracted = _extract_file_symbols(f)
+            if f not in texts:
+                continue
+            extracted = _extract_file_symbols(f, text=texts[f])
             syms.extend(extracted)
             rel_path = str(f.relative_to(repo_path))
             for name, kind, lineno in extracted:
@@ -404,7 +416,7 @@ def _survey(repo_path: Path) -> str:
     atlas: dict = {
         "layers": {k: [str(f) for f in v] for k, v in layers.items()},
         "naming": naming,
-        "error_style": _compute_error_style(layers),
+        "error_style": _compute_error_style(layers, texts),
         "degraded": degraded,
     }
     if truncated:
