@@ -552,7 +552,9 @@ test('renders the not-built sentence when the marker was never substituted', () 
 
 test('renders the bound reason for a structurally wrong payload', () => {
   const { doc } = renderRaw(JSON.stringify({ transcript: {} }))
-  assert.match(doc.querySelector('.empty').textContent, /unreadable: missing transcript\.turns/)
+  const text = doc.querySelector('.empty').textContent.trim()
+  assert.equal(text, 'The injected payload is present but unreadable: missing transcript.turns')
+  assert.doesNotMatch(text, /build\.py|Re-run/)
 })
 
 test('renders the parser message for a truncated payload', () => {
@@ -563,8 +565,15 @@ test('renders the parser message for a truncated payload', () => {
   } catch (e) {
     parserMessage = e.message
   }
-  assert.equal(
-    doc.querySelector('.empty').textContent.trim(),
-    `The injected payload is present but unreadable: ${parserMessage}`,
+  const text = doc.querySelector('.empty').textContent.trim()
+  assert.equal(text, `The injected payload is present but unreadable: ${parserMessage}`)
+  assert.doesNotMatch(text, /build\.py|Re-run/)
+})
+
+test('renders a different sentence for each of the three failure causes', () => {
+  const marker = readFileSync(TEMPLATE, 'utf8').match(/__[A-Z]+_PAYLOAD__/)[0]
+  const texts = [marker, JSON.stringify({ transcript: {} }), '{"transcript":{"turns":['].map(
+    (raw) => renderRaw(raw).doc.querySelector('.empty').textContent.trim(),
   )
+  assert.equal(new Set(texts).size, 3)
 })
