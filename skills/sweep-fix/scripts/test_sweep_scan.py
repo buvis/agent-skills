@@ -1,6 +1,7 @@
 """Tests for sweep.py: scan."""
 import os
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -225,5 +226,78 @@ def test_scan_reports_a_hung_search_as_a_failed_repo_without_blocking(
     assert str(hung_repo) in failed
     assert failed[str(hung_repo)]  # carries a non-empty reason
     assert str(hung_repo) not in suppressed
+
+
+# -- scan: repos are searched in parallel, reported in registry order --------
+
+
+def _stub_hit(repo):
+    return {
+        "repo": str(repo),
+        "file": "match.txt",
+        "line": 1,
+        "snippet": "PARALLELMARKER",
+        "lang": None,
+    }
+
+
+def _make_repos(tmp_path, names):
+    repos = []
+    for name in names:
+        repo = tmp_path / name
+        repo.mkdir()
+        repos.append(repo)
+    return repos
+
+
+def test_scan_runs_repo_searches_concurrently(tmp_path, monkeypatch):
+    # Binds to overlap, never to a clock: the barrier only releases once all
+    # three repo searches are in flight at the same time. A serial loop
+    # leaves the first call waiting alone until the barrier's own timeout
+    # breaks it, so the repo either raises out of scan() or lands in
+    # `failed` -- both fail this test.
+    repos = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
+    barrier = threading.Barrier(3, timeout=5)
+
+    def overlapping_scan_repo(repo, *args, **kwargs):
+        barrier.wait()
+        return str(repo), [_stub_hit(repo)], None
+
+    monkeypatch.setattr(sweep, "_scan_repo", overlapping_scan_repo)
+
+    hits, suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos)
+
+    assert failed == {}
+    assert suppressed == {}
+    assert sorted(hit["repo"] for hit in hits) == sorted(str(repo) for repo in repos)
+
+
+def test_scan_orders_hits_by_registry_position_not_completion_order(
+    tmp_path, monkeypatch
+):
+    # Completion order is forced to repo_c, repo_b, repo_a: the earlier repos
+    # wait until repo_c has returned, then repo_a lingers longer than
+    # repo_b. Hits must still come back in the order `repos` listed them.
+    repo_a, repo_b, repo_c = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
+    repo_c_returned = threading.Event()
+    linger = {repo_a: 0.2, repo_b: 0.1}
+
+    def reversed_completion_scan_repo(repo, *args, **kwargs):
+        if repo == repo_c:
+            repo_c_returned.set()
+        else:
+            if not repo_c_returned.wait(timeout=5):
+                raise AssertionError(f"{repo} searched before repo_c could start")
+            time.sleep(linger[repo])
+        return str(repo), [_stub_hit(repo)], None
+
+    monkeypatch.setattr(sweep, "_scan_repo", reversed_completion_scan_repo)
+
+    hits, _suppressed, failed = sweep.scan(
+        "PARALLELMARKER", "rg", [repo_a, repo_b, repo_c]
+    )
+
+    assert failed == {}
+    assert [h["repo"] for h in hits] == [str(repo_a), str(repo_b), str(repo_c)]
 
 
