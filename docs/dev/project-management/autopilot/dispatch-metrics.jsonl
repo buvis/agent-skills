@@ -2186,3 +2186,4 @@
 {"id":"949ca604","ended_at":1792350044,"elapsed_s":571,"outcome":"ok","detail":null}
 {"id":"632853ab","ended_at":1792350282,"elapsed_s":803,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1792351006,"phase":"done","prd":"00087-ground-prd-root-and-relative-exclusion-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1792351100,"phase":"build","prd":"00088-document-the-eval-harness-contract-v1.md"}

@@ -260,7 +260,13 @@ Updated: 2026-10-18T16:48Z (full catchup, PRD 00070 selection, same batch 202610
   work). Master CI still red on the same
   `test_glean.py::test_local_dirs_never_surface_as_candidates` Linux-only
   false-positive, unrelated.
-- [ ] 00087-ground-prd-root-and-relative-exclusion-v1.md (backlog)
+- [x] 00087-ground-prd-root-and-relative-exclusion-v1.md (1/1 task, 1 cycle) —
+  `ground_prd.py` exits 2 on a bad `--root` or an IO error instead of silently
+  passing, and excludes PRD paths relative to cwd (not just repo root).
+  Fast-track lane (card_sized). Converged cycle 1. Full suite green (3946
+  passed, 9 skipped). Nothing deferred. Working tree still carries the
+  pre-existing unrelated `skills/glean/scripts/glean.py`/`test_glean.py`
+  edits, left untouched.
 - [ ] 00088-document-the-eval-harness-contract-v1.md (backlog)
 - [ ] 00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md (backlog)
 
