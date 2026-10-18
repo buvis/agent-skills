@@ -145,6 +145,85 @@ def test_relocate_writes_manifest_row(repo: Path) -> None:
     assert row == [date, "brush-junk", "old_junk.log", trash_rel]
 
 
+def _tree(root: Path) -> list[tuple[str, str]]:
+    return sorted((p.relative_to(root).as_posix(),
+                   p.read_text() if p.is_file() else "<dir>")
+                  for p in root.rglob("*"))
+
+
+def test_trash_dest_joins_rel_under_the_dated_trash_dir(tmp_path: Path) -> None:
+    (tmp_path / "old_junk.log").write_text("j")
+
+    dest = tu.trash_dest(tmp_path, "old_junk.log", "2026-07-13")
+
+    assert dest == tmp_path / "docs/dev/tmp/.trash/2026-07-13/old_junk.log"
+
+
+def test_trash_dest_keeps_a_nested_rel_nested(tmp_path: Path) -> None:
+    dest = tu.trash_dest(tmp_path, "charts/sub/old_junk.log", "2026-07-13")
+
+    assert dest == (tmp_path
+                    / "docs/dev/tmp/.trash/2026-07-13/charts/sub/old_junk.log")
+
+
+def test_trash_dest_leaves_the_filesystem_untouched(tmp_path: Path) -> None:
+    (tmp_path / "old_junk.log").write_text("j")
+    before = _tree(tmp_path)
+
+    tu.trash_dest(tmp_path, "old_junk.log", "2026-07-13")
+
+    assert _tree(tmp_path) == before
+    assert not (tmp_path / "docs").exists()
+
+
+def test_trash_dest_appends_a_dup_timestamp_when_the_dest_is_taken(
+        tmp_path: Path) -> None:
+    (tmp_path / "old_junk.log").write_text("new")
+    taken = tmp_path / "docs/dev/tmp/.trash/2026-07-13/old_junk.log"
+    taken.parent.mkdir(parents=True)
+    taken.write_text("earlier")
+    before = _tree(tmp_path)
+    t0 = int(time.time())
+
+    dest = tu.trash_dest(tmp_path, "old_junk.log", "2026-07-13")
+
+    t1 = int(time.time())
+    assert dest.parent == taken.parent
+    assert dest.name.startswith("old_junk.log.dup")
+    ts = dest.name[len("old_junk.log.dup"):]
+    assert ts.isdigit() and t0 <= int(ts) <= t1
+    assert _tree(tmp_path) == before
+
+
+def test_relocate_moves_the_file_to_the_trash_dest_path(tmp_path: Path) -> None:
+    src = tmp_path / "charts/sub/old_junk.log"
+    src.parent.mkdir(parents=True)
+    src.write_text("j")
+    expected = tu.trash_dest(tmp_path, "charts/sub/old_junk.log", "2026-07-13")
+
+    trash_rel = tu.relocate(tmp_path, "charts/sub/old_junk.log", "2026-07-13")
+
+    assert trash_rel == expected.relative_to(tmp_path).as_posix()
+    assert trash_rel == "docs/dev/tmp/.trash/2026-07-13/charts/sub/old_junk.log"
+    assert (tmp_path / trash_rel).read_text() == "j"
+    assert not src.exists()
+
+
+def test_relocate_keeps_the_earlier_file_on_a_dest_collision(
+        tmp_path: Path) -> None:
+    (tmp_path / "old_junk.log").write_text("new")
+    taken = tmp_path / "docs/dev/tmp/.trash/2026-07-13/old_junk.log"
+    taken.parent.mkdir(parents=True)
+    taken.write_text("earlier")
+
+    trash_rel = tu.relocate(tmp_path, "old_junk.log", "2026-07-13")
+
+    assert trash_rel.startswith("docs/dev/tmp/.trash/2026-07-13/old_junk.log.dup")
+    assert (tmp_path / trash_rel).read_text() == "new"
+    assert taken.read_text() == "earlier"
+    assert not (tmp_path / "old_junk.log").exists()
+
+
 def test_tracked_junk_pathspec_finds_nested(repo: Path) -> None:
     p = repo / "charts/sub/.DS_Store"
     p.parent.mkdir(parents=True)
