@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **purge-devtmp**: `--apply --empty-trash-days 0` no longer deletes the batch the same run just trashed; `empty_old_trash` keeps a named batch regardless of age.
+
 ### Changed
 
 - **brush**: `trash_untracked.py` previews by default; pass `--apply` to move files to `.trash` and write the manifest row.
