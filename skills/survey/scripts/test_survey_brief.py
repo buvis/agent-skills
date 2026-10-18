@@ -435,3 +435,84 @@ def test_implementations_index_file_path_includes_relative_directory(tmp_path):
         f"separately would allow a wrong impl (e.g. 'core/aggregate_root.py') to pass.\n"
         f"Section:\n{section}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Trim: binary-search budget trimmer matches the old pop-loop, encodes O(log n) times
+# ---------------------------------------------------------------------------
+
+def _reference_trim(content, max_bytes):
+    lines = content.split("\n")
+    while lines and len("\n".join(lines).encode()) > max_bytes:
+        lines.pop()
+    while lines and (lines[-1] == "" or lines[-1].startswith("## ")):
+        lines.pop()
+    return "\n".join(lines)
+
+
+def test_trim_matches_the_pop_loop_byte_for_byte():
+    """`_trim_lines_to_budget` must agree with the old linear pop-loop everywhere.
+
+    Covers: empty content, content already under budget, content cut mid-list,
+    and content whose last surviving line (before the "" / "## " cleanup) is a
+    section header.
+    """
+    # budget=0: empty content.
+    empty_content = ""
+
+    # budget=64: already under budget, no popping needed by either implementation.
+    under_budget_content = "short\nlines\nok"
+
+    # budget=512: long enough that trimming cuts off mid-list of plain lines.
+    mid_list_content = "\n".join(
+        f"item-{i:03d}-filler-text-here" for i in range(40)
+    )
+
+    # budget=5120: engineered so the pop-loop's post-trim boundary lands exactly
+    # on a "## " header line, which the cleanup loop must then also pop.
+    header_lines = [f"{i:04d}".ljust(20, "x") for i in range(300)]
+    header_lines[242] = "## " + "h" * 17
+    header_case_content = "\n".join(header_lines)
+
+    cases = [
+        (empty_content, 0),
+        (under_budget_content, 64),
+        (mid_list_content, 512),
+        (header_case_content, 5120),
+    ]
+
+    for content, max_bytes in cases:
+        expected = _reference_trim(content, max_bytes)
+        actual = run._trim_lines_to_budget(content, max_bytes)
+        assert actual == expected, (
+            f"_trim_lines_to_budget(..., {max_bytes}) must match the pop-loop "
+            f"reference byte-for-byte.\nexpected={expected!r}\nactual={actual!r}"
+        )
+
+
+def test_trim_encodes_a_logarithmic_number_of_times(monkeypatch):
+    """Binary search must encode O(log n) times, not once per dropped line.
+
+    The old pop loop takes 1,052 iterations on this input (600 lines, 40
+    chars each, trimmed to 5120 bytes); the binary search must take at most
+    12 encodes.
+    """
+    lines = ["a" * 40 for _ in range(600)]
+    content = "\n".join(lines)
+
+    original_encoded_len = run._encoded_len
+    call_count = {"n": 0}
+
+    def counting_encoded_len(ls):
+        call_count["n"] += 1
+        return original_encoded_len(ls)
+
+    monkeypatch.setattr(run, "_encoded_len", counting_encoded_len)
+
+    run._trim_lines_to_budget(content, 5120)
+
+    assert call_count["n"] <= 12, (
+        f"_trim_lines_to_budget encoded {call_count['n']} times trimming 600 lines "
+        "to 5120 bytes; a binary search must take at most 12 encodes, not one per "
+        "dropped line"
+    )
