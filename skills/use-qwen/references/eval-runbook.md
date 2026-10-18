@@ -99,15 +99,20 @@ pre-task state is the whole set reverted together.
 
 Use the harness, not `run-eval.sh`, for any round that is multi-file, TDD-shape, or compares two engines head-to-head. Single-file qualification stays on `run-eval.sh` (§ 1-5).
 
-Three commands, run in this order:
+Four commands. `vet`, `run` and `render` run in this order; `verify` checks a bundle at any time:
 
 ```
-~/.agents/skills/use-qwen/scripts/run_eval_harness.py vet <evidence_dir>
-~/.agents/skills/use-qwen/scripts/run_eval_harness.py run <evidence_dir> --run-id <run-id> --engines a[,b] --shape {description,tdd} --bound SECONDS
+~/.agents/skills/use-qwen/scripts/run_eval_harness.py vet <evidence_dir> [--gate-bound SECONDS] [--shapes description[,tdd]]
+~/.agents/skills/use-qwen/scripts/run_eval_harness.py run <evidence_dir> --run-id <run-id> --engines a[,b] --shape {description,tdd} --bound SECONDS [--gate-bound SECONDS] [--alternate] [--retry-discarded {harness-only,none}] [--server-reasoning-effort LABEL] [--qwen-provider NAME --qwen-model ID] [--sonnet-model ID] [--usage-limit-cmd PATH]
 ~/.agents/skills/use-qwen/scripts/run_eval_harness.py render <evidence_dir> --run-id <run-id>
+~/.agents/skills/use-qwen/scripts/run_eval_harness.py verify <evidence_dir>
 ```
 
-`vet` seals and qualifies every task under `<evidence_dir>/tasks/`. `run` dispatches every ready task through the named engines and writes attempt records. `render` turns those records into `evidence.md`, `report.md` and `audit-queue.md` under `<evidence_dir>/runs/<run-id>/` - that is where the evidence lands.
+`vet` seals and qualifies every task under `<evidence_dir>/tasks/`. Per task it writes the sealed set - `template/`, `oracle/`, `prompts/<shape>.txt`, `pretask.json`, `manifest.json`, `canonical.patch` - then `vetting.json` and a `ready` marker. A re-vet replaces `template/`, `oracle/` and `prompts/` wholesale. Once `<evidence_dir>/runs/` exists a run has consumed the seal, and `vet` refuses: vet a fresh evidence directory instead. `--shapes` picks the prompt shapes to seal; left out, `vet` seals both when `spec.json` carries `architecture`, `invariants` and `read_anchors`, and `description` alone otherwise. `--gate-bound` (default 1800 s) bounds each gate run and is recorded in `vetting.json`.
+
+`vetting.json` carries nine keys: `template_sha`, `gate_bound_s`, `warmup`, `baseline`, `necessity`, `canonical`, `inputs_sha256`, `shapes`, `ready`. `inputs_sha256` maps every sealed input (and `dispatch-references.json` at the evidence root, or `absent`) to its digest; `shapes` lists the sealed shapes.
+
+`run` dispatches every ready task through the named engines and writes attempt records. Engine `qwen` needs `--qwen-provider` and `--qwen-model`, engine `sonnet` needs `--sonnet-model`; `--alternate` reverses the engine order on every odd task, `--retry-discarded harness-only` re-runs an attempt the harness itself discarded, once (default `none`), `--server-reasoning-effort` is recorded as the server's declared effort in `run.json`, and `--usage-limit-cmd` names a checker run as `<PATH> --log <capture>` after each attempt (exit 0 marks a usage limit hit). Before any dispatch it refuses a task whose sealed inputs no longer match `inputs_sha256`, a `--shape` not in `shapes`, a `--gate-bound` that differs from `gate_bound_s`, and a missing engine flag; each refusal names the remedy, usually a re-vet. It records the digests it admitted in `runs/<run-id>/sealed-inputs.json` and exits 0 when every attempt completed, 1 when it refused before any write, 2 when the run halted (`halted.txt` names the attempt). `render` turns the records into `evidence.md`, `report.md` and `audit-queue.md` under `<evidence_dir>/runs/<run-id>/` - that is where the evidence lands. `verify` reads a bundle back without writing anything, prints one `<path>: <keyword>[ <detail>]` line per finding, and exits 0 when clean, 1 otherwise; use it on a restored backup.
 
 Tree reconstruction, fresh per-attempt baselines, serial gates, and process-tree bounds - the concerns behind the § 6 isolation-safety checklist above - are enforced by code in harness rounds, not by hand.
 
