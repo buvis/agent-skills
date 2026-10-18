@@ -7,17 +7,23 @@ model_tier_rationale: transcription - every doc line and test assertion is given
 
 # Document the eval harness contract the code actually ships
 
-Source: hold stubs 00081 (ledger key 04e47608c859) and 00082 (ledger key 76ce2353c7fd), both
-`severity: high`, raised against PRD 00051 in
-`docs/dev/project-management/autopilot/deferred/202609050909-deferred.json`. This PRD replaces both stubs.
+Source: hold stubs 00081 and 00082, raised against PRD 00051 in
+`docs/dev/project-management/autopilot/deferred/202609050909-deferred.json`: the two `severity: high`
+entries "vet gained an undocumented --shapes flag and a third CLI subcommand verify ..." and
+"vetting.json carries nine keys (adds inputs_sha256, shapes) where the PRD fixes exactly seven ...".
+This PRD replaces both stubs.
 
 ## Problem
 
 The qwen eval harness grew past PRD 00051's spec, and nothing documents the difference:
 
 - **CLI.** `run_eval_harness.py` has four subcommands, `vet`, `verify`, `render` and `run`
-  (`skills/use-qwen/scripts/run_eval_harness.py:41-68`), and `vet` takes `--gate-bound` and `--shapes`.
-  The runbook shows three commands and no `vet` flags (`skills/use-qwen/references/eval-runbook.md:102-110`),
+  (`skills/use-qwen/scripts/run_eval_harness.py:41-68`), `vet` takes `--gate-bound` and `--shapes`, and
+  `run` takes seven options beyond the five the runbook shows: `--alternate`, `--retry-discarded`,
+  `--server-reasoning-effort`, `--qwen-provider`, `--qwen-model`, `--sonnet-model`, `--usage-limit-cmd`
+  (`skills/use-qwen/scripts/run_eval_harness.py:61-67`); `_admit` refuses `qwen` without the provider and model flags and
+  `sonnet` without `--sonnet-model` (`skills/use-qwen/scripts/eval_harness/attempt.py:199-202`).
+  The runbook shows three commands and no flags at all (`skills/use-qwen/references/eval-runbook.md:102-110`),
   and `skills/use-qwen/SKILL.md` line 94 names only `vet`, `run`, `render`.
 - **Sealing.** `vet` seals `template/`, `oracle/` and `prompts/<shape>.txt` plus `pretask.json`,
   `manifest.json` and `canonical.patch` under each task, and a re-vet removes and rewrites the three
@@ -39,16 +45,17 @@ holds it to the code.
 ## Solution
 
 Rewrite the command block and its paragraph in runbook § 7 to cover all four subcommands, the `vet`
-flags, the sealed files, the re-vet and `runs/` rules, and the nine `vetting.json` keys. Add `verify` to
-the SKILL.md line. Add a test that fails when a subcommand, a `vet` flag or a `VETTING_KEYS` entry is
-missing from runbook § 7, so the next addition cannot drift silently. No harness code changes.
+and `run` flags, `run`'s exit codes, the sealed files, the re-vet and `runs/` rules, and the nine
+`vetting.json` keys. Add `verify` to the SKILL.md line. Add a test that fails when a subcommand, a
+`vet` or `run` flag, or a `VETTING_KEYS` entry is missing from runbook § 7, so the next addition
+cannot drift silently. No harness code changes.
 
 ## Requirements
 
 ### Must have
 
-- Runbook § 7 names every `run_eval_harness.py` subcommand, every `vet` flag, and every entry of
-  `VETTING_KEYS` in backticks.
+- Runbook § 7 names every `run_eval_harness.py` subcommand, every `vet` and `run` flag, `run`'s
+  three exit codes, and every entry of `VETTING_KEYS` in backticks.
 - Runbook § 7 states the re-vet rule (the three sealed directories are replaced wholesale) and the
   `runs/` refusal.
 - `skills/use-qwen/SKILL.md` names `verify` beside `vet`, `run`, `render`.
@@ -75,9 +82,9 @@ skills/use-qwen/
 
 ### Module: drift test
 - **Location**: `skills/use-qwen/scripts/test_runbook_matches_harness.py`
-- **Responsibility**: fail when runbook § 7 stops naming a subcommand, a `vet` flag or a vetting key the code has.
+- **Responsibility**: fail when runbook § 7 stops naming a subcommand, a `vet` or `run` flag, or a vetting key the code has.
 - **Exports**: none
-- New symbols: `test_runbook_matches_harness.py`, `test_runbook_names_every_harness_subcommand`, `test_runbook_names_every_vet_flag`, `test_runbook_lists_every_vetting_key`, `_section_seven`
+- New symbols: `test_runbook_matches_harness.py`, `test_runbook_names_every_harness_subcommand`, `test_runbook_names_every_vet_flag`, `test_runbook_names_every_run_flag`, `test_runbook_lists_every_vetting_key`, `_section_seven`
 
 ### Dependencies
 - drift test: No dependencies (foundation)
@@ -90,16 +97,17 @@ skills/use-qwen/
   `from eval_harness import records` the same way `skills/use-qwen/scripts/test_run_eval_cli.py` does.
   Define `_section_seven()`: read `Path(__file__).resolve().parents[1] / "references" / "eval-runbook.md"`
   and return the text from the line `## 7. Harness rounds` up to the next line starting with `## `.
-  Three tests:
+  Four tests:
   - `test_runbook_names_every_harness_subcommand`: take the subcommand names from
     `run_eval_harness._parser()` (the `choices` of its argparse subparsers action) and assert
     `f"run_eval_harness.py {name} "` occurs in `_section_seven()` for each.
   - `test_runbook_names_every_vet_flag`: from the `vet` subparser, take every option string that starts
     with `--` except `--help`, and assert each occurs in `_section_seven()`.
+  - `test_runbook_names_every_run_flag`: the same over the `run` subparser.
   - `test_runbook_lists_every_vetting_key`: assert `` f"`{key}`" `` occurs in `_section_seven()` for every
     `key` in `records.VETTING_KEYS`.
   Acceptance: `uv run pytest skills/use-qwen/scripts/test_runbook_matches_harness.py` fails, with
-  `verify`, `--shapes` and the vetting keys among the misses. Commit the test with the Phase 1 edit if the
+  `verify`, `--shapes`, `--alternate` and the vetting keys among the misses. Commit the test with the Phase 1 edit if the
   pipeline requires green commits; it must be watched failing first either way.
 
 ### Phase 1: Core
@@ -116,7 +124,7 @@ skills/use-qwen/
 
   ```
   ~/.agents/skills/use-qwen/scripts/run_eval_harness.py vet <evidence_dir> [--gate-bound SECONDS] [--shapes description[,tdd]]
-  ~/.agents/skills/use-qwen/scripts/run_eval_harness.py run <evidence_dir> --run-id <run-id> --engines a[,b] --shape {description,tdd} --bound SECONDS [--gate-bound SECONDS]
+  ~/.agents/skills/use-qwen/scripts/run_eval_harness.py run <evidence_dir> --run-id <run-id> --engines a[,b] --shape {description,tdd} --bound SECONDS [--gate-bound SECONDS] [--alternate] [--retry-discarded {harness-only,none}] [--server-reasoning-effort LABEL] [--qwen-provider NAME --qwen-model ID] [--sonnet-model ID] [--usage-limit-cmd PATH]
   ~/.agents/skills/use-qwen/scripts/run_eval_harness.py render <evidence_dir> --run-id <run-id>
   ~/.agents/skills/use-qwen/scripts/run_eval_harness.py verify <evidence_dir>
   ```
@@ -134,10 +142,17 @@ skills/use-qwen/
   `dispatch-references.json` at the evidence root, or `absent`) to its digest; `shapes` lists the sealed
   shapes.
 
-  `run` dispatches every ready task through the named engines and writes attempt records. Before any
-  dispatch it refuses a task whose sealed inputs no longer match `inputs_sha256`, a `--shape` not in
-  `shapes`, and a `--gate-bound` that differs from `gate_bound_s`; each refusal names the remedy, usually
-  a re-vet. It records the digests it admitted in `runs/<run-id>/sealed-inputs.json`. `render` turns the
+  `run` dispatches every ready task through the named engines and writes attempt records. Engine `qwen`
+  needs `--qwen-provider` and `--qwen-model`, engine `sonnet` needs `--sonnet-model`; `--alternate`
+  reverses the engine order on every odd task, `--retry-discarded harness-only` re-runs an attempt the
+  harness itself discarded, once (default `none`), `--server-reasoning-effort` is recorded as the
+  server's declared effort in `run.json`, and `--usage-limit-cmd` names a checker run as
+  `<PATH> --log <capture>` after each attempt (exit 0 marks a usage limit hit). Before any dispatch it
+  refuses a task whose sealed inputs no longer match `inputs_sha256`, a `--shape` not in `shapes`, a
+  `--gate-bound` that differs from `gate_bound_s`, and a missing engine flag; each refusal names the
+  remedy, usually a re-vet. It records the digests it admitted in `runs/<run-id>/sealed-inputs.json`
+  and exits 0 when every attempt completed, 1 when it refused before any write, 2 when the run halted
+  (`halted.txt` names the attempt). `render` turns the
   records into `evidence.md`, `report.md` and `audit-queue.md` under `<evidence_dir>/runs/<run-id>/` -
   that is where the evidence lands. `verify` reads a bundle back without writing anything, prints one
   `<path>: <keyword>[ <detail>]` line per finding, and exits 0 when clean, 1 otherwise; use it on a
@@ -152,9 +167,9 @@ skills/use-qwen/
 
 ## Success Criteria
 
-- `test_runbook_names_every_harness_subcommand`, `test_runbook_names_every_vet_flag` and
-  `test_runbook_lists_every_vetting_key` pass, and failed before the runbook edit.
-- The hold stubs `00081-triage-vet-gained-an-undocumented-shapes-flag-a-v1.md` and
-  `00082-triage-vetting-json-carries-nine-keys-adds-inpu-v1.md` are gone from
-  `docs/dev/project-management/prds/hold/` (removed when this PRD was saved).
+- `test_runbook_names_every_harness_subcommand`, `test_runbook_names_every_vet_flag`,
+  `test_runbook_names_every_run_flag` and `test_runbook_lists_every_vetting_key` pass, and failed
+  before the runbook edit.
+- The hold stubs `00081-triage-vet-gained-an-undocumented-shapes-flag-a-v1.md` and `00082-triage-vetting-json-carries-nine-keys-adds-inpu-v1.md` (link-ok: deleted on purpose)
+  are gone from `docs/dev/project-management/prds/hold/` (removed when this PRD was saved).
 - The full `uv run pytest` gate passes at the end of the last phase.

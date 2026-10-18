@@ -34,7 +34,9 @@ wrong way.
 
 `qwen-run.sh` adds `--no-extensions` to the pi arguments every dispatch mode shares
 (`skills/use-qwen/scripts/qwen-run.sh:469`). Interactive pi outside the wrapper keeps its extensions. The
-preflight is unchanged: it never starts pi.
+preflight is unchanged: it never starts pi. PRD 00049 (lower number, same guard) rewrites that line's
+dispatch options first and keeps the one `ARGS=(--provider ...)` array; this PRD appends to whatever
+it holds.
 
 Run it in a lane worktree only, like 00049, which edits the same script. `~/.agents/skills/use-qwen` links
 to the main checkout, so autopilot dispatches qwen through the main checkout's `qwen-run.sh`. The
@@ -84,8 +86,9 @@ CHANGELOG.md           # Fixed entry
 
 ### Phase 0: Foundation
 - [ ] Pass `--no-extensions` to every pi dispatch. Premise, re-checked at execution (a failed premise means skip
-  and report, never force): `skills/use-qwen/scripts/qwen-run.sh` has exactly one line
-  `ARGS=(--provider "$PROVIDER" --model "$MODEL" --mode "$OUTPUT_MODE")`, and `rg -n "no-extensions"
+  and report, never force): `rg -c '^ARGS=\(--provider ' skills/use-qwen/scripts/qwen-run.sh` prints 1
+  (line 469 today, reading `ARGS=(--provider "$PROVIDER" --model "$MODEL" --mode "$OUTPUT_MODE")`; PRD
+  00049 may have changed the elements after `--model "$MODEL"`), and `rg -n "no-extensions"
   skills/use-qwen/scripts/qwen-run.sh` prints nothing.
   In `skills/use-qwen/scripts/test_qwen_run.sh`, directly after the T3 block and before the line
   `# ══ T4: healthy dispatch reaches pi; child stdin is guarded`, insert:
@@ -103,9 +106,9 @@ CHANGELOG.md           # Fixed entry
   ```
 
   Run `bash skills/use-qwen/scripts/test_qwen_run.sh` and watch exactly this test fail. Then in
-  `skills/use-qwen/scripts/qwen-run.sh` replace
-  `ARGS=(--provider "$PROVIDER" --model "$MODEL" --mode "$OUTPUT_MODE")` with
-  `ARGS=(--provider "$PROVIDER" --model "$MODEL" --mode "$OUTPUT_MODE" --no-extensions)`, and put this comment
+  `skills/use-qwen/scripts/qwen-run.sh` append `--no-extensions` as the last element of that
+  `ARGS=(...)` array (on today's text:
+  `ARGS=(--provider "$PROVIDER" --model "$MODEL" --mode "$OUTPUT_MODE" --no-extensions)`), and put this comment
   line directly above it:
   `# --no-extensions: providers resolve from models.json; extensions only add startup noise (pi-llama's localhost:8080 probe).`
   Acceptance: `bash skills/use-qwen/scripts/test_qwen_run.sh` ends with `0 failed`.
@@ -113,8 +116,9 @@ CHANGELOG.md           # Fixed entry
 ### Phase 1: Core
 - [ ] Record the fix (depends on: Phase 0). Under `## [Unreleased]` / `### Fixed` in `CHANGELOG.md`, add:
   `- **use-qwen**: \`qwen-run.sh\` dispatches pi with \`--no-extensions\`, so the pi-llama extension's \`[llama-cpp] failed to reach http://localhost:8080\` warning no longer appears in dispatch output, where it read as a failed request on runs that succeeded.`
-  Acceptance: `rg -n "no-extensions" CHANGELOG.md` matches one line, and that line sits between `### Fixed` and
-  the next `## [` heading.
+  Acceptance: `rg -n "no-extensions" CHANGELOG.md` matches one line, and that line sits under `## [Unreleased]`
+  between its `### Fixed` heading and the next `## [` heading (PRD 00029 cuts `## [0.1.0]` beneath an empty
+  `[Unreleased]` earlier in the batch; if `[Unreleased]` has no `### Fixed` yet, add the heading).
 
 ## Success Criteria
 

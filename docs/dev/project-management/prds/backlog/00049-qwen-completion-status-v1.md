@@ -20,9 +20,9 @@ Pi's process status without establishing that an answer completed.
 which is unsafe once the first dispatch may have edited it.
 
 Sources: the 2026-09-05 retrospective; the preserved task-5 session JSONL in
-`dev/local/audit-results/qwen38-vs-sonnet-multifile-2026-09-03-bundle/runs/`;
+`docs/dev/project-management/audit-results/qwen38-vs-sonnet-multifile-2026-09-03-bundle/runs/`;
 `skills/use-qwen/scripts/{qwen-run,run-eval}.sh`. The September 4 review at
-`dev/local/reviews/00010-qwen38-multifile-capability-eval-v1-review-01.md`
+`docs/dev/project-management/reviews/00010-qwen38-multifile-capability-eval-v1-review-01.md`
 invalidates the comparative scores; the trace is a diagnostic, not a
 qualification result. Re-check these implementation premises at execution.
 
@@ -109,7 +109,7 @@ skills/use-qwen/
 │   ├── qwen-run.sh                   # Terminal validation and output compatibility
 │   ├── test_qwen_run.sh             # Observable stream/exit/cancellation fixtures
 │   ├── run-eval.sh                  # One dispatch per manifest row
-│   └── test_eval_automation.sh      # Retry and registry regressions
+│   └── test_eval_automation.sh      # New once-per-row fixture beside the registry regressions (T1-T9 today)
 └── references/eval-runbook.md        # Incomplete attempts and fresh-trial requirement
 ```
 
@@ -163,6 +163,9 @@ No dependencies - built first.
 
 **Tasks**:
 - [ ] Implement terminal validation and output compatibility (depends on: Phase 0).
+  Keep the single `ARGS=(--provider "$PROVIDER" --model "$MODEL" ...)` array
+  (`skills/use-qwen/scripts/qwen-run.sh:469` today) as the one pi argument list every dispatch mode
+  shares: PRD 00078 appends `--no-extensions` to it after this PRD lands.
   Acceptance: `bash skills/use-qwen/scripts/test_qwen_run.sh` passes all old
   and new cases; both default text and `-j`, with and without `-o`, reject
   incomplete streams and accept a normal read-only answer without file edits.
@@ -177,12 +180,19 @@ No dependencies - built first.
 **Goal**: Qualification respects failed attempts without same-tree retries.
 
 **Tasks**:
-- [ ] Replace the qualification retry loop with one dispatch per row (depends
-  on: Phase 1). Acceptance: `bash skills/use-qwen/scripts/test_eval_automation.sh`
+- [ ] Replace the qualification retry loop (`skills/use-qwen/scripts/run-eval.sh:132-144`, `attempt`
+  1..2 on any nonzero return) with one dispatch per row (depends on: Phase 1).
+  `test_eval_automation.sh` holds registry and scoring cases (T1-T9) and its pi
+  stub records neither argv nor a call count, so this task adds a counting stub.
+  Acceptance: `bash skills/use-qwen/scripts/test_eval_automation.sh`
   passes fixtures where a stub edits a marker then fails, is invoked exactly
   once for that row, and cannot cause `--commit` to modify the registry.
 - [ ] Document completion versus correctness, no automatic continuation, and
   the new-trial restoration requirement (depends on: Phase 2 qualification).
+  This is new text: the runbook's only mention today is § 6 item 1's fresh
+  tree for the retry, and `SKILL.md` says nothing of completion versus
+  correctness. PRD 00088 rewrites runbook § 7 and `skills/use-qwen/SKILL.md:94` in the same
+  batch; add beside them, never inside them.
   Re-read the runbook before editing; historical PRD 00010 is in done/
   but its reviewed comparative scores remain invalid. No pending repair
   task in 00010 is assumed. Acceptance: both shell suites,
@@ -203,7 +213,7 @@ No dependencies - built first.
 
 ## Risks
 
-- **Pi version drift**: Capture the tested version and derive fixtures from its actual protocol.
+- **Pi version drift**: Capture the tested version (pi 0.80.10 on 2026-10-17) and derive fixtures from its actual protocol.
 - **Existing stubs mask behavior**: Assert public output/status and child lifetime, not implementation strings.
 - **Stricter status reduces apparent passes**: Expected; it detects incomplete runs without proving code wrong.
 - **Recovery remains separate**: This work detects the compaction failure; it does not claim to fix Pi's continuation.

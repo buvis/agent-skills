@@ -6,9 +6,11 @@ model_tier_rationale: transcription - exact expressions and messages given; the 
 
 # ground_prd: a bad --root exits 2, and a PRD never confirms its own symbols
 
-Source: hold stubs 00084 (ledger key bac71612d738) and 00085 (ledger key 6b0e4ec95f8f), both
-`severity: high`, minted from PRD 00075's cycle-2 cap overflow in
-`docs/dev/project-management/autopilot/deferred/202610100952-deferred.json`. This PRD replaces both stubs.
+Source: hold stubs 00084 and 00085, minted from PRD 00075's cycle-2 cap overflow in
+`docs/dev/project-management/autopilot/deferred/202610100952-deferred.json`: the two `severity: high`
+entries there, refs R1 ("R1 only half fixed. `main()` now catches `RuntimeError` and exits 2, but a
+nonexistent `--root` still raises an uncaught `FileNotFoundError` ...") and R2 ("Relative PRD exclusions
+now resolve against `root` instead of the process cwd ..."). This PRD replaces both stubs.
 
 ## Problem
 
@@ -90,9 +92,12 @@ skills/create-prd/scripts/
     `pytest.raises(SystemExit)`, assert the code is 2 and stderr contains
     `--root` and `not a directory` and no `Traceback`.
   - `test_cli_exits_two_when_cargo_lock_is_unreadable`: `make_repo(tmp_path)`, write
-    `tmp_path / "Cargo.lock"` and `chmod` it to `0o000`, run `main` on a PRD in `tmp_path` with
-    `--root str(tmp_path)`, assert exit 2 and a `ground_prd:` line on stderr; restore the mode in a
-    `finally` so `tmp_path` cleanup works. Skip with `pytest.skip` when `os.geteuid() == 0`.
+    `tmp_path / "Cargo.lock"` and arm it with the root `conftest.py` fixture
+    `deny_access` (`deny_access(tmp_path / "Cargo.lock")`; `conftest.py:144-169` revokes the mode
+    bits on POSIX, wraps the call boundary on Windows, and restores on teardown), run `main` on a
+    PRD in `tmp_path` with `--root str(tmp_path)`, assert exit 2 and a `ground_prd:` line on
+    stderr. No bare `chmod` and no `os.geteuid` in the test: `os.geteuid` does not exist on
+    Windows, where the `windows` job already fails two sweep-fix tests on exactly that.
   Watch both fail against the current code. Then in `skills/create-prd/scripts/ground_prd.py` `main()`,
   directly after `root = Path(args.root)`, insert:
   ```python
@@ -141,7 +146,6 @@ skills/create-prd/scripts/
   `test_cli_excludes_own_prd_given_relative_to_cwd_not_root` and
   `test_resolve_symbols_excludes_own_prd_path_given_as_relative_path` pass, and the first three fail
   against the pre-change `ground_prd.py`.
-- The hold stubs `00084-triage-r1-only-half-fixed-main-now-catches-runt-v1.md` and
-  `00085-triage-relative-prd-exclusions-now-resolve-agai-v1.md` are gone from
-  `docs/dev/project-management/prds/hold/` (removed when this PRD was saved).
+- The hold stubs `00084-triage-r1-only-half-fixed-main-now-catches-runt-v1.md` and `00085-triage-relative-prd-exclusions-now-resolve-agai-v1.md` (link-ok: deleted on purpose)
+  are gone from `docs/dev/project-management/prds/hold/` (removed when this PRD was saved).
 - The full `uv run pytest` gate passes at the end of the last phase.

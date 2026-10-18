@@ -8,16 +8,18 @@ rework_cap: 5
 ## Problem
 
 `skills/brush/scripts/trash_untracked.py` builds its parser inline in `main()`
-(lines 88-93) with only `--repo`, `--rule`, `--min-age-days` and positional
+(lines 108-114) with only `--repo`, `--rule`, `--min-age-days` and positional
 `paths`; there is no `--apply` and no `--dry-run`, and `main()` calls
-`relocate()` on the first pass (line 109), so every invocation moves files at
-once. The report packet names a `_parse_args` function; no such symbol exists
-in this file. The destructive half of the brush pair has no preview while the
-less destructive sibling `skills/purge-devlocal/scripts/purge_devlocal.py`
-defaults to dry-run and prints `DRY-RUN (use --apply)` (line 534). Source:
-agoge run `dev/local/audit-results/agoge-2026-08-31.md`, finding 44 (LOW,
-security lane); decision 2026-09-02: add `--apply`, default to preview, and
-update every documented call site in the same change.
+`relocate()` on the first pass (line 132) and `note_manifest()` right after
+(line 133), so every invocation moves files at once. The report packet names a
+`_parse_args` function; no such symbol exists in this file. The destructive
+half of the brush pair has no preview while the less destructive sibling
+`skills/purge-devtmp/scripts/purge_devtmp.py` defaults to dry-run and prints
+`DRY-RUN (use --apply)` (line 220). The trash root is `docs/dev/tmp/.trash`
+(line 91; manifest at line 102). Lines re-verified 2026-10-17. Source: agoge
+run `docs/dev/project-management/audit-results/agoge-2026-08-31.md`, finding
+44 (LOW, security lane); decision 2026-09-02: add `--apply`, default to
+preview, and update every documented call site in the same change.
 
 ```
 Every probe in this run moved files on the first invocation with no preview
@@ -41,16 +43,16 @@ into a no-op.
 
 ### Must have
 
-- Without `--apply` nothing on disk changes: no file moves, `dev/local/.trash/`
+- Without `--apply` nothing on disk changes: no file moves, `docs/dev/tmp/.trash/`
   is not created, and no manifest row is appended.
 - Preview stdout is the same JSON, with the same `path`, `trash` and `reason`
   values the immediately following `--apply` run prints for the same corpus.
 - Preview prints the marker `DRY-RUN (use --apply)`, the wording at
-  `purge_devlocal.py:534`, on stderr so stdout stays parseable JSON.
+  `skills/purge-devtmp/scripts/purge_devtmp.py:220`, on stderr so stdout stays parseable JSON.
 - `--apply` is `action="store_true"` with help text `move files to .trash
-  (default: dry-run)`, matching `purge_devlocal.py:481-485`; with it, behaviour
-  and output match today's.
-- `skills/brush/SKILL.md:62` and `skills/brush/references/report-template.md:27`
+  (default: dry-run)` (the sibling's flag at `skills/purge-devtmp/scripts/purge_devtmp.py:195` carries no
+  help; this one does); with it, behaviour and output match today's.
+- `skills/brush/SKILL.md:63` and `skills/brush/references/report-template.md:27`
   both pass `--apply` in the same change.
 
 ### Nice to have
@@ -63,26 +65,29 @@ into a no-op.
 - **Location**: `skills/brush/scripts/`
 - **Responsibility**: veto, move and record paths; previews unless `--apply`
 - **Exports**: `trash_dest()`, `relocate()`, `main()`
+- New symbols: `trash_dest`
 
 ### Module: test_brush_scripts
 - **Location**: `skills/brush/scripts/`
 - **Responsibility**: regression net for the brush helper scripts
 - **Exports**: `test_preview_moves_nothing`, `test_preview_json_matches_the_apply_run`
+- New symbols: `test_preview_moves_nothing`, `test_preview_json_matches_the_apply_run`
 
 ### Module: brush-skill-doc
 - **Location**: `skills/brush/`
 - **Responsibility**: the Phase-2 instruction naming the sanctioned trash command
-- **Exports**: the `trash_untracked.py` invocation on `SKILL.md:62`
+- **Exports**: the `trash_untracked.py` invocation on `skills/brush/SKILL.md:63`
 
 ### Module: brush-report-template
 - **Location**: `skills/brush/references/`
 - **Responsibility**: the BR-item command shape brush copies into its report
-- **Exports**: the BR-3 `cmd:` invocation on `report-template.md:27`
+- **Exports**: the BR-3 `cmd:` invocation on `skills/brush/references/report-template.md:27`
 
 ### Dependencies
-- trash_untracked: No dependencies (foundation). PRD 00012 edits the same file
-  under a lower number, so it lands first; its tests drive `main()` through a
-  monkeypatched `sys.argv`, which these tests reuse.
+- trash_untracked: No dependencies (foundation). PRD 00012 (done) edited the
+  same file; its tests drive `main()` through `monkeypatch.setattr("sys.argv",
+  ...)`, which these tests reuse. PRD 00044, which also touches this file, is
+  on hold.
 - test_brush_scripts: Depends on [trash_untracked]
 - brush-skill-doc: Depends on [trash_untracked]
 - brush-report-template: Depends on [trash_untracked]
@@ -90,17 +95,17 @@ into a no-op.
 ## Tasks
 
 ### Phase 0: Foundation
-- [ ] Split the destination arithmetic out of `relocate()` into `trash_dest(root, rel, date) -> Path` (the `dev/local/.trash/<date>/<rel>` join plus the `.dup<ts>` collision suffix) and have `relocate()` call it - Acceptance: `uv run pytest "skills/brush/scripts/test_brush_scripts.py::test_relocate_writes_manifest_row" -q` reports `1 passed` with no edit to that test.
+- [ ] Split the destination arithmetic out of `relocate()` into `trash_dest(root, rel, date) -> Path` (the `docs/dev/tmp/.trash/<date>/<rel>` join plus the `.dup<ts>` collision suffix) and have `relocate()` call it - Acceptance: `uv run pytest "skills/brush/scripts/test_brush_scripts.py::test_relocate_writes_manifest_row" -q` reports `1 passed` with no edit to that test.
 - [ ] Add `--apply` to the parser in `main()` with `action="store_true"` and help `move files to .trash (default: dry-run)`, gate the `relocate()` and `note_manifest()` calls behind it, fill the `trash` field from `trash_dest()` in both modes, and print `DRY-RUN (use --apply)` to stderr when `--apply` is absent - Acceptance: `uv run pytest skills/brush/scripts/test_brush_scripts.py -q` ends with a summary line containing neither `failed` nor `error`.
-- [ ] Add `test_preview_moves_nothing`: an aged `old_junk.log`, `sys.argv` monkeypatched to `["trash_untracked.py", "--repo", str(repo), "old_junk.log"]`, `tu.main()` called - Acceptance: `uv run pytest "skills/brush/scripts/test_brush_scripts.py::test_preview_moves_nothing" -q` reports `1 passed`; `repo / "old_junk.log"` still exists, `repo / "dev/local/.trash"` does not exist, and the parsed stdout holds exactly one `moved` entry whose `path` is `old_junk.log`.
-- [ ] Add `test_preview_json_matches_the_apply_run`: the same corpus, `main()` driven once without `--apply` and once with it, both stdouts parsed - Acceptance: `uv run pytest "skills/brush/scripts/test_brush_scripts.py::test_preview_json_matches_the_apply_run" -q` reports `1 passed`; the two parsed objects compare equal, and `repo / "dev/local/.trash/manifest.tsv"` exists only after the second run.
-- [ ] Add `--apply` to the two documented invocations. Premise: `rg -n "trash_untracked.py --repo" skills/brush` matches exactly two lines, `skills/brush/SKILL.md:62` and `skills/brush/references/report-template.md:27`, and neither carries `--apply`; if the re-check at execution time returns any other set of lines, skip the edit and report it - Acceptance: `rg -n "trash_untracked.py --repo" skills/brush` prints exactly those two lines and both contain `--apply`.
+- [ ] Add `test_preview_moves_nothing`: an aged `old_junk.log`, `sys.argv` monkeypatched to `["trash_untracked.py", "--repo", str(repo), "old_junk.log"]`, `tu.main()` called - Acceptance: `uv run pytest "skills/brush/scripts/test_brush_scripts.py::test_preview_moves_nothing" -q` reports `1 passed`; `repo / "old_junk.log"` still exists, `repo / "docs/dev/tmp/.trash"` does not exist, and the parsed stdout holds exactly one `moved` entry whose `path` is `old_junk.log`.
+- [ ] Add `test_preview_json_matches_the_apply_run`: the same corpus, `main()` driven once without `--apply` and once with it, both stdouts parsed - Acceptance: `uv run pytest "skills/brush/scripts/test_brush_scripts.py::test_preview_json_matches_the_apply_run" -q` reports `1 passed`; the two parsed objects compare equal, and `repo / "docs/dev/tmp/.trash/manifest.tsv"` exists only after the second run.
+- [ ] Add `--apply` to the two documented invocations. Premise: `rg -n "trash_untracked.py --repo" skills/brush` matches exactly two lines, `skills/brush/SKILL.md:63` and `skills/brush/references/report-template.md:27`, and neither carries `--apply`; if the re-check at execution time returns any other set of lines, skip the edit and report it - Acceptance: `rg -n "trash_untracked.py --repo" skills/brush` prints exactly those two lines and both contain `--apply`.
 - [ ] Run the repo suite - Acceptance: `uv run pytest -q` from the repo root ends with a summary line containing neither `failed` nor `error`.
 
 ## Success Criteria
 
 - A preview run leaves every file at its original path and writes no
-  `dev/local/.trash/`, while printing the JSON the `--apply` run then prints.
+  `docs/dev/tmp/.trash/`, while printing the JSON the `--apply` run then prints.
 - `rg -n "trash_untracked.py --repo" skills/brush` shows `--apply` on both
   documented call sites.
 - `uv run pytest -q` from the repo root reports no failures and no errors.

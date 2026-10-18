@@ -32,8 +32,9 @@ Give both bounds headroom, keeping each guard intact:
   catches a module that really doubled its runtime, but it absorbs the load seen on 2026-10-16/17.
 - `slow` fixture: gate bound 2 s to 4 s, and its two `sleep 5` segments to `sleep 15`. The bound must
   sit above a loaded baseline (the vet must pass) and well below the sleep (the gate clone and the
-  flagged baseline must time out). Both sleeps are killed at the bound, so the longer sleep costs no run
-  time; it only widens the margin when a kill lands late. Every place the bound `2` is repeated for the
+  flagged baseline must time out). Both sleeps are killed at the bound, so the longer sleep costs about
+  2 s more per bounded segment (the bound moves from 2 s to 4 s), never the full 15 s; it widens the
+  margin when a kill lands late. Every place the bound `2` is repeated for the
   `slow` bundle changes with it, because `attempt._admit` refuses a run whose `--gate-bound` differs
   from the vetted one (`skills/use-qwen/scripts/eval_harness/attempt.py:208-211`).
 

@@ -26,6 +26,14 @@ their existing Linux job; Bash integrations collected by pytest also run on Wind
 Re-check the listed defects before edits; already-correct behavior is retained
 and reported, never replaced to force an obsolete premise.
 
+Parked 2026-10-17 (backlog review): the `windows` job, `.gitattributes`, the
+testpaths, the root `conftest.py` fixtures, brush path identity and proposal
+publication have all shipped; what remains is an attended push-fix-rerun loop
+over the 63 failures the `windows` job reports at `43f9600` (braid 13,
+braid_check 7, ground_prd 2, distil-memory CRLF 9, glean 2, sweep-fix
+`os.geteuid` 2, use-qwen 27), which no unattended session can bound. The Ubuntu
+matrix is red on glean too. Unpark for an attended run.
+
 ### Target Users
 Maintainers changing portable skills or Braid, and Windows users relying on the README.
 
