@@ -382,6 +382,15 @@
       "found_by": "BLAKE",
       "reason": "rework cap reached with this finding unresolved",
       "prd": "00075-ground-prd-claims-against-installed-code-v1.md"
+    },
+    {
+      "type": "deferred_decision",
+      "issue": "Scope creep: _build_brief was split into three new helpers (_brief_naming_section, _brief_index_section, _brief_extension_section). No PRD task or the design doc asks for this. The binary-search and single-read changes do not touch brief assembly. Revert it to keep the diff traceable, or record it as a separate pre-existing function-size cleanup",
+      "severity": "\ud83d\udfe1",
+      "file": "skills/survey/scripts/run.py:287",
+      "reason": "deferred by review-close",
+      "prd": "00045-survey-single-read-and-log-time-trim-v1.md",
+      "cycle": 3
     }
   ]
 }

@@ -2091,3 +2091,6 @@
 {"id":"06ad49cb","kind":"pat","task":"15","queued_at":1792336230,"prompt_bytes":7345}
 {"id":"06ad49cb","ended_at":1792336250,"elapsed_s":20,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1792336735,"phase":"done","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792336759,"phase":"build","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1792336790,"phase":"done","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1792336864,"phase":"build","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}

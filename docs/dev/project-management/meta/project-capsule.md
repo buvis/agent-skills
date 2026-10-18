@@ -225,7 +225,13 @@ Updated: 2026-10-18 (full catchup, PRD 00045 selection, same batch 202610100952,
   passed, 6 skipped). Nothing deferred. Working tree still carries the
   pre-existing unrelated `skills/glean/scripts/glean.py`/`test_glean.py`
   edits noted at selection, left untouched.
-- [ ] 00045-survey-single-read-and-log-time-trim-v1.md (backlog)
+- [x] 00045-survey-single-read-and-log-time-trim-v1.md (15/15 tasks, 3
+  cycles) — survey single-read fix and log-time trim. Converged cycle 3 (7
+  findings, 0 C/H); tail swept as tasks 14-15. 1 item deferred (`_build_brief`
+  split into three helpers, scope creep not asked for by the PRD). Full
+  suite green at c96ba5b (3922 passed, 9 skipped). Working tree still
+  carries the pre-existing unrelated `skills/glean/scripts/glean.py`/
+  `test_glean.py` edits, left untouched.
 - [ ] 00048-trash-untracked-preview-default-v1.md (backlog)
 - [ ] 00049-qwen-completion-status-v1.md (backlog)
 - [ ] 00050-qwen-ivan-capability-eval-v1.md (backlog)
