@@ -130,17 +130,20 @@ def _ts_walk(
         _ts_walk(item.children, child_in_class, results)
 
 
-def _extract_tree_sitter(f: Path, ts_module: Any) -> list[tuple[str, str, int]]:
+def _extract_tree_sitter(
+    f: Path, ts_module: Any, text: str | None = None
+) -> list[tuple[str, str, int]]:
     lang = _TS_LANG_BY_EXT.get(f.suffix)
     if lang is None:
         return []
-    try:
-        source = f.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return []
+    if text is None:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return []
     try:
         result = ts_module.process(
-            source,
+            text,
             ts_module.ProcessConfig(language=lang, structure=True),
         )
         results: list[tuple[str, str, int]] = []
@@ -150,34 +153,40 @@ def _extract_tree_sitter(f: Path, ts_module: Any) -> list[tuple[str, str, int]]:
         return []
 
 
-def _extract_file_symbols(f: Path) -> list[tuple[str, str, int]]:
+def _extract_file_symbols(
+    f: Path, text: str | None = None
+) -> list[tuple[str, str, int]]:
     ts_module = try_import_tree_sitter()
     if ts_module is None:
-        return _extract_file_symbols_regex(f)
-    results = _extract_tree_sitter(f, ts_module)
+        return _extract_file_symbols_regex(f, text=text)
+    results = _extract_tree_sitter(f, ts_module, text=text)
     if not results:
         # tree-sitter parsed nothing (unsupported language or a per-file parse
         # failure): fall back to the regex extractor so a malformed file does
         # not silently drop all of its symbols from the atlas.
-        results = _extract_file_symbols_regex(f)
+        results = _extract_file_symbols_regex(f, text=text)
     if f.suffix == ".go":
         # tree_sitter_language_pack 1.8.0 yields no structure items for Go
         # `type X struct` / `type X interface`; merge them in from the regex
         # extractor so Go types are not dropped from the atlas.
         seen = set(results)
-        for sym in _extract_file_symbols_regex(f):
+        for sym in _extract_file_symbols_regex(f, text=text):
             if sym[1] in ("class", "interface") and sym not in seen:
                 results.append(sym)
                 seen.add(sym)
     return results
 
 
-def _extract_file_symbols_regex(f: Path) -> list[tuple[str, str, int]]:
+def _extract_file_symbols_regex(
+    f: Path, text: str | None = None
+) -> list[tuple[str, str, int]]:
     results = []
-    try:
-        lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return results
+    if text is None:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return results
+    lines = text.splitlines()
     ext = f.suffix
     for i, line in enumerate(lines, 1):
         if ext == ".py":
@@ -225,7 +234,9 @@ def _naming_counts(symbols: list[tuple[str, str, int]]) -> dict[str, int]:
     return counts
 
 
-def _compute_error_style(layers: dict[str, list[Path]]) -> str:
+def _compute_error_style(
+    layers: dict[str, list[Path]], texts: dict[Path, str] | None = None
+) -> str:
     sample: list[Path] = []
     for files in layers.values():
         sample.extend(files)
@@ -236,10 +247,13 @@ def _compute_error_style(layers: dict[str, list[Path]]) -> str:
     result_count = 0
     exception_count = 0
     for f in sample:
-        try:
-            text = f.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
+        if texts is not None and f in texts:
+            text = texts[f]
+        else:
+            try:
+                text = f.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
         ext = f.suffix
         if ext == ".rs":
             result_count += len(re.findall(r"Result<", text))
