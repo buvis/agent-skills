@@ -120,6 +120,8 @@ def main() -> int:
     ap.add_argument("--repo", required=True)
     ap.add_argument("--rule", default="brush-junk")
     ap.add_argument("--min-age-days", type=int, default=3)
+    ap.add_argument("--apply", action="store_true",
+                    help="move files to .trash (default: dry-run)")
     ap.add_argument("paths", nargs="+", help="repo-relative paths to trash")
     args = ap.parse_args()
 
@@ -139,9 +141,14 @@ def main() -> int:
         if reason:
             refused.append({"path": rel, "reason": reason})
             continue
-        trash_rel = relocate(root, rel, date)
-        note_manifest(root, date, args.rule, rel, trash_rel)
+        if args.apply:
+            trash_rel = relocate(root, rel, date)
+            note_manifest(root, date, args.rule, rel, trash_rel)
+        else:
+            trash_rel = trash_dest(root, rel, date).relative_to(root).as_posix()
         moved.append({"path": rel, "trash": trash_rel})
+    if not args.apply:
+        print("DRY-RUN (use --apply)", file=sys.stderr)
     print(json.dumps({"moved": moved, "refused": refused}, indent=2))
     return 0
 
