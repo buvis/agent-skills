@@ -135,6 +135,24 @@ def test_survey_unreadable_file_is_skipped_without_error(tmp_path, monkeypatch):
         f"the unreadable file still counts toward its layer:\n{brief}"
 
 
+def test_survey_empty_file_is_read_from_disk_only_once(tmp_path, monkeypatch):
+    """An empty file's text ("") must not be treated as "not read yet".
+
+    An implementation that checks truthiness instead of identity (`if not
+    text` instead of `if text is None`) re-reads an empty sampled file for
+    every consumer that asks for its text.
+    """
+    repo = _build_repo(tmp_path)
+    empty = (repo / "src" / "empty.py").resolve()
+    reads = _count_reads(monkeypatch)
+
+    run._survey(repo)
+
+    assert reads[empty] == 1, (
+        f"empty.py must be read from disk exactly once, got {reads[empty]} reads"
+    )
+
+
 def test_survey_invalid_utf8_file_degrades_instead_of_crashing(tmp_path, monkeypatch):
     """The single read decodes leniently, like the per-consumer reads it replaced.
 
