@@ -378,3 +378,51 @@ def test_go_panic_error_handling_classifies_as_exceptions(tmp_path):
         f"must classify as 'exceptions', got {style!r}. "
         f"A wrong impl keying on bare 'err' substring would return 'result'."
     )
+
+
+# ---------------------------------------------------------------------------
+# _survey: each sampled file is read from disk once
+# ---------------------------------------------------------------------------
+
+def test_no_sampled_file_is_read_from_disk_twice(tmp_path, monkeypatch):
+    """Symbol extraction and the error-style scan share one read per file.
+
+    A survey that reads a sampled file once for symbols and again for the
+    error-style scan records that path twice here.
+    """
+    repo = tmp_path / "repo"
+    for layer in ("core", "api"):
+        (repo / layer).mkdir(parents=True)
+        for i in range(30):
+            (repo / layer / f"mod_{i}.py").write_text(
+                f"def handler_{i}(req):\n"
+                f"    if not req:\n"
+                f"        raise ValueError('empty')\n"
+                f"    return req\n"
+            )
+    (repo / "api" / "main.go").write_text(
+        'package main\n\n'
+        'func run() error {\n'
+        '    if err := work(); err != nil {\n'
+        '        return err\n'
+        '    }\n'
+        '    return nil\n'
+        '}\n'
+    )
+    _init_git_repo(repo)
+
+    calls = []
+    original = Path.read_text
+
+    def recording_read_text(self, *args, **kwargs):
+        calls.append(self)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", recording_read_text)
+    run._survey(repo)
+
+    assert calls, "survey must read sampled files through Path.read_text"
+    assert len(calls) == len(set(calls)), (
+        f"each sampled file must be read at most once; repeats: "
+        f"{sorted({str(p) for p in calls if calls.count(p) > 1})}"
+    )
