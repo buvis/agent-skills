@@ -122,40 +122,69 @@ def test_zero_day_retention_never_deletes_what_this_run_just_trashed(tmp_path, c
     assert "trash-batches-emptied=1" in tokens
 
 
+def noon_today() -> float:
+    """Local noon keeps every batch half a day clear of the day boundary."""
+    return time.mktime(time.localtime()[:3] + (12, 0, 0, 0, 0, -1))
+
+
+def seed_trash(store, now: float, *ages: int) -> dict[int, str]:
+    """Create one trash batch per age in days. Returns {days: batch name}."""
+    names: dict[int, str] = {}
+    for days in ages:
+        names[days] = time.strftime("%Y-%m-%d", time.localtime(now - days * gc.DAY))
+        batch_dir = store / gc.TRASH_DIR / names[days]
+        batch_dir.mkdir(parents=True)
+        (batch_dir / "old.txt").write_text("x")
+    return names
+
+
+def present(store, names: dict[int, str]) -> set[int]:
+    """The ages, in days, whose seeded batch is still on disk."""
+    return {
+        days
+        for days, name in names.items()
+        if (store / gc.TRASH_DIR / name / "old.txt").is_file()
+    }
+
+
 def test_empty_trash_ages_out_old_batches_only(tmp_path):
     _repo, store = repo_store(tmp_path)
-    # Local noon keeps every batch half a day clear of the day boundary.
-    now = time.mktime(time.localtime()[:3] + (12, 0, 0, 0, 0, -1))
-    names: dict[int, str] = {}
-
-    def seed(*ages: int) -> None:
-        for days in ages:
-            names[days] = time.strftime("%Y-%m-%d", time.localtime(now - days * gc.DAY))
-            batch_dir = store / gc.TRASH_DIR / names[days]
-            batch_dir.mkdir(parents=True)
-            (batch_dir / "old.txt").write_text("x")
-
-    def present() -> set[int]:
-        return {days for days, name in names.items() if (store / gc.TRASH_DIR / name / "old.txt").is_file()}
-
-    seed(40, 2, 0)
+    now = noon_today()
+    names = seed_trash(store, now, 40, 2, 0)
     assert gc.empty_old_trash(store, now, 30, keep=names[0]) == 1
     assert not (store / gc.TRASH_DIR / names[40]).exists()
     assert (store / gc.TRASH_DIR / names[2] / "old.txt").is_file()
     assert (store / gc.TRASH_DIR / names[0] / "old.txt").is_file()
 
-    seed(45, 35, 31, 29, 3)
+
+def test_keep_spares_an_expired_batch(tmp_path):
+    """`keep` is matched by name, so it survives however far past the window."""
+    _repo, store = repo_store(tmp_path)
+    now = noon_today()
+    names = seed_trash(store, now, 3, 2)
+    # A one-day window expires both batches; only the kept one survives.
+    assert gc.empty_old_trash(store, now, 1, keep=names[2]) == 1
+    assert present(store, names) == {2}
+    # Zero-day retention: the kept batch survives with no window at all.
+    assert gc.empty_old_trash(store, now, 0, keep=names[2]) == 0
+    assert present(store, names) == {2}
+
+
+def test_empty_trash_window_boundaries(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    now = noon_today()
+    names = seed_trash(store, now, 45, 35, 31, 29, 3, 2, 0)
     assert gc.empty_old_trash(store, now, 50, keep=names[0]) == 0
-    assert present() == {45, 35, 31, 29, 3, 2, 0}
+    assert present(store, names) == {45, 35, 31, 29, 3, 2, 0}
     assert gc.empty_old_trash(store, now, 30, keep=names[0]) == 3
-    assert present() == {29, 3, 2, 0}
+    assert present(store, names) == {29, 3, 2, 0}
     # keep spares a batch past the window while a non-kept neighbour goes.
     assert gc.empty_old_trash(store, now, 1, keep=names[2]) == 2
-    assert present() == {2, 0}
+    assert present(store, names) == {2, 0}
     assert gc.empty_old_trash(store, now, 1, keep=names[0]) == 1
-    assert present() == {0}
+    assert present(store, names) == {0}
     assert gc.empty_old_trash(store, now, 0, keep=names[0]) == 0
-    assert present() == {0}
+    assert present(store, names) == {0}
 
 
 def test_dry_run_does_not_move(tmp_path):
