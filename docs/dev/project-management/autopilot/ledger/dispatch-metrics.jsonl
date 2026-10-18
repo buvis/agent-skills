@@ -2126,3 +2126,13 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1792341940,"phase":"done","prd":"00048-trash-untracked-preview-default-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1792341976,"phase":"done","prd":"00048-trash-untracked-preview-default-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1792342058,"phase":"build","prd":"00048-trash-untracked-preview-default-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792342076,"phase":"build","prd":"00070-purge-trash-first-guarantee-v1.md"}
+{"id":"ea3a5aaf","kind":"tess","task":"1","queued_at":1792342265,"prompt_bytes":17932}
+{"id":"a8028cbf","kind":"devon","task":"1","queued_at":1792342364,"prompt_bytes":5512}
+{"id":"a8028cbf","ended_at":1792342627,"elapsed_s":263,"outcome":"ok","detail":null}
+{"id":"79e983f2","kind":"ivan","task":"1","queued_at":1792342749,"prompt_bytes":15414}
+{"id":"be5630ca","kind":"pat","task":"1","queued_at":1792342856,"prompt_bytes":11460}
+{"id":"ea3a5aaf","ended_at":1792343390,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"79e983f2","ended_at":1792343390,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"be5630ca","ended_at":1792343390,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1792343390,"phase":"review","prd":"00070-purge-trash-first-guarantee-v1.md"}
