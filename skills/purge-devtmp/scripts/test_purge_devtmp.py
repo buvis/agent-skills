@@ -90,6 +90,38 @@ def test_apply_moves_to_trash_and_records_manifest(tmp_path):
     assert "stale-temp\tnested/old.txt" in (store / gc.TRASH_DIR / "manifest.tsv").read_text()
 
 
+def test_zero_day_retention_never_deletes_what_this_run_just_trashed(tmp_path, capsys):
+    _repo, store = repo_store(tmp_path)
+    target = store / "old.txt"
+    target.write_text("x")
+    age(target, 8)
+    now = time.time()
+    gc.process_store("repo", store, args(apply=True, empty_trash_days=0), now)
+    batch = time.strftime("%Y-%m-%d", time.localtime(now))
+    out = capsys.readouterr().out
+    assert not target.exists()
+    assert (store / gc.TRASH_DIR / batch / "old.txt").is_file()
+    assert "trash=1" in out
+    assert "trash-batches-emptied=0" in out
+
+
+def test_empty_trash_ages_out_old_batches_only(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    now = time.time()
+    names = {
+        days: time.strftime("%Y-%m-%d", time.localtime(now - days * gc.DAY))
+        for days in (40, 2, 0)
+    }
+    for name in names.values():
+        batch_dir = store / gc.TRASH_DIR / name
+        batch_dir.mkdir(parents=True)
+        (batch_dir / "old.txt").write_text("x")
+    assert gc.empty_old_trash(store, now, 30, keep=names[0]) == 1
+    assert not (store / gc.TRASH_DIR / names[40]).exists()
+    assert (store / gc.TRASH_DIR / names[2] / "old.txt").is_file()
+    assert (store / gc.TRASH_DIR / names[0] / "old.txt").is_file()
+
+
 def test_dry_run_does_not_move(tmp_path):
     _repo, store = repo_store(tmp_path)
     target = store / "old.txt"
