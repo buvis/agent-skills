@@ -152,11 +152,9 @@ def resolve_symbols(
     # exclude: PRD files being graded, so a claim can't self-confirm by quoting its own token
     exclude_globs = []
     for p in exclude:
-        p = Path(p)
-        if not p.is_absolute():
-            p = Path(root) / p
         try:
-            rel = p.resolve().relative_to(Path(root).resolve())
+            # a relative path came from the CLI, so it is relative to cwd, not to root
+            rel = Path(p).resolve().relative_to(Path(root).resolve())
         except ValueError:
             continue
         exclude_globs += ["--glob", f"!{rel}"]
@@ -373,10 +371,13 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(2)
 
     root = Path(args.root)
+    if not root.is_dir():
+        print(f"ground_prd: --root {root}: not a directory", file=sys.stderr)
+        sys.exit(2)
 
     try:
         result = run(files, root, registry)
-    except RuntimeError as e:
+    except (RuntimeError, OSError) as e:
         print(f"ground_prd: {e}", file=sys.stderr)
         sys.exit(2)
 
