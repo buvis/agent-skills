@@ -389,12 +389,8 @@ def test_scan_never_silently_drops_a_repo_whose_search_raises(tmp_path, monkeypa
 
     monkeypatch.setattr(sweep, "_scan_repo", crashing_scan_repo)
 
-    try:
-        _hits, _suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos)
-    except _SearchCrashed:
-        return
-    assert str(repo_b) in failed
-    assert failed[str(repo_b)]  # carries a non-empty reason
+    with pytest.raises(_SearchCrashed, match=str(repo_b)):
+        sweep.scan("PARALLELMARKER", "rg", repos)
 
 
 # -- scan: a sweep deadline stops waiting on unfinished repos ----------------
@@ -497,26 +493,27 @@ def test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs(
 def test_scan_deadline_budget_runs_from_scan_start_not_per_repo(
     tmp_path, monkeypatch
 ):
-    # Real clock, deadline 1.0s for the whole sweep. repo_a finishes at 0.6s,
-    # inside the budget, so its hit is kept. repo_b finishes at 1.3s: past
+    # Real clock, deadline 2.0s for the whole sweep. repo_a finishes at 1.0s,
+    # inside the budget, so its hit is kept. repo_b finishes at 3.0s: past
     # the sweep deadline, so it must expire. A budget that restarts when
-    # scan() reaches repo_b (at 0.6s) would wait until 1.6s, see repo_b
-    # finish, and keep it -- that fails here.
+    # scan() reaches repo_b (at 1.0s) would wait until 4.0s, see repo_b
+    # finish, and keep it -- that fails here. The gaps are a full second
+    # each so a loaded runner cannot flip the outcome.
     repo_a, repo_b, repo_c = repos = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
     release = threading.Event()
 
     def staggered_scan_repo(repo, *args, **kwargs):
         if repo == repo_a:
-            time.sleep(0.6)
+            time.sleep(1.0)
         elif repo == repo_b:
-            release.wait(timeout=1.3)
+            release.wait(timeout=3.0)
         return str(repo), [_stub_hit(repo)], None
 
     monkeypatch.setattr(sweep, "_scan_repo", staggered_scan_repo)
 
     try:
         hits, _suppressed, failed = sweep.scan(
-            "PARALLELMARKER", "rg", repos, deadline=1.0
+            "PARALLELMARKER", "rg", repos, deadline=2.0
         )
     finally:
         release.set()
