@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { JSDOM } from 'jsdom'
 import {
@@ -21,6 +21,10 @@ const TURNS = [
 // must not trip the "marker appears nowhere in app/src" acceptance check.
 const NOT_BUILT_MARKER = '__MEETING' + '_PAYLOAD__'
 
+// The stub is global, so it is put back after this file's tests: a leaked
+// jsdom document would reach every later test in the run.
+const REAL_DOCUMENT = globalThis.document
+
 function setPayloadNodeText(text) {
   const dom = new JSDOM(
     '<script id="decoy">var decoy = "not the payload"</script>'
@@ -29,6 +33,10 @@ function setPayloadNodeText(text) {
   dom.window.document.getElementById('meeting-payload').textContent = text
   globalThis.document = dom.window.document
 }
+
+after(() => {
+  globalThis.document = REAL_DOCUMENT
+})
 
 test('reports not-built when the payload node still holds the placeholder marker', () => {
   setPayloadNodeText(NOT_BUILT_MARKER)
@@ -66,12 +74,19 @@ test('reports unreadable with the missing-field message when turns is present bu
 })
 
 test('reports unreadable with the parser\'s own message, not the missing-field message, when the payload text is not valid JSON', () => {
-  setPayloadNodeText('{"transcript":{"turns":[')
+  const truncated = '{"transcript":{"turns":['
+  let parserMessage
+  try {
+    JSON.parse(truncated)
+  } catch (e) {
+    parserMessage = e.message
+  }
+  setPayloadNodeText(truncated)
   const { payload, error } = loadPayload()
   assert.equal(payload, null)
   assert.equal(error.kind, 'unreadable')
   assert.notEqual(error.reason, 'missing transcript.turns')
-  assert.match(error.reason, /JSON|Unexpected|Unterminated/)
+  assert.equal(error.reason, parserMessage)
   assert.deepEqual(Object.keys(error).sort(), ['kind', 'reason'])
 })
 
