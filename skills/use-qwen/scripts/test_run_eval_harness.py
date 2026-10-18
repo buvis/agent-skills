@@ -105,10 +105,10 @@ def test_cli_vet_readies_the_task_and_records_its_gate_bound_and_shapes(vetted, 
         "spec.json", "template", "vetting.json",
     ]
     assert not (vetted.root / "runs").exists()
-    # and with `--gate-bound 2 --shapes description` given, vetting.json carries those instead
+    # and with `--gate-bound 4 --shapes description` given, vetting.json carries those instead
     given = _read_json(slow.task / "vetting.json")
     assert (slow.task / "ready").exists()
-    assert (given["gate_bound_s"], given["shapes"], given["ready"]) == (2, ["description"], True)
+    assert (given["gate_bound_s"], given["shapes"], given["ready"]) == (4, ["description"], True)
 
 
 def test_vet_fails_the_baseline_check_when_the_oracle_already_passes(scratch, capsys):

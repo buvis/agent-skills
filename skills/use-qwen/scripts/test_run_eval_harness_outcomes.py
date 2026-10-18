@@ -272,10 +272,18 @@ def test_alternate_reverses_the_engine_order_on_odd_tasks(rounds, shim):
     assert len(_attempts(round_)) == 4
 
 
-def test_baseline_and_gate_timeouts_are_suspect(rounds):
+def test_baseline_and_gate_timeouts_are_suspect(rounds, slow):
     slow_base, slow_gate = rounds("basetimeout"), rounds("gatetimeout")
     base_dir, gate_dir = slow_base.run / "1-cmd1-a1", slow_gate.run / "1-cmd1-a1"
     base, gate = _record(slow_base, "1-cmd1-a1"), _record(slow_gate, "1-cmd1-a1")
+
+    # both rounds run at the gate bound `slow` was vetted at, 4 s
+    vetted_bound = _read_json(slow.task / "vetting.json")["gate_bound_s"]
+    for round_ in (slow_base, slow_gate):
+        assert _read_json(round_.run / "run.json")["config"]["gate_bound"] == vetted_bound == 4
+    # each timeout fires at that bound, well before the 15 s sleep it cuts short
+    assert 3.5 <= base["baseline"]["wall_s"] < 15
+    assert 3.5 <= _gate(gate, "gate")["wall_s"] < 15
 
     # a baseline past its bound stops the attempt before any engine runs
     assert (base["outcome"], base["validity"]) == ("SUSPECT", "DISCARDED:baseline")
@@ -419,6 +427,16 @@ def test_run_refuses_before_creating_the_run_dir(tmp_path, request, shim, capsys
     assert err.strip(), "a refusal owes a diagnostic"
     assert all(word in err for word in words), err
     assert not (root / "runs" / "r").exists()
+
+
+def test_the_shape_not_vetted_refusal_differs_from_the_slow_vetting_only_in_shape(slow):
+    # a refusal case that also missed the vetted gate bound would refuse for the wrong reason
+    bundle_name, _prepare, overrides, _words = REFUSALS["shape-not-vetted"]
+    vetting = _read_json(slow.task / "vetting.json")
+
+    assert bundle_name == "slow"
+    assert float(overrides["gate_bound"]) == vetting["gate_bound_s"] == 4
+    assert overrides["shape"] not in vetting["shapes"]
 
 
 def test_run_refuses_an_existing_run_directory_and_leaves_it_untouched(tmp_path, rounds, shim):
