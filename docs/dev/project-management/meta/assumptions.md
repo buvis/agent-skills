@@ -14,3 +14,7 @@
 - (Tess) "Contains the literal line" means one stderr line is exactly `DRY-RUN (use --apply)`.
 - (Tess, strengthening) The marker prints exactly once per run regardless of movable-path count, including zero.
 - (Ivan) The marker prints once on every run without `--apply`, even when every path is refused.
+
+## 3: Fix pre-existing tests for preview default; add PRD acceptance tests
+
+- (Ivan) Reused the existing `_old_file` and `_run_main` helpers, which already set `sys.argv` correctly; "exactly one `moved` entry whose `path` is `old_junk.log`" checked as `[e["path"] for e in out["moved"]] == ["old_junk.log"]`.
