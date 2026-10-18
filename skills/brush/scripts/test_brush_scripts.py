@@ -195,6 +195,17 @@ def test_trash_dest_appends_a_dup_timestamp_when_the_dest_is_taken(
     assert _tree(tmp_path) == before
 
 
+def test_trash_dest_no_suffix_when_dated_dir_exists_but_name_is_free(
+        tmp_path: Path) -> None:
+    dated = tmp_path / "docs/dev/tmp/.trash/2026-07-13"
+    dated.mkdir(parents=True)
+    (dated / "other.log").write_text("unrelated")
+
+    dest = tu.trash_dest(tmp_path, "old_junk.log", "2026-07-13")
+
+    assert dest == dated / "old_junk.log"
+
+
 def test_relocate_moves_the_file_to_the_trash_dest_path(tmp_path: Path) -> None:
     src = tmp_path / "charts/sub/old_junk.log"
     src.parent.mkdir(parents=True)
