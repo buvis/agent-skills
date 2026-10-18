@@ -2124,3 +2124,5 @@
 {"id":"fc183677","kind":"pat","task":"6","queued_at":1792341349,"prompt_bytes":13207}
 {"id":"fc183677","ended_at":1792341400,"elapsed_s":51,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1792341940,"phase":"done","prd":"00048-trash-untracked-preview-default-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1792341976,"phase":"done","prd":"00048-trash-untracked-preview-default-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1792342058,"phase":"build","prd":"00048-trash-untracked-preview-default-v1.md"}

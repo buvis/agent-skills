@@ -232,7 +232,13 @@ Updated: 2026-10-18 (full catchup, PRD 00045 selection, same batch 202610100952,
   suite green at c96ba5b (3922 passed, 9 skipped). Working tree still
   carries the pre-existing unrelated `skills/glean/scripts/glean.py`/
   `test_glean.py` edits, left untouched.
-- [ ] 00048-trash-untracked-preview-default-v1.md (backlog)
+- [x] 00048-trash-untracked-preview-default-v1.md (7/7 tasks, 1 cycle) —
+  `trash_untracked.py` previews by default; `--apply` moves files.
+  `trash_dest()` split out of `relocate()`. Converged cycle 1 (2 findings,
+  0 C/H); tail swept as tasks 6-7 (redundant tests trimmed, CHANGELOG entry
+  added). Full suite 3940 passed / 9 skipped. 1 item deferred (pre-existing
+  unrelated `skills/glean/scripts/glean.py`/`test_glean.py` edits, left
+  untouched).
 - [ ] 00049-qwen-completion-status-v1.md (backlog)
 - [ ] 00050-qwen-ivan-capability-eval-v1.md (backlog)
 - [ ] 00070-purge-trash-first-guarantee-v1.md (backlog)

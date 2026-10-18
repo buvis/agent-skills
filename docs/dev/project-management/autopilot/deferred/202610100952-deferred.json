@@ -399,6 +399,15 @@
       "consensus": "3/4",
       "reason": "Working-tree drift predating this PRD (no glean commit in 758bded..2eecabc). Committing or reverting another session unreviewed work is the operator call, not this gate.",
       "prd": "00048-trash-untracked-preview-default-v1.md"
+    },
+    {
+      "type": "deferred_decision",
+      "cycle": 1,
+      "issue": "Uncommitted glean reformatting outside PRD 00048 range (also pushes cmd_scan to 54 lines)",
+      "severity": "medium",
+      "action": "deferred to batch end",
+      "reason": "Working-tree drift predating this PRD; committing or reverting another session unreviewed work is the operator call, not this gate.",
+      "prd": "00048-trash-untracked-preview-default-v1.md"
     }
   ]
 }
