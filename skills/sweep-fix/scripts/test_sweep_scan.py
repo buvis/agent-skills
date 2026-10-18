@@ -525,3 +525,36 @@ def test_scan_deadline_budget_runs_from_scan_start_not_per_repo(
     assert [h["repo"] for h in hits] == [str(repo_a), str(repo_c)]
 
 
+# -- scan: iterator repos and deadline attribution ---------------------------
+
+
+def test_scan_accepts_a_one_shot_iterator_of_repos(tmp_path):
+    repo_a = _plant_matches(tmp_path / "repo_a", "ITERMARKER", 2)
+    repo_b = _plant_matches(tmp_path / "repo_b", "ITERMARKER", 2)
+
+    list_hits, _s, _f = sweep.scan("ITERMARKER", "rg", [repo_a, repo_b])
+    iter_hits, _s, _f = sweep.scan("ITERMARKER", "rg", iter([repo_a, repo_b]))
+
+    assert len(list_hits) == 4
+    assert iter_hits == list_hits
+
+
+def test_scan_does_not_report_a_workers_own_timeout_as_a_deadline_hit(
+    tmp_path, monkeypatch
+):
+    repo_a, repo_b = repos = _make_repos(tmp_path, ["repo_a", "repo_b"])
+
+    def timing_out_scan_repo(repo, *args, **kwargs):
+        if repo == repo_b:
+            raise TimeoutError("boom")
+        return str(repo), [_stub_hit(repo)], None
+
+    monkeypatch.setattr(sweep, "_scan_repo", timing_out_scan_repo)
+
+    hits, _suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, deadline=60)
+
+    assert failed[str(repo_b)] != sweep.DEADLINE_REASON
+    assert "boom" in failed[str(repo_b)]
+    assert [h["repo"] for h in hits] == [str(repo_a)]
+
+

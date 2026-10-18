@@ -438,6 +438,24 @@ def test_main_rejects_cap_of_zero(tmp_path, monkeypatch, capsys):
     assert "--cap must be a positive integer" in (captured.out + captured.err).lower()
 
 
+@pytest.mark.parametrize("flag", ["--cap", "--deadline"])
+def test_main_names_flag_and_rule_for_non_integer_value(
+    tmp_path, monkeypatch, capsys, flag
+):
+    argv, _repos, out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "NONINTMARKER", _make_repo
+    )
+    argv += [flag, "abc"]
+
+    with pytest.raises(SystemExit) as exc_info:
+        sweep.main(argv)
+
+    assert exc_info.value.code != 0
+    assert not out_path.exists()
+    captured = capsys.readouterr()
+    assert f"{flag} must be a positive integer" in (captured.out + captured.err).lower()
+
+
 def test_main_rejects_negative_cap(tmp_path, monkeypatch, capsys):
     argv, (_repo_a, _repo_b, _repo_c), out_path = _build_sweep_main_scaffold(
         tmp_path, monkeypatch, "NEGATIVECAPMARKER", _make_repo
