@@ -1,0 +1,50 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Scope creep: the diff carries a formatter-style rewrite of glean.py and test_glean.py (82 and 64 changed lines). It has nothing to do with PRD 00070: `re.I` becomes `re.IGNORECASE`, trailing commas are added, and calls are re-wrapped. These are the pre-existing uncommitted edits that `git status` shows and the project capsule says were \"left untouched\". They should be committed or reverted separately, not under the purge-devtmp task.",
+    "file": "skills/glean/scripts/glean.py:37",
+    "reason": "Pre-existing uncommitted working-tree drift that predates this PRD (modified in git status at session start, absent from work_start_sha..HEAD committed history). Reverting or committing another in-flight change is out of PRD 00070 scope per rules/operating-principles.md Surgical Changes."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Unrelated glean formatting expands `cmd_scan` to 54 lines, exceeding the 50-line limit. Restore its previous formatting and omit unrelated glean formatting changes.",
+    "file": "skills/glean/scripts/glean.py:191",
+    "reason": "Same root cause as the glean scope-creep deferral: pre-existing uncommitted drift outside this PRD's change set. Bob's R12 fail is attributable to that file alone, not to purge_devtmp.py."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The new `empty_old_trash` signature line is 91 characters. The reformatted glean.py in this same diff wraps at 88, so the repo style is inconsistent. This is cosmetic.",
+    "file": "skills/purge-devtmp/scripts/purge_devtmp.py:143",
+    "reason": "Contradicts project configuration: pyproject.toml sets ruff line-length = 100, so a 91-character line complies and glean.py's 88-column wrapping is not the repo standard. The real E501 this diff did introduce is test_purge_devtmp.py:139 (108 > 100), swept under the tail-sweep task instead."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Implementation matches the spec. `empty_old_trash(store, now, days, keep=None)` skips `batch.name == keep` at the top of its loop, so the kept batch is skipped whatever its age. `process_store` passes `keep=batch`, and the signature of `process_store` is unchanged.",
+    "file": "skills/purge-devtmp/scripts/purge_devtmp.py:150",
+    "reason": "Not a defect: a reviewer confirmation that the implementation matches the spec, emitted on the issue line because the format has no approval shape."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "I could not re-run the fail-first claim against the old code. Git history shows the test commit cf78053 landed before the fix commit b8318eb, which is consistent with the zero-day test failing first. A CHANGELOG entry was added in 530affd. `uv run pytest skills/purge-devtmp/scripts -q` gives 10 passed, 0 failed, with 2 unrelated pytest tmpdir cleanup warnings.",
+    "file": null,
+    "reason": "Not a defect, and already answered mechanically: this cycle's fail-first replay block ran both touched tests against base 71492a8941ad and both failed there, so the fail-first claim is confirmed by computation rather than by Blake's manual replay."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The kept batch is spared by exact name match only. Under `--empty-trash-days 0`, yesterday's batch is still deleted. That is the intended window semantics, not a defect.",
+    "file": "skills/purge-devtmp/scripts/purge_devtmp.py:156",
+    "reason": "Not a defect by the reviewer's own words: exact-name sparing plus the age window is the PRD's intended semantics."
+  }
+]

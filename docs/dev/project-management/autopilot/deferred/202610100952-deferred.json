@@ -408,6 +408,28 @@
       "action": "deferred to batch end",
       "reason": "Working-tree drift predating this PRD; committing or reverting another session unreviewed work is the operator call, not this gate.",
       "prd": "00048-trash-untracked-preview-default-v1.md"
+    },
+    {
+      "type": "out-of-scope",
+      "cycle": 1,
+      "issue": "Scope creep: the diff carries a formatter-style rewrite of glean.py and test_glean.py (82 and 64 changed lines). It has nothing to do with PRD 00070: re.I becomes re.IGNORECASE, trailing commas are added, and calls are re-wrapped. These are the pre-existing uncommitted edits that git status shows and the project capsule says were left untouched. They should be committed or reverted separately, not under the purge-devtmp task.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "file": "skills/glean/scripts/glean.py:37",
+      "action": "deferred to batch end",
+      "reason": "Pre-existing uncommitted working-tree drift that predates this PRD (present in git status at session start, outside work_start_sha..HEAD committed history). Committing or reverting another in-flight change is out of PRD 00070 scope per rules/operating-principles.md Surgical Changes; the owner of that edit decides.",
+      "prd": "00070-purge-trash-first-guarantee-v1.md"
+    },
+    {
+      "type": "out-of-scope",
+      "cycle": 1,
+      "issue": "Unrelated glean formatting expands cmd_scan to 54 lines, exceeding the 50-line limit. Restore its previous formatting and omit unrelated glean formatting changes.",
+      "severity": "medium",
+      "consensus": "1/4",
+      "file": "skills/glean/scripts/glean.py:191",
+      "action": "deferred to batch end",
+      "reason": "Same root cause as the glean scope-creep deferral: pre-existing uncommitted drift outside PRD 00070 change set. Bob R12 fail is attributable to that file only. Out of scope per Surgical Changes.",
+      "prd": "00070-purge-trash-first-guarantee-v1.md"
     }
   ]
 }
