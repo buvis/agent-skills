@@ -1,0 +1,42 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "high",
+    "issue": "Unrelated changes in the diff. skills/glean/scripts/glean.py and test_glean.py carry formatter-only rewrites: re.I becomes re.IGNORECASE, trailing commas and line wraps. They are the pre-existing uncommitted edits, not part of PRD 00045. Keep them out of this PRD's commit",
+    "file": "skills/survey/scripts/../glean/scripts/glean.py",
+    "reason": "Verified: `git log --oneline 370f43ba5633..HEAD -- skills/glean/scripts/glean.py` returns no commits (control run on skills/survey/scripts/run.py returns 5), so no glean change was committed by this PRD. The glean edits are uncommitted working-tree state that predates this session; gather-context.sh included them in the diff. Nothing to keep out of the commit, and reverting a human's uncommitted work would be destructive. Carl's `cmd_scan` 54-line finding merged into this row and is discarded with it, for the same reason."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Scope creep: _build_brief was split into three new helpers (_brief_naming_section, _brief_index_section, _brief_extension_section). No PRD task or the design doc asks for this. The binary-search and single-read changes do not touch brief assembly. Revert it to keep the diff traceable, or record it as a separate pre-existing function-size cleanup",
+    "file": "skills/survey/scripts/run.py:287",
+    "reason": "Recorded as a pre-existing function-size cleanup, which is the second option the finding itself offers. `_build_brief` measured 63 lines at the base commit 370f43ba5633 (ast-measured), so it violated the 50-line rule before this PRD started; the split (commit 59f1090) is behavior-preserving and covered by the existing brief tests. Reverting would re-introduce a known standards violation to buy diff tidiness."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "16 touched test(s) pass against the pre-change code: test_trim_matches_the_pop_loop_byte_for_byte +10 more",
+    "file": "skills/survey/scripts/test_survey_brief.py",
+    "reason": "Behavior-preserving refactor: the PRD's must-have is that _trim_lines_to_budget returns byte-identical output, so a test pinning that identity passes at base by design. The fail-first pin the PRD names (test_no_sampled_file_is_read_from_disk_twice) does fail at base; the replay reports 36 of 85 touched tests failing there."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "4 touched test(s) pass against the pre-change code: test_survey_brief_still_reflects_file_contents_after_single_read, test_survey_reads_current_contents_on_every_call, test_survey_unreadable_file_is_skipped_without_error, test_survey_invalid_utf8_file_degrades_instead_of_crashing",
+    "file": "skills/survey/scripts/test_survey_single_read.py",
+    "reason": "These four assert that observable survey output is unchanged by the single-read rework (content freshness, unreadable-file tolerance, invalid-UTF-8 degradation). Observable behavior is unchanged by design, so they pass at base. The call-count test in the same area does fail at base."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "29 touched test(s) pass against the pre-change code: test_trim_keeps_largest_prefix_of_whole_lines_that_fits +23 more",
+    "file": "skills/survey/scripts/test_survey_trim.py",
+    "reason": "Same reason as the test_survey_brief.py replay row: the trimmer change is specified as byte-identical, so output-equality tests pass at base by design. The overlap these tests create is a separate, real finding (R1) and is being fixed."
+  }
+]
