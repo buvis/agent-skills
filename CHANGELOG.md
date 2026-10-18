@@ -312,6 +312,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `restore-tasks`, `resume-session`, `save-session`) for the same reason. They
   read `~/.codex/tasks`, `~/.codex/projects`, `~/.codex/decisions`,
   `~/.codex/commands` and `~/.codex/dev`; none of those exist.
+- **brief-portfolio**: the skill and its app are gone (af1b704); the entries above that name it stay as written
 
 ### Fixed
 
