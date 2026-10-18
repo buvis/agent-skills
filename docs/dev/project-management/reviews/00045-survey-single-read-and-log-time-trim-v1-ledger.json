@@ -38,5 +38,45 @@
     "issue": "29 touched test(s) pass against the pre-change code: test_trim_keeps_largest_prefix_of_whole_lines_that_fits +23 more",
     "file": "skills/survey/scripts/test_survey_trim.py",
     "reason": "Same reason as the test_survey_brief.py replay row: the trimmer change is specified as byte-identical, so output-equality tests pass at base by design. The overlap these tests create is a separate, real finding (R1) and is being fixed."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The `if f in texts: continue` guard in `_read_sampled_texts` cannot fire, because `_scan_layers` builds disjoint per-directory file lists (`skills/survey/scripts/run.py:62`) and no test exercises it. It follows the design snippet, so it is harmless. Drop it if you take the simplification, otherwise leave it",
+    "file": "skills/survey/scripts/run.py:416",
+    "reason": "Kept, which is the option the finding itself allows. The design doc's _read_sampled_texts snippet prescribes this guard, and cycle 1's R7 (Carl) flagged its absence as a contract deviation; the cycle-1 rework added it. Removing it now would re-open R7 and churn the same line across three cycles for a guard the reviewer calls harmless."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The tree-sitter path (`_extract_tree_sitter` with a supplied `text`, and the `.go` merge on that path) is not exercised by the single-read test. 8 tests were skipped in this environment because tree-sitter is unavailable, so the single-read guarantee on that path is unverified here. By inspection, run.py:139-143, run.py:162 and run.py:173 forward `text` correctly.",
+    "file": "skills/survey/scripts/test_survey.py:387",
+    "reason": "Environmental, not a code defect: tree-sitter is not installed in this sandbox, so the existing tree-sitter-conditional tests skip. Blake verified by inspection that run.py:139-143, 162 and 173 forward `text` on that path. Adding a test that can only skip here buys no coverage; the pre-existing conditional marks already cover it where tree-sitter is present."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Extra test coverage beyond the spec (about 15 tests in skills/survey/scripts/test_survey_trim.py) is not harmful. It does split the PRD's stated test layout across a file the PRD never names.",
+    "file": "skills/survey/scripts/test_survey_trim.py",
+    "reason": "The finder states the coverage itself is not harmful. The layout half of the concern is being fixed as this cycle's R2/R3 task, which restores the two PRD-named tests to test_survey_brief.py; the remaining broader sweep tests stay in test_survey_trim.py as extra coverage, which no PRD requirement forbids."
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "1 touched test(s) pass against the pre-change code: test_implementations_index_file_path_includes_relative_directory",
+    "file": "skills/survey/scripts/test_survey_brief.py",
+    "reason": "Same reason as the cycle-1 replay discards: this is a pre-existing brief test that the cycle-1 dedup commit merely touched; it pins brief output that the PRD specifies as unchanged, so it passes at the prior cycle's HEAD by design. It is not a new test introduced to pin this change."
+  },
+  {
+    "cycle": 2,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Redundant tests: test_survey_trim.py repeats work the PRD-named tests already do (cycle 1 R1, re-raisable after the R2/R3 fix restores the PRD-named tests)",
+    "file": "skills/survey/scripts/test_survey_trim.py",
+    "reason": "Direction settled for the rest of this PRD: the PRD contract wins over dedup. Cycle 1 resolved R1 by deleting the PRD-named tests test_trim_matches_the_pop_loop_byte_for_byte and test_trim_encodes_a_logarithmic_number_of_times from test_survey_brief.py, which broke the PRD's own acceptance commands (cycle 2 R2/R3, 3 of 4 reviewers, Carl ran both commands to exit 4). The cycle-2 fix restores both tests with the PRD's stated parameters in test_survey_brief.py and removes the test_survey_trim.py copies of exactly those two, keeping one shared oracle. Do not re-raise the restored tests as duplicates."
   }
 ]

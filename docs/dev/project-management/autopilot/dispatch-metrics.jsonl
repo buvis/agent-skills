@@ -2049,3 +2049,14 @@
 {"id":"e57d3df6","ended_at":1792330988,"elapsed_s":685,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1792331037,"phase":"review","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
 {"kind":"handoff","site":"review","edge":"leave","at":1792331928,"phase":"review","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792331956,"phase":"review","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
+{"id":"f78c26a0","kind":"bob","task":"review-20261018t1420","queued_at":1792332448,"prompt_bytes":17549}
+{"id":"b6bd088c","kind":"carl","task":"review-20261018t1420","queued_at":1792332448,"prompt_bytes":14556}
+{"id":"0418b615","kind":"bob","task":"review-20261018t1420","queued_at":1792332853,"prompt_bytes":108034}
+{"id":"f78c26a0","ended_at":1792332890,"elapsed_s":442,"outcome":"error","detail":"lack-of-input"}
+{"id":"0418b615","ended_at":1792332893,"elapsed_s":40,"outcome":"ok","detail":"retry"}
+{"id":"b6bd088c","ended_at":1792332896,"elapsed_s":448,"outcome":"ok","detail":null}
+{"id":"f78c26a0","ended_at":1792333529,"elapsed_s":1081,"outcome":"ok","detail":null}
+{"id":"0418b615","ended_at":1792333529,"elapsed_s":676,"outcome":"ok","detail":null}
+{"id":"b6bd088c","ended_at":1792333529,"elapsed_s":1081,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1792333563,"phase":"review","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
