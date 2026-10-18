@@ -284,6 +284,53 @@ def _compute_error_style(
     return "mixed"
 
 
+def _brief_naming_section(naming: dict[str, dict[str, int]]) -> list[str]:
+    lines = ["## Naming conventions", ""]
+    for layer_name, counts in naming.items():
+        dominant = max(counts, key=lambda k: counts[k])
+        lines.append(
+            f"- **{layer_name}**: {dominant} "
+            f"(camelCase={counts['camelCase']}, snake_case={counts['snake_case']}, PascalCase={counts['PascalCase']})",
+        )
+    lines.append("")
+    return lines
+
+
+def _brief_index_section(
+    file_syms_by_layer: dict[str, list[tuple[str, str, str, int]]],
+) -> list[str]:
+    lines = ["## Existing implementations index", ""]
+    count = 0
+    for syms in file_syms_by_layer.values():
+        for rel_path, name, kind, lineno in syms:
+            if count >= 20:
+                break
+            lines.append(f"- `{name}` ({kind}) - {rel_path}:{lineno}")
+            count += 1
+        if count >= 20:
+            break
+    if count == 0:
+        lines.append("_(no symbols found)_")
+    lines.append("")
+    return lines
+
+
+def _brief_extension_section(
+    file_syms_by_layer: dict[str, list[tuple[str, str, str, int]]],
+) -> list[str]:
+    lines = ["## Extension points", ""]
+    ext_count = 0
+    for syms in file_syms_by_layer.values():
+        for rel_path, name, kind, lineno in syms:
+            if kind in ("interface", "class") and ext_count < 10:
+                lines.append(f"- `{name}` ({kind}) - {rel_path}:{lineno}")
+                ext_count += 1
+    if ext_count == 0:
+        lines.append("_(no interfaces or abstract bases found)_")
+    lines.append("")
+    return lines
+
+
 def _build_brief(
     atlas: dict,
     file_syms_by_layer: dict[str, list[tuple[str, str, str, int]]],
@@ -300,47 +347,15 @@ def _build_brief(
         lines.append(f"- **{layer_name}**: {len(files)} files")
     lines.append("")
 
-    lines.append("## Naming conventions")
-    lines.append("")
-    for layer_name, counts in naming.items():
-        dominant = max(counts, key=lambda k: counts[k])
-        lines.append(
-            f"- **{layer_name}**: {dominant} "
-            f"(camelCase={counts['camelCase']}, snake_case={counts['snake_case']}, PascalCase={counts['PascalCase']})",
-        )
-    lines.append("")
+    lines.extend(_brief_naming_section(naming))
 
     lines.append("## Error-handling style")
     lines.append("")
     lines.append(f"Detected style: **{error_style}**")
     lines.append("")
 
-    lines.append("## Existing implementations index")
-    lines.append("")
-    count = 0
-    for syms in file_syms_by_layer.values():
-        for rel_path, name, kind, lineno in syms:
-            if count >= 20:
-                break
-            lines.append(f"- `{name}` ({kind}) - {rel_path}:{lineno}")
-            count += 1
-        if count >= 20:
-            break
-    if count == 0:
-        lines.append("_(no symbols found)_")
-    lines.append("")
-
-    lines.append("## Extension points")
-    lines.append("")
-    ext_count = 0
-    for syms in file_syms_by_layer.values():
-        for rel_path, name, kind, lineno in syms:
-            if kind in ("interface", "class") and ext_count < 10:
-                lines.append(f"- `{name}` ({kind}) - {rel_path}:{lineno}")
-                ext_count += 1
-    if ext_count == 0:
-        lines.append("_(no interfaces or abstract bases found)_")
-    lines.append("")
+    lines.extend(_brief_index_section(file_syms_by_layer))
+    lines.extend(_brief_extension_section(file_syms_by_layer))
 
     if atlas.get("degraded"):
         lines.append("_degraded: tree-sitter unavailable, symbols found by regex_")
