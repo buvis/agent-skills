@@ -196,6 +196,8 @@ def test_two_runs_over_the_same_registry_write_byte_identical_reports(
     argv[out_index + 1] = str(first_out)
     assert sweep.main(argv) == 0
     first_bytes = first_out.read_bytes()
+    # Guard the comparison below against two identically empty reports.
+    assert b"IDENTICALREPORTMARKER" in first_bytes
     # The report sits inside the scanned repo and carries the marker, so a
     # second sweep would count it as a hit; remove it first.
     first_out.unlink()
