@@ -1,46 +1,48 @@
-# Assumptions ledger — PRD 00031-sweep-parallel-with-deadline-v1
+# Assumptions ledger — PRD 00045-survey-single-read-and-log-time-trim-v1
 
-## 1: Parallelize scan() with ThreadPoolExecutor(max_workers=8)
+## 1: Thread an optional text parameter through the symbol extractors and error-style scan
 
-- The stubs take `(repo, *args, **kwargs)` instead of the exact 5-argument signature, so the later `deadline` task does not break them.
-- The stub returns the documented `(cwd_key, hits, error)` tuple with `cwd_key = str(repo)`, and hit dicts shaped like `_build_hit` output (`repo`, `file`, `line`, `snippet`, `lang`).
-- The ordering test uses a sleep difference to keep completion order deterministic. A correct implementation passes regardless of timing; only the chance of catching a completion-order bug depends on it.
-- With `deadline=None`, a slow repo must land in hits, not in `failed` (PRD Must-have: an unfinished repo goes to `failed` only under a deadline).
-- A 1.0s slow repo against `timeout=0.2` is enough to catch a join-timeout exploit; it cannot catch every possible join timeout without an unbounded sleep.
-- Patching `subprocess.run` for the concurrency test is allowed even though the task text says to patch `sweep._scan_repo`, because the real exploit required running the barrier through the real `_scan_repo` path.
-- The PRD-listed test `test_scan_records_an_unfinished_repo_when_the_deadline_expires` belongs to the separate deadline task (task 4) and is out of scope for task 1.
-- (Ivan) The deadline, `--deadline` CLI flag, `Partial:` line and SKILL.md usage-line parts of the design belong to a later task with their own tests, so left out of task 1's implementation.
-- (Ivan) Letting a `_scan_repo` exception escape `scan()` is acceptable, as before and as the tests allow; not turned into a `failed` entry.
+- (Tess) Tests pass `text` / `texts` as keyword arguments. The contract gives these names in the signatures.
+- (Tess) An empty string `text=""` counts as given text, not missing, because the contract says to read from disk "only when it is None".
+- (Tess) `texts={}` behaves like None: every file is read from disk, because the lookup is "f in texts".
+- (Tess) Patched `try_import_tree_sitter` and `_extract_tree_sitter` to cover the three internal extraction paths deterministically, matching the existing test's pattern.
+- (Tess) The `.go` merge test assumes the regex extractor gives `type X struct` kind "class" and `type X interface` kind "interface", per the existing regex extractor.
+- (Tess) The new file's name, `test_survey_text.py`, follows the existing `test_survey_*.py` sibling convention.
+- (Tess, strengthening) `_extract_tree_sitter(f, ts, text="")` must actually call `ts_module.process("")` rather than short-circuit on an empty string.
+- (Tess, strengthening) The gap-1 fake accepts `text` as a keyword or as the third positional argument.
+- (Tess, strengthening) The stub test files use a `.py` suffix so `_TS_LANG_BY_EXT` maps them to a language and `_extract_tree_sitter` does not return early.
+- (Ivan) `_survey` is not wired to pass pre-read text in this task - the tests do not require it (that is the next task).
+- (Ivan) `text` is passed to `_extract_tree_sitter` as a keyword argument.
 
-## 4: Add deadline param, DEADLINE_REASON constant, and the deadline-expiry test
+## 2: Make _survey read each sampled file once and thread it through the extractors and error-style scan
 
-- (Tess) `scan()` will keep passing the repo as the first positional argument to `executor.submit(_scan_repo, repo, ...)`, and will keep using `sweep.ThreadPoolExecutor` and reading `time.monotonic` through the module (`import time`), not `from time import monotonic`.
-- (Tess) The deadline value of 5s used in the within-deadline test is arbitrary; any value well under the real-clock sleeps used works.
-- (Tess, strengthening) "Inside a try/finally: release.set()" wraps the `scan()` call, not the worker — a `finally` inside the worker would only run after its own wait already timed out.
-- (Tess, strengthening) A correct implementation starts the deadline clock when `scan()` is entered (or at submit time); the added budget-from-start test carries ~0.3s of margin around that.
-- (Ivan) Waiting on a future with `timeout=remaining` (the sweep's time left) counts as "awaiting" under the deadline — needed to pass the hung-repo-returns-promptly test, since a plain unbounded `future.result()` would not.
-- (Ivan) An error-entry repo (`{cwd, error}`) still queued when the deadline passes is keyed by `str(repo["cwd"])`, matching the key `_scan_repo` already gives it.
+- (Tess) `Path.read_text` is the only disk-read path to count (the contract and acceptance check name `read_text` only).
+- (Tess) An unreadable file should still count toward its layer's file total.
+- (Tess) Freshness-across-calls is tested through observable output, not internals of the mapping.
+- (Tess) Created a new sibling file (`test_survey_single_read.py`) following the split-by-behavior convention.
+- (Tess, strengthening) The fake tree-sitter module defines `ProcessConfig`, so the >50-file test's failure comes from `process()` raising, not a missing attribute.
+- (Tess, strengthening) The invalid-UTF-8 test builds its own one-file repo instead of reusing `_build_repo`, to keep the check isolated.
+- (Ivan) An unreadable file is skipped entirely by `_survey`'s extraction loop rather than passed through as `texts.get(f)` returning None; Pat's review confirmed the observable behavior is equivalent (both give `[]` symbols) and accepted the deviation.
+- (Ivan) `_compute_error_style`'s existing disk-read fallback for a file missing from `texts` is left as a second read attempt for an unreadable file - Pat recorded this as a LOW, accepted as negligible impact per the design's own risk acceptance.
 
-## 5: Wire --deadline through the CLI and render the Partial: line
+## 3: Add the fail-first regression test proving no sampled file is read from disk twice
 
-- (Tess) The new deadline-rejection test sits next to the existing `--cap` rejection tests in test_sweep_main.py; no placement was specified.
-- (Ivan) When a just-added test (`test_main_passes_deadline_through_to_scan`, no-flag half) contradicted the PRD/design (`--deadline` default 300, always passed to `scan()`), the PRD and design doc were treated as authoritative and the test's `is None` assertion was flagged as the defect — fixed in a follow-up commit to `== 300`, confirmed against `docs/dev/project-management/prds/wip/00031-sweep-parallel-with-deadline-v1.md` and its design doc.
+- (Ivan) Did not check that `main.go` is among the sampled files, only that it is present in the fixture - the acceptance criteria only require the fixture to hold it.
+- (Ivan) Ran only the named test file for verification, not the whole `skills/survey/scripts` directory, following the narrow-scope rule over the Verify line's full-directory wording.
 
-## 7: Tail sweep — sweep.py (review cycle 1)
+## 4: Replace the brief trimmer's quadratic pop loop with a binary search bounded by _encoded_len
 
-- (Tess) The worker-timeout test patches `sweep._scan_repo` to raise, as the existing monkeypatch tests do; a worker's `TimeoutError` is assumed to be recorded in `failed` rather than re-raised.
-- (Tess) The CLI message check lowercases the output, as the existing cap tests do.
-- (Ivan) Catching builtin `TimeoutError` alongside `concurrent.futures.TimeoutError` is needed on Python 3.10 (the venv), where they are different classes. Superseded by the review fix, which decides the future's state with `wait()` before reading its result and needs no `TimeoutError` catch at all.
-- (orchestrator) An error entry (`{cwd, error}`) carries no `files` key, so `_repo_cwd_and_targets` now defaults its target list to `[]` — reusing the helper for the deadline key would otherwise raise `KeyError` on exactly those entries. A regression test pins it.
+- (Tess) A negative `max_bytes` returns `""`, matching the old pop loop's behavior and the rule that k=0 is always valid regardless of the predicate.
+- (Tess) Cleanup runs even when content already fits, following "same contract as today" for direct calls to `_trim_lines_to_budget`.
+- (Tess, strengthening) The minimum of 1 `_encoded_len` call is part of the contract - the design says the binary search uses `_encoded_len` as its test.
+- (Tess, strengthening) The 5 failing call-count test cases are acceptable fail-first tests for the next task, left unskipped and unmarked.
 
-## 8: Tail sweep — test_sweep_main.py (review cycle 1)
+## 5: Pin the new binary-search trimmer byte-identical to the old pop loop
 
-- (Ivan) The report carries no date or timestamp line, so the byte-identical-report test compares raw bytes with no stripping (inferred from the report text, not from the renderer).
-- (Ivan) The first report is deleted before the second run: it sits inside the scanned repo and carries the marker, so a second sweep would otherwise count it as a hit.
-- (Ivan) One shared marker for all six parametrized flag-rejection cases.
-- (orchestrator, deliberate scope note) The tightened `<flag> must be a positive integer` assertion was KEPT rather than reverted: the message is now guaranteed by `_positive_int(flag_name)`, so asserting it is strictly stronger than the old `"cap"` substring check.
+- (Ivan) `run._trim_lines_to_budget` takes `(content, max_bytes)` and returns a str, confirmed by the test runs rather than by reading run.py directly (it is outside the task's allowlist).
+- (Ivan) At budget 0 every case trims to `""`; that still counts as a valid comparison point for the "cut mid-list" and "header" cases.
 
-## 9: Tail sweep — test_sweep_scan.py (review cycle 1)
+## 6: Bound the trimmer at a logarithmic number of _encoded_len calls
 
-- (orchestrator) With no deadline, `_collect_scan_results` calls `future.result()` bare, so a worker's exception escapes `scan()`; that single outcome replaced the test's either-or hedge.
-- (orchestrator) `rg`'s match order within one repo is not guaranteed, so the iterator test compares hit sets rather than hit lists.
+- (Ivan) The counting wrapper takes `*args, **kwargs`, since `_encoded_len`'s exact signature was outside this task's file allowlist.
+- (Ivan) Used 600 lines of plain `"x" * 40` content (no `## ` prefixes, no blank lines), since the task did not specify line content.

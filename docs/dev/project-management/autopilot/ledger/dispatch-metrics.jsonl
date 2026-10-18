@@ -2017,3 +2017,23 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1792326027,"phase":"done","prd":"00031-sweep-parallel-with-deadline-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1792326060,"phase":"done","prd":"00031-sweep-parallel-with-deadline-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1792326147,"phase":"build","prd":"00031-sweep-parallel-with-deadline-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792326173,"phase":"build","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
+{"id":"89e1a54b","kind":"tess","task":"1","queued_at":1792326832,"prompt_bytes":34375}
+{"id":"dc25b886","kind":"ivan","task":"1","queued_at":1792327114,"prompt_bytes":30370}
+{"id":"fa7bfb84","kind":"tess","task":"2","queued_at":1792327278,"prompt_bytes":34399}
+{"id":"6b776ac7","kind":"ivan","task":"2","queued_at":1792327614,"prompt_bytes":25709}
+{"id":"9a86130a","kind":"ivan","task":"3","queued_at":1792327821,"prompt_bytes":17634}
+{"id":"8c4fc24d","kind":"tess","task":"4","queued_at":1792327934,"prompt_bytes":39002}
+{"id":"b312f480","kind":"ivan","task":"4","queued_at":1792328204,"prompt_bytes":28388}
+{"id":"ef51113f","kind":"ivan","task":"5","queued_at":1792328440,"prompt_bytes":22379}
+{"id":"b7612a8f","kind":"ivan","task":"6","queued_at":1792328542,"prompt_bytes":23343}
+{"id":"89e1a54b","ended_at":1792329634,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"dc25b886","ended_at":1792329634,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"fa7bfb84","ended_at":1792329634,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"6b776ac7","ended_at":1792329634,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"9a86130a","ended_at":1792329634,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"8c4fc24d","ended_at":1792329634,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"b312f480","ended_at":1792329634,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"ef51113f","ended_at":1792329634,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"b7612a8f","ended_at":1792329634,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1792329634,"phase":"review","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
