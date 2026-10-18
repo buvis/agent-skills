@@ -267,7 +267,11 @@ Updated: 2026-10-18T16:48Z (full catchup, PRD 00070 selection, same batch 202610
   passed, 9 skipped). Nothing deferred. Working tree still carries the
   pre-existing unrelated `skills/glean/scripts/glean.py`/`test_glean.py`
   edits, left untouched.
-- [ ] 00088-document-the-eval-harness-contract-v1.md (backlog)
+- [x] 00088-document-the-eval-harness-contract-v1.md (4/4 tasks, 1 cycle) —
+  documents the eval harness contract (security_path lane, full roster).
+  Converged cycle 1 (18 findings, 0 CRITICAL/HIGH); tail sweep created tasks
+  3-4, both completed and committed. Full suite green at 96b0104 (3950
+  passed, 9 skipped). 5 items deferred to the batch ledger.
 - [ ] 00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md (backlog)
 
   Observations: reviewers kept finding the same class (input faults escaping
