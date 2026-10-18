@@ -38,6 +38,13 @@ python3 ~/.agents/skills/sweep-fix/scripts/sweep.py \
   [--registry PATH] [--cwd PATH] [--cap N] [--deadline N] [--out PATH]
 ```
 
+`--deadline N` is a wall-clock budget in seconds for the whole sweep (default
+300), not per repo. A repo whose search has not finished when the budget runs
+out is reported, not waited for: it lands in the report's `Failed:` block and
+is counted in a `Partial: N repos not scanned (sweep deadline expired)` line
+above it. A `Partial:` line therefore means the sweep is incomplete - the
+pattern may have hits in those repos.
+
 `--control-repo` is the current repo, where the fix commit lives. `main()`
 resolves the scan tool, enumerates every repo in the gita registry, scans
 every registered repo, and only when the whole sweep found zero hits checks
