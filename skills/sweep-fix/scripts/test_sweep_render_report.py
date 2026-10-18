@@ -398,7 +398,7 @@ def test_render_report_collapses_multiline_failed_reason_into_a_single_line():
     assert "line one line two line three" in matching_lines[0]
 
 
-def test_render_report_emits_partial_line_for_deadline_expired_repos():
+def test_render_report_prints_a_partial_line_for_deadline_failures():
     derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
     failed = {
         "/repo/a": sweep.DEADLINE_REASON,
