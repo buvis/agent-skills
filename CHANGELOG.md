@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-18
+
 ### Added
 
 - **elicit-requirements**: writes the discovery document into an intake item (`intake/new/NNNNN-slug/discovery.md`), creating `idea.md` from the input when the item is new and reusing an existing item's number and `qa-log.md` answers; the sequence scan counts intake directories and the next-step hint passes the intake ID to `review-discovery-doc` and `create-prd`. Legacy `discovery/` is used only by repos that have it and no `intake/`.
