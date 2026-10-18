@@ -183,6 +183,28 @@ def test_main_default_out_lands_under_cwd_repo_when_process_cwd_is_elsewhere(
     assert not (elsewhere / "dev").exists()
 
 
+def test_two_runs_over_the_same_registry_write_byte_identical_reports(
+    tmp_path, monkeypatch
+):
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "IDENTICALREPORTMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    first_out = repo_a / "first-report.md"
+    second_out = repo_a / "second-report.md"
+
+    argv[out_index + 1] = str(first_out)
+    assert sweep.main(argv) == 0
+    first_bytes = first_out.read_bytes()
+    # The report sits inside the scanned repo and carries the marker, so a
+    # second sweep would count it as a hit; remove it first.
+    first_out.unlink()
+    argv[out_index + 1] = str(second_out)
+    assert sweep.main(argv) == 0
+
+    assert first_bytes == second_out.read_bytes()
+
+
 # -- main: --out is confined to the --cwd repo ------------------------------
 
 
@@ -423,29 +445,24 @@ def test_main_prints_resolved_report_path_to_stdout_on_success_with_default_out(
 # -- main: --cap must be a positive integer ---
 
 
-def test_main_rejects_cap_of_zero(tmp_path, monkeypatch, capsys):
-    argv, (_repo_a, _repo_b, _repo_c), out_path = _build_sweep_main_scaffold(
-        tmp_path, monkeypatch, "ZEROCAPMARKER", _make_repo
-    )
-    argv += ["--cap", "0"]
-
-    with pytest.raises(SystemExit) as exc_info:
-        sweep.main(argv)
-
-    assert exc_info.value.code != 0
-    assert not out_path.exists()
-    captured = capsys.readouterr()
-    assert "--cap must be a positive integer" in (captured.out + captured.err).lower()
-
-
-@pytest.mark.parametrize("flag", ["--cap", "--deadline"])
-def test_main_names_flag_and_rule_for_non_integer_value(
-    tmp_path, monkeypatch, capsys, flag
+@pytest.mark.parametrize(
+    ("flag", "value"),
+    [
+        ("--cap", "0"),
+        ("--cap", "-1"),
+        ("--cap", "abc"),
+        ("--deadline", "0"),
+        ("--deadline", "-1"),
+        ("--deadline", "abc"),
+    ],
+)
+def test_main_rejects_a_non_positive_or_non_integer_flag_value(
+    tmp_path, monkeypatch, capsys, flag, value
 ):
     argv, _repos, out_path = _build_sweep_main_scaffold(
-        tmp_path, monkeypatch, "NONINTMARKER", _make_repo
+        tmp_path, monkeypatch, "BADFLAGVALUEMARKER", _make_repo
     )
-    argv += [flag, "abc"]
+    argv += [flag, value]
 
     with pytest.raises(SystemExit) as exc_info:
         sweep.main(argv)
@@ -454,55 +471,6 @@ def test_main_names_flag_and_rule_for_non_integer_value(
     assert not out_path.exists()
     captured = capsys.readouterr()
     assert f"{flag} must be a positive integer" in (captured.out + captured.err).lower()
-
-
-def test_main_rejects_negative_cap(tmp_path, monkeypatch, capsys):
-    argv, (_repo_a, _repo_b, _repo_c), out_path = _build_sweep_main_scaffold(
-        tmp_path, monkeypatch, "NEGATIVECAPMARKER", _make_repo
-    )
-    argv += ["--cap", "-1"]
-
-    with pytest.raises(SystemExit) as exc_info:
-        sweep.main(argv)
-
-    assert exc_info.value.code != 0
-    assert not out_path.exists()
-    captured = capsys.readouterr()
-    assert "--cap must be a positive integer" in (captured.out + captured.err).lower()
-
-
-def test_main_rejects_a_deadline_of_zero(tmp_path, monkeypatch, capsys):
-    argv, (_repo_a, _repo_b, _repo_c), out_path = _build_sweep_main_scaffold(
-        tmp_path, monkeypatch, "ZERODEADLINEMARKER", _make_repo
-    )
-    argv += ["--deadline", "0"]
-
-    with pytest.raises(SystemExit) as exc_info:
-        sweep.main(argv)
-
-    assert exc_info.value.code != 0
-    assert not out_path.exists()
-    captured = capsys.readouterr()
-    assert "--deadline must be a positive integer" in (
-        captured.out + captured.err
-    ).lower()
-
-
-def test_main_rejects_a_negative_deadline(tmp_path, monkeypatch, capsys):
-    argv, (_repo_a, _repo_b, _repo_c), out_path = _build_sweep_main_scaffold(
-        tmp_path, monkeypatch, "NEGATIVEDEADLINEMARKER", _make_repo
-    )
-    argv += ["--deadline", "-1"]
-
-    with pytest.raises(SystemExit) as exc_info:
-        sweep.main(argv)
-
-    assert exc_info.value.code != 0
-    assert not out_path.exists()
-    captured = capsys.readouterr()
-    assert "--deadline must be a positive integer" in (
-        captured.out + captured.err
-    ).lower()
 
 
 def test_main_passes_deadline_through_to_scan(tmp_path, monkeypatch):
