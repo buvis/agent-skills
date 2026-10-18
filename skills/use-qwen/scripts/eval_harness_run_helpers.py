@@ -73,7 +73,7 @@ DESCRIPTION_SITES = ("baseline-clone", "gate-clone", "clone", "ablate-clone")
 
 # Every round, by run id: the bundle to copy, its engines (fake-engine modes, the
 # `fix-and-vacuous` script, or a raw `cmd:` string), the shape, extra argv, bounds.
-# The `slow` bundle is vetted at gate bound 2, so its rounds run at 2 as well.
+# The `slow` bundle is vetted at gate bound 4, so its rounds run at 4 as well.
 ROUNDS = {
     "r1": ("vetted", ["pass", "noop"], "description", [], {}),
     "tdd": ("vetted", ["pass", "mutate-test"], "tdd", [], {}),
@@ -88,8 +88,8 @@ ROUNDS = {
     "pair": ("pair", ["drop", "pass"], "tdd", [], {}),
     "prep": ("drifted", ["pass"], "description", [], {}),
     "alt": ("drifted", ["pass", "noop"], "description", ["--alternate"], {}),
-    "gatetimeout": ("slow", ["pass"], "description", [], {"gate_bound": "2"}),
-    "basetimeout": ("slow", ["pass"], "description", [], {"gate_bound": "2"}),
+    "gatetimeout": ("slow", ["pass"], "description", [], {"gate_bound": "4"}),
+    "basetimeout": ("slow", ["pass"], "description", [], {"gate_bound": "4"}),
     "limit": ("vetted", ["pass"], "description", ["--usage-limit-cmd", USAGE_LIMIT_STUB], {}),
 }
 # Rounds on the `drifted` bundle: both templates were altered on disk after vetting, and a
@@ -227,7 +227,7 @@ REFUSALS = {
     "manifest-moved-since-vetting": _moved_input("reindent-manifest"),
     # the seal covers every vetted shape: a description run still refuses a moved tdd prompt
     "tdd-prompt-moved-since-vetting": _moved_input("edit-tdd-prompt"),
-    "shape-not-vetted": ("slow", lambda root: None, {"shape": "tdd", "gate_bound": "2"}, ("tdd",)),
+    "shape-not-vetted": ("slow", lambda root: None, {"shape": "tdd", "gate_bound": "4"}, ("tdd",)),
     "qwen-without-settings": ("vetted", lambda root: None, {"engines": ["qwen"]}, ()),
     "sonnet-without-settings": ("vetted", lambda root: None, {"engines": ["sonnet"]}, ()),
 }
@@ -497,20 +497,20 @@ def drifted(scratch, pair):
 
 @pytest.fixture(scope="module")
 def slow(scratch):
-    """A description-only bundle CLI-vetted at gate bound 2 (P17); its test command sleeps 5 s
+    """A description-only bundle CLI-vetted at gate bound 4 (P17); its test command sleeps 15 s
     in any baseline once the flag exists and in every gate clone. Vetting sees neither, and a
-    pytest segment that takes 1.5 s on a loaded box still fits the bound.
+    pytest segment that takes 3 s on a loaded box still fits the bound.
     """
     flag = scratch / "slow-baseline.flag"
     segments = (
-        f"if [ -e {shlex.quote(str(flag))} ]; then sleep 5; fi",
-        'case "$(pwd -P)" in *gate-clone) sleep 5;; esac',
+        f"if [ -e {shlex.quote(str(flag))} ]; then sleep 15; fi",
+        'case "$(pwd -P)" in *gate-clone) sleep 15;; esac',
     )
     bundle = _new_bundle(scratch, "slow", {"1-calc": {"segments": segments}})
     bundle.flag = flag
     bundle.task = bundle.root / "tasks" / "1-calc"
     bundle.rc = run_eval_harness.main(
-        ["vet", str(bundle.root), "--gate-bound", "2", "--shapes", "description"]
+        ["vet", str(bundle.root), "--gate-bound", "4", "--shapes", "description"]
     )
     assert bundle.rc == 0
     return bundle
