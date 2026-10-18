@@ -294,6 +294,49 @@ def _scan_repo(repo, pattern, kind, ast_grep_error, timeout):
     return str(cwd), repo_hits, None
 
 
+def _collect_scan_results(repos, futures, deadline, start):
+    """Await each future in `repos` order, bounded by `deadline` (seconds
+    from `start`, or None for no bound). Returns `(results, deadline_hit)`
+    where `results` holds each repo's `(cwd_key, hits, error)` tuple and an
+    unfinished repo past the deadline is recorded under DEADLINE_REASON."""
+    results = []
+    deadline_hit = False
+    for repo, future in zip(repos, futures):
+        if deadline is None:
+            results.append(future.result())
+            continue
+        try:
+            remaining = deadline - (time.monotonic() - start)
+            if remaining <= 0 and not future.done():
+                raise FutureTimeoutError
+            results.append(future.result(timeout=max(remaining, 0)))
+        except FutureTimeoutError:
+            cwd = repo["cwd"] if isinstance(repo, dict) else repo
+            results.append((str(cwd), [], DEADLINE_REASON))
+            deadline_hit = True
+    return results, deadline_hit
+
+
+def _apply_scan_cap(results, cap):
+    """Split `results` (each a `(cwd_key, hits, error)` tuple) into the
+    `(hits, suppressed, failed)` shape `scan()` returns, truncating each
+    repo's hits at `cap` and recording the overflow count."""
+    hits = []
+    suppressed = {}
+    failed = {}
+    for cwd_key, repo_hits, error in results:
+        if error is not None:
+            failed[cwd_key] = error
+            continue
+
+        if len(repo_hits) > cap:
+            suppressed[cwd_key] = len(repo_hits) - cap
+            repo_hits = repo_hits[:cap]
+
+        hits.extend(repo_hits)
+    return hits, suppressed, failed
+
+
 def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=None):
     """Search `pattern` across `repos` using `kind` ("rg" or "astgrep").
 
@@ -329,7 +372,6 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
 
     start = time.monotonic() if deadline is not None else None
     deadline_hit = False
-    results = []
     # No `with` block: leaving one always waits for every worker, so a hung
     # search would block scan() past its deadline.
     executor = ThreadPoolExecutor(max_workers=8)
@@ -338,37 +380,11 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
             executor.submit(_scan_repo, repo, pattern, kind, ast_grep_error, timeout)
             for repo in repos
         ]
-        for repo, future in zip(repos, futures):
-            if deadline is None:
-                results.append(future.result())
-                continue
-            try:
-                remaining = deadline - (time.monotonic() - start)
-                if remaining <= 0 and not future.done():
-                    raise FutureTimeoutError
-                results.append(future.result(timeout=max(remaining, 0)))
-            except FutureTimeoutError:
-                cwd = repo["cwd"] if isinstance(repo, dict) else repo
-                results.append((str(cwd), [], DEADLINE_REASON))
-                deadline_hit = True
+        results, deadline_hit = _collect_scan_results(repos, futures, deadline, start)
     finally:
         executor.shutdown(wait=not deadline_hit, cancel_futures=deadline_hit)
 
-    hits = []
-    suppressed = {}
-    failed = {}
-    for cwd_key, repo_hits, error in results:
-        if error is not None:
-            failed[cwd_key] = error
-            continue
-
-        if len(repo_hits) > cap:
-            suppressed[cwd_key] = len(repo_hits) - cap
-            repo_hits = repo_hits[:cap]
-
-        hits.extend(repo_hits)
-
-    return hits, suppressed, failed
+    return _apply_scan_cap(results, cap)
 
 
 def verify_control(pattern, kind, control_repo, control_term):
