@@ -413,6 +413,8 @@ def _read_sampled_texts(layers: dict[str, list[Path]]) -> dict[Path, str]:
     texts: dict[Path, str] = {}
     for files in layers.values():
         for f in files:
+            if f in texts:
+                continue
             try:
                 texts[f] = f.read_text(encoding="utf-8", errors="replace")
             except OSError:
@@ -432,9 +434,7 @@ def _survey(repo_path: Path) -> str:
         syms: list[tuple[str, str, int]] = []
         file_syms: list[tuple[str, str, str, int]] = []
         for f in files:
-            if f not in texts:
-                continue
-            extracted = _extract_file_symbols(f, text=texts[f])
+            extracted = _extract_file_symbols(f, text=texts.get(f))
             syms.extend(extracted)
             rel_path = str(f.relative_to(repo_path))
             for name, kind, lineno in extracted:
