@@ -583,6 +583,15 @@ def test_main_refuses_a_path_that_climbs_out_of_the_repository(
 
 
 DRY_RUN_MARKER = "DRY-RUN (use --apply)"
+FROZEN_DATE = "2026-01-02"
+
+
+class _FrozenDate(datetime.date):
+    """`date.today()` pinned, so a run crossing midnight cannot flake."""
+
+    @classmethod
+    def today(cls) -> datetime.date:
+        return cls.fromisoformat(FROZEN_DATE)
 
 
 def _old_file(repo: Path, rel: str, text: str = "j") -> Path:
@@ -598,6 +607,7 @@ def _run_main(repo: Path, monkeypatch: pytest.MonkeyPatch,
               *argv: str) -> tuple[dict, str]:
     monkeypatch.setattr(
         "sys.argv", ["trash_untracked.py", "--repo", str(repo), *argv])
+    monkeypatch.setattr(tu.datetime, "date", _FrozenDate)
     tu.main()
     cap = capsys.readouterr()
     return json.loads(cap.out), cap.err
@@ -605,20 +615,7 @@ def _run_main(repo: Path, monkeypatch: pytest.MonkeyPatch,
 
 def _expected_trash(repo: Path, rel: str) -> str:
     root = repo.resolve()
-    date = datetime.date.today().isoformat()
-    return tu.trash_dest(root, rel, date).relative_to(root).as_posix()
-
-
-def test_dry_run_without_apply_leaves_the_file_and_writes_no_trash(
-        repo: Path, monkeypatch: pytest.MonkeyPatch,
-        capsys: pytest.CaptureFixture[str]) -> None:
-    p = _old_file(repo, "charts/sub/old_junk.log")
-
-    _run_main(repo, monkeypatch, capsys, "charts/sub/old_junk.log")
-
-    assert p.read_text() == "j"
-    assert not (repo / "docs/dev/tmp/.trash").exists()
-    assert not (repo / "docs").exists()
+    return tu.trash_dest(root, rel, FROZEN_DATE).relative_to(root).as_posix()
 
 
 def test_dry_run_without_apply_reports_the_trash_dest_path(
@@ -630,8 +627,7 @@ def test_dry_run_without_apply_reports_the_trash_dest_path(
     out, _ = _run_main(repo, monkeypatch, capsys, "charts/sub/old_junk.log")
 
     assert expected == (
-        f"docs/dev/tmp/.trash/{datetime.date.today().isoformat()}"
-        "/charts/sub/old_junk.log")
+        f"docs/dev/tmp/.trash/{FROZEN_DATE}/charts/sub/old_junk.log")
     assert out["moved"] == [{"path": "charts/sub/old_junk.log",
                              "trash": expected}]
     assert out["refused"] == []
@@ -641,7 +637,7 @@ def test_dry_run_without_apply_reports_a_dup_suffix_on_a_taken_dest(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
     p = _old_file(repo, "old_junk.log", "new")
-    date = datetime.date.today().isoformat()
+    date = FROZEN_DATE
     taken = repo / "docs/dev/tmp/.trash" / date / "old_junk.log"
     taken.parent.mkdir(parents=True)
     taken.write_text("earlier")
@@ -670,7 +666,7 @@ def test_dry_run_without_apply_prints_the_dry_run_marker(
     assert DRY_RUN_MARKER not in json.dumps(out)
 
 
-def test_dry_run_with_apply_moves_the_file_and_writes_a_manifest_row(
+def test_apply_moves_the_file_and_writes_a_manifest_row(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
     p = _old_file(repo, "charts/sub/old_junk.log")
@@ -684,7 +680,7 @@ def test_dry_run_with_apply_moves_the_file_and_writes_a_manifest_row(
     assert not p.exists()
     assert (repo / expected).read_text() == "j"
     row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
-    assert row == [datetime.date.today().isoformat(), "brush-junk",
+    assert row == [FROZEN_DATE, "brush-junk",
                    "charts/sub/old_junk.log", expected]
 
 
@@ -705,7 +701,7 @@ def test_dry_run_without_apply_prints_the_marker_exactly_once_regardless_of_path
     assert none_err.splitlines().count(DRY_RUN_MARKER) == 1
 
 
-def test_dry_run_with_apply_honors_the_rule_flag_in_the_manifest(
+def test_apply_honors_the_rule_flag_in_the_manifest(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
     _old_file(repo, "old_junk.log")
@@ -716,11 +712,10 @@ def test_dry_run_with_apply_honors_the_rule_flag_in_the_manifest(
 
     row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
     assert row[1] == "custom-rule"
-    assert row == [datetime.date.today().isoformat(), "custom-rule",
-                   "old_junk.log", expected]
+    assert row == [FROZEN_DATE, "custom-rule", "old_junk.log", expected]
 
 
-def test_dry_run_with_apply_prints_no_dry_run_marker(
+def test_apply_prints_no_dry_run_marker(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
     _old_file(repo, "old_junk.log")
@@ -730,7 +725,19 @@ def test_dry_run_with_apply_prints_no_dry_run_marker(
     assert DRY_RUN_MARKER not in err
 
 
-def test_dry_run_preview_and_apply_report_identical_moved_and_refused(
+def test_preview_moves_nothing(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, "charts/sub/old_junk.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "charts/sub/old_junk.log")
+
+    assert p.read_text() == "j"
+    assert not (repo / "docs").exists()
+    assert [e["path"] for e in out["moved"]] == ["charts/sub/old_junk.log"]
+
+
+def test_preview_json_matches_the_apply_run(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
     _old_file(repo, "charts/sub/old_junk.log")
@@ -738,41 +745,17 @@ def test_dry_run_preview_and_apply_report_identical_moved_and_refused(
     _old_file(repo, "docs/dev/project-management/keep.bin", "k")
     corpus = ["charts/sub/old_junk.log", "old logs/run one.log",
               "tracked.log", "docs/dev/project-management/keep.bin"]
+    manifest = repo / "docs/dev/tmp/.trash/manifest.tsv"
 
+    # Preview writes nothing, so the files' mtimes still clear --min-age-days.
     preview, _ = _run_main(repo, monkeypatch, capsys, *corpus)
+    assert not manifest.exists()
     applied, _ = _run_main(repo, monkeypatch, capsys, "--apply", *corpus)
 
     assert len(preview["moved"]) == 2
     assert len(preview["refused"]) == 2
-    assert json.dumps(preview["moved"]) == json.dumps(applied["moved"])
-    assert json.dumps(preview["refused"]) == json.dumps(applied["refused"])
+    assert preview == applied
+    assert manifest.exists()
     for entry in applied["moved"]:
         assert (repo / entry["trash"]).read_text() == "j"
         assert not (repo / entry["path"]).exists()
-
-
-def test_preview_moves_nothing(
-        repo: Path, monkeypatch: pytest.MonkeyPatch,
-        capsys: pytest.CaptureFixture[str]) -> None:
-    p = _old_file(repo, "old_junk.log")
-
-    out, _ = _run_main(repo, monkeypatch, capsys, "old_junk.log")
-
-    assert p.exists()
-    assert not (repo / "docs/dev/tmp/.trash").exists()
-    assert [e["path"] for e in out["moved"]] == ["old_junk.log"]
-
-
-def test_preview_json_matches_the_apply_run(
-        repo: Path, monkeypatch: pytest.MonkeyPatch,
-        capsys: pytest.CaptureFixture[str]) -> None:
-    _old_file(repo, "old_junk.log")
-    manifest = repo / "docs/dev/tmp/.trash/manifest.tsv"
-
-    # Preview writes nothing, so the file's mtime still clears --min-age-days.
-    preview, _ = _run_main(repo, monkeypatch, capsys, "old_junk.log")
-    assert not manifest.exists()
-    applied, _ = _run_main(repo, monkeypatch, capsys, "--apply", "old_junk.log")
-
-    assert preview == applied
-    assert manifest.exists()
