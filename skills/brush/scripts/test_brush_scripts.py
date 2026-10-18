@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import posixpath
@@ -578,3 +579,140 @@ def test_main_refuses_a_path_that_climbs_out_of_the_repository(
     assert len(out["refused"]) == 1
     assert "outside repo" in out["refused"][0]["reason"]
     assert outside.is_file()
+
+
+DRY_RUN_MARKER = "DRY-RUN (use --apply)"
+
+
+def _old_file(repo: Path, rel: str, text: str = "j") -> Path:
+    p = repo / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+    os.utime(p, (OLD, OLD))
+    return p
+
+
+def _run_main(repo: Path, monkeypatch: pytest.MonkeyPatch,
+              capsys: pytest.CaptureFixture[str],
+              *argv: str) -> tuple[dict, str]:
+    monkeypatch.setattr(
+        "sys.argv", ["trash_untracked.py", "--repo", str(repo), *argv])
+    tu.main()
+    cap = capsys.readouterr()
+    return json.loads(cap.out), cap.err
+
+
+def _expected_trash(repo: Path, rel: str) -> str:
+    root = repo.resolve()
+    date = datetime.date.today().isoformat()
+    return tu.trash_dest(root, rel, date).relative_to(root).as_posix()
+
+
+def test_dry_run_without_apply_leaves_the_file_and_writes_no_trash(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, "charts/sub/old_junk.log")
+
+    _run_main(repo, monkeypatch, capsys, "charts/sub/old_junk.log")
+
+    assert p.read_text() == "j"
+    assert not (repo / "docs/dev/tmp/.trash").exists()
+    assert not (repo / "docs").exists()
+
+
+def test_dry_run_without_apply_reports_the_trash_dest_path(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _old_file(repo, "charts/sub/old_junk.log")
+    expected = _expected_trash(repo, "charts/sub/old_junk.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "charts/sub/old_junk.log")
+
+    assert expected == (
+        f"docs/dev/tmp/.trash/{datetime.date.today().isoformat()}"
+        "/charts/sub/old_junk.log")
+    assert out["moved"] == [{"path": "charts/sub/old_junk.log",
+                             "trash": expected}]
+    assert out["refused"] == []
+
+
+def test_dry_run_without_apply_reports_a_dup_suffix_on_a_taken_dest(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, "old_junk.log", "new")
+    date = datetime.date.today().isoformat()
+    taken = repo / "docs/dev/tmp/.trash" / date / "old_junk.log"
+    taken.parent.mkdir(parents=True)
+    taken.write_text("earlier")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "old_junk.log")
+
+    assert len(out["moved"]) == 1
+    assert out["moved"][0]["path"] == "old_junk.log"
+    trash = out["moved"][0]["trash"]
+    prefix = f"docs/dev/tmp/.trash/{date}/old_junk.log.dup"
+    assert trash.startswith(prefix) and trash[len(prefix):].isdigit()
+    assert not (repo / trash).exists()
+    assert taken.read_text() == "earlier"
+    assert p.read_text() == "new"
+    assert not (repo / "docs/dev/tmp/.trash/manifest.tsv").exists()
+
+
+def test_dry_run_without_apply_prints_the_dry_run_marker(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _old_file(repo, "old_junk.log")
+
+    out, err = _run_main(repo, monkeypatch, capsys, "old_junk.log")
+
+    assert DRY_RUN_MARKER in err.splitlines()
+    assert DRY_RUN_MARKER not in json.dumps(out)
+
+
+def test_dry_run_with_apply_moves_the_file_and_writes_a_manifest_row(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, "charts/sub/old_junk.log")
+    expected = _expected_trash(repo, "charts/sub/old_junk.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys,
+                       "--apply", "charts/sub/old_junk.log")
+
+    assert out["moved"] == [{"path": "charts/sub/old_junk.log",
+                             "trash": expected}]
+    assert not p.exists()
+    assert (repo / expected).read_text() == "j"
+    row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
+    assert row == [datetime.date.today().isoformat(), "brush-junk",
+                   "charts/sub/old_junk.log", expected]
+
+
+def test_dry_run_with_apply_prints_no_dry_run_marker(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _old_file(repo, "old_junk.log")
+
+    _, err = _run_main(repo, monkeypatch, capsys, "--apply", "old_junk.log")
+
+    assert DRY_RUN_MARKER not in err
+
+
+def test_dry_run_preview_and_apply_report_identical_moved_and_refused(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _old_file(repo, "charts/sub/old_junk.log")
+    _old_file(repo, "old logs/run one.log")
+    _old_file(repo, "docs/dev/project-management/keep.bin", "k")
+    corpus = ["charts/sub/old_junk.log", "old logs/run one.log",
+              "tracked.log", "docs/dev/project-management/keep.bin"]
+
+    preview, _ = _run_main(repo, monkeypatch, capsys, *corpus)
+    applied, _ = _run_main(repo, monkeypatch, capsys, "--apply", *corpus)
+
+    assert len(preview["moved"]) == 2
+    assert len(preview["refused"]) == 2
+    assert json.dumps(preview["moved"]) == json.dumps(applied["moved"])
+    assert json.dumps(preview["refused"]) == json.dumps(applied["refused"])
+    for entry in applied["moved"]:
+        assert (repo / entry["trash"]).read_text() == "j"
+        assert not (repo / entry["path"]).exists()
