@@ -2060,3 +2060,18 @@
 {"id":"0418b615","ended_at":1792333529,"elapsed_s":676,"outcome":"ok","detail":null}
 {"id":"b6bd088c","ended_at":1792333529,"elapsed_s":1081,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1792333563,"phase":"review","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
+{"id":"47a81881","kind":"tess","task":"10","queued_at":1792333766,"prompt_bytes":40416}
+{"id":"8adb0a41","kind":"tess","task":"10","queued_at":1792333770,"prompt_bytes":40416}
+{"id":"d7c65f5f","kind":"pat","task":"11","queued_at":1792333860,"prompt_bytes":9096}
+{"id":"d96ed75f","kind":"pat","task":"10","queued_at":1792333981,"prompt_bytes":13031}
+{"id":"1da682b8","kind":"pat","task":"11","queued_at":1792334062,"prompt_bytes":5680}
+{"id":"f46c9396","kind":"pat","task":"12","queued_at":1792334203,"prompt_bytes":6565}
+{"id":"9fa1083a","kind":"pat","task":"13","queued_at":1792334322,"prompt_bytes":6699}
+{"id":"47a81881","ended_at":1792334882,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"8adb0a41","ended_at":1792334882,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"d7c65f5f","ended_at":1792334882,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"d96ed75f","ended_at":1792334882,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"1da682b8","ended_at":1792334882,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"f46c9396","ended_at":1792334882,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"9fa1083a","ended_at":1792334882,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1792334882,"phase":"review","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}

@@ -46,3 +46,8 @@
 
 - (Ivan) The counting wrapper takes `*args, **kwargs`, since `_encoded_len`'s exact signature was outside this task's file allowlist.
 - (Ivan) Used 600 lines of plain `"x" * 40` content (no `## ` prefixes, no blank lines), since the task did not specify line content.
+
+## 10 (rework): restore the PRD-named trim tests in test_survey_brief.py
+
+- (Tess) For the byte-for-byte equality test, the task named 4 budgets (0, 64, 512, 5120) each illustrating one scenario but didn't pin exact content strings, so one content string was constructed per budget to deterministically hit each named scenario (empty content at budget 0; already-under-budget content at budget 64; a 40-line/26-byte-per-line content cut mid-list at budget 512; a 300-line, 20-bytes-per-line content engineered so the pop-loop's pre-cleanup boundary lands exactly on a "## " header at budget 5120).
+- (Tess) For the iteration-count test, used literal content "600 lines, each 40 characters" (`"a" * 40` repeated 600 times) per the task's exact phrasing, and asserted the counter is `<= 12` as stated.
