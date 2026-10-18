@@ -55,11 +55,7 @@ const PAYLOAD = {
   extract_ran: true,
 }
 
-function render(payload = PAYLOAD, { storage } = {}) {
-  const page = readFileSync(TEMPLATE, 'utf8').replace(
-    '__MEETING_PAYLOAD__',
-    JSON.stringify(payload).replace(/<\//g, '<\\/'),
-  )
+function mount(page, { storage } = {}) {
   // jsdom does not run type="module", and running the bundle inline would fire
   // before #app exists. Lift it out and eval it once the document is built —
   // same code, same order a deferred module script would give it.
@@ -98,6 +94,22 @@ function render(payload = PAYLOAD, { storage } = {}) {
     await flush()
   }
   return { doc, flush, openTab, clickText }
+}
+
+function render(payload = PAYLOAD, { storage } = {}) {
+  const page = readFileSync(TEMPLATE, 'utf8').replace(
+    '__MEETING_PAYLOAD__',
+    JSON.stringify(payload).replace(/<\//g, '<\\/'),
+  )
+  return mount(page, { storage })
+}
+
+function renderRaw(rawText) {
+  const page = readFileSync(TEMPLATE, 'utf8').replace(
+    '__MEETING_PAYLOAD__',
+    rawText.replace(/<\//g, '<\\/'),
+  )
+  return mount(page)
 }
 
 test('mounts the page and shows the meeting title', () => {
@@ -526,5 +538,33 @@ test('insights tab reports nothing to show when extraction ran but found nothing
   assert.equal(
     doc.querySelector('main .empty').textContent.trim(),
     'Nothing to show for this meeting.',
+  )
+})
+
+test('renders the not-built sentence when the marker was never substituted', () => {
+  const marker = readFileSync(TEMPLATE, 'utf8').match(/__[A-Z]+_PAYLOAD__/)[0]
+  const { doc } = renderRaw(marker)
+  assert.equal(
+    doc.querySelector('.empty').textContent.trim(),
+    'No payload was injected into this file. Re-run scripts/build.py.',
+  )
+})
+
+test('renders the bound reason for a structurally wrong payload', () => {
+  const { doc } = renderRaw(JSON.stringify({ transcript: {} }))
+  assert.match(doc.querySelector('.empty').textContent, /unreadable: missing transcript\.turns/)
+})
+
+test('renders the parser message for a truncated payload', () => {
+  const { doc } = renderRaw('{"transcript":{"turns":[')
+  let parserMessage
+  try {
+    JSON.parse('{"transcript":{"turns":[')
+  } catch (e) {
+    parserMessage = e.message
+  }
+  assert.equal(
+    doc.querySelector('.empty').textContent.trim(),
+    `The injected payload is present but unreadable: ${parserMessage}`,
   )
 })
