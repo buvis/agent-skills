@@ -1990,3 +1990,4 @@
 {"id":"60371a9c","ended_at":1792320677,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"id":"a0a8b23d","ended_at":1792320677,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1792320677,"phase":"build","prd":"00031-sweep-parallel-with-deadline-v1.md"}
+{"kind":"handoff","site":"build","edge":"leave","at":1792322654,"phase":"review","prd":"00031-sweep-parallel-with-deadline-v1.md"}
