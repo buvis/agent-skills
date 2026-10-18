@@ -1901,3 +1901,13 @@
 {"id":"d69b8f1d","ended_at":1792221830,"elapsed_s":38,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1792222289,"phase":"done","prd":"00077-docket-never-raises-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1792222898,"phase":"done","prd":"00077-docket-never-raises-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792311436,"phase":"build","prd":"00023-one-message-three-failures-v1.md"}
+{"id":"c4d31be0","kind":"tess","task":"1","queued_at":1792312005,"prompt_bytes":16734}
+{"id":"4464c66a","kind":"devon","task":"1","queued_at":1792312137,"prompt_bytes":5414}
+{"id":"4464c66a","ended_at":1792312270,"elapsed_s":133,"outcome":"ok","detail":null}
+{"id":"03bd67a2","kind":"ivan","task":"1","queued_at":1792312416,"prompt_bytes":21989}
+{"id":"7c2e573d","kind":"pat","task":"1","queued_at":1792312491,"prompt_bytes":10875}
+{"id":"c4d31be0","ended_at":1792312690,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"03bd67a2","ended_at":1792312690,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"7c2e573d","ended_at":1792312690,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1792312690,"phase":"build","prd":"00023-one-message-three-failures-v1.md"}
