@@ -2162,3 +2162,11 @@
 {"id":"2023e7e5","ended_at":1792347567,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"id":"d7f7df40","ended_at":1792347567,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1792347567,"phase":"review","prd":"00086-use-qwen-budgets-survive-load-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792347607,"phase":"review","prd":"00086-use-qwen-budgets-survive-load-v1.md"}
+{"id":"112b06ec","kind":"bob","task":"review-20261018-00086-c1","queued_at":1792348299,"prompt_bytes":9564}
+{"id":"78fc3307","kind":"carl","task":"review-20261018-00086-c1","queued_at":1792348299,"prompt_bytes":6563}
+{"id":"72d0a1a9","kind":"bob","task":"review-20261018-00086-c1","queued_at":1792348459,"prompt_bytes":68902}
+{"id":"112b06ec","ended_at":1792348589,"elapsed_s":290,"outcome":"error","detail":"lack-of-input"}
+{"id":"72d0a1a9","ended_at":1792348592,"elapsed_s":133,"outcome":"ok","detail":"retry"}
+{"id":"78fc3307","ended_at":1792348595,"elapsed_s":296,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1792348884,"phase":"done","prd":"00086-use-qwen-budgets-survive-load-v1.md"}

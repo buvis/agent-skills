@@ -1,0 +1,50 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The same glean reformat pushes cmd_scan to 54 lines, over the 50-line limit (mechanical facts: line 191, 54 lines). Reverting the reformat removes the breach.",
+    "file": "skills/glean/scripts/glean.py:191",
+    "reason": "targets uncommitted working-tree drift, not this PRD's work: `git log 184d2cf..HEAD --name-only` names no glean file, so the reformat is in no commit of the reviewed range. Recorded as a deferred batch-end item instead; reverting another session's uncommitted work is out of this PRD's scope."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "high",
+    "issue": "Unrequested modifications to glean outside PRD scope",
+    "file": "skills/glean/scripts/glean.py:1",
+    "reason": "the modification is uncommitted working-tree drift that predates this PRD's work and is in no commit of 184d2cf..HEAD (verified with `git log --name-only`); it entered the review only because the staged diff includes the working tree. Recorded as a deferred batch-end item."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "high",
+    "issue": "Unrequested modifications to test_glean outside PRD scope",
+    "file": "skills/glean/scripts/test_glean.py:1",
+    "reason": "same as the glean.py row: uncommitted working-tree drift, in no commit of the reviewed range. Recorded as a deferred batch-end item."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Unrelated glean reformat (82 lines in glean.py, 64 in test_glean.py) is bundled into the PRD 00086 diff. It touches nothing in the use-qwen scope, and it widens regexes, calls, dicts and tests to a wrapped layout (re.I to re.IGNORECASE, trailing commas, split argument lists). Revert both files to HEAD or land them as a separate formatter commit.",
+    "file": "skills/glean/scripts/glean.py:37",
+    "reason": "the premise that it is bundled into the PRD diff is wrong for the commits: it is uncommitted working-tree drift. Recorded as a deferred batch-end item."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "test_module_finished_inside_its_runtime_budget passes against the pre-change code in both modules (fail-first replay). This follows from loosening an upper bound from 60 to 120, so no fail-first test exists. The PRD intent is met and the comment above each assert states the reason. No action needed.",
+    "file": "skills/use-qwen/scripts/test_run_eval_harness.py:396",
+    "reason": "computed replay fact, not a defect: widening an upper bound cannot produce a fail-first test. The PRD asks for exactly this change and the comment above each assert states the reason."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "1 touched test(s) pass against the pre-change code: test_module_finished_inside_its_runtime_budget",
+    "file": "skills/use-qwen/scripts/test_run_eval_harness_outcomes.py",
+    "reason": "same computed replay fact as the other module's budget assert: a loosened upper bound has no fail-first form. The other three touched tests in this PRD did fail against base, so the change is pinned where it can be."
+  }
+]

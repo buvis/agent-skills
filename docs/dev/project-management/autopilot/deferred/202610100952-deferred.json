@@ -430,6 +430,14 @@
       "action": "deferred to batch end",
       "reason": "Same root cause as the glean scope-creep deferral: pre-existing uncommitted drift outside PRD 00070 change set. Bob R12 fail is attributable to that file only. Out of scope per Surgical Changes.",
       "prd": "00070-purge-trash-first-guarantee-v1.md"
+    },
+    {
+      "type": "repo-hygiene",
+      "issue": "Uncommitted working-tree drift in skills/glean/scripts/glean.py and test_glean.py (formatter-style reformat, ~146 lines) predates PRD 00086 and belongs to no commit; three reviewers raised it against the staged diff. It also pushes cmd_scan to 54 lines, over the 50-line limit. Decide its fate: commit it as a separate formatter change, or revert it.",
+      "severity": "high",
+      "consensus": "3/4",
+      "reason": "not this PRD's work (in no commit of 184d2cf..HEAD); reverting or committing another session's uncommitted work is an operator decision, not autopilot rework",
+      "prd": "00086-use-qwen-budgets-survive-load-v1.md"
     }
   ]
 }
