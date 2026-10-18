@@ -251,7 +251,11 @@ Updated: 2026-10-18T16:48Z (full catchup, PRD 00070 selection, same batch 202610
 - [ ] 00070-purge-trash-first-guarantee-v1.md — selected this pass (wip); `empty_old_trash` keep-guard
   for the batch the current run just trashed, `design: skip`.
 - [ ] 00078-qwen-dispatch-skips-pi-extensions-v1.md (backlog)
-- [ ] 00086-use-qwen-budgets-survive-load-v1.md (backlog)
+- [ ] 00086-use-qwen-budgets-survive-load-v1.md — selected 2026-10-18 (wip); widens
+  the `slow` fixture's gate bound/sleeps and both module wall-clock budgets so a
+  loaded-machine run doesn't go red; `design: skip`. Master CI still red on the
+  same `test_glean.py::test_local_dirs_never_surface_as_candidates` Linux-only
+  false-positive, unrelated.
 - [ ] 00087-ground-prd-root-and-relative-exclusion-v1.md (backlog)
 - [ ] 00088-document-the-eval-harness-contract-v1.md (backlog)
 - [ ] 00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md (backlog)

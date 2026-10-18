@@ -2148,3 +2148,17 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1792345267,"phase":"done","prd":"00070-purge-trash-first-guarantee-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1792345302,"phase":"done","prd":"00070-purge-trash-first-guarantee-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1792345389,"phase":"build","prd":"00070-purge-trash-first-guarantee-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792345419,"phase":"build","prd":"00086-use-qwen-budgets-survive-load-v1.md"}
+{"id":"a8d46d05","kind":"tess","task":"1","queued_at":1792345617,"prompt_bytes":67514}
+{"id":"176d01d1","kind":"tess","task":"1","queued_at":1792345626,"prompt_bytes":48993}
+{"id":"2720882f","kind":"devon","task":"1","queued_at":1792345870,"prompt_bytes":2800}
+{"id":"2720882f","ended_at":1792346443,"elapsed_s":573,"outcome":"ok","detail":null}
+{"id":"2023e7e5","kind":"ivan","task":"1","queued_at":1792346497,"prompt_bytes":46538}
+{"id":"aa80cba4","kind":"pat","task":"1","queued_at":1792346741,"prompt_bytes":14464}
+{"id":"aa80cba4","ended_at":1792346774,"elapsed_s":33,"outcome":"ok","detail":null}
+{"id":"d7f7df40","kind":"ivan","task":"2","queued_at":1792346855,"prompt_bytes":6118}
+{"id":"a8d46d05","ended_at":1792347567,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"176d01d1","ended_at":1792347567,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"2023e7e5","ended_at":1792347567,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"d7f7df40","ended_at":1792347567,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1792347567,"phase":"review","prd":"00086-use-qwen-budgets-survive-load-v1.md"}
