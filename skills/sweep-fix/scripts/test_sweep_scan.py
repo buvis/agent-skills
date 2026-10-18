@@ -1,4 +1,5 @@
 """Tests for sweep.py: scan."""
+import concurrent.futures
 import json
 import os
 import subprocess
@@ -394,5 +395,51 @@ def test_scan_never_silently_drops_a_repo_whose_search_raises(tmp_path, monkeypa
         return
     assert str(repo_b) in failed
     assert failed[str(repo_b)]  # carries a non-empty reason
+
+
+# -- scan: a sweep deadline stops waiting on unfinished repos ----------------
+
+
+def test_scan_records_an_unfinished_repo_when_the_deadline_expires(
+    tmp_path, monkeypatch
+):
+    # repo_b's future never resolves: the patched submit() hands back a bare
+    # Future() with no thread behind it, so nothing can hang at interpreter
+    # exit. repo_a and repo_c go through the real submit() and are awaited
+    # before submit() returns, so they are finished when scan() collects
+    # them. The clock's first reading sets `start`; every later reading sits
+    # far past `start + deadline`. scan() must give up on repo_b under
+    # DEADLINE_REASON and still report the hits of the repos that finished.
+    repo_a, repo_b, repo_c = repos = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
+
+    def stub_scan_repo(repo, *args, **kwargs):
+        return str(repo), [_stub_hit(repo)], None
+
+    monkeypatch.setattr(sweep, "_scan_repo", stub_scan_repo)
+
+    real_submit = sweep.ThreadPoolExecutor.submit
+
+    def submit_leaving_repo_b_pending(self, fn, *args, **kwargs):
+        repo = args[0] if args else kwargs.get("repo")
+        if repo == repo_b:
+            return concurrent.futures.Future()
+        future = real_submit(self, fn, *args, **kwargs)
+        future.result()
+        return future
+
+    monkeypatch.setattr(sweep.ThreadPoolExecutor, "submit", submit_leaving_repo_b_pending)
+
+    readings = []
+
+    def expiring_monotonic():
+        readings.append(None)
+        return 0.0 if len(readings) == 1 else 1000.0
+
+    monkeypatch.setattr(sweep.time, "monotonic", expiring_monotonic)
+
+    hits, _suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, deadline=5)
+
+    assert failed == {str(repo_b): sweep.DEADLINE_REASON}
+    assert [h["repo"] for h in hits] == [str(repo_a), str(repo_c)]
 
 
