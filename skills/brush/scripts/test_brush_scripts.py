@@ -291,7 +291,8 @@ def test_manifest_row_names_the_file_that_was_moved(
 
     monkeypatch.setattr(
         "sys.argv",
-        ["trash_untracked.py", "--repo", str(repo), "sub/../old_junk.log"])
+        ["trash_untracked.py", "--repo", str(repo), "--apply",
+         "sub/../old_junk.log"])
     tu.main()
 
     row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
@@ -427,7 +428,7 @@ def test_main_reports_one_identity_for_a_moved_path_with_spaces(
 
     monkeypatch.setattr(
         "sys.argv",
-        ["trash_untracked.py", "--repo", str(repo), spelled])
+        ["trash_untracked.py", "--repo", str(repo), "--apply", spelled])
     tu.main()
     out = json.loads(capsys.readouterr().out)
 
@@ -748,3 +749,30 @@ def test_dry_run_preview_and_apply_report_identical_moved_and_refused(
     for entry in applied["moved"]:
         assert (repo / entry["trash"]).read_text() == "j"
         assert not (repo / entry["path"]).exists()
+
+
+def test_preview_moves_nothing(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, "old_junk.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "old_junk.log")
+
+    assert p.exists()
+    assert not (repo / "docs/dev/tmp/.trash").exists()
+    assert [e["path"] for e in out["moved"]] == ["old_junk.log"]
+
+
+def test_preview_json_matches_the_apply_run(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _old_file(repo, "old_junk.log")
+    manifest = repo / "docs/dev/tmp/.trash/manifest.tsv"
+
+    # Preview writes nothing, so the file's mtime still clears --min-age-days.
+    preview, _ = _run_main(repo, monkeypatch, capsys, "old_junk.log")
+    assert not manifest.exists()
+    applied, _ = _run_main(repo, monkeypatch, capsys, "--apply", "old_junk.log")
+
+    assert preview == applied
+    assert manifest.exists()
