@@ -434,7 +434,7 @@ def test_main_rejects_cap_of_zero(tmp_path, monkeypatch, capsys):
     assert exc_info.value.code != 0
     assert not out_path.exists()
     captured = capsys.readouterr()
-    assert "cap" in (captured.out + captured.err).lower()
+    assert "--cap must be a positive integer" in (captured.out + captured.err).lower()
 
 
 def test_main_rejects_negative_cap(tmp_path, monkeypatch, capsys):
@@ -449,7 +449,7 @@ def test_main_rejects_negative_cap(tmp_path, monkeypatch, capsys):
     assert exc_info.value.code != 0
     assert not out_path.exists()
     captured = capsys.readouterr()
-    assert "cap" in (captured.out + captured.err).lower()
+    assert "--cap must be a positive integer" in (captured.out + captured.err).lower()
 
 
 def test_main_rejects_a_deadline_of_zero(tmp_path, monkeypatch, capsys):
@@ -467,6 +467,57 @@ def test_main_rejects_a_deadline_of_zero(tmp_path, monkeypatch, capsys):
     assert "--deadline must be a positive integer" in (
         captured.out + captured.err
     ).lower()
+
+
+def test_main_rejects_a_negative_deadline(tmp_path, monkeypatch, capsys):
+    argv, (_repo_a, _repo_b, _repo_c), out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "NEGATIVEDEADLINEMARKER", _make_repo
+    )
+    argv += ["--deadline", "-1"]
+
+    with pytest.raises(SystemExit) as exc_info:
+        sweep.main(argv)
+
+    assert exc_info.value.code != 0
+    assert not out_path.exists()
+    captured = capsys.readouterr()
+    assert "--deadline must be a positive integer" in (
+        captured.out + captured.err
+    ).lower()
+
+
+def test_main_passes_deadline_through_to_scan(tmp_path, monkeypatch):
+    # The spy finds no hits, so main() would run verify_control, which calls
+    # scan() itself; stub it out so the spy sees only main()'s own scan call.
+    monkeypatch.setattr(sweep, "verify_control", lambda *a, **k: None)
+
+    def _run_main_and_record_deadlines(root, marker, extra_argv):
+        root.mkdir()
+        argv, _repos, out_path = _build_sweep_main_scaffold(
+            root, monkeypatch, marker, _make_repo
+        )
+        deadlines = []
+
+        def _spy_scan(*args, **kwargs):
+            deadlines.append(kwargs.get("deadline", "<not passed>"))
+            return [], {}, {}
+
+        monkeypatch.setattr(sweep, "scan", _spy_scan)
+        exit_code = sweep.main(argv + extra_argv)
+        assert exit_code == 0
+        assert out_path.exists()
+        return deadlines
+
+    with_flag = _run_main_and_record_deadlines(
+        tmp_path / "with-flag", "DEADLINEWIREMARKER", ["--deadline", "5"]
+    )
+    assert with_flag == [5]
+
+    without_flag = _run_main_and_record_deadlines(
+        tmp_path / "without-flag", "NODEADLINEWIREMARKER", []
+    )
+    assert len(without_flag) == 1
+    assert without_flag[0] is None
 
 
 def test_main_accepts_cap_of_one_as_smallest_legal_value(tmp_path, monkeypatch):
