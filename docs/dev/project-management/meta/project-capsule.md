@@ -182,7 +182,7 @@ Updated: 2026-10-18T16:48Z (full catchup, PRD 00070 selection, same batch 202610
   module exports for other modules (flagged `PINNED_KINDS`,
   `requires_tree_sitter` as unused).
 
-### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-18 at PRD 00031 finalize)
+### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-18 at PRD 00070 finalize)
 - [x] 00029-cut-v010-clean-changelog-v1.md (9/9 tasks, 1 cycle) — v0.1.0
   CHANGELOG cut and tag. Converged cycle 1 (4 findings, all low: 1 routed to
   verification and run green, 1 fixed inline, 2 informational); tail sweep
@@ -240,6 +240,12 @@ Updated: 2026-10-18T16:48Z (full catchup, PRD 00070 selection, same batch 202610
   added). Full suite 3940 passed / 9 skipped. 1 item deferred (pre-existing
   unrelated `skills/glean/scripts/glean.py`/`test_glean.py` edits, left
   untouched).
+- [x] 00070-purge-trash-first-guarantee-v1.md (2/2 tasks, 1 cycle) —
+  `empty_old_trash`/`process_store` gain a `keep` guard so a retention pass
+  can never delete the batch directory the same run just trashed. Converged
+  cycle 1 (0 C/H); tail swept as task 2 (closure split, buried assertion
+  named, E501 cleared). Full suite 3942 passed / 9 skipped at c4d6764.
+  Nothing deferred.
 - [ ] 00049-qwen-completion-status-v1.md (backlog, skipped at 00070 selection — eligibility unmet)
 - [ ] 00050-qwen-ivan-capability-eval-v1.md (backlog, skipped at 00070 selection — eligibility unmet)
 - [ ] 00070-purge-trash-first-guarantee-v1.md — selected this pass (wip); `empty_old_trash` keep-guard

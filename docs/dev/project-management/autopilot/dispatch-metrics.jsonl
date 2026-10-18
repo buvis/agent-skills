@@ -2146,3 +2146,5 @@
 {"id":"2067cfab","kind":"pat","task":"2","queued_at":1792344789,"prompt_bytes":11410}
 {"id":"2067cfab","ended_at":1792344816,"elapsed_s":27,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1792345267,"phase":"done","prd":"00070-purge-trash-first-guarantee-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1792345302,"phase":"done","prd":"00070-purge-trash-first-guarantee-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1792345389,"phase":"build","prd":"00070-purge-trash-first-guarantee-v1.md"}
