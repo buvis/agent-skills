@@ -37,41 +37,11 @@ def test_passes_when_every_skill_dir_is_named(tmp_path):
     assert c.find_missing(skills_dir, changelog) == []
 
 
-def test_grandfathered_name_is_skipped(tmp_path):
-    """A grandfathered skill dir not in the changelog is not reported missing."""
-    skills_dir, changelog = _skills_tree(tmp_path)
-    (skills_dir / "python-patterns").mkdir()
-
-    assert "python-patterns" not in c.find_missing(skills_dir, changelog)
-
-
 class TestGrandfathered:
-    """GRANDFATHERED constant holds exactly 14 verified names."""
+    """GRANDFATHERED is empty now that every skill is named in CHANGELOG.md."""
 
-    def test_grandfathered_has_exactly_14_names(self):
-        assert len(c.GRANDFATHERED) == 14
-
-    def test_grandfathered_contains_exact_names(self):
-        expected = {
-            "catchup-ecc",
-            "check-python-compat",
-            "digest-github-repo",
-            "e2e-testing",
-            "frontend-patterns",
-            "manage-agents-md",
-            "python-patterns",
-            "research",
-            "resolve-git-conflicts",
-            "review-deps-prs",
-            "review-with-doubt",
-            "rust-testing",
-            "sync-plan-issue",
-            "watch-ci",
-        }
-        assert set(c.GRANDFATHERED) == expected
-
-    def test_grandfathered_sorted(self):
-        assert list(c.GRANDFATHERED) == sorted(c.GRANDFATHERED)
+    def test_grandfathered_is_empty(self):
+        assert c.GRANDFATHERED == []
 
 
 class TestFindMissing:
@@ -122,14 +92,14 @@ class TestFindMissing:
         result = c.find_missing(skills_dir, changelog)
         assert result == ["not-in-changelog"]
 
-    def test_grandfathered_and_missing_mixed(self, tmp_path):
-        """Grandfathered skipped, only non-grandfathered missing returned."""
+    def test_empty_grandfathered_reports_everything_missing(self, tmp_path):
+        """With GRANDFATHERED empty, every unlisted skill dir is reported missing."""
         skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "catchup-ecc").mkdir()
         (skills_dir / "some-new-skill").mkdir()
 
         result = c.find_missing(skills_dir, changelog)
-        assert result == ["some-new-skill"]
+        assert result == ["catchup-ecc", "some-new-skill"]
 
     def test_ignores_non_directory_files_in_skills_dir(self, tmp_path):
         """Only directories under skills_dir are checked, not files."""
@@ -164,8 +134,10 @@ class TestMain:
 
         assert c.main(argv=[]) == 0
 
-    def test_main_grandfathered_excluded_from_missing(self, tmp_path, monkeypatch, capsys):
-        """Grandfathered skills not in changelog are not reported as missing."""
+    def test_main_reports_every_unlisted_skill_with_grandfathered_empty(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        """With GRANDFATHERED empty, every unlisted skill dir is reported as missing."""
         monkeypatch.setattr(c, "REPO_ROOT", tmp_path)
         skills_dir, changelog = _skills_tree(tmp_path)
         (skills_dir / "catchup-ecc").mkdir()
@@ -174,7 +146,10 @@ class TestMain:
         exit_code = c.main()
         assert exit_code == 1
         captured = capsys.readouterr()
-        assert captured.err == "actual-missing: not named in CHANGELOG.md\n"
+        assert captured.err == (
+            "actual-missing: not named in CHANGELOG.md\n"
+            "catchup-ecc: not named in CHANGELOG.md\n"
+        )
 
 
 class TestIntegration:

@@ -3,22 +3,7 @@
 import sys
 from pathlib import Path
 
-GRANDFATHERED = [
-    "catchup-ecc",
-    "check-python-compat",
-    "digest-github-repo",
-    "e2e-testing",
-    "frontend-patterns",
-    "manage-agents-md",
-    "python-patterns",
-    "research",
-    "resolve-git-conflicts",
-    "review-deps-prs",
-    "review-with-doubt",
-    "rust-testing",
-    "sync-plan-issue",
-    "watch-ci",
-]
+GRANDFATHERED = []
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
