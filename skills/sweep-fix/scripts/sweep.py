@@ -8,7 +8,9 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from datetime import date
 from pathlib import Path
 
@@ -87,6 +89,8 @@ def resolve_ast_grep():
 
 
 DEFAULT_SCAN_TIMEOUT = 30
+
+DEADLINE_REASON = "sweep deadline expired"
 
 PORTFOLIO_ROOT = Path.home() / "git" / "src" / "github.com"
 
@@ -290,7 +294,7 @@ def _scan_repo(repo, pattern, kind, ast_grep_error, timeout):
     return str(cwd), repo_hits, None
 
 
-def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT):
+def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=None):
     """Search `pattern` across `repos` using `kind` ("rg" or "astgrep").
 
     Read-only: never writes to a repo. Returns `(hits, suppressed, failed)`.
@@ -306,6 +310,12 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT):
 
     Repos are searched concurrently (up to 8 at a time); `hits`, `suppressed`
     and `failed` still follow the order of `repos`, not completion order.
+
+    `deadline` is an optional wall-clock budget in seconds for the whole
+    sweep, measured with `time.monotonic()` from the start of this call.
+    When set, a repo whose search has not finished by the time the deadline
+    passes is recorded in `failed` under DEADLINE_REASON instead of being
+    awaited further, and scan() returns without waiting for its worker.
     """
     if kind not in ("rg", "astgrep"):
         raise ValueError(f"unknown kind: {kind!r}")
@@ -317,12 +327,32 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT):
         except Exception as exc:
             ast_grep_error = str(exc)
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
+    start = time.monotonic() if deadline is not None else None
+    deadline_hit = False
+    results = []
+    # No `with` block: leaving one always waits for every worker, so a hung
+    # search would block scan() past its deadline.
+    executor = ThreadPoolExecutor(max_workers=8)
+    try:
         futures = [
             executor.submit(_scan_repo, repo, pattern, kind, ast_grep_error, timeout)
             for repo in repos
         ]
-        results = [future.result() for future in futures]
+        for repo, future in zip(repos, futures):
+            if deadline is None:
+                results.append(future.result())
+                continue
+            try:
+                remaining = deadline - (time.monotonic() - start)
+                if remaining <= 0 and not future.done():
+                    raise FutureTimeoutError
+                results.append(future.result(timeout=max(remaining, 0)))
+            except FutureTimeoutError:
+                cwd = repo["cwd"] if isinstance(repo, dict) else repo
+                results.append((str(cwd), [], DEADLINE_REASON))
+                deadline_hit = True
+    finally:
+        executor.shutdown(wait=not deadline_hit, cancel_futures=deadline_hit)
 
     hits = []
     suppressed = {}
