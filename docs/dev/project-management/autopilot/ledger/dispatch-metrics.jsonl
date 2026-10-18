@@ -1922,3 +1922,13 @@
 {"id":"707ea9a5","ended_at":1792313731,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"id":"7c086a84","ended_at":1792313731,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1792313731,"phase":"review","prd":"00023-one-message-three-failures-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792313756,"phase":"review","prd":"00023-one-message-three-failures-v1.md"}
+{"id":"1420b1b0","kind":"bob","task":"review-20261018-c1","queued_at":1792314196,"prompt_bytes":9540}
+{"id":"9cb7b2b1","kind":"carl","task":"review-20261018-c1","queued_at":1792314196,"prompt_bytes":6551}
+{"id":"1420b1b0","ended_at":1792314956,"elapsed_s":760,"outcome":"ok","detail":"retry"}
+{"id":"9cb7b2b1","ended_at":1792314974,"elapsed_s":778,"outcome":"ok","detail":null}
+{"id":"d058eb1d","kind":"pat","task":"5","queued_at":1792315334,"prompt_bytes":6756}
+{"id":"d058eb1d","ended_at":1792315369,"elapsed_s":35,"outcome":"ok","detail":null}
+{"id":"be768f75","kind":"pat","task":"6","queued_at":1792315436,"prompt_bytes":6214}
+{"id":"be768f75","ended_at":1792315463,"elapsed_s":27,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1792315897,"phase":"done","prd":"00023-one-message-three-failures-v1.md"}
