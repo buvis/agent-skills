@@ -435,3 +435,35 @@ def test_implementations_index_file_path_includes_relative_directory(tmp_path):
         f"separately would allow a wrong impl (e.g. 'core/aggregate_root.py') to pass.\n"
         f"Section:\n{section}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Trimmer: binary search must match the original pop loop exactly
+# ---------------------------------------------------------------------------
+
+def _reference_trim(content, max_bytes):
+    """The pre-binary-search pop loop, kept as the behavioural oracle."""
+    lines = content.split("\n")
+    while lines and len("\n".join(lines).encode()) > max_bytes:
+        lines.pop()
+    while lines and (lines[-1] == "" or lines[-1].startswith("## ")):
+        lines.pop()
+    return "\n".join(lines)
+
+
+_TRIM_CONTENTS = {
+    "empty": "",
+    "under_budget": "## Where things live\n- **src**: 3 files",
+    "cut_mid_list": "## Naming conventions\n"
+    + "\n".join(f"- **layer_{i:03d}**: 3 files" for i in range(300)),
+    "header_last_survivor": "## First\n- one\n\n## Second\n- " + "x" * 6000,
+}
+
+
+@pytest.mark.parametrize("max_bytes", [0, 64, 512, 5120])
+@pytest.mark.parametrize("name", list(_TRIM_CONTENTS))
+def test_trim_matches_the_pop_loop_byte_for_byte(name, max_bytes):
+    content = _TRIM_CONTENTS[name]
+    assert run._trim_lines_to_budget(content, max_bytes) == _reference_trim(content, max_bytes), (
+        f"binary-search trim diverged from the pop loop for {name!r} at {max_bytes} bytes"
+    )
