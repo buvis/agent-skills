@@ -467,3 +467,20 @@ def test_trim_matches_the_pop_loop_byte_for_byte(name, max_bytes):
     assert run._trim_lines_to_budget(content, max_bytes) == _reference_trim(content, max_bytes), (
         f"binary-search trim diverged from the pop loop for {name!r} at {max_bytes} bytes"
     )
+
+
+def test_trim_encodes_a_logarithmic_number_of_times(monkeypatch):
+    calls = 0
+    original = run._encoded_len
+
+    def counting_encoded_len(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(run, "_encoded_len", counting_encoded_len)
+    content = "\n".join("x" * 40 for _ in range(600))
+    run._trim_lines_to_budget(content, 5120)
+    assert calls <= 12, (
+        f"trim encoded {calls} times; a binary search needs at most 12 for 600 lines"
+    )
