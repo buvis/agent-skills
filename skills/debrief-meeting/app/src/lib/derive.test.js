@@ -13,9 +13,15 @@ const TURNS = [
 ]
 
 // loadPayload() reads document.getElementById('meeting-payload').textContent
-// directly, so each case plants that node on a fresh jsdom document.
+// directly, so each case plants that node on a fresh jsdom document. A decoy
+// <script> with unrelated content sits before the payload node so a wrong
+// implementation that reads the first <script> tag instead of looking up
+// #meeting-payload by id fails every case below.
 function setPayloadNodeText(text) {
-  const dom = new JSDOM('<script id="meeting-payload" type="application/json"></script>')
+  const dom = new JSDOM(
+    '<script id="decoy">var decoy = "not the payload"</script>'
+    + '<script id="meeting-payload" type="application/json"></script>',
+  )
   dom.window.document.getElementById('meeting-payload').textContent = text
   globalThis.document = dom.window.document
 }
@@ -27,24 +33,58 @@ test('reports not-built when the payload node still holds the placeholder marker
   assert.deepEqual(error, { kind: 'not-built' })
 })
 
+test('reports unreadable, not not-built, when the payload text is plain non-JSON garbage', () => {
+  setPayloadNodeText('hello')
+  const { payload, error } = loadPayload()
+  assert.equal(payload, null)
+  assert.equal(error.kind, 'unreadable')
+})
+
 test('reports unreadable with the missing-field message when JSON lacks transcript.turns', () => {
   setPayloadNodeText('{"transcript":{}}')
   const { payload, error } = loadPayload()
   assert.equal(payload, null)
-  assert.equal(error.kind, 'unreadable')
-  assert.equal(error.reason, 'missing transcript.turns')
+  assert.deepEqual(error, { kind: 'unreadable', reason: 'missing transcript.turns' })
 })
 
-test('reports unreadable with a nonempty reason when the payload text is not valid JSON', () => {
+test('reports unreadable with the missing-field message when the payload has no transcript at all', () => {
+  setPayloadNodeText('{}')
+  const { payload, error } = loadPayload()
+  assert.equal(payload, null)
+  assert.deepEqual(error, { kind: 'unreadable', reason: 'missing transcript.turns' })
+})
+
+test('reports unreadable with the missing-field message when turns is present but null', () => {
+  setPayloadNodeText('{"transcript":{"turns":null}}')
+  const { payload, error } = loadPayload()
+  assert.equal(payload, null)
+  assert.deepEqual(error, { kind: 'unreadable', reason: 'missing transcript.turns' })
+})
+
+test('reports unreadable with the parser\'s own message, not the missing-field message, when the payload text is not valid JSON', () => {
   setPayloadNodeText('{"transcript":{"turns":[')
   const { payload, error } = loadPayload()
   assert.equal(payload, null)
   assert.equal(error.kind, 'unreadable')
-  assert.ok(error.reason.length > 0)
+  assert.notEqual(error.reason, 'missing transcript.turns')
+  assert.match(error.reason, /JSON|Unexpected|Unterminated/)
+  assert.deepEqual(Object.keys(error).sort(), ['kind', 'reason'])
 })
 
-test('returns the parsed payload with no error when transcript.turns is present', () => {
-  const parsed = { transcript: { turns: [{ i: 0 }] } }
+test('returns the parsed payload with no error when transcript.turns is present, keeping sibling fields intact', () => {
+  const parsed = {
+    transcript: { turns: [{ i: 0, text: 'we start' }, { i: 1, text: 'I disagree' }], language: 'en' },
+    speakers: [{ id: 's0' }, { id: 's1' }],
+    meta: { title: 'Weekly sync' },
+  }
+  setPayloadNodeText(JSON.stringify(parsed))
+  const { payload, error } = loadPayload()
+  assert.deepEqual(payload, parsed)
+  assert.equal(error, null)
+})
+
+test('returns the parsed payload with no error when a turn\'s text happens to contain the not-built marker', () => {
+  const parsed = { transcript: { turns: [{ i: 0, text: 'quoting the placeholder __MEETING_PAYLOAD__ verbatim' }] } }
   setPayloadNodeText(JSON.stringify(parsed))
   const { payload, error } = loadPayload()
   assert.deepEqual(payload, parsed)
