@@ -109,17 +109,21 @@ def test_survey_reads_current_contents_on_every_call(tmp_path):
 
 
 def test_survey_unreadable_file_is_skipped_without_error(tmp_path, monkeypatch):
-    """A file whose read fails is left out; the rest of the survey still works.
+    """A file whose read fails is left out, is read once, and still counts.
 
-    Indexing the read-once mapping directly would raise KeyError for the file
-    that failed to read. The file still counts toward its layer.
+    The failed read is recorded as "" in the read-once mapping, so every later
+    consumer sees a present-but-empty text instead of retrying the file. An
+    implementation that recorded nothing would let `_extract_file_symbols` and
+    `_compute_error_style` attempt the same unreadable file again.
     """
     repo = _build_repo(tmp_path)
     broken = (repo / "src" / "svc.py").resolve()
     real_read_text = Path.read_text
+    attempts = {"broken": 0}
 
     def failing_read(self, *args, **kwargs):
         if self.resolve() == broken:
+            attempts["broken"] += 1
             raise PermissionError(13, "Permission denied", str(self))
         return real_read_text(self, *args, **kwargs)
 
@@ -133,6 +137,10 @@ def test_survey_unreadable_file_is_skipped_without_error(tmp_path, monkeypatch):
         f"readable files must still be surveyed:\n{brief}"
     assert "- **src**: 4 files" in brief, \
         f"the unreadable file still counts toward its layer:\n{brief}"
+    assert attempts["broken"] == 1, (
+        "an unreadable sampled file must be attempted exactly once, got "
+        f"{attempts['broken']} attempts"
+    )
 
 
 def test_survey_empty_file_is_read_from_disk_only_once(tmp_path, monkeypatch):
