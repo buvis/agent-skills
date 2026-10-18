@@ -474,20 +474,23 @@ def test_trim_matches_the_pop_loop_byte_for_byte():
     header_lines[242] = "## " + "h" * 17
     header_case_content = "\n".join(header_lines)
 
-    cases = [
-        (empty_content, 0),
-        (under_budget_content, 64),
-        (mid_list_content, 512),
-        (header_case_content, 5120),
-    ]
+    shapes = {
+        "empty": empty_content,
+        "under-budget": under_budget_content,
+        "mid-list": mid_list_content,
+        "header-boundary": header_case_content,
+    }
+    budgets = (0, 64, 512, 5120)
 
-    for content, max_bytes in cases:
-        expected = _reference_trim(content, max_bytes)
-        actual = run._trim_lines_to_budget(content, max_bytes)
-        assert actual == expected, (
-            f"_trim_lines_to_budget(..., {max_bytes}) must match the pop-loop "
-            f"reference byte-for-byte.\nexpected={expected!r}\nactual={actual!r}"
-        )
+    for shape, content in shapes.items():
+        for max_bytes in budgets:
+            expected = _reference_trim(content, max_bytes)
+            actual = run._trim_lines_to_budget(content, max_bytes)
+            assert actual == expected, (
+                f"_trim_lines_to_budget({shape!r} content, {max_bytes}) must match "
+                f"the pop-loop reference byte-for-byte.\n"
+                f"expected={expected!r}\nactual={actual!r}"
+            )
 
 
 def test_trim_encodes_a_logarithmic_number_of_times(monkeypatch):
@@ -511,8 +514,8 @@ def test_trim_encodes_a_logarithmic_number_of_times(monkeypatch):
 
     run._trim_lines_to_budget(content, 5120)
 
-    assert call_count["n"] <= 12, (
+    assert 1 <= call_count["n"] <= 12, (
         f"_trim_lines_to_budget encoded {call_count['n']} times trimming 600 lines "
-        "to 5120 bytes; a binary search must take at most 12 encodes, not one per "
-        "dropped line"
+        "to 5120 bytes; a binary search must encode at least once and at most 12 "
+        "times, not once per dropped line"
     )
