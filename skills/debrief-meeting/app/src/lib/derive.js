@@ -6,13 +6,17 @@ export const COLORS = [
 ]
 
 export function loadPayload() {
+  const node = document.getElementById('meeting-payload')
+  const text = node.textContent.trim()
+  if (/^__[A-Z]+_PAYLOAD__$/.test(text)) {
+    return { payload: null, error: { kind: 'not-built' } }
+  }
   try {
-    const node = document.getElementById('meeting-payload')
-    const parsed = JSON.parse(node.textContent)
+    const parsed = JSON.parse(text)
     if (!parsed.transcript?.turns) throw new Error('missing transcript.turns')
-    return parsed
-  } catch {
-    return null
+    return { payload: parsed, error: null }
+  } catch (e) {
+    return { payload: null, error: { kind: 'unreadable', reason: e.message } }
   }
 }
 
