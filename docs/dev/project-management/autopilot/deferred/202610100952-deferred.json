@@ -391,6 +391,14 @@
       "reason": "deferred by review-close",
       "prd": "00045-survey-single-read-and-log-time-trim-v1.md",
       "cycle": 3
+    },
+    {
+      "type": "scope-creep",
+      "issue": "Uncommitted reformatting of skills/glean/scripts/glean.py and test_glean.py (~146 lines, re.I -> re.IGNORECASE, wrapped lines, trailing commas) sits in the working tree outside PRD 00048 range; it also pushes cmd_scan to 54 lines, past the 50-line limit.",
+      "severity": "medium",
+      "consensus": "3/4",
+      "reason": "Working-tree drift predating this PRD (no glean commit in 758bded..2eecabc). Committing or reverting another session unreviewed work is the operator call, not this gate.",
+      "prd": "00048-trash-untracked-preview-default-v1.md"
     }
   ]
 }

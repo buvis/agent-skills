@@ -1,0 +1,58 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Unrelated reformatting of `skills/glean/scripts/glean.py` and `skills/glean/scripts/test_glean.py` (re.I to re.IGNORECASE, wrapped lines, added trailing commas, about 146 changed lines). It is scope creep for a brush-only PRD, and `git status` shows these as uncommitted edits. Revert them or commit them separately.",
+    "file": "skills/glean/scripts/glean.py:37",
+    "reason": "Uncommitted working-tree drift that predates this PRD's work range (758bded..2eecabc contains no glean commit). Reverting it would destroy another session's unreviewed work, which no autopilot gate is authorized to do; deferred to batch end for the operator to commit or revert."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Unrelated formatting expands `cmd_scan` to 54 lines, exceeding the 50-line limit. Revert the formatting changes in both glean files.",
+    "file": "skills/glean/scripts/glean.py:191",
+    "reason": "Same cause as the glean reformatting deferral above (the mechanical-facts block confirms cmd_scan at 54 lines). Out of this PRD's range and not this gate's to revert."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The preview and apply runs can disagree when two paths in one run resolve to the same destination, because preview creates nothing and so computes no `.dup` suffix. The design doc and the `trash_dest` docstring record this, but nothing tests it. This is an accepted limitation.",
+    "file": "skills/brush/scripts/trash_untracked.py:90",
+    "reason": "The design doc and the trash_dest docstring record this as an accepted limitation of the spec's design; the reviewer agrees it is accepted."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`test_relocate_keeps_the_earlier_file_on_a_dest_collision` passes against the pre-change code (the context's fail-first replay flags it). It is a legitimate behaviour-preserving guard for the `relocate()` refactor, so no change is needed.",
+    "file": "skills/brush/scripts/test_brush_scripts.py:224",
+    "reason": "Task 1 was a behaviour-preserving extraction, so a test that passes against the pre-change code is the intended guard. The reviewer that raised it states no change is needed."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Preview and apply can diverge when the same path is passed twice. Apply moves the file on the first occurrence, so the second reports \"missing\". Preview never moves it, so both occurrences are listed under `moved`. This is an edge case the spec does not cover.",
+    "file": "skills/brush/scripts/trash_untracked.py:133",
+    "reason": "Out of scope: the PRD specifies no behaviour for a repeated path argument, and the blind reviewer records it as an uncovered edge case rather than a spec violation."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`trash_dest` reads `.exists()` and a wall-clock `.dup<ts>` suffix, so a preview can name a different destination than the following apply run. Examples are a file landing at the destination in between, or a second-granularity timestamp. The docstring at skills/brush/scripts/trash_untracked.py:93 admits this. It is inherent to the spec's design and is only a note.",
+    "file": "skills/brush/scripts/trash_untracked.py:90",
+    "reason": "Inherent to the design the PRD specifies and documented in the docstring; the reviewer files it as a note, not a defect."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Human follow-up from the PRD: external callers that omit `--apply` now silently preview and move nothing. The in-repo sweep cannot detect this. Only the two in-repo call sites could be fixed.",
+    "file": "N/A",
+    "reason": "The PRD itself records this as a human follow-up; no in-repo change can resolve it and both in-repo call sites already carry --apply."
+  }
+]
