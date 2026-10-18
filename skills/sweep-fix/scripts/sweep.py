@@ -310,10 +310,14 @@ def _collect_scan_results(repos, futures, deadline, start):
             if remaining <= 0 and not future.done():
                 raise FutureTimeoutError
             results.append(future.result(timeout=max(remaining, 0)))
-        except FutureTimeoutError:
-            cwd = repo["cwd"] if isinstance(repo, dict) else repo
-            results.append((str(cwd), [], DEADLINE_REASON))
-            deadline_hit = True
+        except (FutureTimeoutError, TimeoutError) as exc:
+            cwd_key = str(_repo_cwd_and_targets(repo)[0])
+            if future.done():
+                # The worker itself raised TimeoutError: not a deadline hit.
+                results.append((cwd_key, [], str(exc)))
+            else:
+                results.append((cwd_key, [], DEADLINE_REASON))
+                deadline_hit = True
     return results, deadline_hit
 
 
@@ -370,6 +374,7 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
         except Exception as exc:
             ast_grep_error = str(exc)
 
+    repos = list(repos)
     start = time.monotonic() if deadline is not None else None
     deadline_hit = False
     # No `with` block: leaving one always waits for every worker, so a hung
@@ -563,7 +568,10 @@ def render_report(derivation, hits, gaps, suppressed, failed):
 
 def _positive_int(flag_name):
     def _parse(value):
-        parsed = int(value)
+        try:
+            parsed = int(value)
+        except ValueError:
+            parsed = 0
         if parsed <= 0:
             raise argparse.ArgumentTypeError(f"{flag_name} must be a positive integer")
         return parsed
