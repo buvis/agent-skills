@@ -25,3 +25,22 @@
 
 - (Tess) The new deadline-rejection test sits next to the existing `--cap` rejection tests in test_sweep_main.py; no placement was specified.
 - (Ivan) When a just-added test (`test_main_passes_deadline_through_to_scan`, no-flag half) contradicted the PRD/design (`--deadline` default 300, always passed to `scan()`), the PRD and design doc were treated as authoritative and the test's `is None` assertion was flagged as the defect — fixed in a follow-up commit to `== 300`, confirmed against `docs/dev/project-management/prds/wip/00031-sweep-parallel-with-deadline-v1.md` and its design doc.
+
+## 7: Tail sweep — sweep.py (review cycle 1)
+
+- (Tess) The worker-timeout test patches `sweep._scan_repo` to raise, as the existing monkeypatch tests do; a worker's `TimeoutError` is assumed to be recorded in `failed` rather than re-raised.
+- (Tess) The CLI message check lowercases the output, as the existing cap tests do.
+- (Ivan) Catching builtin `TimeoutError` alongside `concurrent.futures.TimeoutError` is needed on Python 3.10 (the venv), where they are different classes. Superseded by the review fix, which decides the future's state with `wait()` before reading its result and needs no `TimeoutError` catch at all.
+- (orchestrator) An error entry (`{cwd, error}`) carries no `files` key, so `_repo_cwd_and_targets` now defaults its target list to `[]` — reusing the helper for the deadline key would otherwise raise `KeyError` on exactly those entries. A regression test pins it.
+
+## 8: Tail sweep — test_sweep_main.py (review cycle 1)
+
+- (Ivan) The report carries no date or timestamp line, so the byte-identical-report test compares raw bytes with no stripping (inferred from the report text, not from the renderer).
+- (Ivan) The first report is deleted before the second run: it sits inside the scanned repo and carries the marker, so a second sweep would otherwise count it as a hit.
+- (Ivan) One shared marker for all six parametrized flag-rejection cases.
+- (orchestrator, deliberate scope note) The tightened `<flag> must be a positive integer` assertion was KEPT rather than reverted: the message is now guaranteed by `_positive_int(flag_name)`, so asserting it is strictly stronger than the old `"cap"` substring check.
+
+## 9: Tail sweep — test_sweep_scan.py (review cycle 1)
+
+- (orchestrator) With no deadline, `_collect_scan_results` calls `future.result()` bare, so a worker's exception escapes `scan()`; that single outcome replaced the test's either-or hedge.
+- (orchestrator) `rg`'s match order within one repo is not guaranteed, so the iterator test compares hit sets rather than hit lists.

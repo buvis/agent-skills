@@ -1,0 +1,58 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Unrelated formatting churn is in the diff: `skills/glean/scripts/glean.py` and `skills/glean/scripts/test_glean.py` (82 and 64 lines changed, including `re.I` to `re.IGNORECASE` and re-wrapped calls). It has nothing to do with PRD 00031, and the project capsule records it as pre-existing uncommitted work. Keep it out of this PRD's commit.",
+    "file": "skills/glean/scripts/glean.py",
+    "reason": "Not in this PRD's commit range: `git diff 8267e2c..HEAD -- skills/glean` is empty (Carl verified). These are pre-existing uncommitted working-tree edits belonging to another change; the PRD's standing invariant is to leave them untouched, and no PRD 00031 commit carries them."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Unrelated uncommitted working tree edits to glean bundled into review diff",
+    "file": "skills/glean/scripts/glean.py:37",
+    "reason": "Duplicate of the glean working-tree churn finding; same reason — outside this PRD's commit range, pre-existing foreign dirt, left untouched by instruction."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Formatting expands `cmd_scan` to 54 lines, exceeding the 50-line limit.",
+    "file": "skills/glean/scripts/glean.py:191",
+    "reason": "Real (the mechanical-facts block computes `cmd_scan` at 54 lines) but it lives in the same pre-existing uncommitted glean edits, outside this PRD's commit range. Fixing it here would stage another change's work into PRD 00031."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`--deadline` is not a hard wall-clock ceiling for the process. After a deadline hit, `scan()` returns at once (`shutdown(wait=False, cancel_futures=True)`). Worker threads already running are still joined by the interpreter's exit hook. Process exit can then trail the deadline by up to the per-call 30s timeout. The `scan()` return is bounded, which is what the spec asks for.",
+    "file": "skills/sweep-fix/scripts/sweep.py:385",
+    "reason": "Self-refuting as written: the PRD requires the `scan()` return to be deadline-bounded, and the reviewer confirms it is. Thread-join trailing at interpreter exit is Python's own semantics, not a spec gap."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Several tests go beyond the PRD's named ones: negative deadline, deadline passthrough to `scan`, `verify_control` not deadline-bound, real-clock deadline tests, and a no-Partial-line test. They are tests only, and the production code adds no extra flags or features.",
+    "file": "skills/sweep-fix/scripts/test_sweep_main.py",
+    "reason": "The raising reviewer states the production code adds nothing beyond the PRD. Extra tests of specified behavior are not scope creep."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "1 touched test(s) pass against the pre-change code: test_render_report_omits_partial_line_when_no_repo_hit_the_deadline",
+    "file": "skills/sweep-fix/scripts/test_sweep_render_report.py",
+    "reason": "A negative assertion (no `Partial:` line when no repo hit the deadline) passes pre-change by construction, because the line did not exist pre-change. It pins the new code's quiet path and cannot be made fail-first without asserting the opposite of its intent."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "2 touched test(s) pass against the pre-change code: test_scan_waits_for_a_slow_repo_when_no_deadline_is_set, test_scan_never_silently_drops_a_repo_whose_search_raises",
+    "file": "skills/sweep-fix/scripts/test_sweep_scan.py",
+    "reason": "`test_scan_waits_for_a_slow_repo_when_no_deadline_is_set` asserts behavior the pre-change serial loop also had (deadline-free waiting is explicitly a preserved contract), so it passes pre-change by construction. The second test's real defect is kept as a separate swept finding (the either-or hedge, R4)."
+  }
+]

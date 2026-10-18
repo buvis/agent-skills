@@ -1991,3 +1991,27 @@
 {"id":"a0a8b23d","ended_at":1792320677,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1792320677,"phase":"build","prd":"00031-sweep-parallel-with-deadline-v1.md"}
 {"kind":"handoff","site":"build","edge":"leave","at":1792322654,"phase":"review","prd":"00031-sweep-parallel-with-deadline-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792322683,"phase":"review","prd":"00031-sweep-parallel-with-deadline-v1.md"}
+{"id":"79947d24","kind":"bob","task":"review-20261018T1130","queued_at":1792323119,"prompt_bytes":9548}
+{"id":"0aa6979b","kind":"carl","task":"review-20261018T1130","queued_at":1792323119,"prompt_bytes":6555}
+{"id":"79947d24","ended_at":1792323954,"elapsed_s":835,"outcome":"ok","detail":null}
+{"id":"0aa6979b","ended_at":1792323954,"elapsed_s":835,"outcome":"ok","detail":null}
+{"id":"348ed121","kind":"bob","task":"review-20261018T1130","queued_at":1792323997,"prompt_bytes":156627}
+{"id":"348ed121","ended_at":1792324048,"elapsed_s":51,"outcome":"ok","detail":"retry"}
+{"id":"b71f9516","kind":"tess","task":"7","queued_at":1792324636,"prompt_bytes":28320}
+{"id":"39cfbb6f","kind":"ivan","task":"7","queued_at":1792324750,"prompt_bytes":9820}
+{"id":"d307c118","kind":"pat","task":"7","queued_at":1792324868,"prompt_bytes":10254}
+{"id":"918e8983","kind":"ivan","task":"7","queued_at":1792324910,"prompt_bytes":9075}
+{"id":"c5318717","kind":"pat","task":"7","queued_at":1792325063,"prompt_bytes":5705}
+{"id":"43d5a673","kind":"ivan","task":"8","queued_at":1792325153,"prompt_bytes":9979}
+{"id":"e0491a40","kind":"pat","task":"8","queued_at":1792325263,"prompt_bytes":10694}
+{"id":"17bc9985","kind":"pat","task":"9","queued_at":1792325396,"prompt_bytes":7702}
+{"id":"b71f9516","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"39cfbb6f","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"d307c118","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"918e8983","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"c5318717","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"43d5a673","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"e0491a40","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"id":"17bc9985","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
+{"kind":"handoff","site":"review","edge":"leave","at":1792326027,"phase":"done","prd":"00031-sweep-parallel-with-deadline-v1.md"}
