@@ -72,9 +72,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   name must appear in exact case, and the check reads this repo's `skills/` and
   `CHANGELOG.md` from its own location, so it reports the same result from any
   working directory.
-- **ci**: run the `brief-portfolio` and `debrief-meeting` node app suites in a
-  new `node` job (install then test for each), so a UI regression in either
-  app now gates CI instead of only a laptop run.
 - **use-sonnet**: `sonnet-run.sh` takes `-S/--session-id UUID`, pinning the
   Claude session id in print mode so a caller can find the transcript
   afterwards. Interactive, resume and continue runs are unaffected.
@@ -216,12 +213,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the pre-commit checks.
 - **skills**: publish `web-patterns`, `web-performance`, and `web-security`, the
   three strunk skills that had no copy here at all.
-- **docs**: publish the runtime-bound plugin skills as specifications under
-  `docs/plugin-skills/` - claude-checkup's seven audits, agoge's `run-agoge`,
-  autopilot's seven, and aegis's `gateguard`. They carry the procedure and its
-  references; the scripts, CLI, hooks and agents stay in the plugins, and a
-  banner in each says so. They sit outside `skills/`, so no host discovers them
-  as runnable skills.
 - **skills**: publish `survey`, the on-demand codebase brief. Its one tie to
   Claude Code was a `sys.path` insert reaching a hook library for a cached
   optional import of `tree_sitter_language_pack`; the skill now does that import
@@ -267,10 +258,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pointer it only needed the principle from, and `debrief-meeting`'s twelve
   `CLAUDE_SKILL_DIR` paths became `~/.agents/skills/` ones. Its parser is
   stdlib-only, so it needs no dependency the repo did not already have.
-- **docs**: a `docs/plugin-skills/README.md` saying what a documentation copy
-  is, how it differs from a compatibility copy, the four rules one follows, and
-  the condition for deleting it - the directory is a holding pen that should
-  empty as plugins become installable off Claude Code.
 - **AGENTS.md**: describe the documentation-copy class - where it lives, what
   it ships, the banner it carries, and why plugin paths are written
   `<name-plugin-root>/...` instead of a placeholder that expands to nothing.
@@ -279,17 +266,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   named `~/.agents/skills/use-qwen/` while `use-qwen` sat outside the union, so
   all three pointed at nothing. Publishing `use-qwen` here fixes it at the
   source; the copy is byte-identical to the released plugin again.
-- **tests**: guard skill placement - no skill in `skills/` may declare itself
-  Claude-only, and every documentation copy must carry its banner, its
-  `Documentation copy of the <plugin> plugin skill` line, a
-  `<name-plugin-root>/` marker, and no `.braidignore` entry. The first of those
-  is the `gateguard` case, which reached three hosts because nothing checked it.
-- **ci**: run the suite on Python 3.10 and 3.13, plus `ruff check`,
-  `ruff format --check`, and the skill validator over every skill.
-- **ci**: run every skill's bash suite too. Five skills ship one
-  (`use-codex`, `use-gemini`, `use-sonnet`, and `use-qwen`'s two, 172 tests
-  between them) and pytest never sees them, so until now they passed or failed
-  invisibly while CI reported green.
 
 ### Changed
 
@@ -623,8 +599,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **skills**: describe the personal-runtime compatibility class without naming
   the author, which also removes the collision with the autopilot reviewer
   persona of the same name.
-- **tests**: `uv run pytest` now collects every `test_*.py` a skill ships, so a
-  suite bundled with a skill can no longer sit unrun.
 - **explain-interactively**: lead the description with its trigger, and clone a
   GitHub source into the session scratchpad instead of `/tmp`.
 - **explain-interactively**: `build.sh` takes the course directory as an argument
