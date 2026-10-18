@@ -637,8 +637,7 @@ def test_dry_run_without_apply_reports_a_dup_suffix_on_a_taken_dest(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
     p = _old_file(repo, "old_junk.log", "new")
-    date = FROZEN_DATE
-    taken = repo / "docs/dev/tmp/.trash" / date / "old_junk.log"
+    taken = repo / "docs/dev/tmp/.trash" / FROZEN_DATE / "old_junk.log"
     taken.parent.mkdir(parents=True)
     taken.write_text("earlier")
 
@@ -647,7 +646,7 @@ def test_dry_run_without_apply_reports_a_dup_suffix_on_a_taken_dest(
     assert len(out["moved"]) == 1
     assert out["moved"][0]["path"] == "old_junk.log"
     trash = out["moved"][0]["trash"]
-    prefix = f"docs/dev/tmp/.trash/{date}/old_junk.log.dup"
+    prefix = f"docs/dev/tmp/.trash/{FROZEN_DATE}/old_junk.log.dup"
     assert trash.startswith(prefix) and trash[len(prefix):].isdigit()
     assert not (repo / trash).exists()
     assert taken.read_text() == "earlier"
