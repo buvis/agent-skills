@@ -2172,3 +2172,17 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1792348884,"phase":"done","prd":"00086-use-qwen-budgets-survive-load-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1792348918,"phase":"done","prd":"00086-use-qwen-budgets-survive-load-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1792349033,"phase":"build","prd":"00086-use-qwen-budgets-survive-load-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792349051,"phase":"build","prd":"00087-ground-prd-root-and-relative-exclusion-v1.md"}
+{"id":"4ffe2bd2","kind":"fast-track:tess","task":"00087-ground-prd-root-and-relative-exclusion-v1-c1","queued_at":1792349188,"prompt_bytes":100765}
+{"id":"4ffe2bd2","ended_at":1792349333,"elapsed_s":145,"outcome":"ok","detail":null}
+{"id":"949ca604","kind":"fast-track:fanout","task":"00087-ground-prd-root-and-relative-exclusion-v1-c1","queued_at":1792349473,"prompt_bytes":6253}
+{"id":"82df9ae6","kind":"fast-track:blake","task":"00087-ground-prd-root-and-relative-exclusion-v1-c1","queued_at":1792349476,"prompt_bytes":10566}
+{"id":"632853ab","kind":"fast-track:eve","task":"00087-ground-prd-root-and-relative-exclusion-v1-c1","queued_at":1792349479,"prompt_bytes":4626}
+{"id":"8b70bd8a","kind":"fast-track:bob","task":"00087-ground-prd-root-and-relative-exclusion-v1-c1","queued_at":1792349483,"prompt_bytes":9436}
+{"id":"044c2a5a","kind":"fast-track:carl","task":"00087-ground-prd-root-and-relative-exclusion-v1-c1","queued_at":1792349486,"prompt_bytes":6609}
+{"id":"8b70bd8a","ended_at":1792349789,"elapsed_s":306,"outcome":"ok","detail":null}
+{"id":"044c2a5a","ended_at":1792349792,"elapsed_s":306,"outcome":"ok","detail":null}
+{"id":"82df9ae6","ended_at":1792349985,"elapsed_s":509,"outcome":"ok","detail":null}
+{"id":"949ca604","ended_at":1792350044,"elapsed_s":571,"outcome":"ok","detail":null}
+{"id":"632853ab","ended_at":1792350282,"elapsed_s":803,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1792351006,"phase":"done","prd":"00087-ground-prd-root-and-relative-exclusion-v1.md"}
