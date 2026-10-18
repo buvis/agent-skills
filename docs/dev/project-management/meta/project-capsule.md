@@ -178,7 +178,12 @@ Updated: 2026-10-18 (full catchup, PRD 00023 selection, batch 202610100952 resum
   module exports for other modules (flagged `PINNED_KINDS`,
   `requires_tree_sitter` as unused).
 
-### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-16 at PRD 00075 finalize)
+### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-18 at PRD 00023 finalize)
+- [x] 00023-one-message-three-failures-v1.md (6/6 tasks, 1 cycle) —
+  debrief-meeting parser pins the unreadable-sentence message and the
+  three-failure document stub. Converged cycle 1 (5 findings, no C/H); tail
+  swept as tasks 5-6. Full suite 3839 passed / 6 skipped at ffbfcb5.
+  Nothing deferred.
 - [x] 00075-ground-prd-claims-against-installed-code-v1.md (9/9 tasks, 2
   cycles) — `ground_prd.py` checker (citation/symbol/library claim
   extraction + verification), create-prd step 5.55, and a
@@ -205,9 +210,17 @@ Updated: 2026-10-18 (full catchup, PRD 00023 selection, batch 202610100952 resum
   skipped at b8d635b. 2 items deferred (concurrent-write collision check,
   subdirectory report path vs git root — both low-severity, flagged not
   failed).
-- [ ] 00076-distil-tests-see-non-atomic-writes-v1.md (backlog)
-- [ ] 00077-docket-never-raises-v1.md (backlog)
-- [ ] 00079-split-test-survey-under-the-cap-v1.md (backlog)
+- [ ] 00029-cut-v010-clean-changelog-v1.md (backlog)
+- [ ] 00031-sweep-parallel-with-deadline-v1.md (backlog)
+- [ ] 00045-survey-single-read-and-log-time-trim-v1.md (backlog)
+- [ ] 00048-trash-untracked-preview-default-v1.md (backlog)
+- [ ] 00049-qwen-completion-status-v1.md (backlog)
+- [ ] 00050-qwen-ivan-capability-eval-v1.md (backlog)
+- [ ] 00070-purge-trash-first-guarantee-v1.md (backlog)
+- [ ] 00078-qwen-dispatch-skips-pi-extensions-v1.md (backlog)
+- [ ] 00086-use-qwen-budgets-survive-load-v1.md (backlog)
+- [ ] 00087-ground-prd-root-and-relative-exclusion-v1.md (backlog)
+- [ ] 00088-document-the-eval-harness-contract-v1.md (backlog)
 - [ ] 00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md (backlog)
 
   Observations: reviewers kept finding the same class (input faults escaping
