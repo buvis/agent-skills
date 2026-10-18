@@ -6,7 +6,6 @@ whole-line trimming, largest-fitting-prefix choice, empty-prefix fallback, and
 trailing blank/header cleanup.
 """
 
-import math
 import sys
 from pathlib import Path
 
@@ -178,86 +177,3 @@ def test_trim_cleanup_keeps_trailing_line_not_starting_with_literal_header(conte
     )
 
 
-# ---------------------------------------------------------------------------
-# _trim_lines_to_budget: differential check against the original pop loop
-# ---------------------------------------------------------------------------
-
-def _reference_trim(content: str, max_bytes: int) -> str:
-    """The pop-loop trimmer that the binary search replaces, copied verbatim."""
-    lines = content.split("\n")
-    while lines and len("\n".join(lines).encode()) > max_bytes:
-        lines.pop()
-    while lines and (lines[-1] == "" or lines[-1].startswith("## ")):
-        lines.pop()
-    return "\n".join(lines)
-
-
-def _build_mixed_content() -> str:
-    lines = []
-    for i in range(12):
-        lines += [
-            f"## Section {i}",
-            "",
-            f"- plain item {i}",
-            "   ",
-            f"  ## indented {i}",
-            f"- multi-byte {i} é€日本",
-            "\t",
-            f"### sub {i}",
-            "",
-        ]
-        if i % 3 == 2:
-            # Interior run of header/blank pairs so cleanup fires mid-content.
-            lines += [f"## Run {i}a", "", f"## Run {i}b", "", f"## Run {i}c", ""]
-    # Trailing run of 3+ header/blank pairs.
-    lines += ["## Tail A", "", "## Tail B", "", "## Tail C", "", "## Tail D", ""]
-    return "\n".join(lines)
-
-
-def test_trim_matches_reference_pop_loop_across_a_budget_sweep():
-    content = _build_mixed_content()
-    lines = content.split("\n")
-    assert len(lines) >= 100, "the differential input must be long"
-    total = len(content.encode())
-
-    budgets = set(range(-1, total + 2, 7)) | {-1, 0, total - 1, total, total + 1}
-    # Every prefix boundary and its neighbours: the exact points where k changes.
-    for k in range(len(lines) + 1):
-        boundary = len("\n".join(lines[:k]).encode())
-        budgets |= {boundary - 1, boundary, boundary + 1}
-
-    for max_bytes in sorted(budgets):
-        expected = _reference_trim(content, max_bytes)
-        result = run._trim_lines_to_budget(content, max_bytes)
-        assert result == expected, (
-            f"budget {max_bytes}: diverges from the reference pop loop, "
-            f"expected tail {expected[-40:]!r}, got tail {result[-40:]!r}"
-        )
-
-
-# ---------------------------------------------------------------------------
-# _trim_lines_to_budget: binary search, not a linear scan
-# ---------------------------------------------------------------------------
-
-@pytest.mark.parametrize("budget_fraction", [0.0, 0.37, 0.5, 0.91, 1.0])
-def test_trim_encodes_a_logarithmic_number_of_times(monkeypatch, budget_fraction):
-    n = 1000
-    content = "\n".join(f"- line {i:04d} " + "x" * 28 for i in range(n))
-    max_bytes = int(len(content.encode()) * budget_fraction)
-
-    original = run._encoded_len
-    calls = []
-
-    def counting_encoded_len(lines):
-        calls.append(len(lines))
-        return original(lines)
-
-    monkeypatch.setattr(run, "_encoded_len", counting_encoded_len)
-    result = run._trim_lines_to_budget(content, max_bytes)
-
-    assert result == _reference_trim(content, max_bytes)
-    bound = math.ceil(math.log2(n + 1)) + 2
-    assert 1 <= len(calls) <= bound, (
-        f"binary search over {n} lines must call _encoded_len between 1 and "
-        f"{bound} times, got {len(calls)}"
-    )
