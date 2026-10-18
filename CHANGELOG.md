@@ -261,6 +261,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AGENTS.md**: describe the documentation-copy class - where it lives, what
   it ships, the banner it carries, and why plugin paths are written
   `<name-plugin-root>/...` instead of a placeholder that expands to nothing.
+- **catchup-ecc**: scans new commits in the external affaan-m/everything-claude-code repo for ideas worth adopting.
+- **check-python-compat**: checks Python code for version-compatibility issues targeting 3.10+.
+- **digest-github-repo**: generates a zettelkasten digest of GitHub repo activity (issues, PRs, commits) for triage.
+- **e2e-testing**: guidance for writing Playwright E2E tests and deciding what to test in a web UI.
+- **frontend-patterns**: guidance for building Svelte 5 / SvelteKit components.
+- **manage-agents-md**: creates, audits, or improves an AGENTS.md file, or promotes project memories into it.
+- **python-patterns**: guidance for writing, reviewing, or refactoring Python code.
+- **research**: researches a topic via multi-source synthesis such as a literature review or competitive analysis.
+- **resolve-git-conflicts**: resolves git merge, rebase, cherry-pick, and stash conflicts.
+- **review-deps-prs**: triages open Renovate/Dependabot/manual dependency PRs across all repos.
+- **review-with-doubt**: a skeptical self-review that assumes the solution is incomplete before finalizing work.
+- **rust-testing**: guidance for writing, fixing, or reviewing Rust tests.
+- **sync-plan-issue**: pushes a finished plan summary to a new or existing GitHub issue.
+- **watch-ci**: polls GitHub Actions after a push or PR creation until completion, with a failure summary.
 
 ### Changed
 
