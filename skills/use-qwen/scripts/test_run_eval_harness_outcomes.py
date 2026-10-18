@@ -494,4 +494,5 @@ def test_render_returns_zero_and_writes_the_three_files_on_a_completed_round(rou
 
 
 def test_module_finished_inside_its_runtime_budget(module_started):
-    assert time.monotonic() - module_started < 60
+    # About twice the isolated run (56 s on 2026-10-17): still catches a real doubling, survives a loaded box.
+    assert time.monotonic() - module_started < 120

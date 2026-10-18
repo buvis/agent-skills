@@ -393,4 +393,5 @@ def test_every_round_probes_versions_once_and_never_the_server_without_qwen(roun
 
 
 def test_module_finished_inside_its_runtime_budget(module_started):
-    assert time.monotonic() - module_started < 60
+    # About twice the isolated run (56 s on 2026-10-17): still catches a real doubling, survives a loaded box.
+    assert time.monotonic() - module_started < 120
