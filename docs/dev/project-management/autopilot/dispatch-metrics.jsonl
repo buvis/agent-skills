@@ -2187,3 +2187,11 @@
 {"id":"632853ab","ended_at":1792350282,"elapsed_s":803,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1792351006,"phase":"done","prd":"00087-ground-prd-root-and-relative-exclusion-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1792351100,"phase":"build","prd":"00088-document-the-eval-harness-contract-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792351118,"phase":"build","prd":"00088-document-the-eval-harness-contract-v1.md"}
+{"id":"6efad171","kind":"ivan","task":"1","queued_at":1792351276,"prompt_bytes":31502}
+{"id":"cced8756","kind":"ivan","task":"1","queued_at":1792351460,"prompt_bytes":34063}
+{"id":"149db295","kind":"ivan","task":"2","queued_at":1792351631,"prompt_bytes":10129}
+{"id":"6efad171","ended_at":1792352154,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"cced8756","ended_at":1792352154,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"149db295","ended_at":1792352154,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1792352154,"phase":"review","prd":"00088-document-the-eval-harness-contract-v1.md"}

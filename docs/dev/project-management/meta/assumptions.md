@@ -1,12 +1,4 @@
-## 1: Widen the slow bundle's gate bound and sleeps
+## 1: Add runbook-vs-harness drift test
 
-- Running the narrow tests on scratch copies under `docs/dev/tmp/` is a fair stand-in for "check whether the tests would pass", because the real helper had to stay unchanged.
-- Pinning the exact value 15 (which the PRD names) rather than a looser "sleep well above the bound" check.
-- Reading the sleep from the sealed `spec.json` `raw_test_cmd` is acceptable, because the kill at the bound hides it from any timing check.
-- The rename-the-comment and docstring requirements are covered by the PRD's `rg` acceptance checks, so they were not separately tested.
-- The test files in the dispatch already hold the wanted assertions, so no test file edit was needed or allowed from Ivan.
-- "Write/strengthen tests" is already met by those test files, given the allowlist and the no-new-tests rule for Ivan.
-
-## 2: Both test module wall-clock budgets raised from 60s to 120s
-
-- When the Verify line (run the full suite) clashed with the rule against running a whole test directory, Ivan followed the rule and left the full suite to the orchestrator.
+- `run_eval_harness._parser()` subparsers action is located by finding the one `_actions` entry whose `.choices is not None` (argparse's internal `_SubParsersAction`), since the task said to "walk parser._subparsers / the subparsers action's choices dict" but didn't specify the exact attribute name to find that action - this is the standard, only way to get there from a plain `ArgumentParser`.
+- Used `._actions` (not `._subparsers`) consistently, matching the task's own phrasing ("each one's `._actions` for `.option_strings`").
