@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **brush**: `trash_untracked.py` previews by default; pass `--apply` to move files to `.trash` and write the manifest row.
 - **survey**: `_survey` now reads each sampled file from disk once and reuses that text for symbol extraction and the error-style scan, instead of reading it up to three times per run; the brief trimmer replaced its quadratic pop loop with a binary search, bounded at a logarithmic number of calls. Output is unchanged.
 
 ## [0.1.0] - 2026-10-18
