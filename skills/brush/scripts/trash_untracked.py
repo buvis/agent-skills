@@ -87,12 +87,22 @@ def veto_reason(rel: str, p: Path, tracked: set[str],
     return None
 
 
-def relocate(root: Path, rel: str, date: str) -> str:
+def trash_dest(root: Path, rel: str, date: str) -> Path:
+    """Where `rel` would land under root/docs/dev/tmp/.trash/<date>/.
+
+    Reads only `.exists()` for the `.dup<ts>` suffix. A file created at the
+    destination between a preview and the apply run changes the answer.
+    """
     dest = root / "docs/dev/tmp/.trash" / date / rel
-    dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists():
         ts = int(datetime.datetime.now().timestamp())
         dest = dest.with_name(f"{dest.name}.dup{ts}")
+    return dest
+
+
+def relocate(root: Path, rel: str, date: str) -> str:
+    dest = trash_dest(root, rel, date)
+    dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(root / rel), str(dest))
     return dest.relative_to(root).as_posix()
 
