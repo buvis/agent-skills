@@ -1,8 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { JSDOM } from 'jsdom'
 import {
-  actionsCsv, actionsMarkdown, adrMarkdown, fmtDur, fmtTime, gini, highlight, markers,
-  nearestTurn, speakerIndex, topShare,
+  actionsCsv, actionsMarkdown, adrMarkdown, fmtDur, fmtTime, gini, highlight, loadPayload,
+  markers, nearestTurn, speakerIndex, topShare,
 } from './derive.js'
 
 const TURNS = [
@@ -10,6 +11,45 @@ const TURNS = [
   { i: 1, t: 10, end: 40, s: 's1', text: 'I disagree' },
   { i: 2, t: 60, end: 90, s: 's0', text: 'fine' },
 ]
+
+// loadPayload() reads document.getElementById('meeting-payload').textContent
+// directly, so each case plants that node on a fresh jsdom document.
+function setPayloadNodeText(text) {
+  const dom = new JSDOM('<script id="meeting-payload" type="application/json"></script>')
+  dom.window.document.getElementById('meeting-payload').textContent = text
+  globalThis.document = dom.window.document
+}
+
+test('reports not-built when the payload node still holds the placeholder marker', () => {
+  setPayloadNodeText('__MEETING_PAYLOAD__')
+  const { payload, error } = loadPayload()
+  assert.equal(payload, null)
+  assert.deepEqual(error, { kind: 'not-built' })
+})
+
+test('reports unreadable with the missing-field message when JSON lacks transcript.turns', () => {
+  setPayloadNodeText('{"transcript":{}}')
+  const { payload, error } = loadPayload()
+  assert.equal(payload, null)
+  assert.equal(error.kind, 'unreadable')
+  assert.equal(error.reason, 'missing transcript.turns')
+})
+
+test('reports unreadable with a nonempty reason when the payload text is not valid JSON', () => {
+  setPayloadNodeText('{"transcript":{"turns":[')
+  const { payload, error } = loadPayload()
+  assert.equal(payload, null)
+  assert.equal(error.kind, 'unreadable')
+  assert.ok(error.reason.length > 0)
+})
+
+test('returns the parsed payload with no error when transcript.turns is present', () => {
+  const parsed = { transcript: { turns: [{ i: 0 }] } }
+  setPayloadNodeText(JSON.stringify(parsed))
+  const { payload, error } = loadPayload()
+  assert.deepEqual(payload, parsed)
+  assert.equal(error, null)
+})
 
 test('formats minutes without a leading zero hour', () => {
   assert.equal(fmtTime(0), '0:00')
