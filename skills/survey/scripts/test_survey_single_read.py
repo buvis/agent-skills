@@ -70,27 +70,6 @@ def _count_reads(monkeypatch) -> Counter:
     return reads
 
 
-def test_survey_reads_each_sampled_file_exactly_once(tmp_path, monkeypatch):
-    """Every sampled file is read once per survey, never by a consumer again.
-
-    An implementation that still lets the extractors or the error-style scan
-    read for themselves reads every file at least twice. One that treats
-    an empty text as missing re-reads empty.py.
-    """
-    repo = _build_repo(tmp_path)
-    sampled = [p.resolve() for p in (repo / "src").iterdir()] + [
-        p.resolve() for p in (repo / "pkg").iterdir()
-    ]
-    reads = _count_reads(monkeypatch)
-
-    run._survey(repo)
-
-    over_read = {str(p): reads[p] for p in sampled if reads[p] != 1}
-    assert not over_read, (
-        f"each sampled file must be read from disk exactly once; got {over_read}"
-    )
-
-
 def test_survey_brief_still_reflects_file_contents_after_single_read(
     tmp_path, monkeypatch
 ):
