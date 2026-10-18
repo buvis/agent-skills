@@ -2094,3 +2094,25 @@
 {"kind":"handoff","site":"build","edge":"resume","at":1792336759,"phase":"build","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1792336790,"phase":"done","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1792336864,"phase":"build","prd":"00045-survey-single-read-and-log-time-trim-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792336879,"phase":"build","prd":"00048-trash-untracked-preview-default-v1.md"}
+{"id":"bca03907","kind":"tess","task":"1","queued_at":1792337614,"prompt_bytes":26668}
+{"id":"2694f7c7","kind":"devon","task":"1","queued_at":1792337732,"prompt_bytes":2616}
+{"id":"2694f7c7","ended_at":1792337895,"elapsed_s":163,"outcome":"ok","detail":null}
+{"id":"209fb20a","kind":"ivan","task":"1","queued_at":1792337973,"prompt_bytes":33153}
+{"id":"7db1eefa","kind":"pat","task":"1","queued_at":1792338079,"prompt_bytes":10059}
+{"id":"6c25ef8e","kind":"tess","task":"2","queued_at":1792338166,"prompt_bytes":30616}
+{"id":"37e4b8ee","kind":"devon","task":"2","queued_at":1792338269,"prompt_bytes":2625}
+{"id":"37e4b8ee","ended_at":1792338462,"elapsed_s":193,"outcome":"ok","detail":null}
+{"id":"ce34a4d4","kind":"ivan","task":"2","queued_at":1792338531,"prompt_bytes":39675}
+{"id":"35a98abd","kind":"pat","task":"2","queued_at":1792338618,"prompt_bytes":13196}
+{"id":"9164dc50","kind":"ivan","task":"3","queued_at":1792338686,"prompt_bytes":16286}
+{"id":"dbf59630","kind":"ivan","task":"4","queued_at":1792338783,"prompt_bytes":4527}
+{"id":"bca03907","ended_at":1792339268,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"209fb20a","ended_at":1792339268,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"7db1eefa","ended_at":1792339268,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"6c25ef8e","ended_at":1792339268,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"ce34a4d4","ended_at":1792339268,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"35a98abd","ended_at":1792339268,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"9164dc50","ended_at":1792339268,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"dbf59630","ended_at":1792339268,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1792339268,"phase":"review","prd":"00048-trash-untracked-preview-default-v1.md"}
