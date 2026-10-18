@@ -517,7 +517,7 @@ def test_main_passes_deadline_through_to_scan(tmp_path, monkeypatch):
         tmp_path / "without-flag", "NODEADLINEWIREMARKER", []
     )
     assert len(without_flag) == 1
-    assert without_flag[0] is None
+    assert without_flag[0] == 300
 
 
 def test_main_accepts_cap_of_one_as_smallest_legal_value(tmp_path, monkeypatch):
