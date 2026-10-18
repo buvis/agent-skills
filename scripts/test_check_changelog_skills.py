@@ -147,8 +147,7 @@ class TestMain:
         assert exit_code == 1
         captured = capsys.readouterr()
         assert captured.err == (
-            "actual-missing: not named in CHANGELOG.md\n"
-            "catchup-ecc: not named in CHANGELOG.md\n"
+            "actual-missing: not named in CHANGELOG.md\ncatchup-ecc: not named in CHANGELOG.md\n"
         )
 
 
