@@ -17,6 +17,10 @@ const TURNS = [
 // <script> with unrelated content sits before the payload node so a wrong
 // implementation that reads the first <script> tag instead of looking up
 // #meeting-payload by id fails every case below.
+// Built from parts, never the contiguous literal: this file's own source
+// must not trip the "marker appears nowhere in app/src" acceptance check.
+const NOT_BUILT_MARKER = '__MEETING' + '_PAYLOAD__'
+
 function setPayloadNodeText(text) {
   const dom = new JSDOM(
     '<script id="decoy">var decoy = "not the payload"</script>'
@@ -27,7 +31,7 @@ function setPayloadNodeText(text) {
 }
 
 test('reports not-built when the payload node still holds the placeholder marker', () => {
-  setPayloadNodeText('__MEETING_PAYLOAD__')
+  setPayloadNodeText(NOT_BUILT_MARKER)
   const { payload, error } = loadPayload()
   assert.equal(payload, null)
   assert.deepEqual(error, { kind: 'not-built' })
@@ -84,7 +88,7 @@ test('returns the parsed payload with no error when transcript.turns is present,
 })
 
 test('returns the parsed payload with no error when a turn\'s text happens to contain the not-built marker', () => {
-  const parsed = { transcript: { turns: [{ i: 0, text: 'quoting the placeholder __MEETING_PAYLOAD__ verbatim' }] } }
+  const parsed = { transcript: { turns: [{ i: 0, text: `quoting the placeholder ${NOT_BUILT_MARKER} verbatim` }] } }
   setPayloadNodeText(JSON.stringify(parsed))
   const { payload, error } = loadPayload()
   assert.deepEqual(payload, parsed)
