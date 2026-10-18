@@ -409,7 +409,7 @@ def _fit_to_budget(content: str) -> tuple[str, bool]:
 
 def _read_sampled_texts(layers: dict[str, list[Path]]) -> dict[Path, str]:
     # Read each sampled file once; every consumer gets this text. A file that
-    # fails to read is absent here and skipped by the extractors.
+    # fails to read is recorded as "" so no consumer attempts a second read.
     texts: dict[Path, str] = {}
     for files in layers.values():
         for f in files:
@@ -418,7 +418,7 @@ def _read_sampled_texts(layers: dict[str, list[Path]]) -> dict[Path, str]:
             try:
                 texts[f] = f.read_text(encoding="utf-8", errors="replace")
             except OSError:
-                pass
+                texts[f] = ""
     return texts
 
 
