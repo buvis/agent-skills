@@ -140,13 +140,14 @@ def prune_empty_dirs(store: Path) -> None:
             pass
 
 
-def empty_old_trash(store: Path, now: float, days: float) -> int:
+def empty_old_trash(store: Path, now: float, days: float, keep: str | None = None) -> int:
+    """Remove batches older than days, never the batch named keep."""
     trash = store / TRASH_DIR
     if not trash.is_dir():
         return 0
     removed = 0
     for batch in trash.iterdir():
-        if not batch.is_dir():
+        if not batch.is_dir() or batch.name == keep:
             continue
         try:
             batch_time = time.mktime(time.strptime(batch.name, "%Y-%m-%d"))
@@ -174,7 +175,7 @@ def process_store(label: str, store: Path, args, now: float) -> Counter:
     emptied = 0
     if args.apply:
         prune_empty_dirs(store)
-        emptied = empty_old_trash(store, now, args.empty_trash_days)
+        emptied = empty_old_trash(store, now, args.empty_trash_days, keep=batch)
         (store / TRASH_DIR / batch).mkdir(parents=True, exist_ok=True)
 
     print(
