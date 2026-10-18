@@ -558,3 +558,26 @@ def test_scan_does_not_report_a_workers_own_timeout_as_a_deadline_hit(
     assert [h["repo"] for h in hits] == [str(repo_a)]
 
 
+def test_scan_reports_an_error_entry_unfinished_at_the_deadline_by_cwd(
+    tmp_path, monkeypatch
+):
+    # An error entry carries no "files" key; the deadline path still has to
+    # name it rather than raising KeyError.
+    error_entry = {"cwd": tmp_path / "bare", "error": "ls-files failed"}
+    release = threading.Event()
+
+    def blocking_scan_repo(repo, *args, **kwargs):
+        release.wait(timeout=5)
+        return str(repo), [], None
+
+    monkeypatch.setattr(sweep, "_scan_repo", blocking_scan_repo)
+
+    hits, _suppressed, failed = sweep.scan(
+        "PARALLELMARKER", "rg", [error_entry], deadline=0
+    )
+    release.set()
+
+    assert hits == []
+    assert failed[str(tmp_path / "bare")] == sweep.DEADLINE_REASON
+
+

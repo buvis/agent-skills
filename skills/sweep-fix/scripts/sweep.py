@@ -9,8 +9,7 @@ import shutil
 import subprocess
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import TimeoutError as FutureTimeoutError
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import date
 from pathlib import Path
 
@@ -229,7 +228,11 @@ def _repo_cwd_and_targets(repo):
     the entry never needs a directory walk of its own.
     """
     if isinstance(repo, dict):
-        return repo["cwd"], repo["files"]
+        # An error entry (`{"cwd": ..., "error": ...}`) carries no file list;
+        # it is never searched, but the deadline path still asks for its cwd.
+        # An error entry (`{"cwd": ..., "error": ...}`) carries no file list;
+        # it is never searched, but the deadline path still asks for its cwd.
+        return repo["cwd"], repo.get("files", [])
     return repo, ["."]
 
 
@@ -305,19 +308,17 @@ def _collect_scan_results(repos, futures, deadline, start):
         if deadline is None:
             results.append(future.result())
             continue
-        try:
-            remaining = deadline - (time.monotonic() - start)
-            if remaining <= 0 and not future.done():
-                raise FutureTimeoutError
-            results.append(future.result(timeout=max(remaining, 0)))
-        except (FutureTimeoutError, TimeoutError) as exc:
+        remaining = deadline - (time.monotonic() - start)
+        if not wait([future], timeout=max(remaining, 0)).done:
             cwd_key = str(_repo_cwd_and_targets(repo)[0])
-            if future.done():
-                # The worker itself raised TimeoutError: not a deadline hit.
-                results.append((cwd_key, [], str(exc)))
-            else:
-                results.append((cwd_key, [], DEADLINE_REASON))
-                deadline_hit = True
+            results.append((cwd_key, [], DEADLINE_REASON))
+            deadline_hit = True
+            continue
+        try:
+            results.append(future.result())
+        except Exception as exc:
+            cwd_key = str(_repo_cwd_and_targets(repo)[0])
+            results.append((cwd_key, [], str(exc)))
     return results, deadline_hit
 
 
