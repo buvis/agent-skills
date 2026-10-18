@@ -1968,3 +1968,11 @@
 {"id":"6b82515e","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"id":"970cbd4f","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1792317649,"phase":"review","prd":"00029-cut-v010-clean-changelog-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792317688,"phase":"review","prd":"00029-cut-v010-clean-changelog-v1.md"}
+{"id":"505bfc73","kind":"bob","task":"review-20261018T1010","queued_at":1792317715,"prompt_bytes":9548}
+{"id":"2244c957","kind":"carl","task":"review-20261018T1010","queued_at":1792317715,"prompt_bytes":6555}
+{"id":"f7a57afb","kind":"bob","task":"review-20261018T1010","queued_at":1792318195,"prompt_bytes":101760}
+{"id":"505bfc73","ended_at":1792318378,"elapsed_s":663,"outcome":"error","detail":"lack-of-input"}
+{"id":"f7a57afb","ended_at":1792318378,"elapsed_s":183,"outcome":"ok","detail":"retry"}
+{"id":"2244c957","ended_at":1792318378,"elapsed_s":663,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1792318527,"phase":"done","prd":"00029-cut-v010-clean-changelog-v1.md"}

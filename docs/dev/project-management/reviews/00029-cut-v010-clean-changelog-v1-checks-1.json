@@ -1,0 +1,26 @@
+[
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: local v0.1.0 tag exists and targets the finished changelog commit",
+    "file": null,
+    "command": "git tag -l",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: local v0.1.0 tag exists and targets the finished changelog commit",
+    "file": null,
+    "command": "git show v0.1.0:CHANGELOG.md",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: local v0.1.0 tag exists and targets the finished changelog commit",
+    "file": null,
+    "command": "git log -1 --format=%cs v0.1.0",
+    "source": "bob",
+    "result": {"exit": 0}
+  }
+]
