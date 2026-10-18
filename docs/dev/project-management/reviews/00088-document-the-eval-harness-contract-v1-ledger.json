@@ -1,0 +1,90 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Drift test is one-directional: nothing fails when § 7 names a subcommand or flag the CLI has removed, so the runbook can rot in the stale direction while staying green. Not required by the PRD, which is the gap",
+    "file": "skills/use-qwen/scripts/test_runbook_matches_harness.py:34",
+    "reason": "Out of PRD 00088 scope: the PRD fixes the test set verbatim at four tests over runbook § 7. A reverse-direction assertion is new behaviour the contract does not specify; deferred to batch end as a follow-up idea, not a defect in the delivered work."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Function cmd_scan exceeds 50-line limit (54 lines)",
+    "file": "skills/glean/scripts/glean.py:191",
+    "reason": "Factually correct and confirmed by the computed mechanical-facts block, but the function lives in pre-existing uncommitted working-tree drift under skills/glean, outside PRD 00088's three-file scope (skills/use-qwen only). Already tracked by batch triage stubs 00091/00092. Fixing it here would violate the surgical-changes rule."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Unrequested formatting changes to glean scripts included in diff",
+    "file": "skills/glean/scripts/glean.py:1",
+    "reason": "Real, but not produced by this PRD: the edits are uncommitted working-tree drift that predates this build session (mtime 12:16 vs 21:24 for this PRD's new test) and were swept into the review diff because the diff spans the dirty tree. Already tracked by batch triage stubs 00091/00092; this PRD's commits do not include them."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`run_eval_harness.py`'s own module docstring still says \"vet, verify and run\" and omits `render`, the same drift this PRD fixes in the runbook; pre-existing and outside the diff, so surfaced rather than changed",
+    "file": "skills/use-qwen/scripts/run_eval_harness.py:2",
+    "reason": "Genuine drift, but PRD 00088 explicitly forbids touching harness code — its scope is the runbook and SKILL.md. Deferred to batch end as a one-line follow-up."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "`run` catches refusals only around `_admit`; `_plan_attempts` runs outside that `try` and calls `spec.load_spec`, so a `SpecError` there surfaces as a traceback rather than the \"each refusal names the remedy\" contract § 7 now advertises. Pre-existing harness code the PRD forbade touching; the new doc is what raises the expectation",
+    "file": "skills/use-qwen/scripts/eval_harness/attempt.py:167",
+    "reason": "A real harness defect, but harness code is out of PRD 00088's scope by the PRD's own constraint. Deferred to batch end; the reviewer states the pre-existing nature himself."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Private helper `_subparser` exists beyond the PRD's declared new symbols (`_section_seven` plus the four tests). Harmless and needed by two tests, but it is undeclared surface",
+    "file": "skills/use-qwen/scripts/test_runbook_matches_harness.py:26",
+    "reason": "Not a defect: the PRD's new-symbols list enumerates the required symbols, not an exhaustive prohibition, and the reviewer grants the helper is needed by two tests. The R1 sweep refactors this helper anyway."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The commit range also rewrote `docs/dev/project-management/meta/assumptions.md`, replacing the previous PRD's recorded assumptions wholesale (13 lines removed). Outside the PRD's three-file implementation set; looks like autopilot keeper rotation rather than deliberate work, and the prior record is only recoverable from git",
+    "file": "docs/dev/project-management/meta/assumptions.md:1",
+    "reason": "Correctly identified as autopilot keeper rotation, not PRD work. The keeper is a per-PRD rolling record by design and the prior content stays in git history, which is its intended retention. No action for this PRD."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The test-only commit `3f24b2f` is red on its own (the runbook edit lands in `99846b5`), so the history contains one non-green commit. The PRD explicitly permitted either ordering; noted only because a bisect across that commit fails for a documentation reason",
+    "file": null,
+    "reason": "Explicitly permitted by the PRD's own acceptance criterion (\"commit the test with the Phase 1 edit if the pipeline requires green commits; it must be watched failing first either way\"). The fail-first discipline is the project rule; rewriting history to hide it would be worse."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "PRD must-have \"SKILL.md names verify beside vet, run, render\" has no test; the SKILL.md harness line can drift silently on the next subcommand",
+    "file": "skills/use-qwen/SKILL.md",
+    "reason": "Out of PRD 00088 scope: the PRD fixes the test set verbatim at four tests over runbook § 7 only. Bob filed it in his own KNOWN bucket for the same reason. Deferred to batch end as a follow-up."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "The reviewed diff carries unrelated working-tree reformatting of `skills/glean/scripts/glean.py` and `test_glean.py` plus a rewritten `meta/assumptions.md`, none of it PRD 00088 work",
+    "file": null,
+    "reason": "Duplicate of the glean-drift and assumptions.md entries above; settled on the same grounds."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "issue": "Flag checks are section-wide, not per-subcommand: a `vet` flag documented only on the `run` command line (or the reverse) passes",
+    "file": "skills/use-qwen/scripts/test_runbook_matches_harness.py",
+    "reason": "The PRD's contract literally specifies \"assert each occurs in `_section_seven()`\". Per-subcommand scoping would change the specified assertion, so it is out of scope; Bob filed it in his own KNOWN bucket for the same reason."
+  }
+]

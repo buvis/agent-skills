@@ -1,0 +1,18 @@
+[
+  {
+    "cycle": 1,
+    "finding": "Cannot statically verify: `uv run python3 skills/create-skill/scripts/validate_skill.py skills/use-qwen` passes and the full suite's PASS/FAIL/SKIP counts (test gate reported exit 0 with counts unavailable)",
+    "file": null,
+    "command": "uv run python3 skills/create-skill/scripts/validate_skill.py skills/use-qwen",
+    "source": "bob",
+    "result": {"exit": 0}
+  },
+  {
+    "cycle": 1,
+    "finding": "Skill-path validator and suite counts not runnable in this read-only review — report the PASS/FAIL/SKIP counts of the full suite",
+    "file": null,
+    "command": "uv run pytest -q",
+    "source": "bob",
+    "result": {"exit": 0}
+  }
+]

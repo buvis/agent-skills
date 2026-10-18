@@ -448,6 +448,50 @@
       "action": "deferred to batch end",
       "reason": "not this PRD's work (in no commit of 184d2cf..HEAD); committing or reverting another session's uncommitted work is an operator decision, not autopilot rework",
       "prd": "00086-use-qwen-budgets-survive-load-v1.md"
+    },
+    {
+      "type": "out-of-scope",
+      "issue": "Drift test is one-directional: nothing fails when runbook section 7 names a subcommand or flag the CLI has removed, so the runbook can rot in the stale direction while staying green",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "PRD 00088 fixes the test set verbatim at four tests; a reverse-direction assertion is unspecified new behaviour",
+      "file": "skills/use-qwen/scripts/test_runbook_matches_harness.py:34",
+      "prd": "00088-document-the-eval-harness-contract-v1.md"
+    },
+    {
+      "type": "out-of-scope",
+      "issue": "run_eval_harness.py module docstring still says vet, verify and run and omits render - the same drift this PRD fixed in the runbook",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "PRD 00088 forbids touching harness code; its scope is the runbook and SKILL.md",
+      "file": "skills/use-qwen/scripts/run_eval_harness.py:2",
+      "prd": "00088-document-the-eval-harness-contract-v1.md"
+    },
+    {
+      "type": "out-of-scope",
+      "issue": "run catches refusals only around _admit; _plan_attempts runs outside that try and calls spec.load_spec, so a SpecError surfaces as a traceback rather than the named-remedy refusal the runbook now advertises",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "Pre-existing harness code PRD 00088 forbids touching; the new documentation is what raises the expectation",
+      "file": "skills/use-qwen/scripts/eval_harness/attempt.py:167",
+      "prd": "00088-document-the-eval-harness-contract-v1.md"
+    },
+    {
+      "type": "out-of-scope",
+      "issue": "No test pins the PRD must-have that SKILL.md names verify beside vet, run and render; the SKILL.md harness line can drift silently on the next subcommand",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "PRD 00088 fixes the test set verbatim at four tests over runbook section 7 only; the doubt lens filed it as KNOWN for the same reason",
+      "file": "skills/use-qwen/SKILL.md",
+      "prd": "00088-document-the-eval-harness-contract-v1.md"
+    },
+    {
+      "type": "reviewer-infrastructure",
+      "issue": "Both CLI reviewers went off-target on their first dispatch in cycle 1: codex and gemini each reviewed skills/debrief-meeting, a skill absent from the staged diff, despite the staged context and diff files being verified correct. Codex then returned a lack-of-input refusal on retry because its read-only shell cannot cat the staged inputs (the aegis prefer_tools hook blocks cat), so the doubt lens had to run through the Claude fallback",
+      "severity": "medium",
+      "consensus": "n/a",
+      "reason": "Operational defect in the CLI reviewer lanes, not in the reviewed work: it cost two retries and one fallback this cycle. Worth a PRD - codex-run.sh should tell its sandbox to read with a non-blocked tool, and the off-target contamination needs a root cause",
+      "prd": "00088-document-the-eval-harness-contract-v1.md"
     }
   ]
 }

@@ -2195,3 +2195,19 @@
 {"id":"cced8756","ended_at":1792352154,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"id":"149db295","ended_at":1792352154,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1792352154,"phase":"review","prd":"00088-document-the-eval-harness-contract-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792352191,"phase":"review","prd":"00088-document-the-eval-harness-contract-v1.md"}
+{"id":"1976564d","kind":"bob","task":"review-20261018-c1","queued_at":1792352647,"prompt_bytes":9540}
+{"id":"a8ce157a","kind":"carl","task":"review-20261018-c1","queued_at":1792352647,"prompt_bytes":6551}
+{"id":"0064bcd2","kind":"bob","task":"review-20261018-c1","queued_at":1792352707,"prompt_bytes":9540}
+{"id":"e6ac818b","kind":"carl","task":"review-20261018-c1","queued_at":1792352773,"prompt_bytes":6551}
+{"id":"1976564d","ended_at":1792353478,"elapsed_s":831,"outcome":"error","detail":"format-invalid"}
+{"id":"0064bcd2","ended_at":1792353482,"elapsed_s":775,"outcome":"error","detail":"retry: lack-of-input"}
+{"id":"a8ce157a","ended_at":1792353485,"elapsed_s":838,"outcome":"error","detail":"format-invalid"}
+{"id":"e6ac818b","ended_at":1792353489,"elapsed_s":716,"outcome":"ok","detail":"retry"}
+{"id":"9f41392a","kind":"ivan","task":"3","queued_at":1792353837,"prompt_bytes":12810}
+{"id":"9f41392a","ended_at":1792353888,"elapsed_s":51,"outcome":"ok","detail":null}
+{"id":"ff2bc5f4","kind":"pat","task":"3","queued_at":1792353982,"prompt_bytes":10019}
+{"id":"ff2bc5f4","ended_at":1792354015,"elapsed_s":33,"outcome":"ok","detail":null}
+{"id":"d094bae8","kind":"pat","task":"4","queued_at":1792354147,"prompt_bytes":11724}
+{"id":"d094bae8","ended_at":1792354167,"elapsed_s":20,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1792354642,"phase":"done","prd":"00088-document-the-eval-harness-contract-v1.md"}
