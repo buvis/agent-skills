@@ -9,7 +9,7 @@
   import Transcript from './components/Transcript.svelte'
   import Insights from './components/Insights.svelte'
 
-  const payload = loadPayload()
+  const { payload, error } = loadPayload()
   const transcript = payload?.transcript
   const extract = payload?.extract ?? {}
   const extractRan = payload?.extract_ran ?? true
@@ -61,7 +61,11 @@
 {#if !payload}
   <div class="wrap">
     <h1>Meeting Debrief</h1>
-    <p class="empty">No payload was injected into this file. Re-run scripts/build.py.</p>
+    {#if error?.kind === 'unreadable'}
+      <p class="empty">The injected payload is present but unreadable: {error.reason}</p>
+    {:else}
+      <p class="empty">No payload was injected into this file. Re-run scripts/build.py.</p>
+    {/if}
   </div>
 {:else}
   <header class="top">
