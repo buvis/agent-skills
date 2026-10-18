@@ -349,6 +349,11 @@ def _build_brief(
     return "\n".join(lines)
 
 
+def _encoded_len(lines: list[str]) -> int:
+    """UTF-8 byte length of the lines joined by newlines."""
+    return len("\n".join(lines).encode())
+
+
 def _trim_lines_to_budget(content: str, max_bytes: int) -> str:
     """Drop whole trailing lines until content fits max_bytes.
 
@@ -357,8 +362,17 @@ def _trim_lines_to_budget(content: str, max_bytes: int) -> str:
     left dangling with no entries beneath it is dropped too.
     """
     lines = content.split("\n")
-    while lines and len("\n".join(lines).encode()) > max_bytes:
-        lines.pop()
+    if _encoded_len(lines) > max_bytes:
+        # Prefix length grows with k, so binary-search the largest k that fits.
+        # k=0 (the empty prefix) is the result when nothing fits.
+        lo, hi = 0, len(lines) - 1
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if _encoded_len(lines[:mid]) <= max_bytes:
+                lo = mid
+            else:
+                hi = mid - 1
+        lines = lines[:lo]
     while lines and (lines[-1] == "" or lines[-1].startswith("## ")):
         lines.pop()
     return "\n".join(lines)
