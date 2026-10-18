@@ -398,6 +398,35 @@ def test_render_report_collapses_multiline_failed_reason_into_a_single_line():
     assert "line one line two line three" in matching_lines[0]
 
 
+def test_render_report_emits_partial_line_for_deadline_expired_repos():
+    derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
+    failed = {
+        "/repo/a": sweep.DEADLINE_REASON,
+        "/repo/b": sweep.DEADLINE_REASON,
+        "/repo/c": "no such file or directory",
+    }
+
+    report = sweep.render_report(derivation, [], [], {}, failed)
+
+    partial_lines = [line for line in report.splitlines() if line.startswith("Partial:")]
+    assert partial_lines == ["Partial: 2 repos not scanned (sweep deadline expired)"]
+    partial_index = report.splitlines().index(partial_lines[0])
+    failed_index = report.splitlines().index("Failed:")
+    assert partial_index < failed_index
+    # A DEADLINE_REASON repo still also appears in the Failed: block.
+    assert "/repo/a" in report
+    assert "/repo/b" in report
+
+
+def test_render_report_omits_partial_line_when_no_repo_hit_the_deadline():
+    derivation = {"kind": "rg", "pattern": "X", "reason": "y", "control_term": "z"}
+    failed = {"/repo/c": "no such file or directory"}
+
+    report = sweep.render_report(derivation, [], [], {}, failed)
+
+    assert "Partial:" not in report
+
+
 # -- render_report: ast-grep rule block quoting --------------------------
 
 

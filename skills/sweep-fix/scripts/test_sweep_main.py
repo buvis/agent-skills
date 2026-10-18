@@ -1,5 +1,6 @@
 """Tests for sweep.py: main (CLI end-to-end)."""
 import re
+import subprocess
 import time
 from pathlib import Path
 
@@ -518,6 +519,34 @@ def test_main_passes_deadline_through_to_scan(tmp_path, monkeypatch):
     )
     assert len(without_flag) == 1
     assert without_flag[0] == 300
+
+
+def test_main_never_passes_deadline_into_verify_control(tmp_path, monkeypatch):
+    # main() finds zero hits, so it falls through to verify_control(), which
+    # calls scan() a second time on just the control repo. That second call
+    # must never be deadline-bound by the sweep's own --deadline budget: a
+    # small, fast control check must not be starved by a large sweep's
+    # configured deadline.
+    argv, _repos, out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "VERIFYDEADLINEMARKER", _make_repo
+    )
+    argv += ["--deadline", "5"]
+    deadlines = []
+
+    def _spy_scan(*args, **kwargs):
+        deadlines.append(kwargs.get("deadline", "<not passed>"))
+        return [], {}, {}
+
+    monkeypatch.setattr(sweep, "scan", _spy_scan)
+    monkeypatch.setattr(
+        sweep, "_run_rg", lambda *a, **k: subprocess.CompletedProcess([], 1, "", "")
+    )
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 0
+    assert out_path.exists()
+    assert deadlines == [5, "<not passed>"]
 
 
 def test_main_accepts_cap_of_one_as_smallest_legal_value(tmp_path, monkeypatch):
