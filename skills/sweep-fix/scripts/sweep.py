@@ -230,8 +230,6 @@ def _repo_cwd_and_targets(repo):
     if isinstance(repo, dict):
         # An error entry (`{"cwd": ..., "error": ...}`) carries no file list;
         # it is never searched, but the deadline path still asks for its cwd.
-        # An error entry (`{"cwd": ..., "error": ...}`) carries no file list;
-        # it is never searched, but the deadline path still asks for its cwd.
         return repo["cwd"], repo.get("files", [])
     return repo, ["."]
 
