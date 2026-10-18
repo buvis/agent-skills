@@ -1959,3 +1959,12 @@
 {"id":"970cbd4f","kind":"ivan","task":"8","queued_at":1792317110,"prompt_bytes":20917}
 {"id":"a67f2a0b","kind":"ivan","task":"8","queued_at":1792317114,"prompt_bytes":20917}
 {"id":"a67f2a0b","ended_at":1792317135,"elapsed_s":21,"outcome":"ok","detail":null}
+{"id":"4e747102","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"550b2837","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"9c2ffd83","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"541a06c6","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"19e6fc11","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"88c33fbe","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"6b82515e","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"970cbd4f","ended_at":1792317649,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1792317649,"phase":"review","prd":"00029-cut-v010-clean-changelog-v1.md"}
