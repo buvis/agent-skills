@@ -455,6 +455,13 @@ def _render_suppressed_section(suppressed):
     return lines
 
 
+def _render_partial_section(failed):
+    partial_count = sum(1 for reason in failed.values() if reason == DEADLINE_REASON)
+    if not partial_count:
+        return []
+    return [f"Partial: {partial_count} repos not scanned (sweep deadline expired)", ""]
+
+
 def _render_failed_section(failed):
     lines = []
     if failed:
@@ -538,6 +545,7 @@ def render_report(derivation, hits, gaps, suppressed, failed):
     ]
     lines.extend(_render_hits_section(hits, derivation["kind"]))
     lines.extend(_render_suppressed_section(suppressed))
+    lines.extend(_render_partial_section(failed))
     lines.extend(_render_failed_section(failed))
     lines.extend(_render_gaps_section(gaps))
     lines.extend(_render_astgrep_rule_block(derivation, hits))
@@ -553,11 +561,13 @@ def render_report(derivation, hits, gaps, suppressed, failed):
     return "\n".join(lines)
 
 
-def _positive_int(value):
-    parsed = int(value)
-    if parsed <= 0:
-        raise argparse.ArgumentTypeError("--cap must be a positive integer")
-    return parsed
+def _positive_int(flag_name):
+    def _parse(value):
+        parsed = int(value)
+        if parsed <= 0:
+            raise argparse.ArgumentTypeError(f"{flag_name} must be a positive integer")
+        return parsed
+    return _parse
 
 
 def _parse_args(argv):
@@ -569,7 +579,8 @@ def _parse_args(argv):
     parser.add_argument("--control-repo", required=True)
     parser.add_argument("--registry", default=str(GITA_CSV))
     parser.add_argument("--cwd", default=str(Path.cwd()))
-    parser.add_argument("--cap", type=_positive_int, default=20)
+    parser.add_argument("--cap", type=_positive_int("--cap"), default=20)
+    parser.add_argument("--deadline", type=_positive_int("--deadline"), default=300)
     parser.add_argument("--out")
     return parser.parse_args(argv)
 
@@ -624,7 +635,7 @@ def main(argv=None):
     try:
         resolve_rg() if args.kind == "rg" else resolve_ast_grep()
         repos, gaps = enumerate_repos(args.registry, args.cwd)
-        hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap)
+        hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap, deadline=args.deadline)
         if not hits:
             verify_control(args.pattern, args.kind, Path(args.control_repo), args.control_term)
     except RuntimeError as exc:

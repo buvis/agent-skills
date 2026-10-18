@@ -35,7 +35,7 @@ python3 ~/.agents/skills/sweep-fix/scripts/sweep.py \
   --reason TEXT \
   --control-term TEXT \
   --control-repo PATH \
-  [--registry PATH] [--cwd PATH] [--cap N] [--out PATH]
+  [--registry PATH] [--cwd PATH] [--cap N] [--deadline N] [--out PATH]
 ```
 
 `--control-repo` is the current repo, where the fix commit lives. `main()`
