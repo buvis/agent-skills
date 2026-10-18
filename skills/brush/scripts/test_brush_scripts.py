@@ -687,6 +687,38 @@ def test_dry_run_with_apply_moves_the_file_and_writes_a_manifest_row(
                    "charts/sub/old_junk.log", expected]
 
 
+def test_dry_run_without_apply_prints_the_marker_exactly_once_regardless_of_path_count(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _old_file(repo, "old_junk.log")
+    _old_file(repo, "charts/sub/old_junk.log")
+
+    two, two_err = _run_main(repo, monkeypatch, capsys,
+                             "old_junk.log", "charts/sub/old_junk.log")
+    none, none_err = _run_main(repo, monkeypatch, capsys, "tracked.log")
+
+    assert len(two["moved"]) == 2
+    assert two_err.splitlines().count(DRY_RUN_MARKER) == 1
+    assert none["moved"] == []
+    assert len(none["refused"]) == 1
+    assert none_err.splitlines().count(DRY_RUN_MARKER) == 1
+
+
+def test_dry_run_with_apply_honors_the_rule_flag_in_the_manifest(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _old_file(repo, "old_junk.log")
+    expected = _expected_trash(repo, "old_junk.log")
+
+    _run_main(repo, monkeypatch, capsys,
+              "--apply", "--rule", "custom-rule", "old_junk.log")
+
+    row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
+    assert row[1] == "custom-rule"
+    assert row == [datetime.date.today().isoformat(), "custom-rule",
+                   "old_junk.log", expected]
+
+
 def test_dry_run_with_apply_prints_no_dry_run_marker(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
