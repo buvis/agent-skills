@@ -2,6 +2,7 @@
 import concurrent.futures
 import json
 import os
+import re
 import subprocess
 import threading
 import time
@@ -389,7 +390,7 @@ def test_scan_never_silently_drops_a_repo_whose_search_raises(tmp_path, monkeypa
 
     monkeypatch.setattr(sweep, "_scan_repo", crashing_scan_repo)
 
-    with pytest.raises(_SearchCrashed, match=str(repo_b)):
+    with pytest.raises(_SearchCrashed, match=re.escape(str(repo_b))):
         sweep.scan("PARALLELMARKER", "rg", repos)
 
 
@@ -532,8 +533,13 @@ def test_scan_accepts_a_one_shot_iterator_of_repos(tmp_path):
     list_hits, _s, _f = sweep.scan("ITERMARKER", "rg", [repo_a, repo_b])
     iter_hits, _s, _f = sweep.scan("ITERMARKER", "rg", iter([repo_a, repo_b]))
 
+    # rg's order within one repo is not guaranteed, so compare the hit sets:
+    # the claim under test is that no repo is lost, not how rg sorts matches.
+    def key(hits):
+        return sorted((h["repo"], h["file"], h["line"]) for h in hits)
+
     assert len(list_hits) == 4
-    assert iter_hits == list_hits
+    assert key(iter_hits) == key(list_hits)
 
 
 def test_scan_does_not_report_a_workers_own_timeout_as_a_deadline_hit(
