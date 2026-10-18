@@ -40,7 +40,7 @@ SOFT = re.compile(
     re.I,
 )
 HARD = re.compile(
-    r"BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9_-]{20,}"
+    r"BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{20,}|(?<![A-Za-z0-9-])sk-[A-Za-z0-9_-]{20,}"
     r"|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}"
 )
 NOISE_HINT = re.compile(

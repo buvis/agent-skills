@@ -195,6 +195,11 @@ def test_check_staged_refuses_credential_pattern(home):
     assert not r["ok"] and "ghp_" + "a" * 36 not in json.dumps(r)
 
 
+def test_hard_pattern_ignores_sk_inside_kebab_case_words():
+    assert glean.scan_lines("see 00120-migrate-task-tracking-to-statectl-v1.md\n") == []
+    assert glean.scan_lines("key: sk-" + "a" * 40 + "\n")[0][1].startswith("HARD:")
+
+
 def test_check_staged_passes_comment_mentions_as_soft(home):
     (home / ".toolrc").write_text("# keep secrets out of here\n")
     git(home, "add", ".toolrc")
