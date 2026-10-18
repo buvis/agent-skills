@@ -1,0 +1,527 @@
+{
+  "phase": "done",
+  "next_phase": "",
+  "schema_version": 1,
+  "batch": {
+    "id": "202610100952",
+    "mode": "autopilot",
+    "completed_prds": [
+      {
+        "filename": "00071-distil-publish-recovery-v1.md",
+        "cycles": 3,
+        "autonomous_decisions": 23,
+        "escalated_decisions": 0,
+        "tasks_completed": 13,
+        "tasks_total": 13,
+        "lane": "full",
+        "lane_reason": "design",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00072-distil-judge-no-persistence-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 3,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00073-sweep-loud-failures-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 11,
+        "escalated_decisions": 0,
+        "tasks_completed": 8,
+        "tasks_total": 8,
+        "lane": "full",
+        "lane_reason": "design",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00075-ground-prd-claims-against-installed-code-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 26,
+        "escalated_decisions": 0,
+        "tasks_completed": 9,
+        "tasks_total": 9,
+        "lane": "full",
+        "lane_reason": "design",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00023-one-message-three-failures-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 6,
+        "escalated_decisions": 0,
+        "tasks_completed": 6,
+        "tasks_total": 6,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00029-cut-v010-clean-changelog-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 4,
+        "escalated_decisions": 0,
+        "tasks_completed": 9,
+        "tasks_total": 9,
+        "lane": "full",
+        "lane_reason": "uncardable",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00031-sweep-parallel-with-deadline-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 26,
+        "escalated_decisions": 0,
+        "tasks_completed": 10,
+        "tasks_total": 10,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00045-survey-single-read-and-log-time-trim-v1.md",
+        "cycles": 3,
+        "autonomous_decisions": 25,
+        "escalated_decisions": 0,
+        "tasks_completed": 15,
+        "tasks_total": 15,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00048-trash-untracked-preview-default-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 4,
+        "escalated_decisions": 0,
+        "tasks_completed": 7,
+        "tasks_total": 7,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00070-purge-trash-first-guarantee-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 9,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00086-use-qwen-budgets-survive-load-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 2,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "full",
+        "lane_reason": "security_path",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00087-ground-prd-root-and-relative-exclusion-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00088-document-the-eval-harness-contract-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 11,
+        "escalated_decisions": 0,
+        "tasks_completed": 4,
+        "tasks_total": 4,
+        "lane": "full",
+        "lane_reason": "security_path",
+        "lane_effective": "full",
+        "lane_escalated": null
+      }
+    ],
+    "plugin_versions": {
+      "aegis@buvis-plugins": "0.4.1",
+      "warden@buvis-plugins": "0.14.1"
+    },
+    "catchup_completed_at": "2026-10-18T18:00:00Z",
+    "catchup_head_sha": "184d2cf8e5e86d210712c26e95859c529d8642d3",
+    "parks_consecutive": 0,
+    "minted_stubs": [
+      "00084-triage-r1-only-half-fixed-main-now-catches-runt-v1.md",
+      "00085-triage-relative-prd-exclusions-now-resolve-agai-v1.md",
+      "00089-triage-r1-only-half-fixed-main-now-catches-runt-v1.md",
+      "00090-triage-relative-prd-exclusions-now-resolve-agai-v1.md",
+      "00091-triage-uncommitted-working-tree-drift-in-skills-v1.md",
+      "00092-triage-uncommitted-working-tree-drift-in-skills-v1.md"
+    ],
+    "skips": [
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T16:47:23Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T16:47:23Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T16:47:56Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T16:47:56Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T17:42:57Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T17:42:57Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T17:42:57Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T17:43:39Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T17:43:39Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T17:43:39Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T18:43:23Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T18:43:23Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T18:43:23Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T18:44:11Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T18:44:11Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T18:44:11Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T19:18:09Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T19:18:09Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T19:18:09Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T19:18:38Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T19:18:38Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T19:18:38Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T20:18:37Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T20:18:37Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-18T20:18:37Z"
+      }
+    ]
+  },
+  "prd": "00088-document-the-eval-harness-contract-v1.md",
+  "catchup_mode": "skipped",
+  "doubt_reviewer": "codex",
+  "consensus_engine": "legacy",
+  "session_model": "sonnet",
+  "rework_cap": 2,
+  "lane": "full",
+  "lane_reason": "security_path",
+  "lane_effective": "full",
+  "tasks_total": 0,
+  "tasks_completed": 0,
+  "applied_review_batches": [
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00071-distil-publish-recovery-v1-review-1.md::decision-gate",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00071-distil-publish-recovery-v1-review-2.md::decision-gate",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00071-distil-publish-recovery-v1-review-3.md::tail-sweep",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00072-distil-judge-no-persistence-v1-review-1.md::tail-sweep",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00073-sweep-loud-failures-v1-review-1.md::tail-sweep",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00075-ground-prd-claims-against-installed-code-v1-review-1.md::decision-gate",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00023-one-message-three-failures-v1-review-1.md::tail-sweep",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00031-sweep-parallel-with-deadline-v1-review-1.md::tail-sweep",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00045-survey-single-read-and-log-time-trim-v1-review-1.md::decision-gate",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00045-survey-single-read-and-log-time-trim-v1-review-2.md::decision-gate",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00045-survey-single-read-and-log-time-trim-v1-review-3.md::tail-sweep",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00048-trash-untracked-preview-default-v1-review-1.md::tail-sweep",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00070-purge-trash-first-guarantee-v1-review-1.md::tail-sweep",
+    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00088-document-the-eval-harness-contract-v1-review-1.md::tail-sweep"
+  ],
+  "cycle": 1,
+  "phases_completed": [
+    "review"
+  ],
+  "replan_count": 0,
+  "codex_probe": {
+    "batch_id": "202610100952",
+    "verdict": "unhealthy",
+    "backend": "codex",
+    "detail": "hook_doctor: missing /Users/bob/.codex/session",
+    "hook_doctor": "4 ok, 7 stale, 4 broken",
+    "checked_at": "2026-10-10T18:22:00Z"
+  },
+  "qwen_preflight": {
+    "batch_id": "202610100952",
+    "verdict": "healthy",
+    "detail": null,
+    "checked_at": "2026-10-11T11:35:22Z"
+  },
+  "qwen_breaker": {
+    "tripped": false,
+    "after_task": null,
+    "failed_tasks": [],
+    "batch_id": "202610100952"
+  },
+  "qwen_gate_failures_consecutive": 0,
+  "design_mode": "skip",
+  "tasks": [],
+  "work_start_sha": "0399860a004512973e2e19ed41cdc88c30572492",
+  "review_lenses": {
+    "consensus": "done",
+    "blind": "done",
+    "doubt": "done",
+    "ui": "done"
+  },
+  "doubts_rubric_verdicts": [
+    {
+      "rule_id": "D1",
+      "verdict": "pass"
+    },
+    {
+      "rule_id": "D2",
+      "verdict": "pass"
+    },
+    {
+      "rule_id": "D3",
+      "verdict": "pass"
+    },
+    {
+      "rule_id": "D4",
+      "verdict": "pass"
+    },
+    {
+      "rule_id": "D5",
+      "verdict": "pass"
+    }
+  ],
+  "autonomous_decisions": [
+    {
+      "cycle": 1,
+      "issue": "Cannot statically verify: the use-qwen skill validator passes and the full suite PASS/FAIL/SKIP counts (test gate reported exit 0 with counts unavailable)",
+      "severity": "low",
+      "action": "routed to verification",
+      "reason": "Queued as verification checks for the work phase step 7: uv run python3 skills/create-skill/scripts/validate_skill.py skills/use-qwen, and uv run pytest -q. Both already ran green independently in Alice and Blake review runs this cycle (3950 passed, 9 skipped, 0 failed; validator OK)"
+    },
+    {
+      "cycle": 1,
+      "issue": "Six actionable medium/low findings on the new drift test and runbook section 7 (substring flag matching, duplicated subparsers lookup, meaningless return annotation, bare StopIteration, inputs_sha256 doc inaccuracy, undocumented vet exit codes)",
+      "severity": "medium",
+      "action": "swept via tail sweep",
+      "reason": "Cycle 1 converged with no CRITICAL or HIGH; the medium/low tail is swept by normal work tasks before finalize rather than dropped"
+    },
+    {
+      "cycle": 1,
+      "issue": "Codex doubt lens failed twice (off-target first run, lack-of-input refusal on retry because the aegis hook blocks cat in its read-only shell)",
+      "severity": "medium",
+      "action": "dispatched Claude fallback with Bob exact assembled doubt prompt",
+      "reason": "The doubt lens must never silently drop; the fallback produced a full on-target review with FIX/VERIFY/KNOWN buckets and all five D-rule verdicts"
+    },
+    {
+      "cycle": 1,
+      "issue": "Carl first dispatch reviewed an unrelated skill despite reading the correct staged inputs",
+      "severity": "low",
+      "action": "retried once, retry on-target",
+      "reason": "Retry policy allows one retry; the retry produced usable output, so the ui lens is done rather than failed"
+    },
+    {
+      "cycle": 1,
+      "issue": "state.work_start_sha was absent at the review gate, leaving the review diff range undefined",
+      "severity": "medium",
+      "action": "set it to 0399860a004512973e2e19ed41cdc88c30572492, the parent of the first work commit 3f24b2f",
+      "reason": "The build session never captured it. The parent of this PRD first work commit is the true PRD start, so work_start_sha..HEAD spans exactly this PRD work range; the empty-tree sentinel was not needed because HEAD resolves"
+    },
+    {
+      "cycle": 1,
+      "issue": "Subparsers-action lookup is duplicated inside the file: `_subparser` (skills/use-qwen/scripts/test_runbook_matches_harness.py:28) and `test_runbook_names_every_harness_subcommand` (skills/use-qwen/scripts/test_runbook_matches_harness.py:37) each re-run `next(action for action in parser._actions if action.choices is not None)`, and the two flag tests share an identical 5-line body. Simpler, behavior-preserving: add `_subparsers_action()` returning that action, call it from `_subparser` and from the subcommand test, and factor the flag loop into `_long_flags(subparser)` that yields every `--` option except `--help`; each test then reads `for flag in _long_flags(_subparser(\"vet\")): assert flag in section, flag`.",
+      "severity": "medium",
+      "action": "auto-fixed",
+      "reason": "fixed by review-close"
+    },
+    {
+      "cycle": 1,
+      "issue": "Flag drift test uses bare substring matching, so two run flags are masked by longer ones: `--shape` is a substring of the documented `--shapes` and `--bound` of `--gate-bound`. Delete `--bound SECONDS` or `--shape {description,tdd}` from \u00a7 7 and the test still passes, defeating the stated goal that the contract \"cannot drift silently\". The PRD prescribed this assertion literally, so it is a spec defect faithfully implemented; a word-boundary check (`rg`-style `--shape\\b`) would close it",
+      "severity": "medium",
+      "action": "auto-fixed",
+      "reason": "fixed by review-close"
+    },
+    {
+      "cycle": 1,
+      "issue": "`_subparser(name: str) -> \"object\"` uses a quoted, meaningless return annotation; `argparse.ArgumentParser` is the actual type of a `choices` value and `argparse` is already importable here",
+      "severity": "low",
+      "action": "auto-fixed",
+      "reason": "fixed by review-close"
+    },
+    {
+      "cycle": 1,
+      "issue": "\u00a7 7 says \"`inputs_sha256` maps every sealed input ... to its digest\", but `template/` - named one line above as part of the sealed set - is not a key of `inputs_sha256` (keys are `spec`, `pretask`, `canonical_patch`, `manifest`, `prompt:<shape>`, `dispatch_references`, `oracle`; `eval_harness/evidence.py:162`, `:180`), and `spec.json`, which is a key, is absent from the sealed-set sentence. An operator reading the next sentence (\"Before any dispatch it refuses a task whose sealed inputs no longer match `inputs_sha256`\") will believe an edited `template/` tree is caught pre-dispatch; `recheck_inputs` does not catch it (template drift is only caught later, per attempt, at `eval_harness/trees.py:213`). Wording came verbatim from the PRD",
+      "severity": "medium",
+      "action": "auto-fixed",
+      "reason": "fixed by review-close"
+    },
+    {
+      "cycle": 1,
+      "issue": "\u00a7 7 documents `run`'s three exit codes and `verify`'s two but not `vet`'s (0 when every task ends ready, 1 naming the failed check, `eval_harness/attempt.py:109`), and does not say that a failed check leaves `vetting.json` written with `ready: false` and no `ready` marker - the text reads as if the marker is always written",
+      "severity": "low",
+      "action": "auto-fixed",
+      "reason": "fixed by review-close"
+    },
+    {
+      "cycle": 1,
+      "issue": "`_section_seven` anchors on the exact heading `## 7. Harness rounds`; renumbering or renaming the section raises a bare `StopIteration` instead of naming the missing anchor",
+      "severity": "low",
+      "action": "auto-fixed",
+      "reason": "fixed by review-close"
+    }
+  ],
+  "rework_task_ids": [
+    "3",
+    "4"
+  ],
+  "contract_card": "step: review gate complete, cycle 1 converged; handing off to the finalize session (Phase 9, references/phase-done.md)\ninvariants: phases_completed now holds \"review\", so Phase 4's loop-level skip sends the next session straight to Phase 9 - do NOT re-review. The finalize move of 00088-document-the-eval-harness-contract-v1.md from prds/wip/ to prds/done/ keeps the 00088- prefix and MUST be verified (mv_verify pause on failure). The batch report is reports/202610100952-report.md - built from state.batch.id, never globbed.\nnext: Phase 9 finalize - render the audit log from the state decision arrays, append to the batch report, verified wip->done move, then the more-PRDs branch (phase-done --outcome more_prds) or batch end (--outcome drained).\nnotes: cycle 1 converged with 18 findings, zero CRITICAL/HIGH. Tail sweep created tasks 3 and 4, both completed and committed (03b8dbd, 96b0104). Full suite green at 96b0104: 3950 passed, 0 failed, 9 skipped; both queued verification checks exit 0. Bob's codex lane failed twice (off-target run, then a lack-of-input refusal - aegis blocks cat in its read-only shell) and ran through the Claude fallback; Carl needed one retry. Five deferrals recorded in the batch deferred JSON, eleven settled calls in the PRD ledger."
+}
