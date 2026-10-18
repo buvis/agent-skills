@@ -452,6 +452,23 @@ def test_main_rejects_negative_cap(tmp_path, monkeypatch, capsys):
     assert "cap" in (captured.out + captured.err).lower()
 
 
+def test_main_rejects_a_deadline_of_zero(tmp_path, monkeypatch, capsys):
+    argv, (_repo_a, _repo_b, _repo_c), out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "ZERODEADLINEMARKER", _make_repo
+    )
+    argv += ["--deadline", "0"]
+
+    with pytest.raises(SystemExit) as exc_info:
+        sweep.main(argv)
+
+    assert exc_info.value.code != 0
+    assert not out_path.exists()
+    captured = capsys.readouterr()
+    assert "--deadline must be a positive integer" in (
+        captured.out + captured.err
+    ).lower()
+
+
 def test_main_accepts_cap_of_one_as_smallest_legal_value(tmp_path, monkeypatch):
     argv, (repo_a, repo_b, repo_c), out_path = _build_sweep_main_scaffold(
         tmp_path, monkeypatch, "ONECAPMARKER", _make_repo
