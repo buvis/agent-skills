@@ -438,6 +438,16 @@
       "consensus": "3/4",
       "reason": "not this PRD's work (in no commit of 184d2cf..HEAD); reverting or committing another session's uncommitted work is an operator decision, not autopilot rework",
       "prd": "00086-use-qwen-budgets-survive-load-v1.md"
+    },
+    {
+      "cycle": 1,
+      "type": "deferred_decision",
+      "issue": "Uncommitted working-tree drift in skills/glean/scripts/glean.py and test_glean.py (formatter-style reformat, ~146 lines); also pushes cmd_scan to 54 lines, over the 50-line limit",
+      "severity": "high",
+      "consensus": "3/4",
+      "action": "deferred to batch end",
+      "reason": "not this PRD's work (in no commit of 184d2cf..HEAD); committing or reverting another session's uncommitted work is an operator decision, not autopilot rework",
+      "prd": "00086-use-qwen-budgets-survive-load-v1.md"
     }
   ]
 }
