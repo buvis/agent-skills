@@ -9,6 +9,7 @@ the disk anyway reports the disk symbols (or style) and fails.
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -224,3 +225,115 @@ def test_error_style_ignores_texts_outside_the_50_file_sample(tmp_path):
     style = run._compute_error_style({"cmd": files}, texts=texts)
 
     assert style == "result", f"file beyond the cap was scanned, got {style!r}"
+
+
+def test_error_style_empty_text_in_texts_is_used_not_disk(tmp_path):
+    """An empty string in texts is real content, not 'absent'.
+
+    `texts.get(f) or <disk read>` would fall through on "" and classify the
+    panic on disk as 'exceptions'; the empty text carries no signal.
+    """
+    f = tmp_path / "main.go"
+    f.write_text(_GO_PANIC)
+
+    style = run._compute_error_style({"cmd": [f]}, texts={f: ""})
+
+    assert style == "unknown", f"empty text must not fall back to disk, got {style!r}"
+
+
+# ---------------------------------------------------------------------------
+# Supplied text means the disk is never read, not merely ignored
+# ---------------------------------------------------------------------------
+
+def _forbid_disk_reads(monkeypatch):
+    """Make every Path.read_text record the call and raise.
+
+    The call is recorded as well as raised so an implementation that swallows
+    the AssertionError in a broad except still fails the test.
+    """
+    calls: list[Path] = []
+
+    def _raise(self, *args, **kwargs):
+        calls.append(self)
+        raise AssertionError("disk was read when text was supplied")
+
+    monkeypatch.setattr(Path, "read_text", _raise)
+    return calls
+
+
+def _stub_ts_module(sources: list[str]):
+    """A tree-sitter stand-in that records each source it is asked to parse."""
+
+    def _process(source, cfg):
+        sources.append(source)
+        return SimpleNamespace(structure=[])
+
+    return SimpleNamespace(
+        process=_process,
+        ProcessConfig=lambda **kwargs: SimpleNamespace(**kwargs),
+    )
+
+
+def test_regex_extractor_never_reads_disk_when_text_given(tmp_path, monkeypatch):
+    f = tmp_path / "svc.py"
+    f.write_text("def disk_only():\n    pass\n")
+    calls = _forbid_disk_reads(monkeypatch)
+
+    symbols = run._extract_file_symbols_regex(f, text="def from_text():\n    pass\n")
+
+    assert calls == [], f"disk was read for {calls}"
+    assert ("from_text", "function", 1) in symbols, f"{symbols}"
+
+
+def test_tree_sitter_extractor_never_reads_disk_when_text_given(
+    tmp_path, monkeypatch
+):
+    f = tmp_path / "svc.py"
+    f.write_text("def disk_only():\n    pass\n")
+    sources: list[str] = []
+    calls = _forbid_disk_reads(monkeypatch)
+
+    run._extract_tree_sitter(f, _stub_ts_module(sources), text="def from_text(): pass\n")
+
+    assert calls == [], f"disk was read for {calls}"
+    assert sources == ["def from_text(): pass\n"], f"parsed {sources!r}"
+
+
+def test_tree_sitter_extractor_parses_empty_text_not_disk(tmp_path):
+    """text="" is parsed as-is; `text or <disk read>` would parse the disk."""
+    f = tmp_path / "svc.py"
+    f.write_text("class Box:\n    def open(self):\n        return 1\n")
+    sources: list[str] = []
+
+    run._extract_tree_sitter(f, _stub_ts_module(sources), text="")
+
+    assert sources == [""], f"empty text must reach the parser, got {sources!r}"
+
+
+def test_error_style_never_reads_disk_for_files_in_texts(tmp_path, monkeypatch):
+    f = tmp_path / "main.go"
+    f.write_text(_GO_PANIC)
+    calls = _forbid_disk_reads(monkeypatch)
+
+    style = run._compute_error_style({"cmd": [f]}, texts={f: _GO_RESULT})
+
+    assert calls == [], f"disk was read for {calls}"
+    assert style == "result", f"{style!r}"
+
+
+def test_file_symbols_hand_text_to_tree_sitter_extractor(tmp_path, monkeypatch):
+    """The text kwarg itself reaches _extract_tree_sitter (no tree-sitter needed)."""
+    f = tmp_path / "svc.py"
+    f.write_text("def disk_only():\n    pass\n")
+    seen: list[object] = []
+
+    def _fake_ts(path, ts_module, *args, **kwargs):
+        seen.append(kwargs.get("text", args[0] if args else None))
+        return []
+
+    monkeypatch.setattr(run, "try_import_tree_sitter", lambda: object())
+    monkeypatch.setattr(run, "_extract_tree_sitter", _fake_ts)
+
+    run._extract_file_symbols(f, text="some-marker-text")
+
+    assert seen == ["some-marker-text"], f"tree-sitter got text={seen!r}"
