@@ -60,7 +60,7 @@ cleanup for a missing skill (especially purge-devtmp).
 2. **Git hygiene**: follow the Phase-2 order in hygiene-rules.md (fetch,
    re-collect facts, then act): execute every AUTO row; queue ASK rows as
    BR-items and MANUAL rows as section 3 items. Trash moves only via
-   `python3 ~/.agents/skills/brush/scripts/trash_untracked.py --repo <root> <paths>`
+   `python3 ~/.agents/skills/brush/scripts/trash_untracked.py --repo <root> --apply <paths>`
    (it re-vetoes protected paths itself). For `docs/dev/tmp/`, invoke the
    `purge-devtmp` skill scoped to this repo: dry-run, sanity-check, apply.
    Commit tracked fixes as
