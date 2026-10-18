@@ -439,6 +439,88 @@ def test_scan_records_an_unfinished_repo_when_the_deadline_expires(
 
     hits, _suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, deadline=5)
 
+    assert sweep.DEADLINE_REASON == "sweep deadline expired"
+    assert failed == {str(repo_b): sweep.DEADLINE_REASON}
+    assert [h["repo"] for h in hits] == [str(repo_a), str(repo_c)]
+
+
+def test_scan_keeps_repos_that_finish_within_the_deadline(tmp_path, monkeypatch):
+    # Real clock. Every repo takes 0.3s, far inside the 5s deadline, so each
+    # is still running when scan() first reaches it. Setting `deadline` must
+    # not expire a repo by itself: scan() has to wait for an unfinished repo
+    # while time remains, and keep its hits.
+    repos = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
+
+    def quick_scan_repo(repo, *args, **kwargs):
+        time.sleep(0.3)
+        return str(repo), [_stub_hit(repo)], None
+
+    monkeypatch.setattr(sweep, "_scan_repo", quick_scan_repo)
+
+    hits, _suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, deadline=5)
+
+    assert failed == {}
+    assert [h["repo"] for h in hits] == [str(repo) for repo in repos]
+
+
+def test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs(
+    tmp_path, monkeypatch
+):
+    # Real clock, real hung worker. repo_b blocks on an event for up to 5s.
+    # scan() must stop waiting at the 0.3s deadline and must not wait for the
+    # still-running worker on the way out (no blocking pool shutdown). The
+    # finally releases the worker so the test process never hangs.
+    repo_a, repo_b, repo_c = repos = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
+    release = threading.Event()
+
+    def hanging_scan_repo(repo, *args, **kwargs):
+        if repo == repo_b:
+            release.wait(timeout=5)
+        return str(repo), [_stub_hit(repo)], None
+
+    monkeypatch.setattr(sweep, "_scan_repo", hanging_scan_repo)
+
+    try:
+        started = time.monotonic()
+        hits, _suppressed, failed = sweep.scan(
+            "PARALLELMARKER", "rg", repos, deadline=0.3
+        )
+        elapsed = time.monotonic() - started
+    finally:
+        release.set()
+
+    assert elapsed < 2  # far short of the hung worker's own 5s timeout
+    assert failed == {str(repo_b): sweep.DEADLINE_REASON}
+    assert [h["repo"] for h in hits] == [str(repo_a), str(repo_c)]
+
+
+def test_scan_deadline_budget_runs_from_scan_start_not_per_repo(
+    tmp_path, monkeypatch
+):
+    # Real clock, deadline 1.0s for the whole sweep. repo_a finishes at 0.6s,
+    # inside the budget, so its hit is kept. repo_b finishes at 1.3s: past
+    # the sweep deadline, so it must expire. A budget that restarts when
+    # scan() reaches repo_b (at 0.6s) would wait until 1.6s, see repo_b
+    # finish, and keep it -- that fails here.
+    repo_a, repo_b, repo_c = repos = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
+    release = threading.Event()
+
+    def staggered_scan_repo(repo, *args, **kwargs):
+        if repo == repo_a:
+            time.sleep(0.6)
+        elif repo == repo_b:
+            release.wait(timeout=1.3)
+        return str(repo), [_stub_hit(repo)], None
+
+    monkeypatch.setattr(sweep, "_scan_repo", staggered_scan_repo)
+
+    try:
+        hits, _suppressed, failed = sweep.scan(
+            "PARALLELMARKER", "rg", repos, deadline=1.0
+        )
+    finally:
+        release.set()
+
     assert failed == {str(repo_b): sweep.DEADLINE_REASON}
     assert [h["repo"] for h in hits] == [str(repo_a), str(repo_c)]
 
