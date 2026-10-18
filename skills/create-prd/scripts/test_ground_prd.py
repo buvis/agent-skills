@@ -650,6 +650,32 @@ def test_cli_exits_two_naming_missing_path_even_when_other_args_are_valid(tmp_pa
     assert str(missing) in capsys.readouterr().err
 
 
+def test_cli_exits_two_naming_a_root_that_is_not_a_directory(tmp_path, capsys):
+    make_repo(tmp_path)
+    prd = tmp_path / "prd.md"
+    prd.write_text("uses `alpha`\n")
+    absent_root = tmp_path / "absent"
+    with pytest.raises(SystemExit) as excinfo:
+        ground_prd.main([str(prd), "--root", str(absent_root)])
+    assert excinfo.value.code == 2
+    err = capsys.readouterr().err
+    assert "--root" in err and "not a directory" in err
+    assert "Traceback" not in err
+
+
+def test_cli_exits_two_when_cargo_lock_is_unreadable(tmp_path, capsys, deny_access):
+    make_repo(tmp_path)
+    lock = tmp_path / "Cargo.lock"
+    lock.write_text('[[package]]\nname = "fake"\nversion = "1.0.0"\nsource = "registry+x"\n')
+    deny_access(lock)
+    prd = tmp_path / "prd.md"
+    prd.write_text("uses `alpha`\n")
+    with pytest.raises(SystemExit) as excinfo:
+        ground_prd.main([str(prd), "--root", str(tmp_path)])
+    assert excinfo.value.code == 2
+    assert "ground_prd:" in capsys.readouterr().err
+
+
 def test_cli_directory_argument_expands_non_recursively_to_sorted_md_files(tmp_path, capsys):
     prds = tmp_path / "prds"
     prds.mkdir()
@@ -787,9 +813,26 @@ def test_resolve_symbols_excludes_own_prd_path_given_as_relative_path(tmp_path, 
     monkeypatch.chdir(tmp_path.parent)
     claims = [Claim("symbol", "onlyInPrdSymbol", 1)]
     result = ground_prd.resolve_symbols(
-        claims, tmp_path, set(), exclude=frozenset({Path("prd.md")})
+        claims, tmp_path, set(), exclude=frozenset({Path(tmp_path.name) / "prd.md"})
     )
     assert result[claims[0]] == "unresolved"
+
+
+def test_cli_excludes_own_prd_given_relative_to_cwd_not_root(tmp_path, monkeypatch, capsys):
+    # cwd (work) and --root (work/repo) differ: the PRD path on the CLI is
+    # relative to cwd, not to root, so the exclusion must resolve it against
+    # cwd or the PRD's own unresolved-elsewhere claim confirms itself.
+    work = tmp_path / "work"
+    repo = work / "repo"
+    make_repo(repo)
+    prd = repo / "prd.md"
+    prd.write_text("calls `onlyInPrdSymbol` here\n")
+    monkeypatch.chdir(work)
+    with pytest.raises(SystemExit) as excinfo:
+        ground_prd.main(["repo/prd.md", "--root", "repo"])
+    assert excinfo.value.code == 1
+    out = capsys.readouterr().out
+    assert any("unresolved" in line and "onlyInPrdSymbol" in line for line in out.splitlines())
 
 
 def test_missing_citation_detail_differentiates_absent_file_overflow_and_no_symbol_match(
