@@ -180,7 +180,7 @@ Updated: 2026-10-18 (full catchup, PRD 00031 selection, same batch, HEAD 8267e2c
   module exports for other modules (flagged `PINNED_KINDS`,
   `requires_tree_sitter` as unused).
 
-### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-18 at PRD 00029 finalize)
+### Batch 202610100952 (started 2026-10-10, interactive, HEAD 9a87317; updated 2026-10-18 at PRD 00031 finalize)
 - [x] 00029-cut-v010-clean-changelog-v1.md (9/9 tasks, 1 cycle) — v0.1.0
   CHANGELOG cut and tag. Converged cycle 1 (4 findings, all low: 1 routed to
   verification and run green, 1 fixed inline, 2 informational); tail sweep
@@ -217,7 +217,13 @@ Updated: 2026-10-18 (full catchup, PRD 00031 selection, same batch, HEAD 8267e2c
   skipped at b8d635b. 2 items deferred (concurrent-write collision check,
   subdirectory report path vs git root — both low-severity, flagged not
   failed).
-- [ ] 00031-sweep-parallel-with-deadline-v1.md (backlog)
+- [x] 00031-sweep-parallel-with-deadline-v1.md (10/10 tasks, 1 cycle) — parallel
+  scan with a `--deadline` wall-clock budget and a `Partial:` report line when
+  it fires. Cycle 1 converged; 7 findings discarded with verified reasons,
+  ledgered. Tail swept as tasks 7-10. Full suite green at 797f02d (3858
+  passed, 6 skipped). Nothing deferred. Working tree still carries the
+  pre-existing unrelated `skills/glean/scripts/glean.py`/`test_glean.py`
+  edits noted at selection, left untouched.
 - [ ] 00045-survey-single-read-and-log-time-trim-v1.md (backlog)
 - [ ] 00048-trash-untracked-preview-default-v1.md (backlog)
 - [ ] 00049-qwen-completion-status-v1.md (backlog)

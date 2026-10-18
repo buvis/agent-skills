@@ -2015,3 +2015,5 @@
 {"id":"e0491a40","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
 {"id":"17bc9985","ended_at":1792326027,"elapsed_s":null,"outcome":"lost","detail":"open at review/leave handoff"}
 {"kind":"handoff","site":"review","edge":"leave","at":1792326027,"phase":"done","prd":"00031-sweep-parallel-with-deadline-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1792326060,"phase":"done","prd":"00031-sweep-parallel-with-deadline-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1792326147,"phase":"build","prd":"00031-sweep-parallel-with-deadline-v1.md"}
