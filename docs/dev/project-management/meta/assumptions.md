@@ -1,22 +1,26 @@
-# Assumptions ledger — PRD 00023
+# Assumptions ledger — PRD 00029
 
-## 1: Change loadPayload() to classify the three fallback causes
+## 1: Merge doubled changelog type sections
 
-- Used the `loadPayload()` body word for word from the design's "Interfaces & contracts" section, including `.trim()` and the marker regex.
-- `document.getElementById('meeting-payload')` now sits outside the try. If the node is missing, it throws instead of returning a value. No test covers that case, and the design places it outside the try.
-- (Tess, strengthen pass) Did not add a test for the missing `#meeting-payload` DOM node case; marked in-contract per the brief since the design doc treats it as out of scope (not reachable via the real template).
-- (Tess, strengthen pass) Reused the substring-marker test as the "second distinct success input" Devon's weak point 1 asked for, rather than adding a separate ninth case, since it already satisfies both requirements without duplication.
+- N0 = 177, measured just before the edit. It matches the dispatch figure, not the PRD's 176 from 2026-10-17.
+- Within each merged section, the earlier section's bullets come first, then the later duplicate's bullets in their original order.
+- Kept the single blank line between a heading and its first bullet, and between sections.
 
-## 2: Update App.svelte fallback to render the bound reason
+## 2: Drop excluded-scope changelog bullets
 
-- Assumed `derive.js`'s `loadPayload()` already implements the `{ payload, error }` return shape described in the dispatch's Interfaces & contracts (it was not in Ivan's allowlist to read/verify directly; git log shows the prior task landed it).
+- "Continuation lines" means the indented lines under a bullet, up to the next `- **` bullet. Removed no blank lines or headings.
 
-## 3: Rebuild template.html from the updated bundle
+## 3: Refile the work bullet from Added to Fixed
 
-- ASSUMPTIONS: none (pure build + copy, no judgment calls).
+- "End of the sole Fixed section" means after its last bullet, which is the last line of the file. Added no blank line before the bullet, to match how the Fixed bullets are spaced.
+- The blank line above the bullet's old spot in Added was a separator for that bullet alone, so it was removed with the bullet.
 
-## 4: Add three smoke tests covering the three fallback causes
+## 7: Record the brief-portfolio removal
 
-- Drove `renderRaw` with the literal marker string read out of the template (`readFileSync(TEMPLATE).match(/__[A-Z]+_PAYLOAD__/)[0]`) rather than a hardcoded `'__MEETING_PAYLOAD__'` literal, so the test does not encode the marker name as a second source of truth.
-- Computed the truncated-payload test's expected parser message by running `JSON.parse` on the same string inside the test and catching the thrown message, instead of a hardcoded string literal, since V8's wording can vary by environment.
-- Used `doc.querySelector('.empty')` (not `main .empty`) for the three new tests, since the fallback markup has no `<main>` element in the error-fallback state.
+- The task's "exactly one bullet matches" check means exactly one brief-portfolio bullet sits between the Removed and Fixed headings, not one match in the whole file — the historical bullets naming brief-portfolio stay as written and also match the pattern.
+- The Removed section already held two bullets (the Codex retirements); the new one goes last in that section.
+- The bullet text is one line, exactly as given, with no wrapping.
+
+## 8: Cut the 0.1.0 release heading
+
+- The release date is 2026-10-18, as the task text gives it, rather than the date of a later commit.
