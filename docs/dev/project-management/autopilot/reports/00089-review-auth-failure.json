@@ -1,0 +1,52 @@
+{
+  "prd": "00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md",
+  "cycle": 1,
+  "provider_review_guard": "unmet",
+  "reviews": [
+    {
+      "lens": "alice",
+      "dispatch": "2d8ad7cc",
+      "requested_provider": "anthropic",
+      "requested_model": "opus",
+      "requested_effort": "xhigh",
+      "observed_model": null,
+      "session": "efb79417-f35e-41e4-8f35-9586d5db166c",
+      "helper_exit": 1,
+      "result": "Failed to authenticate: OAuth session expired and could not be refreshed",
+      "raw": "docs/dev/tmp/alice-output-00089-c1-20261025-9cae01fa894641b3b89147ef66f34087.jsonl",
+      "raw_sha256": "98d22715e73c5af5e8fd133631d2b02f1a19247c554e95ac0b6c882be0032b54",
+      "stderr": "docs/dev/tmp/alice-output-00089-c1-20261025-9cae01fa894641b3b89147ef66f34087.stderr",
+      "receipt": null
+    },
+    {
+      "lens": "blake",
+      "dispatch": "ea9234c6",
+      "requested_provider": "anthropic",
+      "requested_model": "opus",
+      "requested_effort": "xhigh",
+      "observed_model": null,
+      "session": "6f475cb8-da62-417e-aaa0-bb6fe1dd2170",
+      "helper_exit": 1,
+      "result": "Failed to authenticate: OAuth session expired and could not be refreshed",
+      "raw": "docs/dev/tmp/blake-output-00089-c1-20261025-73958014d94b43758d7ec848a37fa6f8.jsonl",
+      "raw_sha256": "03dd428c35cdd3c3e3ba30d020ac4be4e15e7e98f8a160e2cb4e8f9397c99307",
+      "stderr": "docs/dev/tmp/blake-output-00089-c1-20261025-73958014d94b43758d7ec848a37fa6f8.stderr",
+      "receipt": null
+    },
+    {
+      "lens": "bob",
+      "dispatch": "6f9738c0",
+      "requested_provider": "anthropic",
+      "requested_model": "opus",
+      "requested_effort": "xhigh",
+      "observed_model": null,
+      "session": "4f6c1447-bedf-4d3d-8229-5ec076f20d61",
+      "helper_exit": 1,
+      "result": "Failed to authenticate: OAuth session expired and could not be refreshed",
+      "raw": "docs/dev/tmp/bob-output-00089-c1-20261025-82f7f30f8204444485c22c2510eee6a5.jsonl",
+      "raw_sha256": "9c2d37d615678a0f194c9b8c62a3343761822dc53dc6e702468ba2c9bf20d0b6",
+      "stderr": "docs/dev/tmp/bob-output-00089-c1-20261025-82f7f30f8204444485c22c2510eee6a5.stderr",
+      "receipt": null
+    }
+  ]
+}

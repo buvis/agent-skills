@@ -2219,3 +2219,13 @@
 {"id":"de1e6ef8","kind":"fast-track:ivan","task":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1-c1","queued_at":1792878025,"prompt_bytes":20381}
 {"id":"de1e6ef8","ended_at":1792878083,"elapsed_s":58,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1792878983,"phase":"review","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792879428,"phase":"review","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}
+{"id":"b6968004","kind":"bob","task":"review-00089-c1-20261025","queued_at":1792879819,"prompt_bytes":13444}
+{"id":"2d8ad7cc","kind":"alice","task":"review-00089-c1-20261025","queued_at":1792879864,"prompt_bytes":6272}
+{"id":"ea9234c6","kind":"blake","task":"review-00089-c1-20261025","queued_at":1792879864,"prompt_bytes":11931}
+{"id":"6f9738c0","kind":"bob","task":"review-00089-c1-20261025","queued_at":1792879864,"prompt_bytes":60883}
+{"id":"b6968004","ended_at":1792879865,"elapsed_s":46,"outcome":"error","detail":"staged prompt superseded by mandatory inlined Bob prompt; actual dispatch recorded separately"}
+{"id":"2d8ad7cc","ended_at":1792879886,"elapsed_s":22,"outcome":"error","detail":"exit 1: Claude OAuth session expired and could not be refreshed; no review or receipt"}
+{"id":"ea9234c6","ended_at":1792879886,"elapsed_s":22,"outcome":"error","detail":"exit 1: Claude OAuth session expired and could not be refreshed; no review or receipt"}
+{"id":"6f9738c0","ended_at":1792879886,"elapsed_s":22,"outcome":"error","detail":"exit 1: Claude OAuth session expired and could not be refreshed; no review or receipt"}
+{"kind":"handoff","site":"review","edge":"leave","at":1792879913,"phase":"paused","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}
