@@ -90,6 +90,76 @@ def test_apply_moves_to_trash_and_records_manifest(tmp_path):
     assert "stale-temp\tnested/old.txt" in (store / gc.TRASH_DIR / "manifest.tsv").read_text()
 
 
+def test_nested_repo_fixture_moves_as_one_unit(tmp_path, monkeypatch):
+    _repo, store = repo_store(tmp_path)
+    fixture = store / "fixture"
+    hook = fixture / ".git" / "hooks" / "pre-commit"
+    hook.parent.mkdir(parents=True)
+    hook.write_text("#!/bin/sh\nexit 0\n")
+    source = fixture / "src.py"
+    source.write_text("answer = 42\n")
+    age(hook, 8)
+    age(source, 8)
+    original_mkdir = Path.mkdir
+
+    def sandbox_mkdir(path, *positional, **keywords):
+        if any(pair == (".git", "hooks") for pair in zip(path.parts, path.parts[1:])):
+            raise PermissionError("sandbox refuses .git/hooks creation")
+        return original_mkdir(path, *positional, **keywords)
+
+    monkeypatch.setattr(Path, "mkdir", sandbox_mkdir)
+    now = time.time()
+    counts = gc.process_store("repo", store, args(apply=True), now)
+    batch = time.strftime("%Y-%m-%d", time.localtime(now))
+    trashed = store / gc.TRASH_DIR / batch / "fixture"
+    assert counts["stale-temp"] == 1
+    assert not fixture.exists()
+    assert (trashed / ".git" / "hooks" / "pre-commit").read_text() == "#!/bin/sh\nexit 0\n"
+    assert (trashed / "src.py").read_text() == "answer = 42\n"
+    assert (store / gc.TRASH_DIR / "manifest.tsv").read_text().splitlines() == [
+        f"{batch}\tstale-temp\tfixture\t{gc.TRASH_DIR}/{batch}/fixture"
+    ]
+
+
+def test_fresh_file_inside_a_nested_repo_keeps_the_fixture(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    fixture = store / "fixture"
+    head = fixture / ".git" / "HEAD"
+    head.parent.mkdir(parents=True)
+    head.write_text("ref: refs/heads/main\n")
+    age(head, 8)
+    source = fixture / "src.py"
+    source.write_text("answer = 42\n")
+    counts = gc.process_store("repo", store, args(), time.time())
+    assert counts["fresh"] == 1
+    assert counts["stale-temp"] == 0
+    assert head.read_text() == "ref: refs/heads/main\n"
+    assert source.read_text() == "answer = 42\n"
+    assert not (store / gc.TRASH_DIR).exists()
+
+
+def test_live_prd_number_in_the_fixture_path_keeps_it(tmp_path):
+    repo, store = repo_store(tmp_path)
+    prds = repo / "docs" / "dev" / "project-management" / "prds" / "wip"
+    prds.mkdir(parents=True)
+    (prds / "00123-feature.md").write_text("# Feature")
+    fixture = store / "00123-eval" / "template"
+    head = fixture / ".git" / "HEAD"
+    head.parent.mkdir(parents=True)
+    head.write_text("ref: refs/heads/main\n")
+    age(head, 60)
+    source = fixture / "src.py"
+    source.write_text("answer = 42\n")
+    age(source, 60)
+    counts = gc.process_store("repo", store, args(), time.time())
+    assert counts["live-linked"] == 1
+    assert counts["stale-temp"] == 0
+    assert counts["fresh"] == 0
+    assert head.read_text() == "ref: refs/heads/main\n"
+    assert source.read_text() == "answer = 42\n"
+    assert not (store / gc.TRASH_DIR).exists()
+
+
 def test_zero_day_retention_never_deletes_what_this_run_just_trashed(tmp_path, capsys):
     _repo, store = repo_store(tmp_path)
     target = store / "old.txt"
