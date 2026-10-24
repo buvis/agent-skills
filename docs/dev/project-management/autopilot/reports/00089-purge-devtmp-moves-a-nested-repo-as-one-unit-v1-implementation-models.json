@@ -1,0 +1,48 @@
+{
+  "fingerprint": "63166430a3f2bd3af7f5132ed87f778622393750518eead239fa374d5afa64a4",
+  "snapshot": {
+    "prd": "00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md",
+    "cycle": 1,
+    "work_start_sha": "87e8be8d6b2952502ff588cf62551979c302a7c9",
+    "tasks": [
+      {
+        "id": "1",
+        "attempts": [
+          {
+            "attempt": 1,
+            "actual_model": "gpt-6.1-sol",
+            "actual_provider": "openai",
+            "implementor": "codex",
+            "outcome": "completed"
+          }
+        ]
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "task": "1",
+      "role": "implementation",
+      "model": "gpt-6.1-sol",
+      "path": "docs/dev/tmp/00089-native-model-evidence.jsonl",
+      "line": 1,
+      "sha256": "3a27db3f9e5444d08c79fb71c9de37192d28bfc276dc316f94f1fbac41691a03"
+    },
+    {
+      "task": "1",
+      "role": "implementation",
+      "model": "gpt-6.1-sol",
+      "path": "docs/dev/tmp/00089-native-model-evidence.jsonl",
+      "line": 2,
+      "sha256": "a8fcae0f3cabf28ac678875a2dbdb1eadc49c36a4d3afc42216611e05647150e"
+    },
+    {
+      "task": "1",
+      "role": "implementation",
+      "model": "gpt-6.1-sol",
+      "path": "docs/dev/tmp/00089-native-model-evidence.jsonl",
+      "line": 3,
+      "sha256": "171410a7556a2c909cda656a8577791f19f524e2f23c845e6cb9e3847487e4d8"
+    }
+  ]
+}

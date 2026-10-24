@@ -56,10 +56,10 @@ Source: 2026-10-18, this repo. The autopilot loop's drain-time purge and an oper
 ## Tasks
 
 ### Phase 0: Foundation
-- [ ] Add the three tests to `skills/purge-devtmp/scripts/test_purge_devtmp.py`. Premise: `rg -c '"\.git"' skills/purge-devtmp/scripts/purge_devtmp.py` prints 0 before the edit; a different count means the walk already changed and the task stops and reports. - Acceptance: `uv run pytest -q skills/purge-devtmp/scripts/test_purge_devtmp.py -k "nested_repo or fixture_path"` fails `test_nested_repo_fixture_moves_as_one_unit` with the simulated `PermissionError` and fails the other two on their classification assertions, against the current code.
+- [x] Add the three tests to `skills/purge-devtmp/scripts/test_purge_devtmp.py`. Premise: `rg -c '"\.git"' skills/purge-devtmp/scripts/purge_devtmp.py` prints 0 before the edit; a different count means the walk already changed and the task stops and reports. - Acceptance: `uv run pytest -q skills/purge-devtmp/scripts/test_purge_devtmp.py -k "nested_repo or fixture_path"` fails `test_nested_repo_fixture_moves_as_one_unit` with the simulated `PermissionError` and fails the other two on their classification assertions, against the current code.
 
 ### Phase 1: Core
-- [ ] Change `walk_store`, add the SKILL.md sentence and the CHANGELOG entry (depends on: Phase 0) - Acceptance: `uv run pytest -q skills/purge-devtmp/scripts/test_purge_devtmp.py` passes; `uv run python3 skills/create-skill/scripts/validate_skill.py skills/purge-devtmp` passes; `rg -c "moves as one unit" skills/purge-devtmp/SKILL.md` prints 1; `rg -n "purge-devtmp.*one unit" CHANGELOG.md` prints one line under `[Unreleased]`.
+- [x] Change `walk_store`, add the SKILL.md sentence and the CHANGELOG entry (depends on: Phase 0) - Acceptance: `uv run pytest -q skills/purge-devtmp/scripts/test_purge_devtmp.py` passes; `uv run python3 skills/create-skill/scripts/validate_skill.py skills/purge-devtmp` passes; `rg -c "moves as one unit" skills/purge-devtmp/SKILL.md` prints 1; `rg -n "purge-devtmp.*one unit" CHANGELOG.md` prints one line under `[Unreleased]`.
 
 ## Success Criteria
 

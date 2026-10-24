@@ -2213,3 +2213,9 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1792354642,"phase":"done","prd":"00088-document-the-eval-harness-contract-v1.md"}
 {"kind":"handoff","site":"build","edge":"resume","at":1792354672,"phase":"build","prd":"00088-document-the-eval-harness-contract-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1792354744,"phase":"done","prd":"00088-document-the-eval-harness-contract-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1792877908,"phase":"build","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}
+{"id":"0c3d0f99","kind":"fast-track:tess","task":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1-c1","queued_at":1792877945,"prompt_bytes":25522}
+{"id":"0c3d0f99","ended_at":1792878012,"elapsed_s":67,"outcome":"ok","detail":null}
+{"id":"de1e6ef8","kind":"fast-track:ivan","task":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1-c1","queued_at":1792878025,"prompt_bytes":20381}
+{"id":"de1e6ef8","ended_at":1792878083,"elapsed_s":58,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1792878983,"phase":"review","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}
