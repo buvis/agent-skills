@@ -31,7 +31,9 @@ python3 ~/.agents/skills/purge-devtmp/scripts/purge_devtmp.py --all --apply
 
 Files carrying the number of a PRD in backlog, wip, or hold are kept.
 Everything else older than seven days is moved to
-`docs/dev/tmp/.trash/<date>/`. Nothing is directly unlinked. Trash batches
+`docs/dev/tmp/.trash/<date>/`. Nothing is directly unlinked. A directory that
+holds a .git entry (a cloned or templated fixture) moves as one unit, so the
+trash never has to recreate paths a sandbox refuses. Trash batches
 older than 30 days are removed on later apply runs. Use
 `--min-age-days`, `--age-days`, or `--empty-trash-days` to override the
 defaults.

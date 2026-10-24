@@ -8,7 +8,9 @@ import shutil
 import sys
 import time
 from collections import Counter
+from collections.abc import Iterator
 from pathlib import Path
+from stat import S_ISREG
 
 DAY = 86400
 PRD_NUM = re.compile(r"(?<!\d)(\d{5})(?!\d)")
@@ -73,11 +75,24 @@ def live_prd_numbers(store: Path) -> set[str]:
     return live
 
 
-def walk_store(store: Path):
-    """Yield relative path and mtime for files outside .trash."""
+def walk_store(store: Path) -> Iterator[tuple[Path, float]]:
+    """Yield relative path and mtime for files and repository units outside .trash."""
     for base, dirs, files in os.walk(store, followlinks=False):
         if Path(base) == store:
             dirs[:] = [name for name in dirs if name != TRASH_DIR]
+        elif ".git" in dirs or ".git" in files:
+            mtimes = []
+            for unit_base, _unit_dirs, unit_files in os.walk(base, followlinks=False):
+                for name in unit_files:
+                    try:
+                        entry_stat = (Path(unit_base) / name).lstat()
+                    except OSError:
+                        continue
+                    if S_ISREG(entry_stat.st_mode):
+                        mtimes.append(entry_stat.st_mtime)
+            yield Path(base).relative_to(store), max(mtimes, default=Path(base).stat().st_mtime)
+            dirs[:] = []
+            continue
         for name in files:
             path = Path(base) / name
             try:
@@ -130,10 +145,17 @@ def trash_file(store: Path, rel: Path, batch: str) -> None:
 
 
 def prune_empty_dirs(store: Path) -> None:
-    for base, _dirs, _files in os.walk(store, topdown=False):
+    directories = []
+    for base, dirs, files in os.walk(store, followlinks=False):
         directory = Path(base)
-        if directory == store or TRASH_DIR in directory.parts:
+        if directory == store:
+            dirs[:] = [name for name in dirs if name != TRASH_DIR]
             continue
+        if ".git" in dirs or ".git" in files:
+            dirs[:] = []
+            continue
+        directories.append(directory)
+    for directory in reversed(directories):
         try:
             directory.rmdir()
         except OSError:

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **purge-devtmp**: a temp directory holding a nested `.git` moves to trash as one unit, so the purge no longer dies under a sandbox that refuses to create `.git/hooks`, and the loop's drain-time purge completes.
 - **purge-devtmp**: `--apply --empty-trash-days 0` no longer deletes the batch the same run just trashed; `empty_old_trash` keeps a named batch regardless of age.
 
 ### Changed
