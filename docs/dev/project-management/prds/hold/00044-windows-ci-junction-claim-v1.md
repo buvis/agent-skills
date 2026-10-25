@@ -34,6 +34,12 @@ braid_check 7, ground_prd 2, distil-memory CRLF 9, glean 2, sweep-fix
 `os.geteuid` 2, use-qwen 27), which no unattended session can bound. The Ubuntu
 matrix is red on glean too. Unpark for an attended run.
 
+Update 2026-10-25: 60 failures at b2e6fcd (glean down to 1, the Ubuntu matrix
+is green again), plus one intermittent failure that the next run showed and the
+previous did not: `test_the_warmup_budget_runs_down_across_every_earlier_segment`
+in skills/use-qwen/scripts/test_run_eval_vet.py raises WinError 32 (file in use)
+on its temporary output file after the warm-up timeout kills the child.
+
 ### Target Users
 Maintainers changing portable skills or Braid, and Windows users relying on the README.
 
