@@ -2229,3 +2229,11 @@
 {"id":"ea9234c6","ended_at":1792879886,"elapsed_s":22,"outcome":"error","detail":"exit 1: Claude OAuth session expired and could not be refreshed; no review or receipt"}
 {"id":"6f9738c0","ended_at":1792879886,"elapsed_s":22,"outcome":"error","detail":"exit 1: Claude OAuth session expired and could not be refreshed; no review or receipt"}
 {"kind":"handoff","site":"review","edge":"leave","at":1792879913,"phase":"paused","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1792920962,"phase":"review","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}
+{"id":"7857d05f","kind":"alice","task":"review-00089-c1-resumed-20261025","queued_at":1792921064,"prompt_bytes":6272}
+{"id":"a7deba18","kind":"blake","task":"review-00089-c1-resumed-20261025","queued_at":1792921064,"prompt_bytes":11931}
+{"id":"71036fc6","kind":"bob","task":"review-00089-c1-resumed-20261025","queued_at":1792921064,"prompt_bytes":60883}
+{"id":"7857d05f","ended_at":1792921246,"elapsed_s":182,"outcome":"ok","detail":null}
+{"id":"a7deba18","ended_at":1792921246,"elapsed_s":182,"outcome":"ok","detail":null}
+{"id":"71036fc6","ended_at":1792921246,"elapsed_s":182,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1792921653,"phase":"review","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}

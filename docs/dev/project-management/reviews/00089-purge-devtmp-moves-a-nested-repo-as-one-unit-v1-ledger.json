@@ -1,0 +1,58 @@
+[
+  {
+    "issue": "The `autocodex-sessions/` ignore entry is outside the PRD's scope but went into the `fix(purge-devtmp)` commit. It is defensible, since it keeps raw transcripts out of a public repo, but it belongs in a separate chore commit",
+    "file": ".gitignore:8",
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "reason": "discarded: the ignore rule prevents private raw host transcripts from entering this public repository; workflow reports and model audits remain tracked. Rewriting committed history adds no product benefit."
+  },
+  {
+    "issue": "A `.git` at the store root is never treated as a unit, because the `base == store` branch runs first. The walk then enters `store/.git`, yields its `hooks/*` files, and hits the same `.git/hooks` mkdir denial. `prune_empty_dirs` also removes empty dirs inside it. This is unlikely, but it is the same crash class",
+    "file": "skills/purge-devtmp/scripts/purge_devtmp.py:81",
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "low",
+    "reason": "settled-deferral: this PRD covers repositories nested below the tmp store. Moving the store itself into its own trash is invalid; a root-repository refusal policy needs separate scope."
+  },
+  {
+    "issue": "The PRD's root cause was the uncaught exception in process_store, and it is still there. trash_file has no guard, so any other move failure (for example a rename refused for another reason) still leaves the store half moved and stops every later store. That puts the \"no purge traceback\" success signal at risk",
+    "file": "skills/purge-devtmp/scripts/purge_devtmp.py:195",
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "reason": "single-voice Medium/Low; discarded under the review decision policy"
+  },
+  {
+    "issue": "Possible follow-on bug: trash batches can now hold `.git/hooks`. If the Seatbelt also refuses to unlink under `.git/hooks`, and `empty_old_trash` does not handle the error, the purge dies again once that batch is 30 days old.",
+    "file": "skills/purge-devtmp/scripts/purge_devtmp.py:165",
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "reason": "single-voice Medium/Low; discarded under the review decision policy"
+  },
+  {
+    "issue": "The prune change also fixes a user-visible bug: kept repo fixtures no longer lose their empty `.git` subdirs. Neither the CHANGELOG entry nor SKILL.md mentions it",
+    "file": "CHANGELOG.md:12",
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "reason": "single-voice Medium/Low; discarded under the review decision policy"
+  },
+  {
+    "issue": "The fake sandbox in the test patches only pathlib.Path.mkdir, so a move that fell back to os.makedirs or copytree would still pass. This matches the spec's wording, but it is a weak guard against that kind of regression",
+    "file": "skills/purge-devtmp/scripts/test_purge_devtmp.py:105",
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "reason": "single-voice Medium/Low; discarded under the review decision policy"
+  },
+  {
+    "issue": "`max(mtimes, default=Path(base).stat().st_mtime)` runs `stat` for every unit, even when files were found, and nothing catches its error. If another session deletes the unit during the inner walk, `FileNotFoundError` stops the whole store run. That is the failure this PRD set out to remove.",
+    "file": "skills/purge-devtmp/scripts/purge_devtmp.py:93",
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "reason": "single-voice Medium/Low; discarded under the review decision policy"
+  }
+]
