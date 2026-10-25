@@ -29,7 +29,9 @@ Review the candidates, then apply:
 python3 ~/.agents/skills/purge-devtmp/scripts/purge_devtmp.py --all --apply
 ```
 
-Files carrying the number of a PRD in backlog, wip, or hold are kept.
+Files and repository units whose relative path carries the number of a PRD
+in backlog, wip, or hold are kept. A PRD number only inside a unit's member
+path does not keep the unit.
 Everything else older than seven days is moved to
 `docs/dev/tmp/.trash/<date>/`. Nothing is directly unlinked. A directory that
 holds a .git entry (a cloned or templated fixture) moves as one unit, so the
