@@ -1,11 +1,13 @@
 #!/bin/bash
 # List dependency update PRs across all repos the authenticated user has access to
-# Detects by author (renovate[bot], dependabot[bot]) and title patterns
+# Detects by author (app/renovate, renovate[bot], app/dependabot, dependabot[bot]) and title patterns
 
 set -e
 
-# Get all repos for user's orgs and personal account
-REPOS=$(gh repo list --limit 200 --json nameWithOwner --jq '.[].nameWithOwner' 2>/dev/null)
+# Every repo the token can reach: own, collaborator and organization repos.
+# (`gh repo list` without an owner lists only the account's own repos.)
+REPOS=$(gh api user/repos --paginate --jq '.[].full_name') \
+    || { echo "gh api user/repos failed; run 'gh auth status'" >&2; exit 1; }
 
 if [ -z "$REPOS" ]; then
     echo "No repos found or gh not authenticated"
@@ -18,7 +20,7 @@ echo ""
 for REPO in $REPOS; do
     PRS=$(gh pr list --repo "$REPO" --state open --json number,title,author,labels,createdAt,url \
         --jq '.[] | select(
-            (.author.login == "renovate[bot]" or .author.login == "dependabot[bot]") or
+            (.author.login | test("^(app/)?(renovate|dependabot)(\\[bot\\])?$")) or
             (.title | test("^(chore\\(deps\\)|bump |update |\\[security\\])"; "i")) or
             (.title | test("^fix\\(deps\\)"; "i"))
         )' 2>/dev/null) || continue
