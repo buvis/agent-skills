@@ -7,17 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-25
+
+### Changed
+
+- **brush**: `trash_untracked.py` previews by default; pass `--apply` to move files to `.trash` and write the manifest row.
+- **survey**: `_survey` now reads each sampled file from disk once and reuses that text for symbol extraction and the error-style scan, instead of reading it up to three times per run; the brief trimmer replaced its quadratic pop loop with a binary search, bounded at a logarithmic number of calls. Output is unchanged.
+
 ### Fixed
 
 - **review-deps-prs**: the discovery script now walks every repo the token can reach, including organization repos, instead of the account's own repos only, and recognizes bot authors that `gh` reports as `app/renovate` or `app/dependabot`.
 - **glean**: `scan` no longer offers a nested `.local/` directory (for example `.config/.local/`) as a tracking candidate when git lists it collapsed; the builtin never verdict covers it.
 - **purge-devtmp**: a temp directory holding a nested `.git` moves to trash as one unit, so the purge no longer dies under a sandbox that refuses to create `.git/hooks`, and the loop's drain-time purge completes.
 - **purge-devtmp**: `--apply --empty-trash-days 0` no longer deletes the batch the same run just trashed; `empty_old_trash` keeps a named batch regardless of age.
-
-### Changed
-
-- **brush**: `trash_untracked.py` previews by default; pass `--apply` to move files to `.trash` and write the manifest row.
-- **survey**: `_survey` now reads each sampled file from disk once and reuses that text for symbol extraction and the error-style scan, instead of reading it up to three times per run; the brief trimmer replaced its quadratic pop loop with a binary search, bounded at a logarithmic number of calls. Output is unchanged.
 
 ## [0.1.0] - 2026-10-18
 
