@@ -1,0 +1,11 @@
+{
+  "batch_id": "202610242338",
+  "items": [
+    {
+      "type": "host-adapter-conflict",
+      "issue": "The autocodex host adapter review_gap check refuses a converged->done transition after a tail sweep (\"implementation changed since the converged review\"), which contradicts phase-review.md Tail sweep step 4 (finalize without reopening review). It paused batch 202610242338 on PRD 00089 under site host_tail_sweep_provenance. Needs a fix in the autocodex adapter, not in this plugin.",
+      "severity": "medium",
+      "prd": "00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"
+    }
+  ]
+}
