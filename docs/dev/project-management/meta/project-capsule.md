@@ -140,6 +140,17 @@ Updated: 2026-10-18T16:48Z (full catchup, PRD 00070 selection, same batch 202610
 
 ## Active Work
 
+### Batch 202610242338
+- [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1
+  cycle) — fast-track lane; `purge_devtmp.py` treats a nested repo (a
+  directory holding `.git`) as one atomic unit during store traversal and
+  pruning, so a `.git/hooks` mkdir denial under the Seatbelt no longer
+  crashes the whole purge. Tail swept 4 findings as tasks 2-3 (unit-guard
+  regression test, `walk_store` depth refactor, SKILL.md wording on
+  PRD-number retention scope). One low-severity item deferred: a `.git` at
+  the tmp store root itself (not nested) is still unguarded — out of this
+  PRD's nested-fixture scope, needs its own refusal policy.
+
 ### Batch 202610162125 (worktree prd/00080-frontmatter-keys; same id as the 00076-00077 lane below, minted the same minute; merged to master 2026-10-16)
 - [x] 00080-recognize-pipeline-frontmatter-keys-and-the-lane-path-rule-v1.md
   (5/5 tasks, 1 cycle) — create-prd and review-prd-backlog recognize all

@@ -6,6 +6,16 @@
       "issue": "The autocodex host adapter review_gap check refuses a converged->done transition after a tail sweep (\"implementation changed since the converged review\"), which contradicts phase-review.md Tail sweep step 4 (finalize without reopening review). It paused batch 202610242338 on PRD 00089 under site host_tail_sweep_provenance. Needs a fix in the autocodex adapter, not in this plugin.",
       "severity": "medium",
       "prd": "00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"
+    },
+    {
+      "type": "deferred_decision",
+      "cycle": 1,
+      "issue": "A `.git` at the store root is never treated as a unit, because the `base == store` branch runs first. The walk then enters `store/.git`, yields its `hooks/*` files, and hits the same `.git/hooks` mkdir denial. `prune_empty_dirs` also removes empty dirs inside it. This is unlikely, but it is the same crash class",
+      "severity": "low",
+      "file": "skills/purge-devtmp/scripts/purge_devtmp.py:81",
+      "action": "deferred",
+      "reason": "Repository at the tmp store root is outside nested-fixture scope; moving the store into its own trash is invalid. Separate refusal policy required.",
+      "prd": "00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"
     }
   ]
 }
