@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 import purge_devtmp as gc
+import pytest
 
 
 def args(**overrides):
@@ -136,6 +137,73 @@ def test_fresh_file_inside_a_nested_repo_keeps_the_fixture(tmp_path):
     assert head.read_text() == "ref: refs/heads/main\n"
     assert source.read_text() == "answer = 42\n"
     assert not (store / gc.TRASH_DIR).exists()
+
+
+@pytest.mark.parametrize("name,days,payload", [("fixture", 1, "alpha"), ("fixture-copy", 2, "beta")])
+def test_apply_keeps_fresh_repository_and_empty_git_directories(tmp_path, name, days, payload):
+    _repo, store = repo_store(tmp_path)
+    fixture = store / name
+    heads = fixture / ".git" / "refs" / "heads"
+    pack = fixture / ".git" / "objects" / "pack"
+    heads.mkdir(parents=True)
+    pack.mkdir(parents=True)
+    source = fixture / "src.py"
+    source.write_text(payload)
+    age(source, days)
+    age(fixture, 30)
+    counts = gc.process_store("repo", store, args(apply=True), time.time())
+    assert counts["fresh"] == 1
+    assert counts["stale-temp"] == 0
+    assert source.read_text() == payload
+    assert heads.is_dir()
+    assert list(heads.iterdir()) == []
+    assert pack.is_dir()
+    assert list(pack.iterdir()) == []
+    manifest = store / gc.TRASH_DIR / "manifest.tsv"
+    assert not manifest.exists()
+
+
+def test_walk_empty_repository_units_uses_each_unit_directory_timestamp(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    assert list(gc.walk_store(store)) == []
+    first = store / "fixture"
+    second = store / "fixture-copy"
+    (first / ".git" / "refs" / "heads").mkdir(parents=True)
+    (second / ".git" / "objects" / "pack").mkdir(parents=True)
+    age(first, 2)
+    age(second, 11)
+    assert dict(gc.walk_store(store)) == {
+        Path("fixture"): first.stat().st_mtime,
+        Path("fixture-copy"): second.stat().st_mtime,
+    }
+
+
+def test_apply_classifies_empty_repository_units_by_their_own_age(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    now = time.time() + 20 * gc.DAY
+    units = {"fixture": 1, "fixture-copy": 2, "old-fixture": 8, "old-fixture-copy": 12}
+    for name, days in units.items():
+        fixture = store / name
+        (fixture / ".git" / "refs" / "heads").mkdir(parents=True)
+        (fixture / ".git" / "objects" / "pack").mkdir(parents=True)
+        os.utime(fixture, (now - days * gc.DAY, now - days * gc.DAY))
+    counts = gc.process_store("repo", store, args(apply=True), now)
+    batch = time.strftime("%Y-%m-%d", time.localtime(now))
+    assert counts["fresh"] == 2
+    assert counts["stale-temp"] == 2
+    for name in ("fixture", "fixture-copy"):
+        assert (store / name / ".git" / "refs" / "heads").is_dir()
+        assert (store / name / ".git" / "objects" / "pack").is_dir()
+        assert not (store / gc.TRASH_DIR / batch / name).exists()
+    for name in ("old-fixture", "old-fixture-copy"):
+        assert not (store / name).exists()
+        trashed = store / gc.TRASH_DIR / batch / name
+        assert (trashed / ".git" / "refs" / "heads").is_dir()
+        assert (trashed / ".git" / "objects" / "pack").is_dir()
+    assert set((store / gc.TRASH_DIR / "manifest.tsv").read_text().splitlines()) == {
+        f"{batch}\tstale-temp\told-fixture\t{gc.TRASH_DIR}/{batch}/old-fixture",
+        f"{batch}\tstale-temp\told-fixture-copy\t{gc.TRASH_DIR}/{batch}/old-fixture-copy",
+    }
 
 
 def test_live_prd_number_in_the_fixture_path_keeps_it(tmp_path):
