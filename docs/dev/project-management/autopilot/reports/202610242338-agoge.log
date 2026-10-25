@@ -1,0 +1,44 @@
+Five lanes are running in the background: walter, heidi, wendy, peggy and trudy. Trudy runs on the invocation route (`autoclaude-drain`). Judy is unarmed because there is no browser driver. I'll audit and merge their findings when they come back.
+
+Trudy is back: 6 findings, 5 of them verified. The worst is a HIGH: a crafted git tree makes use-qwen's template builder (`trees.py`) write a file outside its target directory. The other four lanes are still running.
+
+Heidi is back with 16 integration findings. The highest is a HIGH: distil-memory's docket reports a structurally broken queue with exit 1, the code that means "drained", where its changelog promises exit 2. Two of her verified claims (#14 and #15) rest only on reading files, not on a run, so I'll downgrade them to unverified. Walter, wendy and peggy are still running.
+
+Walter is back with 11 findings: 4 MEDIUM and 7 LOW. Two of them overlap with heidi's and will be merged, including sweep silently dropping registry rows. Wendy and peggy are still running.
+
+Peggy is back with 3 findings. Two of them, both sweep deadline overruns, came from a stubbed `rg` and are recorded as `mocked`. The third, quadratic speaker matching in debrief, is verified. Only wendy is still running.
+
+The agoge run finished: 46 findings, now waiting for you to walk them. It ran unattended, so it filed no PRDs and recorded no decisions.
+
+**Findings:** 0 CRITICAL, 4 HIGH, 14 MEDIUM, 28 LOW. The four HIGH ones:
+1. A crafted task repo makes use-qwen's template builder write a file outside its directory. The cause is `tarfile.extractall` with no `filter` in `trees.py:141`. Shown by a direct call to the builder, not through the full `vet` command.
+2. `docket.py` reports a broken queue with exit 1, the code that means "drained". The changelog promises exit 2.
+3. `glean scan` still offers a nested `.local/` dir for tracking, which the 0.1.0 changelog says it never does. Tests pass on your machine only because your global gitignore hides `.local`.
+4. CI on master has failed on every push since 2026-10-04, and `v0.1.0` was tagged while it was failing. Windows has 61 failures, 19 of them in braid. The tag also exists only locally; GitHub has no tag or release.
+
+**Lanes:**
+
+| Lane | Result |
+|---|---|
+| walter | 11 verified |
+| heidi | 11 verified, 3 mocked, 2 unverified |
+| wendy | 11 verified |
+| peggy | 1 verified, 2 mocked |
+| trudy | 4 verified, 2 unverified |
+| judy | did not run: no browser driver |
+
+- I merged 2 duplicates.
+- I downgraded 3 "verified" claims to unverified, because their evidence was only reading files, not running anything.
+- Trudy (security) ran because you passed `--authorized autoclaude-drain`. The new profile itself says `Authorization: not asserted`.
+- I wrote no regression tests: the target tree has 2 modified autopilot ledgers and 2 untracked autopilot reports, and the skill skips writing tests when the tree is dirty. Your working tree is unchanged.
+
+**One thing for you to decide:** an older tracked profile at `docs/dev/project-management/meta/agoge-profile.md` says the security lane is authorized. The skill never reads that path. Recon could not tell whether you or an agent wrote that line, so it did not copy it into the new profile. If you stand by it, edit the line in `dev/local/meta/agoge-profile.md`.
+
+Each lane left a scratch dir under `/var/folders/.../T/agoge-*`. They are not deleted, because `rm` needs approval.
+
+To walk the findings, run `/run-agoge --resume dev/local/audit-results/agoge-2026-10-25.md`.
+
+Files are in `dev/local/`, which is gitignored:
+- `dev/local/audit-results/agoge-2026-10-25.md`
+- `dev/local/audit-results/agoge-2026-10-25.json`
+- `dev/local/meta/agoge-profile.md`
