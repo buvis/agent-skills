@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 from datetime import date, timedelta
 from pathlib import Path
@@ -26,7 +27,9 @@ def git(home: Path, *args: str) -> str:
 
 
 @pytest.fixture
-def home(tmp_path, monkeypatch):
+def home(tmp_path, monkeypatch, isolate_home):
+    isolate_home(tmp_path)  # git must not read the developer's global excludes
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
     monkeypatch.setattr(glean, "HOME", tmp_path)
     subprocess.run(["git", "init", "-q", "--bare", str(tmp_path / ".dots")], check=True)
     git(tmp_path, "config", "user.email", "t@example.com")

@@ -92,7 +92,9 @@ def git(cfg: dict, *args: str) -> str:
 
 def matches(path: str, pattern: str) -> bool:
     if any(c in pattern for c in "*?["):
-        return fnmatch.fnmatch(path.rstrip("/"), pattern.rstrip("/"))
+        pattern = pattern.rstrip("/")
+        # git collapses an untracked dir to `x/.local/`; that kept slash is what `*/.local/*` needs
+        return fnmatch.fnmatch(path.rstrip("/"), pattern) or fnmatch.fnmatch(path, pattern)
     if pattern.endswith("/"):
         return path.startswith(pattern) or path + "/" == pattern
     return path.rstrip("/") == pattern
