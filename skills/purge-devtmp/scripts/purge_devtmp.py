@@ -75,22 +75,32 @@ def live_prd_numbers(store: Path) -> set[str]:
     return live
 
 
+def is_repo_unit(dirs: list[str], files: list[str]) -> bool:
+    """Return whether a directory contains a repository marker."""
+    return ".git" in dirs or ".git" in files
+
+
+def newest_file_mtime(directory: Path) -> float:
+    """Return the newest regular-file mtime, or the directory mtime if empty."""
+    mtimes = []
+    for base, _dirs, files in os.walk(directory, followlinks=False):
+        for name in files:
+            try:
+                entry_stat = (Path(base) / name).lstat()
+            except OSError:
+                continue
+            if S_ISREG(entry_stat.st_mode):
+                mtimes.append(entry_stat.st_mtime)
+    return max(mtimes, default=directory.stat().st_mtime)
+
+
 def walk_store(store: Path) -> Iterator[tuple[Path, float]]:
     """Yield relative path and mtime for files and repository units outside .trash."""
     for base, dirs, files in os.walk(store, followlinks=False):
         if Path(base) == store:
             dirs[:] = [name for name in dirs if name != TRASH_DIR]
-        elif ".git" in dirs or ".git" in files:
-            mtimes = []
-            for unit_base, _unit_dirs, unit_files in os.walk(base, followlinks=False):
-                for name in unit_files:
-                    try:
-                        entry_stat = (Path(unit_base) / name).lstat()
-                    except OSError:
-                        continue
-                    if S_ISREG(entry_stat.st_mode):
-                        mtimes.append(entry_stat.st_mtime)
-            yield Path(base).relative_to(store), max(mtimes, default=Path(base).stat().st_mtime)
+        elif is_repo_unit(dirs, files):
+            yield Path(base).relative_to(store), newest_file_mtime(Path(base))
             dirs[:] = []
             continue
         for name in files:
@@ -151,7 +161,7 @@ def prune_empty_dirs(store: Path) -> None:
         if directory == store:
             dirs[:] = [name for name in dirs if name != TRASH_DIR]
             continue
-        if ".git" in dirs or ".git" in files:
+        if is_repo_unit(dirs, files):
             dirs[:] = []
             continue
         directories.append(directory)
