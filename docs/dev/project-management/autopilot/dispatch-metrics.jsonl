@@ -2272,3 +2272,20 @@
 {"kind":"handoff","site":"build","edge":"leave","at":1793137203,"phase":"done","prd":"00090-missing-public-ledger-disables-guard-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1793137230,"phase":"done","prd":"00090-missing-public-ledger-disables-guard-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793137316,"phase":"build","prd":"00090-missing-public-ledger-disables-guard-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793137324,"phase":"build","prd":"00091-brush-trashes-protected-directory-contents-v1.md"}
+{"id":"24e83f12","kind":"fast-track:tess","task":"00091-brush-trashes-protected-directory-contents-v1-c1","queued_at":1793137433,"prompt_bytes":63822}
+{"id":"24e83f12","ended_at":1793137545,"elapsed_s":112,"outcome":"ok","detail":null}
+{"id":"b0a8ae02","kind":"fast-track:ivan","task":"00091-brush-trashes-protected-directory-contents-v1-c1","queued_at":1793137572,"prompt_bytes":38257}
+{"id":"b0a8ae02","ended_at":1793137662,"elapsed_s":90,"outcome":"ok","detail":null}
+{"id":"afbb96f4","kind":"fast-track:alice","task":"00091-brush-trashes-protected-directory-contents-v1-c1","queued_at":1793137857,"prompt_bytes":6261}
+{"id":"b2a5822b","kind":"fast-track:blake","task":"00091-brush-trashes-protected-directory-contents-v1-c1","queued_at":1793137861,"prompt_bytes":7183}
+{"id":"5788d0ea","kind":"fast-track:eve","task":"00091-brush-trashes-protected-directory-contents-v1-c1","queued_at":1793137865,"prompt_bytes":5596}
+{"id":"b11980f5","kind":"fast-track:bob","task":"00091-brush-trashes-protected-directory-contents-v1-c1","queued_at":1793137869,"prompt_bytes":9452}
+{"id":"60d841f1","kind":"fast-track:carl","task":"00091-brush-trashes-protected-directory-contents-v1-c1","queued_at":1793137873,"prompt_bytes":6617}
+{"id":"b11980f5","ended_at":1793138013,"elapsed_s":144,"outcome":"ok","detail":null}
+{"id":"60d841f1","ended_at":1793138017,"elapsed_s":144,"outcome":"error","detail":"copilot backend monthly quota exceeded, exit 1"}
+{"id":"afbb96f4","ended_at":1793138059,"elapsed_s":202,"outcome":"ok","detail":null}
+{"id":"b2a5822b","ended_at":1793138064,"elapsed_s":203,"outcome":"ok","detail":null}
+{"id":"b11980f5","ended_at":1793138079,"elapsed_s":210,"outcome":"ok","detail":null}
+{"id":"5788d0ea","ended_at":1793138554,"elapsed_s":689,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793139127,"phase":"done","prd":"00091-brush-trashes-protected-directory-contents-v1.md"}
