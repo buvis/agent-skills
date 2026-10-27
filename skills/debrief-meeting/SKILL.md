@@ -158,7 +158,8 @@ payload shape drift apart.
 
 ## Rebuilding the SPA template (maintenance only)
 
-Only needed after changing `app/` sources:
+Needed after changing `app/` sources or dependencies. CI fails when the
+committed template differs from a fresh build:
 
 ```bash
 npm --prefix ~/.agents/skills/debrief-meeting/app install
