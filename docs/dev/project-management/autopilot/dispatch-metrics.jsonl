@@ -2291,3 +2291,25 @@
 {"kind":"handoff","site":"build","edge":"leave","at":1793139127,"phase":"done","prd":"00091-brush-trashes-protected-directory-contents-v1.md"}
 {"kind":"handoff","site":"build","edge":"resume","at":1793141922,"phase":"build","prd":"00091-brush-trashes-protected-directory-contents-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793141992,"phase":"build","prd":"00091-brush-trashes-protected-directory-contents-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793141999,"phase":"build","prd":"00092-glean-crashes-non-ascii-filenames-v1.md"}
+{"id":"39caef93","kind":"fast-track:tess","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793142096,"prompt_bytes":40579}
+{"id":"39caef93","ended_at":1793142227,"elapsed_s":131,"outcome":"ok","detail":null}
+{"id":"b563a704","kind":"fast-track:ivan","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793142245,"prompt_bytes":24523}
+{"id":"b563a704","ended_at":1793142790,"elapsed_s":545,"outcome":"ok","detail":null}
+{"id":"0147b78e","kind":"fast-track:alice","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793142960,"prompt_bytes":6243}
+{"id":"ede81205","kind":"fast-track:blake","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793142961,"prompt_bytes":7231}
+{"id":"3235367d","kind":"fast-track:eve","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793142963,"prompt_bytes":5755}
+{"id":"f3f6e005","kind":"fast-track:bob","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793142964,"prompt_bytes":8892}
+{"id":"05bb0b95","kind":"fast-track:carl","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793142966,"prompt_bytes":6599}
+{"id":"05bb0b95","ended_at":1793143118,"elapsed_s":152,"outcome":"error","detail":"exit 1: copilot backend monthly quota exceeded, retried once"}
+{"id":"0147b78e","ended_at":1793143123,"elapsed_s":163,"outcome":"ok","detail":null}
+{"id":"ede81205","ended_at":1793143124,"elapsed_s":163,"outcome":"ok","detail":null}
+{"id":"f3f6e005","ended_at":1793143125,"elapsed_s":161,"outcome":"ok","detail":null}
+{"id":"769b88a9","kind":"fast-track:bob","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793143137,"prompt_bytes":8892}
+{"id":"769b88a9","ended_at":1793143212,"elapsed_s":75,"outcome":"error","detail":"codex sandbox blocked all reads, retried once, substituting general-purpose subagent"}
+{"id":"3d60234a","kind":"fast-track:bob","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793143215,"prompt_bytes":8892}
+{"id":"3d60234a","ended_at":1793143316,"elapsed_s":101,"outcome":"ok","detail":null}
+{"id":"3235367d","ended_at":1793143690,"elapsed_s":727,"outcome":"ok","detail":null}
+{"id":"26e8859a","kind":"fast-track:victor","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793143775,"prompt_bytes":2252}
+{"id":"26e8859a","ended_at":1793143844,"elapsed_s":69,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793144311,"phase":"done","prd":"00092-glean-crashes-non-ascii-filenames-v1.md"}
