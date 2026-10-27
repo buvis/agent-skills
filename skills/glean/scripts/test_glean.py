@@ -290,3 +290,88 @@ def test_check_staged_exits_nonzero_when_local_ledger_itself_is_missing(home):
     assert r.returncode != 0, r.stdout
     assert "Traceback" not in r.stderr
     assert "no-such-ledger.json" in r.stderr
+
+
+def test_check_staged_flags_credential_in_non_ascii_path(home):
+    (home / ".café").write_text("x=ghp_" + "a" * 36 + "\n")
+    git(home, "add", ".café")
+    r = run_cli(home, write_ledger(home, []), "check-staged")
+    assert "Traceback" not in r.stderr, r.stderr
+    assert r.returncode == 1
+    body = json.loads(r.stdout)
+    assert [h["path"] for h in body["hard"]] == [".café"]
+    assert body["hard"][0]["why"] == "credential pattern ghp_"
+    assert body["staged"] == 1
+
+
+def test_check_staged_reports_safe_non_ascii_path_without_crash(home):
+    (home / ".café").write_text("theme = dark\n")
+    git(home, "add", ".café")
+    r = run_cli(home, write_ledger(home, []), "check-staged")
+    assert "Traceback" not in r.stderr, r.stderr
+    assert r.returncode == 0
+    body = json.loads(r.stdout)
+    assert body["ok"]
+    assert body["hard"] == []
+    assert body["staged"] == 1
+
+
+def test_check_staged_refuses_plaintext_of_git_secret_file_with_non_ascii_path(home):
+    (home / ".gitsecret" / "paths").mkdir(parents=True)
+    (home / ".gitsecret" / "paths" / "mapping.cfg").write_text(".tök:abc\n")
+    (home / ".tök").write_text("plain\n")
+    git(home, "add", "-f", ".tök")
+    r = run_cli(home, write_ledger(home, []), "check-staged")
+    assert "Traceback" not in r.stderr, r.stderr
+    body = json.loads(r.stdout)
+    assert not body["ok"]
+    assert [h["path"] for h in body["hard"]] == [".tök"]
+    assert body["hard"][0]["why"] == "plaintext of a git-secret file"
+
+
+def test_check_staged_refuses_never_verdict_matched_against_non_ascii_path(home):
+    (home / ".nëtrc").write_text("machine x\n")
+    git(home, "add", ".nëtrc")
+    entry = {"path": ".nëtrc", "verdict": "never", "decided": TODAY}
+    r = run_cli(home, write_ledger(home, [entry]), "check-staged")
+    assert "Traceback" not in r.stderr, r.stderr
+    body = json.loads(r.stdout)
+    assert not body["ok"]
+    assert [h["path"] for h in body["hard"]] == [".nëtrc"]
+    assert body["hard"][0]["why"] == "ledger verdict never"
+
+
+def test_check_staged_allows_two_unrelated_non_ascii_files_with_distinct_counts(home):
+    (home / ".café").write_text("x=1\n")
+    (home / ".tëa").write_text("y=2\n")
+    git(home, "add", ".café")
+    git(home, "add", ".tëa")
+    r = run_cli(home, write_ledger(home, []), "check-staged")
+    assert "Traceback" not in r.stderr, r.stderr
+    body = json.loads(r.stdout)
+    assert body["ok"]
+    assert body["staged"] == 2
+
+
+def test_check_staged_reports_filename_with_space_and_combining_character(home):
+    name = ".my café"  # space plus combining acute accent, git quotes by default
+    (home / name).write_text("token: ghp_" + "b" * 36 + "\n")
+    git(home, "add", name)
+    r = run_cli(home, write_ledger(home, []), "check-staged")
+    assert "Traceback" not in r.stderr, r.stderr
+    body = json.loads(r.stdout)
+    assert not body["ok"]
+    assert [h["path"] for h in body["hard"]] == [name]
+
+
+def test_check_staged_reports_renamed_non_ascii_path_not_the_original(home):
+    (home / ".café").write_text("line one\nline two\nline three\n")
+    git(home, "add", ".café")
+    git(home, "commit", "-qm", "add café")
+    git(home, "mv", ".café", ".thé")
+    r = run_cli(home, write_ledger(home, []), "check-staged")
+    assert "Traceback" not in r.stderr, r.stderr
+    body = json.loads(r.stdout)
+    assert body["ok"]
+    assert body["staged"] == 1
+    # numstat for a pure rename with no content change reports the new path only
