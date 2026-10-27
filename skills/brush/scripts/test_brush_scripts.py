@@ -758,3 +758,84 @@ def test_preview_json_matches_the_apply_run(
     for entry in applied["moved"]:
         assert (repo / entry["trash"]).read_text() == "j"
         assert not (repo / entry["path"]).exists()
+
+
+def test_main_refuses_a_dotenv_file_passed_directly(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, ".env", "TOKEN=x")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "--apply", ".env")
+
+    assert out["moved"] == []
+    assert [r["reason"] for r in out["refused"]] == ["protected name"]
+    assert p.read_text() == "TOKEN=x"
+
+
+def test_main_refuses_a_directory_holding_protected_files(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """A directory's own name clears every veto; its contents must not."""
+    _old_file(repo, "sdir/.env", "TOKEN=x")
+    _old_file(repo, "sdir/NOTES.md", "notes")
+    _old_file(repo, "sdir/a.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "--apply", "sdir")
+
+    assert out["moved"] == []
+    assert [r["path"] for r in out["refused"]] == ["sdir"]
+    assert (repo / "sdir/.env").read_text() == "TOKEN=x"
+    assert (repo / "sdir/NOTES.md").read_text() == "notes"
+    assert (repo / "sdir/a.log").exists()
+    assert not (repo / "docs/dev/tmp/.trash/manifest.tsv").exists()
+
+
+def test_preview_refuses_a_directory_holding_protected_files(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """The same refusal happens in dry-run, before --apply is ever passed."""
+    _old_file(repo, "sdir/.env", "TOKEN=x")
+    _old_file(repo, "sdir/NOTES.md", "notes")
+    _old_file(repo, "sdir/a.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "sdir")
+
+    assert out["moved"] == []
+    assert [r["path"] for r in out["refused"]] == ["sdir"]
+    assert (repo / "sdir/.env").is_file()
+    assert (repo / "sdir/NOTES.md").is_file()
+    assert (repo / "sdir/a.log").is_file()
+
+
+def test_main_refuses_a_directory_holding_a_protected_file_nested_below_another_directory(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """The protected file sits two levels down; the whole candidate is refused."""
+    _old_file(repo, "sdir/inner/.env", "TOKEN=x")
+    _old_file(repo, "sdir/inner/a.log")
+    _old_file(repo, "sdir/b.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "--apply", "sdir")
+
+    assert out["moved"] == []
+    assert [r["path"] for r in out["refused"]] == ["sdir"]
+    assert (repo / "sdir/inner/.env").read_text() == "TOKEN=x"
+    assert (repo / "sdir/inner/a.log").exists()
+    assert (repo / "sdir/b.log").exists()
+    assert not (repo / "docs/dev/tmp/.trash/manifest.tsv").exists()
+
+
+def test_main_moves_a_directory_containing_only_old_junk(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """Control: an eligible junk-only directory still moves whole."""
+    _old_file(repo, "sdir/a.log")
+    _old_file(repo, "sdir/inner/b.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "--apply", "sdir")
+
+    assert out["refused"] == []
+    assert [e["path"] for e in out["moved"]] == ["sdir"]
+    assert not (repo / "sdir").exists()
+    row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
+    assert row[2] == "sdir"
