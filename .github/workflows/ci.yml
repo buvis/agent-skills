@@ -185,5 +185,15 @@ jobs:
       - name: Install debrief-meeting dependencies
         run: npm --prefix skills/debrief-meeting/app ci
 
+      # The smoke test reads the committed template, not a fresh build, so a
+      # source or dependency change that skips the rebuild would pass unseen.
+      - name: Check the committed template matches a fresh build
+        run: |
+          npm --prefix skills/debrief-meeting/app run build
+          if ! cmp -s skills/debrief-meeting/app/dist/index.html skills/debrief-meeting/assets/template.html; then
+            echo "::error file=skills/debrief-meeting/assets/template.html::stale template; rebuild it per the debrief-meeting SKILL.md maintenance section"
+            exit 1
+          fi
+
       - name: Test debrief-meeting
         run: npm --prefix skills/debrief-meeting/app test
