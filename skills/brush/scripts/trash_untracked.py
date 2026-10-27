@@ -67,11 +67,7 @@ def normalise_rel(rel: str) -> str:
     return posixpath.normpath(text)
 
 
-def veto_reason(rel: str, p: Path, tracked: set[str],
-                min_age_days: int) -> str | None:
-    rel = normalise_rel(rel)
-    if not p.exists():
-        return "missing"
+def _static_veto(rel: str, tracked: set[str]) -> str | None:
     if rel in tracked or any(t.startswith(rel + "/") for t in tracked):
         return "tracked (use git rm via a reviewed commit instead)"
     if rel.startswith(PROTECT_PREFIXES):
@@ -81,6 +77,24 @@ def veto_reason(rel: str, p: Path, tracked: set[str],
     if any(fnmatch.fnmatch(PurePosixPath(rel).name.lower(), g)
            for g in PROTECT_GLOBS):
         return "protected name"
+    return None
+
+
+def veto_reason(rel: str, p: Path, tracked: set[str],
+                min_age_days: int) -> str | None:
+    rel = normalise_rel(rel)
+    if not p.exists():
+        return "missing"
+    reason = _static_veto(rel, tracked)
+    if reason:
+        return reason
+    if p.is_dir():
+        for f in p.rglob("*"):
+            if f.is_file():
+                child_rel = f"{rel}/{f.relative_to(p).as_posix()}"
+                reason = _static_veto(child_rel, tracked)
+                if reason:
+                    return reason
     age = (datetime.datetime.now().timestamp() - newest_mtime(p)) / 86400
     if age < min_age_days:
         return f"too fresh ({age:.1f}d < {min_age_days}d)"
