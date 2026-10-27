@@ -2289,3 +2289,5 @@
 {"id":"b11980f5","ended_at":1793138079,"elapsed_s":210,"outcome":"ok","detail":null}
 {"id":"5788d0ea","ended_at":1793138554,"elapsed_s":689,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793139127,"phase":"done","prd":"00091-brush-trashes-protected-directory-contents-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793141922,"phase":"build","prd":"00091-brush-trashes-protected-directory-contents-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793141992,"phase":"build","prd":"00091-brush-trashes-protected-directory-contents-v1.md"}

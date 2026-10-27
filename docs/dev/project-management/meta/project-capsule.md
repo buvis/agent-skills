@@ -146,10 +146,12 @@ Updated: 2026-10-27 (full catchup, `catchup: force`, PRD 00044 build entry, new 
   fast-track lane; `glean` requires a configured public ledger to exist
   before running, rather than silently disabling the guard when it is
   missing.
+- [x] 00091-brush-trashes-protected-directory-contents-v1.md (1/1 tasks, 1
+  cycle) — fast-track lane; `brush` refuses to trash a directory containing
+  vetoed files instead of trashing the whole directory's contents.
 
-Observations: fast-track lane card continues to close in one cycle with no
-deferred items; batch has 18 PRDs remaining in backlog (3 carried over as
-repeated-skip, 15 new).
+Observations: fast-track lane cards continue to close in one cycle with no
+deferred items; batch has 24 PRDs remaining in backlog.
 
 ### Batch 202610242338
 - [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1
