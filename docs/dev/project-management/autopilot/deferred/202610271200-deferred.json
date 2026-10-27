@@ -1,0 +1,12 @@
+{
+  "batch_id": "202610271200",
+  "items": [
+    {
+      "type": "stall",
+      "site": "plan_expansion",
+      "detail": "module_drift 2 > 1 (., skills/brush/scripts); note docs/dev/project-management/autopilot/split-notes/00044-windows-ci-junction-claim-v1.md",
+      "op_id": "ea146acce589",
+      "prd": "00044-windows-ci-junction-claim-v1.md"
+    }
+  ]
+}

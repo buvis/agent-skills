@@ -2252,3 +2252,5 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1792923506,"phase":"done","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1792923559,"phase":"done","prd":"00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1792923638,"phase":"done","prd":""}
+{"kind":"handoff","site":"build","edge":"resume","at":1793135691,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793136027,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
