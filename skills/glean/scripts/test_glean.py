@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 import subprocess
+import sys
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -208,3 +209,84 @@ def test_check_staged_passes_comment_mentions_as_soft(home):
     git(home, "add", ".toolrc")
     r = run(home, "check-staged", [])
     assert r["ok"] and r["soft"]
+
+
+def run_cli(home: Path, ledger: Path, command: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(Path(glean.__file__)), command, f"--ledger={ledger}"],
+        cwd=home, capture_output=True, text=True, check=False,
+    )
+
+
+def write_ledger_with_public(home: Path, public_ledger: Path | None, entries: list[dict] | None = None) -> Path:
+    cfg = {"git_dir": str(home / ".dots")}
+    if public_ledger is not None:
+        cfg["public_ledger"] = str(public_ledger)
+    path = home / "ledger.json"
+    path.write_text(json.dumps({"config": cfg, "entries": entries or []}))
+    return path
+
+
+def test_check_staged_refuses_harmless_file_when_public_ledger_is_valid(home):
+    public = home / "public.json"
+    public.write_text(json.dumps({"entries": [{"path": ".foorc", "verdict": "never", "decided": TODAY}]}))
+    (home / ".foorc").write_text("x=1\n")
+    git(home, "add", ".foorc")
+    ledger = write_ledger_with_public(home, public)
+    r = run_cli(home, ledger, "check-staged")
+    assert r.returncode == 1
+    body = json.loads(r.stdout)
+    assert not body["ok"] and body["hard"][0]["why"] == "ledger verdict never"
+
+
+def test_check_staged_allows_harmless_file_when_public_ledger_is_omitted(home):
+    (home / ".foorc").write_text("x=1\n")
+    git(home, "add", ".foorc")
+    ledger = write_ledger_with_public(home, None)
+    r = run_cli(home, ledger, "check-staged")
+    assert r.returncode == 0
+    assert json.loads(r.stdout)["ok"]
+
+
+def test_check_staged_refuses_harmless_file_when_public_ledger_is_missing(home):
+    (home / ".foorc").write_text("x=1\n")
+    git(home, "add", ".foorc")
+    # public ledger configured but the file was never written (typo'd or deleted path)
+    ledger = write_ledger_with_public(home, home / "no-such-public.json")
+    r = run_cli(home, ledger, "check-staged")
+    assert r.returncode != 0, r.stdout
+    assert "Traceback" not in r.stderr
+    assert "no-such-public.json" in r.stderr
+    # the bug under test: a missing public ledger must never let the staged check report success
+    assert not (r.returncode == 0 and json.loads(r.stdout or "{}").get("ok"))
+
+
+def test_check_staged_refuses_harmless_file_when_public_ledger_path_is_a_near_miss(home):
+    public = home / "public.json"
+    public.write_text(json.dumps({"entries": [{"path": ".foorc", "verdict": "never", "decided": TODAY}]}))
+    (home / ".foorc").write_text("x=1\n")
+    git(home, "add", ".foorc")
+    # configured path shares a prefix with the real file but is not it (typo: trailing "s")
+    ledger = write_ledger_with_public(home, home / "publics.json")
+    r = run_cli(home, ledger, "check-staged")
+    assert r.returncode != 0, r.stdout
+    assert "Traceback" not in r.stderr
+    assert "publics.json" in r.stderr
+
+
+def test_scan_refuses_to_run_when_public_ledger_is_missing(home):
+    (home / ".config" / "tool.toml").write_text("theme = 'dark'\n")
+    ledger = write_ledger_with_public(home, home / "no-such-public.json")
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode != 0, r.stdout
+    assert "Traceback" not in r.stderr
+    assert "no-such-public.json" in r.stderr
+
+
+def test_check_staged_exits_nonzero_when_local_ledger_itself_is_missing(home):
+    (home / ".foorc").write_text("x=1\n")
+    git(home, "add", ".foorc")
+    r = run_cli(home, home / "no-such-ledger.json", "check-staged")
+    assert r.returncode != 0, r.stdout
+    assert "Traceback" not in r.stderr
+    assert "no-such-ledger.json" in r.stderr
