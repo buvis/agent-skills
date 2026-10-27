@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **debrief-meeting**: `assets/template.html` is rebuilt with svelte 5.57.2, vite 8.3.5, @sveltejs/vite-plugin-svelte 7.3.1, vite-plugin-singlefile 2.3.4 and jsdom 30.1.3; CI moves to actions/setup-node v7 and astral-sh/setup-uv v10.3.2.
+- **debrief-meeting**: `assets/template.html` is rebuilt with svelte 5.57.3, vite 8.3.5, @sveltejs/vite-plugin-svelte 7.3.1, vite-plugin-singlefile 2.3.4 and jsdom 30.1.3; CI moves to actions/setup-node v7 and astral-sh/setup-uv v10.3.2.
 
 ## [0.2.0] - 2026-10-25
 
