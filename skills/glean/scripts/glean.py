@@ -226,10 +226,21 @@ def cmd_scan(cfg: dict, entries: list[dict]) -> dict:
 def cmd_check_staged(cfg: dict, entries: list[dict]) -> dict:
     """Hard fail on anything that must never be pushed; report soft keyword hits."""
     hard, soft = [], []
-    numstat = git(cfg, "diff", "--cached", "--numstat", "--diff-filter=ACMR").splitlines()
+    raw = git(cfg, "diff", "--cached", "--numstat", "-z", "--diff-filter=ACMR")
+    fields = raw.split("\0")
+    rows = []
+    i = 0
+    while i < len(fields) and fields[i]:
+        added, _, rest = fields[i].split("\t", 2)
+        if rest == "":  # renamed/copied: numstat left the path empty, real path(s) follow as NUL fields
+            i += 1
+            rows.append((added, fields[i + 1]))
+            i += 2
+        else:
+            rows.append((added, rest))
+            i += 1
     mapped = mapped_secrets()
-    for row in numstat:
-        added, _, path = row.split("\t", 2)
+    for added, path in rows:
         if path in mapped:
             hard.append({"path": path, "why": "plaintext of a git-secret file"})
         if any(e["verdict"] == "never" and matches(path, e["path"]) for e in entries):
@@ -248,7 +259,7 @@ def cmd_check_staged(cfg: dict, entries: list[dict]) -> dict:
                 hard.append({"path": path, "line": n, "why": "credential pattern " + k[5:]})
             else:
                 soft.append({"path": path, "line": n, "keyword": k})
-    return {"ok": not hard, "hard": hard, "soft": soft, "staged": len(numstat)}
+    return {"ok": not hard, "hard": hard, "soft": soft, "staged": len(rows)}
 
 
 def main(argv: list[str] | None = None) -> int:

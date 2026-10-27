@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import sys
+import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -361,7 +362,9 @@ def test_check_staged_reports_filename_with_space_and_combining_character(home):
     assert "Traceback" not in r.stderr, r.stderr
     body = json.loads(r.stdout)
     assert not body["ok"]
-    assert [h["path"] for h in body["hard"]] == [name]
+    # git normalizes a decomposed (NFD) filename to composed (NFC) on add on some
+    # platforms (e.g. macOS core.precomposeunicode); either normal form is correct.
+    assert [unicodedata.normalize("NFC", h["path"]) for h in body["hard"]] == [unicodedata.normalize("NFC", name)]
 
 
 def test_check_staged_reports_renamed_non_ascii_path_not_the_original(home):
