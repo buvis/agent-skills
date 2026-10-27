@@ -2254,3 +2254,19 @@
 {"kind":"handoff","site":"done","edge":"leave","at":1792923638,"phase":"done","prd":""}
 {"kind":"handoff","site":"build","edge":"resume","at":1793135691,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793136027,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793136037,"phase":"build","prd":"00090-missing-public-ledger-disables-guard-v1.md"}
+{"id":"dc1517d6","kind":"fast-track:tess","task":"00090-missing-public-ledger-disables-guard-v1-c1","queued_at":1793136132,"prompt_bytes":25042}
+{"id":"dc1517d6","ended_at":1793136241,"elapsed_s":109,"outcome":"ok","detail":null}
+{"id":"57801e09","kind":"fast-track:ivan","task":"00090-missing-public-ledger-disables-guard-v1-c1","queued_at":1793136265,"prompt_bytes":21055}
+{"id":"57801e09","ended_at":1793136310,"elapsed_s":45,"outcome":"ok","detail":null}
+{"id":"ec67ea21","kind":"fast-track:fanout","task":"00090-missing-public-ledger-disables-guard-v1-c1","queued_at":1793136441,"prompt_bytes":4886}
+{"id":"8e4b9fc2","kind":"fast-track:blake","task":"00090-missing-public-ledger-disables-guard-v1-c1","queued_at":1793136443,"prompt_bytes":7102}
+{"id":"a2609c30","kind":"fast-track:eve","task":"00090-missing-public-ledger-disables-guard-v1-c1","queued_at":1793136444,"prompt_bytes":4239}
+{"id":"2f6355b9","kind":"fast-track:bob","task":"00090-missing-public-ledger-disables-guard-v1-c1","queued_at":1793136446,"prompt_bytes":9428}
+{"id":"63c72140","kind":"fast-track:carl","task":"00090-missing-public-ledger-disables-guard-v1-c1","queued_at":1793136448,"prompt_bytes":6605}
+{"id":"63c72140","ended_at":1793136614,"elapsed_s":166,"outcome":"error","detail":"exit 1 (copilot backend quota exceeded), retried once, still failed"}
+{"id":"2f6355b9","ended_at":1793136695,"elapsed_s":249,"outcome":"error","detail":"codex sandbox blocked its own read tool both runs (sandbox_apply: Operation not permitted); retried once, same failure, no usable review produced"}
+{"id":"ec67ea21","ended_at":1793136698,"elapsed_s":257,"outcome":"ok","detail":null}
+{"id":"8e4b9fc2","ended_at":1793136699,"elapsed_s":256,"outcome":"ok","detail":null}
+{"id":"a2609c30","ended_at":1793136735,"elapsed_s":291,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793137203,"phase":"done","prd":"00090-missing-public-ledger-disables-guard-v1.md"}
