@@ -68,7 +68,10 @@ def load_ledgers(local_path: Path) -> tuple[dict, list[dict]]:
         )
     entries = BUILTIN + local.get("entries", [])
     if cfg.get("public_ledger"):
-        entries += load_json(Path(cfg["public_ledger"]).expanduser()).get("entries", [])
+        public_path = Path(cfg["public_ledger"]).expanduser()
+        if not public_path.exists():
+            sys.exit(f"glean: public_ledger {public_path} does not exist")
+        entries += load_json(public_path).get("entries", [])
     for e in entries:
         v = e.get("verdict")
         if v not in VOLATILE | STABLE:
