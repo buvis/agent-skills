@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import zipfile
+
 import parse
 
 VTT = """WEBVTT
@@ -149,9 +151,20 @@ def test_reads_bracketed_timestamp_header_with_role_suffix() -> None:
     assert parsed[0]["text"] == "Then Postgres."
 
 
-def test_strips_role_suffix_from_header_in_docx_text_path() -> None:
-    text = "Dana Whitfield   0:05\nFirst point.\nDana Whitfield (Contractor)   0:20\nSecond point.\n"
-    parsed = parse.parse_cues(text, "docx")
+def test_reads_role_suffixed_header_from_docx(tmp_path) -> None:
+    xml = (
+        "<w:p><w:r><w:t>Dana Whitfield</w:t></w:r><w:tab/>"
+        "<w:r><w:t>0:05</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>First point.</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>Dana Whitfield (Contractor)</w:t></w:r><w:tab/>"
+        "<w:r><w:t>0:20</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>Second point.</w:t></w:r></w:p>"
+    )
+    docx_path = tmp_path / "t.docx"
+    with zipfile.ZipFile(docx_path, "w") as archive:
+        archive.writestr("word/document.xml", xml)
+    text, fmt = parse.read_source(docx_path)
+    parsed = parse.parse_cues(text, fmt)
     assert len(parsed) == 2
     assert parsed[0]["speaker"] == "Dana Whitfield"
     assert parsed[1]["speaker"] == "Dana Whitfield (Contractor)"
@@ -182,3 +195,9 @@ def test_keeps_parenthetical_remark_in_speech_as_text_not_header() -> None:
     assert len(parsed) == 1
     assert parsed[0]["speaker"] == "Sam Okafor"
     assert parsed[0]["text"] == "I think (honestly) Postgres is the right call."
+
+
+def test_keeps_lowercase_prose_with_parenthetical_as_speech_not_header() -> None:
+    parsed = parse.parse_cues("So my point (honestly): we ship.\n", "text")
+    assert parsed[0]["speaker"] is None
+    assert parsed[0]["text"] == "So my point (honestly): we ship."
