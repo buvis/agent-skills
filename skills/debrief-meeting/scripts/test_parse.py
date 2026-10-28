@@ -201,3 +201,44 @@ def test_keeps_lowercase_prose_with_parenthetical_as_speech_not_header() -> None
     parsed = parse.parse_cues("So my point (honestly): we ship.\n", "text")
     assert parsed[0]["speaker"] is None
     assert parsed[0]["text"] == "So my point (honestly): we ship."
+
+
+def test_keeps_numbered_speakers_with_different_numbers_apart() -> None:
+    mapping, _ = parse.canonicalize(["Speaker 1", "Speaker 10"])
+    assert mapping["Speaker 1"] != mapping["Speaker 10"]
+
+
+def test_keeps_similar_last_names_apart() -> None:
+    mapping, _ = parse.canonicalize(["Dana Whitfield", "Dane Whitfield"])
+    assert mapping["Dana Whitfield"] != mapping["Dane Whitfield"]
+
+
+def test_keeps_similar_first_names_apart() -> None:
+    mapping, _ = parse.canonicalize(["Alexander Smith", "Alexandra Smith"])
+    assert mapping["Alexander Smith"] != mapping["Alexandra Smith"]
+
+
+def test_keeps_numbered_speakers_as_separate_turns_in_transcript() -> None:
+    text = (
+        "Speaker 1   0:00\nLet us open with the budget.\n"
+        "Speaker 10   0:10\nI disagree with that number.\n"
+    )
+    data = parse.normalize_text(text, "text")
+    names = {s["name"] for s in data["speakers"]}
+    assert names == {"Speaker 1", "Speaker 10"}
+    assert len(data["turns"]) == 2
+    speaker_ids = {t["s"] for t in data["turns"]}
+    assert len(speaker_ids) == 2
+
+
+def test_keeps_similar_names_as_separate_turns_in_transcript() -> None:
+    text = (
+        "Dana Whitfield   0:00\nI will take the first item.\n"
+        "Dane Whitfield   0:10\nI will take the second item.\n"
+    )
+    data = parse.normalize_text(text, "text")
+    names = {s["name"] for s in data["speakers"]}
+    assert names == {"Dana Whitfield", "Dane Whitfield"}
+    assert len(data["turns"]) == 2
+    speaker_ids = {t["s"] for t in data["turns"]}
+    assert len(speaker_ids) == 2
