@@ -149,9 +149,12 @@ Updated: 2026-10-27 (full catchup, `catchup: force`, PRD 00044 build entry, new 
 - [x] 00091-brush-trashes-protected-directory-contents-v1.md (1/1 tasks, 1
   cycle) — fast-track lane; `brush` refuses to trash a directory containing
   vetoed files instead of trashing the whole directory's contents.
+- [x] 00092-glean-crashes-non-ascii-filenames-v1.md (1/1 tasks, 1 cycle) —
+  fast-track lane; `glean` parses NUL-separated `git diff --numstat` output
+  so a staged non-ASCII filename no longer crashes the scan.
 
 Observations: fast-track lane cards continue to close in one cycle with no
-deferred items; batch has 24 PRDs remaining in backlog.
+deferred items; batch has 23 PRDs remaining in backlog.
 
 ### Batch 202610242338
 - [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1

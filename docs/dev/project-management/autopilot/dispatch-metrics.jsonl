@@ -2313,3 +2313,4 @@
 {"id":"26e8859a","kind":"fast-track:victor","task":"00092-glean-crashes-non-ascii-filenames-v1-c1","queued_at":1793143775,"prompt_bytes":2252}
 {"id":"26e8859a","ended_at":1793143844,"elapsed_s":69,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793144311,"phase":"done","prd":"00092-glean-crashes-non-ascii-filenames-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793146528,"phase":"build","prd":"00092-glean-crashes-non-ascii-filenames-v1.md"}
