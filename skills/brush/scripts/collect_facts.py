@@ -224,8 +224,8 @@ def gather_prs(root: Path) -> list[dict]:
         data = json.loads(p.stdout)
     except json.JSONDecodeError as e:
         raise ValueError(f"gh pr list returned malformed JSON: {e}") from e
-    if isinstance(data, dict):
-        raise RuntimeError(f"gh pr list returned an error: {data}")
+    if not isinstance(data, list):
+        raise RuntimeError(f"gh pr list returned a non-list reply: {data!r}")
     return data
 
 

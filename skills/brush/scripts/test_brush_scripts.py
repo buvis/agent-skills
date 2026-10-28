@@ -883,6 +883,16 @@ def test_gather_prs_raises_on_an_error_object_never_treating_it_as_a_list(
         cf.gather_prs(repo)
 
 
+def test_gather_prs_raises_on_a_bare_scalar_reply(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`gh` can exit 0 with valid JSON that is neither a dict nor a list
+    (e.g. `null`); that must not be returned as if it were a PR list."""
+    _fake_gh_run(monkeypatch, rc=0, stdout="null")
+
+    with pytest.raises(Exception):
+        cf.gather_prs(repo)
+
+
 def test_gather_prs_raises_on_malformed_json(
         repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _fake_gh_run(monkeypatch, rc=0, stdout="not json at all")
@@ -965,6 +975,17 @@ def test_collector_never_reports_an_error_object_as_the_pr_list(
 
     assert facts["open_prs"] is None
     assert facts["open_prs"] != {"message": "rate limited"}
+    assert any(w.startswith("open_prs") for w in facts["warnings"])
+
+
+def test_collector_never_reports_a_bare_scalar_reply_as_the_pr_list(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _fake_gh_run(monkeypatch, rc=0, stdout="null")
+
+    facts = _collect(repo, monkeypatch, capsys)
+
+    assert facts["open_prs"] is None
     assert any(w.startswith("open_prs") for w in facts["warnings"])
 
 
