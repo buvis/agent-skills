@@ -150,7 +150,9 @@ Updated: 2026-10-28 (full catchup, PRD 00099 selection, same batch 202610271200,
 - [x] 00102-prd-validation-release-notes-missing-v1.md (1/1 tasks, 1
   cycle) — solo lane, docs-only; `CHANGELOG.md` gains the omitted create-prd
   Fixed bullet (invalid-root exit 2 diagnostic, cwd-relative exclusions).
-- [ ] 00103-sweep-scanning-release-notes-missing-v1.md
+- [x] 00103-sweep-scanning-release-notes-missing-v1.md (1/1 tasks, 1
+  cycle) — solo lane, docs-only; `CHANGELOG.md` gains sweep's deadline and
+  Partial-indicator and parallel-scanning-by-default bullets.
 - [ ] 00104-sweep-overruns-process-deadline-v1.md
 - [ ] 00105-qwen-silently-exits-mise-failure-v1.md
 - [ ] 00106-cleanup-manifests-use-different-paths-v1.md
