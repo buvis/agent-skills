@@ -2314,3 +2314,19 @@
 {"id":"26e8859a","ended_at":1793143844,"elapsed_s":69,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793144311,"phase":"done","prd":"00092-glean-crashes-non-ascii-filenames-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793146528,"phase":"build","prd":"00092-glean-crashes-non-ascii-filenames-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793146535,"phase":"build","prd":"00093-sweep-counts-its-own-reports-v1.md"}
+{"id":"5bd31094","kind":"fast-track:tess","task":"00093-sweep-counts-its-own-reports-v1-c1","queued_at":1793147090,"prompt_bytes":88821}
+{"id":"5bd31094","ended_at":1793147202,"elapsed_s":112,"outcome":"ok","detail":null}
+{"id":"235e7239","kind":"fast-track:ivan","task":"00093-sweep-counts-its-own-reports-v1-c1","queued_at":1793147231,"prompt_bytes":39713}
+{"id":"235e7239","ended_at":1793147293,"elapsed_s":62,"outcome":"ok","detail":null}
+{"id":"400869f2","kind":"fast-track:fanout","task":"00093-sweep-counts-its-own-reports-v1-c1","queued_at":1793147449,"prompt_bytes":6233}
+{"id":"e5dec404","kind":"fast-track:blake","task":"00093-sweep-counts-its-own-reports-v1-c1","queued_at":1793147454,"prompt_bytes":7149}
+{"id":"023649bb","kind":"fast-track:eve","task":"00093-sweep-counts-its-own-reports-v1-c1","queued_at":1793147458,"prompt_bytes":5596}
+{"id":"39561a05","kind":"fast-track:bob","task":"00093-sweep-counts-its-own-reports-v1-c1","queued_at":1793147462,"prompt_bytes":9396}
+{"id":"2c151a65","kind":"fast-track:carl","task":"00093-sweep-counts-its-own-reports-v1-c1","queued_at":1793147466,"prompt_bytes":6589}
+{"id":"e5dec404","ended_at":1793147675,"elapsed_s":221,"outcome":"ok","detail":null}
+{"id":"2c151a65","ended_at":1793147681,"elapsed_s":215,"outcome":"error","detail":"exit 1: monthly quota exceeded (copilot backend), retried once, still failing"}
+{"id":"39561a05","ended_at":1793147770,"elapsed_s":308,"outcome":"error","detail":"codex sandbox_apply: Operation not permitted, retried once, still failing"}
+{"id":"400869f2","ended_at":1793147774,"elapsed_s":325,"outcome":"ok","detail":null}
+{"id":"023649bb","ended_at":1793148072,"elapsed_s":614,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793148589,"phase":"done","prd":"00093-sweep-counts-its-own-reports-v1.md"}
