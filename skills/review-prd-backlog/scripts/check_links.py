@@ -33,8 +33,7 @@ PLACEHOLDER = re.compile(r"[*?<>{}$]|\.\.\.|NNNNN|XXXX|YYYY")
 
 
 def project_memory_dir(root: Path) -> Path:
-    home = root.parent if root.name == ".claude" else Path.home()
-    return home / ".claude" / "projects" / re.sub(r"[/.]", "-", str(root)) / "memory"
+    return Path.home() / ".claude" / "projects" / re.sub(r"[/.]", "-", str(root)) / "memory"
 
 
 def memory_names(mem_dir: Path) -> set[str]:

@@ -141,10 +141,11 @@ def test_memory_source_included_for_unresolved_claude_root_spellings(tmp_path, m
     assert any("vanished" in f[2] for f in findings_b)
 
 
-def test_cli_clean_exit_for_ordinary_root_despite_dead_home_memory_refs(tmp_path):
+def test_cli_clean_exit_for_ordinary_root_despite_dead_home_memory_refs(tmp_path, monkeypatch):
     """CLI regression: a clean ordinary repo exits 0 even though its home auto-memory file is broken."""
     home = tmp_path / "home"
     home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: home)
     ordinary_root = tmp_path / "myrepo"
     make_tree(ordinary_root)
     mem = check_links.project_memory_dir(ordinary_root)
