@@ -589,3 +589,83 @@ def test_main_stderr_still_states_the_timeout_duration_when_claude_cli_times_out
     captured = capsys.readouterr()
     assert sentinel not in captured.err
     assert "120" in captured.err
+
+
+_DAMAGED_GOOD_LINE = json.dumps(
+    {"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}}
+)
+_DAMAGED_SECRET_TEXT = "we confirmed the production database password is s3cr3t-token"
+_DAMAGED_SECRET_LINE = json.dumps(
+    {"type": "assistant", "message": {"content": [{"type": "text", "text": _DAMAGED_SECRET_TEXT}]}}
+)
+
+
+def test_main_isolates_non_object_json_and_non_utf8_damage_per_file_and_still_reports_the_valid_transcripts(
+    tmp_path, monkeypatch, capsys
+):
+    """One corpus, four transcripts in this order: a valid transcript first, a
+    transcript whose JSON lines parse but are not objects (a bare int and a
+    list), a transcript that is not valid UTF-8 at all (its one JSON line
+    carries a secret string that must never reach stderr), and a second valid
+    transcript last. A scan that still raises on either kind of damage never
+    reaches the third or fourth file, so slices_kept would undercount and no
+    report would be written; a scan that stops isolating per file at the first
+    damaged transcript never reaches the valid transcript placed after it."""
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+    project_dir.mkdir(parents=True)
+
+    write_transcript(project_dir, "a_before.jsonl", _DAMAGED_GOOD_LINE + "\n")
+    (project_dir / "m_non_object.jsonl").write_bytes(
+        b"123\n" b'["a", "list"]\n' b'"a string"\n' + _DAMAGED_SECRET_LINE.encode() + b"\n"
+    )
+    (project_dir / "n_non_utf8.jsonl").write_bytes(b"\xff\xfe" + _DAMAGED_SECRET_LINE.encode() + b"\n")
+    write_transcript(project_dir, "z_after.jsonl", _DAMAGED_GOOD_LINE + "\n")
+
+    recent = FakeSessionData(latest=datetime.now(timezone.utc) - timedelta(days=1))
+    module, version = make_transcript_parser_module(
+        {
+            "a_before.jsonl": recent,
+            "m_non_object.jsonl": recent,
+            "n_non_utf8.jsonl": recent,
+            "z_after.jsonl": recent,
+        }
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("a dry run must not invoke subprocess (no model calls of any tier)")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fail_if_called)
+
+    exit_code = funnel.main(["--dry-run"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+
+    # Only the two valid transcripts' slices count: the non-object lines in
+    # the third transcript's secret-bearing entry must never be counted, and
+    # neither must the unreadable non-UTF-8 transcript's.
+    expected_counts = {
+        "transcripts_read": 4,
+        "slices_matched": 2,
+        "slices_kept": 2,
+        "survivors": None,
+        "claude_checkup_version": version,
+    }
+    expected_report = funnel.render_yield(expected_counts)
+    assert expected_report in captured.out
+
+    report_files = sorted(
+        (tmp_path / "docs" / "dev" / "project-management" / "audit-results").glob("distil-memory-*.md")
+    )
+    assert len(report_files) == 1
+    assert report_files[0].read_text() == expected_report
+
+    # The damaged files are named in the warning, and the secret text that
+    # only reached them must never leak into stderr.
+    assert "n_non_utf8.jsonl" in captured.err
+    assert _DAMAGED_SECRET_TEXT not in captured.err
+    assert _DAMAGED_SECRET_TEXT not in captured.out
