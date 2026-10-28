@@ -2373,3 +2373,5 @@
 {"id":"24ecdfa5","ended_at":1793154077,"elapsed_s":727,"outcome":"error","detail":"copilot backend monthly quota exceeded (one retry also failed)"}
 {"id":"6057f581","ended_at":1793154149,"elapsed_s":85,"outcome":"error","detail":"codex blocked by its own Fact-Forcing Gate PreToolUse hook before any read (retry also failed the same way)"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793154331,"phase":"done","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1793156935,"phase":"done","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793156999,"phase":"build","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
