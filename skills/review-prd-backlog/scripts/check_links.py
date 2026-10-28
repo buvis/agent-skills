@@ -33,7 +33,8 @@ PLACEHOLDER = re.compile(r"[*?<>{}$]|\.\.\.|NNNNN|XXXX|YYYY")
 
 
 def project_memory_dir(root: Path) -> Path:
-    return Path.home() / ".claude" / "projects" / re.sub(r"[/.]", "-", str(root)) / "memory"
+    home = root.parent if root.name == ".claude" else Path.home()
+    return home / ".claude" / "projects" / re.sub(r"[/.]", "-", str(root)) / "memory"
 
 
 def memory_names(mem_dir: Path) -> set[str]:
@@ -151,6 +152,7 @@ def scan_file(path: Path, root: Path, prds: set[str], memories: set[str]):
 
 
 def run(root: Path):
+    root = root.resolve()
     findings, errors = [], []
     prds = resolvable_numbers(root)
     mem_dir = project_memory_dir(root)
@@ -159,7 +161,7 @@ def run(root: Path):
     project_management = root / "docs/dev/project-management"
     if project_management.is_dir():
         sources += list(project_management.rglob("*.md"))
-    if mem_dir.is_dir():
+    if mem_dir.is_dir() and root == (Path.home() / ".claude").resolve():
         sources += sorted(mem_dir.glob("*.md"))
     for src in sources:
         f, e = scan_file(src, root, prds, memories)
