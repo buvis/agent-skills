@@ -78,7 +78,9 @@ key material.
 ## Guards (apply to every candidate)
 
 - Age >= 3 days for any trash move (enforced by trash_untracked.py).
-- Branches with an open PR (facts `open_prs`): untouchable.
+- Branches with an open PR (facts `open_prs`): untouchable. Unknown `open_prs`
+  (`null`, from a failed `gh` call) blocks deletion the same as a known open
+  PR; it never reads as "no open PRs."
 - Current and default branch: untouchable. Default branch detection is master-first per house rule.
 - Detached HEAD in the main worktree: skip every branch action; flag it in the report as leftover state.
 - Heavy dirs (node_modules, target, dist, build, venv): never moved; the fix is a `.gitignore` entry only.

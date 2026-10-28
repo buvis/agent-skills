@@ -207,17 +207,26 @@ def gather_branches(root: Path, default: str, fast: bool) -> list[dict]:
     return out
 
 
-def gather_prs(root: Path) -> list[dict] | None:
+def gather_prs(root: Path) -> list[dict]:
     if not shutil.which("gh"):
-        return None
+        raise RuntimeError("gh: command not found")
     try:
         p = subprocess.run(["gh", "pr", "list", "--json",
                             "number,headRefName,state", "--limit", "100"],
                            capture_output=True, text=True, timeout=15,
                            cwd=root)
-        return json.loads(p.stdout) if p.returncode == 0 else None
-    except (subprocess.SubprocessError, json.JSONDecodeError):
-        return None
+    except subprocess.SubprocessError as e:
+        raise RuntimeError(f"gh pr list failed: {e}") from e
+    if p.returncode != 0:
+        raise RuntimeError(
+            f"gh pr list rc={p.returncode}: {p.stderr.strip()[:200]}")
+    try:
+        data = json.loads(p.stdout)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"gh pr list returned malformed JSON: {e}") from e
+    if isinstance(data, dict):
+        raise RuntimeError(f"gh pr list returned an error: {data}")
+    return data
 
 
 def gather_worktrees(root: Path, default: str, fast: bool) -> list[dict]:
