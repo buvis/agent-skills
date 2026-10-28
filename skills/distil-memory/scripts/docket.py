@@ -62,6 +62,13 @@ def load(path=None):
         raise QueueError(f"invalid review queue schema in {p}: entries must be a list")
     if not all(isinstance(entry, dict) for entry in entries):
         raise QueueError(f"invalid review queue schema in {p}: entries must contain only dict entries")
+    for index, entry in enumerate(entries):
+        if "id" not in entry or "decision" not in entry:
+            label = repr(entry["id"]) if "id" in entry else f"at position {index}"
+            raise QueueError(f"invalid review queue entry {label} in {p}: id and decision are required")
+    for counter in ("cursor", "session_decided"):
+        if counter in data and (not isinstance(data[counter], int) or isinstance(data[counter], bool)):
+            raise QueueError(f"invalid review queue schema in {p}: {counter} must be an integer")
     return data
 
 
