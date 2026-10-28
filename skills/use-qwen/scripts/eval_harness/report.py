@@ -498,6 +498,27 @@ def _audit_queue_md(run_dir: Path, entries: list, valid_ids: list, audit_rows: d
     return "\n".join(lines) + "\n"
 
 
+def _check_run_shape(run, run_id: str, run_dir: Path) -> None:
+    """Refuse a run.json that parsed as JSON but not the shape render() needs."""
+    def fail(detail: str) -> None:
+        raise ValueError("run %s: invalid run.json under %s: %s" % (run_id, run_dir, detail))
+
+    if not isinstance(run, dict):
+        fail("not an object")
+    if "engines" not in run:
+        fail("missing engines")
+    engines = run["engines"]
+    if not isinstance(engines, list):
+        fail("engines is not a list")
+    for engine in engines:
+        if not isinstance(engine, dict) or "id" not in engine:
+            fail("engine missing id")
+    if "tasks" not in run:
+        fail("missing tasks")
+    if "run_id" not in run:
+        fail("missing run_id")
+
+
 def render(root: Path, run_id: str) -> None:
     problem = admission.check_run_id(run_id)
     if problem is not None:
@@ -512,6 +533,7 @@ def render(root: Path, run_id: str) -> None:
     except ValueError as exc:
         raise ValueError(
             "run %s: malformed run.json under %s: %s" % (run_id, run_dir, exc)) from exc
+    _check_run_shape(run, run_id, run_dir)
     engine_order = [engine["id"] for engine in run["engines"]]
 
     entries = _load_entries(run_dir, engine_order)
