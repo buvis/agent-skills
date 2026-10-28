@@ -603,6 +603,22 @@ def test_main_unpublished_rejects_a_malformed_entry_or_counter_without_touching_
     _assert_rejected_without_mutating(exit_code, capsys.readouterr(), queue_file, original_bytes, expected_word)
 
 
+def test_main_next_rejects_a_kept_entry_with_a_missing_transcript(
+    tmp_path, monkeypatch, capsys
+):
+    # _check_entry()'s kept/transcript rule used to run only inside
+    # unpublished(); every other command went through load() alone and
+    # accepted a kept entry with no transcript. next() is one such command.
+    monkeypatch.chdir(tmp_path)
+    text = json.dumps({"cursor": 0, "entries": [{"id": "t.jsonl:1", "decision": "kept"}]})
+    queue_file = _corrupt_the_working_directory_queue(tmp_path, text)
+    original_bytes = queue_file.read_bytes()
+
+    exit_code = docket.main(["next"])
+
+    _assert_rejected_without_mutating(exit_code, capsys.readouterr(), queue_file, original_bytes, "transcript")
+
+
 def test_main_next_rejects_a_malformed_entry_anywhere_in_a_multi_entry_list(
     tmp_path, monkeypatch, capsys
 ):

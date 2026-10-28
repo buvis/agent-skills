@@ -63,9 +63,7 @@ def load(path=None):
     if not all(isinstance(entry, dict) for entry in entries):
         raise QueueError(f"invalid review queue schema in {p}: entries must contain only dict entries")
     for index, entry in enumerate(entries):
-        if "id" not in entry or "decision" not in entry:
-            label = repr(entry["id"]) if "id" in entry else f"at position {index}"
-            raise QueueError(f"invalid review queue entry {label} in {p}: id and decision are required")
+        _check_entry(index, entry, p)
     for counter in ("cursor", "session_decided"):
         if counter in data and (not isinstance(data[counter], int) or isinstance(data[counter], bool)):
             raise QueueError(f"invalid review queue schema in {p}: {counter} must be an integer")
@@ -194,12 +192,12 @@ def advance(new_cursor=None, path=None):
     _save_queue(data, p)
 
 
-def _check_entry(index, entry):
+def _check_entry(index, entry, path):
     label = repr(entry["id"]) if "id" in entry else f"at position {index}"
     if "id" not in entry or "decision" not in entry:
-        raise QueueError(f"invalid review queue entry {label}: id and decision are required")
+        raise QueueError(f"invalid review queue entry {label} in {path}: id and decision are required")
     if entry["decision"] == "kept" and not isinstance(entry.get("transcript"), str):
-        raise QueueError(f"invalid review queue entry {label}: transcript must be a string")
+        raise QueueError(f"invalid review queue entry {label} in {path}: transcript must be a string")
 
 
 def unpublished(store, path=None) -> list[str]:
@@ -214,8 +212,6 @@ def unpublished(store, path=None) -> list[str]:
 
     envelope_faults = (KeyError, TypeError, AttributeError, proposal.ProposalError)
     data = load(path=path)
-    for index, entry in enumerate(data["entries"]):
-        _check_entry(index, entry)
     store = Path(store)
     if (store / "MEMORY.md").exists():
         write._readable_bytes(store / "MEMORY.md")
