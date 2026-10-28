@@ -2502,3 +2502,27 @@
 {"id":"e210f938","ended_at":1793179050,"elapsed_s":168,"outcome":"ok","detail":null}
 {"id":"ac12aab4","kind":"fast-track:ivan","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793179081,"prompt_bytes":36659}
 {"id":"ac12aab4","ended_at":1793179216,"elapsed_s":135,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"resume","at":1793182458,"phase":"build","prd":"00101-damaged-queue-looks-finished-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793220634,"phase":"build","prd":"00101-damaged-queue-looks-finished-v1.md"}
+{"id":"34cdac23","kind":"fast-track:fanout","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793221368,"prompt_bytes":6233}
+{"id":"edea2879","kind":"fast-track:blake","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793221373,"prompt_bytes":7415}
+{"id":"0cc4a25c","kind":"fast-track:eve","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793221377,"prompt_bytes":5849}
+{"id":"1ebdb135","kind":"fast-track:bob","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793221380,"prompt_bytes":9396}
+{"id":"6ec04cf9","kind":"fast-track:carl","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793221383,"prompt_bytes":6589}
+{"id":"34cdac23","ended_at":1793221501,"elapsed_s":133,"outcome":"error","detail":"Workflow tool refused scriptPath"}
+{"id":"d56bb1a8","kind":"fast-track:alice","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793221521,"prompt_bytes":6233}
+{"id":"6ec04cf9","ended_at":1793222188,"elapsed_s":805,"outcome":"error","detail":"exit 1: copilot backend monthly quota exceeded"}
+{"id":"d56bb1a8","ended_at":1793222192,"elapsed_s":671,"outcome":"ok","detail":null}
+{"id":"edea2879","ended_at":1793222192,"elapsed_s":819,"outcome":"ok","detail":null}
+{"id":"0cc4a25c","ended_at":1793222192,"elapsed_s":815,"outcome":"ok","detail":null}
+{"id":"1ebdb135","ended_at":1793222192,"elapsed_s":812,"outcome":"ok","detail":null}
+{"id":"1ebdb135","ended_at":1793222202,"elapsed_s":822,"outcome":"error","detail":"codex blocked by its own Fact-Forcing Gate hook; no static analysis performed"}
+{"id":"5c50cec3","kind":"fast-track:bob","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793222208,"prompt_bytes":9396}
+{"id":"5c50cec3","ended_at":1793222289,"elapsed_s":81,"outcome":"error","detail":"codex blocked by its own Fact-Forcing Gate hook on both attempts; lens failed"}
+{"id":"7faa171f","kind":"fast-track:victor","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793222408,"prompt_bytes":2907}
+{"id":"7faa171f","ended_at":1793222438,"elapsed_s":30,"outcome":"ok","detail":null}
+{"id":"2c306885","kind":"fast-track:ivan","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793222477,"prompt_bytes":11448}
+{"id":"2c306885","ended_at":1793222568,"elapsed_s":91,"outcome":"ok","detail":null}
+{"id":"992aad6a","kind":"fast-track:delta","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793222613,"prompt_bytes":4897}
+{"id":"992aad6a","ended_at":1793223305,"elapsed_s":692,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793223830,"phase":"done","prd":"00101-damaged-queue-looks-finished-v1.md"}
