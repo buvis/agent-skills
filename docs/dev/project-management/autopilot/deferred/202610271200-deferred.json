@@ -24,6 +24,13 @@
       "reason": "rework cap reached with this finding unresolved",
       "cycle": 2,
       "prd": "00099-evaluation-render-crashes-malformed-data-v1.md"
+    },
+    {
+      "type": "stall",
+      "site": "fast_track_blocked",
+      "detail": "fast-track/00100-link-check-scans-outside-root-v1-c1: Windows HOME-isolation gap in the ordinary-root CLI regression (repo's isolate_home fixture not used) plus missing symlink coverage for resolved root spellings",
+      "op_id": "b1cca3e6633a",
+      "prd": "00100-link-check-scans-outside-root-v1.md"
     }
   ]
 }

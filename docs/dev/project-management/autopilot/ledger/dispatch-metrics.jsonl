@@ -2474,3 +2474,26 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1793174426,"phase":"done","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1793174458,"phase":"done","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793174547,"phase":"build","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793174555,"phase":"build","prd":"00100-link-check-scans-outside-root-v1.md"}
+{"id":"ea431f75","kind":"fast-track:tess","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793174659,"prompt_bytes":24200}
+{"id":"ea431f75","ended_at":1793174830,"elapsed_s":171,"outcome":"ok","detail":null}
+{"id":"3b196b79","kind":"fast-track:ivan","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793174855,"prompt_bytes":19281}
+{"id":"3b196b79","ended_at":1793175108,"elapsed_s":253,"outcome":"ok","detail":null}
+{"id":"57498590","kind":"fast-track:fanout","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175252,"prompt_bytes":3935}
+{"id":"0b6b325f","kind":"fast-track:blake","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175254,"prompt_bytes":7422}
+{"id":"09a2af26","kind":"fast-track:eve","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175255,"prompt_bytes":5937}
+{"id":"d6b649ba","kind":"fast-track:bob","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175256,"prompt_bytes":9400}
+{"id":"8f7f0acc","kind":"fast-track:carl","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175258,"prompt_bytes":6591}
+{"id":"57498590","ended_at":1793175333,"elapsed_s":81,"outcome":"error","detail":"Workflow tool refused scriptPath load"}
+{"id":"2202869d","kind":"fast-track:alice","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175340,"prompt_bytes":3935}
+{"id":"8f7f0acc","ended_at":1793175359,"elapsed_s":101,"outcome":"error","detail":"copilot backend: monthly quota exceeded"}
+{"id":"d6b649ba","ended_at":1793175363,"elapsed_s":107,"outcome":"ok","detail":null}
+{"id":"0b6b325f","ended_at":1793175389,"elapsed_s":135,"outcome":"ok","detail":null}
+{"id":"2202869d","ended_at":1793175461,"elapsed_s":121,"outcome":"ok","detail":null}
+{"id":"09a2af26","ended_at":1793175593,"elapsed_s":338,"outcome":"ok","detail":null}
+{"id":"082587d5","kind":"fast-track:victor","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175730,"prompt_bytes":3281}
+{"id":"082587d5","ended_at":1793175773,"elapsed_s":43,"outcome":"ok","detail":null}
+{"id":"12367662","kind":"fast-track:ivan","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175799,"prompt_bytes":11910}
+{"id":"12367662","ended_at":1793175850,"elapsed_s":51,"outcome":"ok","detail":null}
+{"id":"9e18e593","kind":"fast-track:delta","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175888,"prompt_bytes":3116}
+{"id":"9e18e593","ended_at":1793176182,"elapsed_s":294,"outcome":"ok","detail":null}
