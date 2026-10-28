@@ -126,3 +126,59 @@ def test_warns_when_transcript_has_no_timecodes() -> None:
 
 def test_returns_none_for_empty_input() -> None:
     assert parse.normalize_text("", "text") is None
+
+
+def test_reads_teams_header_with_role_suffix_as_its_own_turn() -> None:
+    text = (
+        "Okafor, Sam   0:02\nAgenda today.\n"
+        "Alex Rivera   0:12\nWorks for me, I have a hard stop.\n"
+        "Sam Okafor (Guest)   1:05\nThen Postgres.\n"
+    )
+    parsed = parse.parse_cues(text, "text")
+    assert len(parsed) == 3
+    assert parsed[1]["speaker"] == "Alex Rivera"
+    assert parsed[1]["text"] == "Works for me, I have a hard stop."
+    assert parsed[2]["speaker"] == "Sam Okafor (Guest)"
+    assert parsed[2]["text"] == "Then Postgres."
+
+
+def test_reads_bracketed_timestamp_header_with_role_suffix() -> None:
+    parsed = parse.parse_cues("[00:00:12] Sam Okafor (Guest): Then Postgres.\n", "text")
+    assert len(parsed) == 1
+    assert parsed[0]["speaker"] == "Sam Okafor (Guest)"
+    assert parsed[0]["text"] == "Then Postgres."
+
+
+def test_strips_role_suffix_from_header_in_docx_text_path() -> None:
+    text = "Dana Whitfield   0:05\nFirst point.\nDana Whitfield (Contractor)   0:20\nSecond point.\n"
+    parsed = parse.parse_cues(text, "docx")
+    assert len(parsed) == 2
+    assert parsed[0]["speaker"] == "Dana Whitfield"
+    assert parsed[1]["speaker"] == "Dana Whitfield (Contractor)"
+    assert parsed[1]["text"] == "Second point."
+
+
+def test_normalizes_guest_header_without_false_single_speaker_warning() -> None:
+    text = (
+        "Alex Rivera   0:12\nWorks for me, I have a hard stop.\n"
+        "Sam Okafor (Guest)   1:05\nThen Postgres.\n"
+    )
+    data = parse.normalize_text(text, "text")
+    names = {s["name"] for s in data["speakers"]}
+    assert names == {"Alex Rivera", "Sam Okafor"}
+    assert not any("only one speaker" in w for w in data["warnings"])
+    turn_texts = {t["text"] for t in data["turns"]}
+    assert "Works for me, I have a hard stop." in turn_texts
+    assert "Then Postgres." in turn_texts
+    for turn in data["turns"]:
+        assert "(Guest)" not in turn["text"]
+
+
+def test_keeps_parenthetical_remark_in_speech_as_text_not_header() -> None:
+    parsed = parse.parse_cues(
+        "Sam Okafor: I think (honestly) Postgres is the right call.\n",
+        "text",
+    )
+    assert len(parsed) == 1
+    assert parsed[0]["speaker"] == "Sam Okafor"
+    assert parsed[0]["text"] == "I think (honestly) Postgres is the right call."
