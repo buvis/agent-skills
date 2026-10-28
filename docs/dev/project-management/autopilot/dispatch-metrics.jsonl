@@ -2401,3 +2401,21 @@
 {"kind":"handoff","site":"done","edge":"leave","at":1793162326,"phase":"done","prd":"00096-brush-hides-pull-request-failures-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1793162360,"phase":"done","prd":"00096-brush-hides-pull-request-failures-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793162420,"phase":"build","prd":"00096-brush-hides-pull-request-failures-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793162426,"phase":"build","prd":"00097-dependency-review-hides-repository-failures-v1.md"}
+{"id":"328cdb70","kind":"fast-track:tess","task":"00097-dependency-review-hides-repository-failures-v1-c1","queued_at":1793162548,"prompt_bytes":19131}
+{"id":"328cdb70","ended_at":1793162732,"elapsed_s":184,"outcome":"ok","detail":null}
+{"id":"334f42a9","kind":"fast-track:ivan","task":"00097-dependency-review-hides-repository-failures-v1-c1","queued_at":1793162755,"prompt_bytes":18150}
+{"id":"334f42a9","ended_at":1793162871,"elapsed_s":116,"outcome":"ok","detail":null}
+{"id":"12b728ce","kind":"fast-track:alice","task":"00097-dependency-review-hides-repository-failures-v1-c1","queued_at":1793163042,"prompt_bytes":6263}
+{"id":"d62a6b13","kind":"fast-track:blake","task":"00097-dependency-review-hides-repository-failures-v1-c1","queued_at":1793163045,"prompt_bytes":7074}
+{"id":"13ab5df2","kind":"fast-track:eve","task":"00097-dependency-review-hides-repository-failures-v1-c1","queued_at":1793163047,"prompt_bytes":5610}
+{"id":"303ae1b4","kind":"fast-track:bob","task":"00097-dependency-review-hides-repository-failures-v1-c1","queued_at":1793163050,"prompt_bytes":9567}
+{"id":"abf4dea9","kind":"fast-track:carl","task":"00097-dependency-review-hides-repository-failures-v1-c1","queued_at":1793163053,"prompt_bytes":6619}
+{"id":"abf4dea9","ended_at":1793163189,"elapsed_s":136,"outcome":"error","detail":"exit 1: gemini backend (copilot) monthly quota exceeded"}
+{"id":"303ae1b4","ended_at":1793163191,"elapsed_s":141,"outcome":"ok","detail":null}
+{"id":"d62a6b13","ended_at":1793163194,"elapsed_s":149,"outcome":"ok","detail":null}
+{"id":"12b728ce","ended_at":1793163528,"elapsed_s":486,"outcome":"ok","detail":null}
+{"id":"13ab5df2","ended_at":1793163646,"elapsed_s":599,"outcome":"ok","detail":null}
+{"id":"231d46b9","kind":"fast-track:bob","task":"00097-dependency-review-hides-repository-failures-v1-c1","queued_at":1793163793,"prompt_bytes":9567}
+{"id":"231d46b9","ended_at":1793163854,"elapsed_s":61,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793164323,"phase":"done","prd":"00097-dependency-review-hides-repository-failures-v1.md"}
