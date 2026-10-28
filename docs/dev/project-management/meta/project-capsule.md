@@ -152,9 +152,13 @@ Updated: 2026-10-27 (full catchup, `catchup: force`, PRD 00044 build entry, new 
 - [x] 00092-glean-crashes-non-ascii-filenames-v1.md (1/1 tasks, 1 cycle) —
   fast-track lane; `glean` parses NUL-separated `git diff --numstat` output
   so a staged non-ASCII filename no longer crashes the scan.
+- [x] 00093-sweep-counts-its-own-reports-v1.md (1/1 tasks, 1 cycle) —
+  fast-track lane; sweep-fix excludes `docs/dev/project-management/audit-results`
+  reports from its own source sweeps so it no longer double-counts its own
+  output as a hit.
 
 Observations: fast-track lane cards continue to close in one cycle with no
-deferred items; batch has 23 PRDs remaining in backlog.
+deferred items; batch has 22 PRDs remaining in backlog.
 
 ### Batch 202610242338
 - [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1
