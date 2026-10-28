@@ -143,17 +143,16 @@ Updated: 2026-10-28 (full catchup, PRD 00099 selection, same batch 202610271200,
 ## Active Work
 
 ### Batch 202610271200
-- [ ] 00099-evaluation-render-crashes-malformed-data-v1.md — selected this
-  pass (full lane, security_path); `eval_harness/report.py`'s `render` must
-  validate run-data structure (object root, `engines`/`tasks`/`run_id`
-  containers and fields) before use, raising `ValueError` so the existing
-  CLI wrapper reports render-refused and exits 1 instead of a traceback.
-  `design: skip`. GitHub state re-measured: master CI red, latest failed run
-  40584704851 (2026-10-27) — 60 failed on the `windows` job, all in
-  `skills/use-qwen/scripts/` (`test_run_eval_cli.py`/`test_run_eval_harness.py`/
-  `test_run_eval_harness_outcomes.py` clone-dispatch-order assertions, plus one
-  `test_run_eval_vet.py` hash mismatch); unrelated to this PRD's `report.py`
-  target. 1 open issue (Dependency Dashboard, bookkeeping), no open PRs.
+- [x] 00099-evaluation-render-crashes-malformed-data-v1.md (3/3 tasks, 2
+  cycles) — `eval_harness/report.py`'s `render` validates run-data structure
+  (object root, `engines`/`tasks`/`run_id` containers, per-task `id`, root
+  `started`) before use, raising `ValueError` so the CLI wrapper reports
+  render-refused and exits 1 instead of a traceback. Cycle 2 hit the rework
+  cap with one high finding unresolved (R1: every run.json field beyond
+  per-task id and root started still escapes as a traceback — slug/repo/
+  kind/config/versions/server/engine-id); deferred to the batch ledger as a
+  cap-overflow record and minted hold stub 00113. Carl (gemini) failed with
+  exit 1 (monthly quota) in cycle 2, not latched.
 - [x] 00090-missing-public-ledger-disables-guard-v1.md (1/1 tasks, 1 cycle) —
   fast-track lane; `glean` requires a configured public ledger to exist
   before running, rather than silently disabling the guard when it is
@@ -183,7 +182,9 @@ Updated: 2026-10-28 (full catchup, PRD 00099 selection, same batch 202610271200,
   failures instead of swallowing them.
 
 Observations: fast-track lane cards continue to close in one cycle with no
-deferred items; batch has 18 PRDs remaining in backlog.
+deferred items; the full-lane security_path PRD (00099) took 2 cycles and
+hit the rework cap once. Batch has 9 PRDs done, remaining backlog unchanged
+minus 00099.
 
 ### Batch 202610242338
 - [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1

@@ -14,6 +14,16 @@
       "detail": "fast-track/00098-damaged-transcript-aborts-memory-scan-v1-c1: 1 HIGH confirmed (Unicode line-separator regression introduced by rework, splitlines() drops entries at U+2028/U+2029/U+0085, measured 24/3883 real transcripts affected) plus 5 MEDIUM/LOW follow-ups (unpinned UTF-8 test, agoge branch tests not ported, warning-path inconsistency, stale test name/docstring, missing CHANGELOG entry)",
       "op_id": "619edb70c499",
       "prd": "00098-damaged-transcript-aborts-memory-scan-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "_check_run_shape validates only the per-task id key and the root started key, so every other run.json field render dereferences still escapes as a Python traceback through the CLI: a task missing slug, repo or kind (KeyError at report.py:150/296/298/329/430), a missing config, versions or server (KeyError at report.py:285/287/310/318), config as a list (AttributeError: list has no attribute items), a list-valued task id (TypeError: unhashable type at report.py:552), and a non-string engine id (TypeError in the join at report.py:308). The PRD must-have \"validate the engine and task containers and fields needed by rendering before use\" is therefore half met after two cycles. The writer contract for every one of these fields is already encoded at skills/use-qwen/scripts/eval_harness/records_domains.py:74 and render does not use it. Fix: require slug, repo and kind on each task, require config, versions and server as dicts, type-check the task id and the engine id, and add the matching RUN_JSON_WRONG_SHAPE rows.",
+      "severity": "high",
+      "consensus": "2/3 as consolidated (substantively 3/3: Blake raised it blind and the ledger filter wrongly auto-dismissed his row against cycle 1 R7)",
+      "file": "skills/use-qwen/scripts/eval_harness/report.py:524",
+      "reason": "rework cap reached with this finding unresolved",
+      "cycle": 2,
+      "prd": "00099-evaluation-render-crashes-malformed-data-v1.md"
     }
   ]
 }
