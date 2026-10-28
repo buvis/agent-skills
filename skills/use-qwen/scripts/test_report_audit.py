@@ -8,6 +8,7 @@ from the round's records and run.json, never from report.py's own arithmetic.
 Only rounds "hang", "retry", "tdd" and "r1" are used, per the task.
 """
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -604,6 +605,120 @@ def test_render_rejects_a_malformed_run_json_naming_the_run_and_file(rounds):
     assert round_.run.name in message
     assert "run.json" in message
     assert "malformed" in message
+
+
+def test_render_rejects_a_truncated_run_json_with_the_malformed_refusal(rounds):
+    round_ = rounds("r1")
+
+    message = _run_json_refusal(round_, "{trunc")
+
+    assert round_.run.name in message
+    assert "run.json" in message
+    assert "malformed" in message
+
+
+def test_render_rejects_an_empty_run_json_with_the_malformed_refusal(rounds):
+    round_ = rounds("r1")
+
+    message = _run_json_refusal(round_, "")
+
+    assert round_.run.name in message
+    assert "run.json" in message
+    assert "malformed" in message
+
+
+def test_main_render_rejects_a_truncated_run_json_with_no_traceback(rounds, capsys):
+    round_ = rounds("r1")
+    exit_code, stderr, unchanged = _run_json_cli_refusal(round_, capsys, "{trunc")
+
+    assert exit_code == 1
+    assert unchanged
+    assert stderr.startswith("render refused: ")
+    assert "malformed run.json" in stderr
+    assert "Traceback" not in stderr
+
+
+def test_main_render_rejects_an_empty_run_json_with_no_traceback(rounds, capsys):
+    round_ = rounds("r1")
+    exit_code, stderr, unchanged = _run_json_cli_refusal(round_, capsys, "")
+
+    assert exit_code == 1
+    assert unchanged
+    assert stderr.startswith("render refused: ")
+    assert "malformed run.json" in stderr
+    assert "Traceback" not in stderr
+
+
+def test_render_succeeds_on_a_well_formed_run_json(rounds):
+    round_ = rounds("r1")
+
+    result = report.render(round_.root, round_.run.name)
+
+    assert result is None
+
+
+# -- run.json: valid JSON with the wrong structure ---------------------------------
+
+
+RUN_JSON_WRONG_SHAPE = [
+    pytest.param("[]", None, id="list-root"),
+    pytest.param("null", None, id="null-root"),
+    pytest.param("{}", "engines", id="missing-engines"),
+    pytest.param('{"engines":3}', "engines", id="engines-wrong-type"),
+    pytest.param('{"engines":[{}],"tasks":[]}', "id", id="engine-missing-id"),
+    pytest.param('{"engines":[{"id":"qwen"}]}', "tasks", id="missing-tasks"),
+    pytest.param('{"engines":[],"tasks":[]}', "run_id", id="missing-run-id"),
+]
+
+
+def _names_field(message: str, field: str) -> bool:
+    """Whether `message` names `field` as a whole word, not merely as a substring."""
+    return re.search(r"\b%s\b" % re.escape(field), message) is not None
+
+
+def _run_json_cli_refusal(round_, capsys, text: str) -> tuple:
+    """Run the CLI with `text` as this round's run.json: (exit_code, stderr, files-unchanged)."""
+    before = _render(round_)
+    run_path = round_.run / "run.json"
+    original = run_path.read_text(encoding="utf-8")
+    run_path.write_text(text, encoding="utf-8")
+    try:
+        exit_code = run_eval_harness.main(
+            ["render", str(round_.root), "--run-id", round_.run.name]
+        )
+        stderr = capsys.readouterr().err
+        unchanged = _files(round_) == before
+    finally:
+        run_path.write_text(original, encoding="utf-8")
+    return exit_code, stderr, unchanged
+
+
+@pytest.mark.parametrize("text, field", RUN_JSON_WRONG_SHAPE)
+def test_render_rejects_a_wrong_shape_run_json_as_value_error(rounds, text, field):
+    round_ = rounds("r1")
+
+    message = _run_json_refusal(round_, text)
+
+    assert round_.run.name in message
+    assert "run.json" in message
+    if field is not None:
+        assert _names_field(message, field)
+
+
+@pytest.mark.parametrize("text, field", RUN_JSON_WRONG_SHAPE)
+def test_main_render_rejects_a_wrong_shape_run_json_with_no_traceback(
+    rounds, capsys, text, field,
+):
+    round_ = rounds("r1")
+
+    exit_code, stderr, unchanged = _run_json_cli_refusal(round_, capsys, text)
+
+    assert exit_code == 1
+    assert unchanged
+    assert stderr.startswith("render refused: ")
+    assert "Traceback" not in stderr
+    if field is not None:
+        assert _names_field(stderr, field)
 
 
 def test_render_rejects_a_malformed_vetting_json_naming_the_task_directory(rounds):
