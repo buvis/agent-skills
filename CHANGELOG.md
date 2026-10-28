@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **review-deps-prs**: the discovery script now reports each repo whose PR lookup failed on stderr and exits 2, so a partial or empty scan is not mistaken for a clean one.
+
 ### Changed
 
 - **debrief-meeting**: `assets/template.html` is rebuilt with svelte 5.57.3, vite 8.3.5, @sveltejs/vite-plugin-svelte 7.3.1, vite-plugin-singlefile 2.3.4 and jsdom 30.1.3; CI moves to actions/setup-node v7 and astral-sh/setup-uv v10.3.2.
