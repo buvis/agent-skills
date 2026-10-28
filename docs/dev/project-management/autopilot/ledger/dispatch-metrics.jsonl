@@ -2447,3 +2447,11 @@
 {"id":"75bb588e","kind":"fast-track:delta","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793168984,"prompt_bytes":6430}
 {"id":"75bb588e","ended_at":1793169401,"elapsed_s":417,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793169559,"phase":"build","prd":"00098-damaged-transcript-aborts-memory-scan-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793169568,"phase":"build","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
+{"id":"1e95c91f","kind":"tess","task":"1","queued_at":1793169808,"prompt_bytes":34120}
+{"id":"831f1356","kind":"ivan","task":"1","queued_at":1793170077,"prompt_bytes":36696}
+{"id":"a29aeb15","kind":"pat","task":"1","queued_at":1793170272,"prompt_bytes":11255}
+{"id":"a29aeb15","ended_at":1793170729,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"id":"1e95c91f","ended_at":1793170729,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"831f1356","ended_at":1793170729,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793170729,"phase":"review","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}

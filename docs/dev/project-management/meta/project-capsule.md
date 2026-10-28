@@ -57,6 +57,7 @@ Updated: 2026-10-18 (full catchup, PRD 00031 selection, same batch, HEAD 8267e2c
 Updated: 2026-10-18 (full catchup, PRD 00045 selection, same batch 202610100952, HEAD 370f43b; PRD 00031 finished 10/10 tasks at cycle 1 since the last pass, now in `done/` — batch has drained 7 PRDs. GitHub State re-measured: same 6 open Renovate PRs #5-#10, same 1 open issue (Dependency Dashboard, bookkeeping); master CI still `completed/failure` on `skills/glean/scripts/test_glean.py::test_local_dirs_never_surface_as_candidates` (run 39107251078 at a26392d, Linux-only), unrelated to 00045's `skills/survey/scripts/run.py` target. Working tree still carries the same pre-existing unrelated `skills/glean/scripts/glean.py`/`test_glean.py` edits, left untouched. No `design:`/`catchup:` override in the PRD block — design runs.)
 Updated: 2026-10-18T16:48Z (full catchup, PRD 00070 selection, same batch 202610100952, HEAD 71492a8; PRD 00048 finished 7/7 tasks at cycle 1 since the last pass, now in `done/` — batch has drained 9 PRDs. GitHub State re-measured: same 6 open Renovate PRs #5-#10, same 1 open issue (Dependency Dashboard, bookkeeping); master CI still `completed/failure` on `skills/glean/scripts/test_glean.py::test_local_dirs_never_surface_as_candidates` (run 39107251078 at a26392d, Linux-only), unrelated to 00070's `skills/purge-devtmp/scripts/purge_devtmp.py` target. Working tree still carries the same pre-existing unrelated `skills/glean/scripts/glean.py`/`test_glean.py` edits, left untouched — this is the fix those edits are presumably aimed at, but they are uncommitted and not part of any wip PRD, so they stay untouched by this session too. `design: skip` per frontmatter (exact guard given, two additive tests). Two backlog PRDs (00049, 00050) skipped at selection: both declare an `eligibility:` gate that is unmet (00049 checks for a worktree, 00050 needs 00049 done/calibration protocol written).)
 Updated: 2026-10-27 (full catchup, `catchup: force`, PRD 00044 build entry, new batch 202610271200, HEAD 02a1423; PRD 00044 unparked into `backlog/` the previous commit to fix the Windows CI job, re-selected into `wip/` this pass with its existing design doc reused (`design: "reuse"`). GitHub State: master CI red — latest run 40519480325 at b9e4747, 60 failed / 3874 passed / 32 skipped on the `windows` job, all in `skills/use-qwen/scripts/`: `test_run_eval_cli.py` (dispatch-order clone-path assertions, 2 cases), `test_run_eval_harness.py` (own-gate-in-dispatch-clone), `test_run_eval_harness_outcomes.py` (baseline-clone-per-attempt), `test_run_eval_vet.py` (one hash-mismatch, likely CRLF/LF; plus the known intermittent WinError 32 file-in-use noted in the PRD). Ubuntu matrix green. 1 open issue (Dependency Dashboard, bookkeeping), no open PRs, 6 Renovate updates appear merged/closed since the last capsule pass (dependency commits visible in `git log`: svelte 5.57.3, debrief-meeting deps, setup-uv action, setup-node action). `work_start_sha` captured at 02a1423.)
+Updated: 2026-10-28 (full catchup, PRD 00099 selection, same batch 202610271200, HEAD eba9191; 8 PRDs drained since the last pass (00090-00097), all fast-track, 1 cycle each. GitHub State re-measured: master CI still red, same known `skills/use-qwen/scripts/` Windows-only clone-dispatch-order failures (latest run 40584704851, 2026-10-27, 60 failed/3874 passed/32 skipped), unrelated to 00099's `eval_harness/report.py` target. 1 open issue (Dependency Dashboard, bookkeeping), no open PRs. `design: skip` per frontmatter; `lane: full` (security_path).)
 
 ## Key Invariants
 
@@ -142,6 +143,17 @@ Updated: 2026-10-27 (full catchup, `catchup: force`, PRD 00044 build entry, new 
 ## Active Work
 
 ### Batch 202610271200
+- [ ] 00099-evaluation-render-crashes-malformed-data-v1.md — selected this
+  pass (full lane, security_path); `eval_harness/report.py`'s `render` must
+  validate run-data structure (object root, `engines`/`tasks`/`run_id`
+  containers and fields) before use, raising `ValueError` so the existing
+  CLI wrapper reports render-refused and exits 1 instead of a traceback.
+  `design: skip`. GitHub state re-measured: master CI red, latest failed run
+  40584704851 (2026-10-27) — 60 failed on the `windows` job, all in
+  `skills/use-qwen/scripts/` (`test_run_eval_cli.py`/`test_run_eval_harness.py`/
+  `test_run_eval_harness_outcomes.py` clone-dispatch-order assertions, plus one
+  `test_run_eval_vet.py` hash mismatch); unrelated to this PRD's `report.py`
+  target. 1 open issue (Dependency Dashboard, bookkeeping), no open PRs.
 - [x] 00090-missing-public-ledger-disables-guard-v1.md (1/1 tasks, 1 cycle) —
   fast-track lane; `glean` requires a configured public ledger to exist
   before running, rather than silently disabling the guard when it is
