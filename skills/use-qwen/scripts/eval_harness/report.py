@@ -515,8 +515,16 @@ def _check_run_shape(run, run_id: str, run_dir: Path) -> None:
             fail("engine missing id")
     if "tasks" not in run:
         fail("missing tasks")
+    tasks = run["tasks"]
+    if not isinstance(tasks, list):
+        fail("tasks is not a list")
+    for task in tasks:
+        if not isinstance(task, dict) or "id" not in task:
+            fail("task missing id")
     if "run_id" not in run:
         fail("missing run_id")
+    if "started" not in run:
+        fail("missing started")
 
 
 def render(root: Path, run_id: str) -> None:

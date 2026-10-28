@@ -668,6 +668,13 @@ RUN_JSON_WRONG_SHAPE = [
     pytest.param('{"engines":[{}],"tasks":[]}', "id", id="engine-missing-id"),
     pytest.param('{"engines":[{"id":"qwen"}]}', "tasks", id="missing-tasks"),
     pytest.param('{"engines":[],"tasks":[]}', "run_id", id="missing-run-id"),
+    pytest.param('{"engines":[{"id":"qwen"}],"tasks":[{}],"run_id":"x"}', "id",
+                 id="task-missing-id"),
+    pytest.param('{"engines":[],"tasks":3,"run_id":"x"}', "tasks", id="tasks-wrong-type"),
+    pytest.param('{"engines":[{"id":"qwen"}],"tasks":3,"run_id":"r1"}', "tasks",
+                 id="tasks-wrong-type-with-engine"),
+    pytest.param('{"engines":[],"tasks":null,"run_id":"r1"}', "tasks", id="tasks-null"),
+    pytest.param('{"engines":[],"tasks":[],"run_id":"x"}', "started", id="missing-started"),
 ]
 
 
