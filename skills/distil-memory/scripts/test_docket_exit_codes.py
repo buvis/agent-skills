@@ -1,6 +1,8 @@
 """Tests for docket.py: main()'s exit codes when the queue cannot be read."""
 
 import json
+import subprocess
+import sys
 
 import docket
 
@@ -440,3 +442,267 @@ def test_main_next_still_diagnoses_a_zero_byte_queue_file_as_empty(
     assert expected_message in captured.err
     assert "Traceback" not in captured.err
     assert captured.out == ""
+
+
+# A root/entries-container queue can parse and still be damaged: an entry
+# missing "id" or "decision", or a counter ("cursor"/"session_decided") that
+# is not an int. load() is supposed to reject these the same way it rejects
+# the container-shape corruptions above, but today it only checks the
+# container, not the entries or the counters - a command built on load() can
+# crash instead (exit 1, indistinguishable from drained/capped) or write the
+# damaged queue back out as if it were fine. Every case below is run against
+# a REAL queue file on disk, through every command whose happy path reads the
+# queue, with otherwise-valid arguments, so the invalid queue is the only
+# thing that can make the command fail.
+_MALFORMED_ENTRY_AND_COUNTER_QUEUES = {
+    "entry-missing-decision": (
+        '{"cursor": 0, "entries": [{"id": "t.jsonl:1"}]}',
+        "decision",
+    ),
+    "entry-missing-id": (
+        '{"cursor": 0, "entries": [{"decision": "undecided"}]}',
+        "id",
+    ),
+    # Shares the "decision" prefix with the valid key: a check that matches
+    # by substring or prefix instead of an exact key would wrongly accept
+    # this as having a decision.
+    "entry-has-decisions-not-decision": (
+        '{"cursor": 0, "entries": [{"id": "t.jsonl:1", "decisions": "undecided"}]}',
+        "decision",
+    ),
+    "cursor-is-a-string": (
+        '{"cursor": "0", "entries": []}',
+        "cursor",
+    ),
+    "session-decided-is-a-string": (
+        '{"cursor": 0, "entries": [], "session_decided": "0"}',
+        "session_decided",
+    ),
+}
+
+
+def _assert_rejected_without_mutating(exit_code, captured, queue_file, original_bytes, expected_word):
+    assert exit_code == 2
+    assert expected_word in captured.err
+    assert "Traceback" not in captured.err
+    assert captured.out == ""
+    assert queue_file.read_bytes() == original_bytes
+
+
+@pytest.mark.parametrize(
+    "shape", list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES), ids=list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES)
+)
+def test_main_next_rejects_a_malformed_entry_or_counter_without_touching_the_file(
+    shape, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    text, expected_word = _MALFORMED_ENTRY_AND_COUNTER_QUEUES[shape]
+    queue_file = _corrupt_the_working_directory_queue(tmp_path, text)
+    original_bytes = queue_file.read_bytes()
+
+    exit_code = docket.main(["next"])
+
+    _assert_rejected_without_mutating(exit_code, capsys.readouterr(), queue_file, original_bytes, expected_word)
+
+
+@pytest.mark.parametrize(
+    "shape", list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES), ids=list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES)
+)
+def test_main_decide_rejects_a_malformed_entry_or_counter_without_touching_the_file(
+    shape, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    text, expected_word = _MALFORMED_ENTRY_AND_COUNTER_QUEUES[shape]
+    queue_file = _corrupt_the_working_directory_queue(tmp_path, text)
+    original_bytes = queue_file.read_bytes()
+
+    exit_code = docket.main(["decide", docket.slice_key("t.jsonl", 1), "kept"])
+
+    _assert_rejected_without_mutating(exit_code, capsys.readouterr(), queue_file, original_bytes, expected_word)
+
+
+@pytest.mark.parametrize(
+    "shape", list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES), ids=list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES)
+)
+def test_main_cursor_rejects_a_malformed_entry_or_counter_without_touching_the_file(
+    shape, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    text, expected_word = _MALFORMED_ENTRY_AND_COUNTER_QUEUES[shape]
+    queue_file = _corrupt_the_working_directory_queue(tmp_path, text)
+    original_bytes = queue_file.read_bytes()
+
+    exit_code = docket.main(["cursor"])
+
+    _assert_rejected_without_mutating(exit_code, capsys.readouterr(), queue_file, original_bytes, expected_word)
+
+
+@pytest.mark.parametrize(
+    "shape", list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES), ids=list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES)
+)
+def test_main_start_rejects_a_malformed_entry_or_counter_without_touching_the_file(
+    shape, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    text, expected_word = _MALFORMED_ENTRY_AND_COUNTER_QUEUES[shape]
+    queue_file = _corrupt_the_working_directory_queue(tmp_path, text)
+    original_bytes = queue_file.read_bytes()
+
+    exit_code = docket.main(["start"])
+
+    _assert_rejected_without_mutating(exit_code, capsys.readouterr(), queue_file, original_bytes, expected_word)
+
+
+@pytest.mark.parametrize(
+    "shape", list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES), ids=list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES)
+)
+def test_main_save_rejects_a_malformed_entry_or_counter_without_touching_the_file(
+    shape, tmp_path, monkeypatch, capsys
+):
+    # save() reads the existing queue before it appends, so a damaged queue on
+    # disk must block the append rather than being overwritten with the
+    # merged result of the new proposals and the old damage.
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "widget-fact.md").write_text("---\nname: widget-fact\n---\n\nBody text.\n")
+    record = {
+        "name": "widget-fact",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 7,
+        "evidence_text": "evidence for widget",
+        "existing_text": None,
+        "file": "widget-fact.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+    text, expected_word = _MALFORMED_ENTRY_AND_COUNTER_QUEUES[shape]
+    queue_file = proposals_dir.parent / "distil-memory-queue.json"
+    queue_file.write_text(text)
+    original_bytes = queue_file.read_bytes()
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    _assert_rejected_without_mutating(exit_code, capsys.readouterr(), queue_file, original_bytes, expected_word)
+
+
+@pytest.mark.parametrize(
+    "shape", list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES), ids=list(_MALFORMED_ENTRY_AND_COUNTER_QUEUES)
+)
+def test_main_unpublished_rejects_a_malformed_entry_or_counter_without_touching_the_file(
+    shape, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    text, expected_word = _MALFORMED_ENTRY_AND_COUNTER_QUEUES[shape]
+    queue_file = _corrupt_the_working_directory_queue(tmp_path, text)
+    original_bytes = queue_file.read_bytes()
+    store_dir = tmp_path / "store"
+
+    exit_code = docket.main(["unpublished", "--store", str(store_dir)])
+
+    _assert_rejected_without_mutating(exit_code, capsys.readouterr(), queue_file, original_bytes, expected_word)
+
+
+def test_main_next_rejects_a_malformed_entry_anywhere_in_a_multi_entry_list(
+    tmp_path, monkeypatch, capsys
+):
+    # A check that only inspects the first or last entry (a truncation
+    # shortcut) would miss damage sitting in the middle of the list.
+    monkeypatch.chdir(tmp_path)
+    text = json.dumps(
+        {
+            "cursor": 0,
+            "entries": [
+                {"id": "t.jsonl:1", "decision": "kept", "transcript": "t.jsonl"},
+                {"id": "t.jsonl:2"},
+                {"id": "t.jsonl:3", "decision": "undecided"},
+            ],
+        }
+    )
+    queue_file = _corrupt_the_working_directory_queue(tmp_path, text)
+    original_bytes = queue_file.read_bytes()
+
+    exit_code = docket.main(["next"])
+
+    _assert_rejected_without_mutating(exit_code, capsys.readouterr(), queue_file, original_bytes, "decision")
+
+
+def test_main_cursor_accepts_a_queue_with_valid_entries_and_integer_counters(
+    tmp_path, monkeypatch, capsys
+):
+    # The counterpart to the reject-cases above: a queue whose entries and
+    # counters are the right shape must still work. Two distinct counter
+    # values (not 0/0) so a hardcoded return can't pass by accident.
+    monkeypatch.chdir(tmp_path)
+    text = json.dumps(
+        {
+            "cursor": 5,
+            "session_decided": 3,
+            "entries": [{"id": "t.jsonl:1", "decision": "kept", "transcript": "t.jsonl"}],
+        }
+    )
+    _corrupt_the_working_directory_queue(tmp_path, text)
+
+    exit_code = docket.main(["cursor"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert captured.out.strip() == "5"
+    assert captured.err == ""
+
+
+def test_main_next_accepts_an_empty_entries_list_with_valid_integer_counters(
+    tmp_path, monkeypatch, capsys
+):
+    # An empty entries list is a valid, merely-drained queue, not a malformed
+    # one: the per-entry and counter checks must not reject it.
+    monkeypatch.chdir(tmp_path)
+    text = json.dumps({"cursor": 0, "session_decided": 0, "entries": []})
+    _corrupt_the_working_directory_queue(tmp_path, text)
+
+    exit_code = docket.main(["next"])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert captured.out == ""
+
+
+def test_main_next_names_the_explicit_queue_path_argument_in_the_diagnostic(
+    tmp_path, monkeypatch, capsys
+):
+    # The --queue argument must actually reach load(): if main() silently fell
+    # back to the default working-directory path, the diagnostic would name
+    # that path instead of the one passed on the command line.
+    monkeypatch.chdir(tmp_path)
+    explicit_queue = tmp_path / "elsewhere" / "custom-queue.json"
+    explicit_queue.parent.mkdir(parents=True)
+    explicit_queue.write_text('{"cursor": 0, "entries": [{"id": "t.jsonl:1"}]}')
+    original_bytes = explicit_queue.read_bytes()
+
+    exit_code = docket.main(["next", "--queue", str(explicit_queue)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert str(explicit_queue) in captured.err
+    assert "Traceback" not in captured.err
+    assert explicit_queue.read_bytes() == original_bytes
+
+
+def test_cli_next_returns_two_for_an_entry_without_a_decision(tmp_path):
+    # Ported from the agoge strict-xfail regression (branch
+    # agoge/authored-tests-2026-10-26): runs docket.py as a real subprocess
+    # rather than through docket.main(), so the CLI's own argv/exit-code
+    # plumbing is exercised too, not just the in-process call.
+    queue_file = tmp_path / "queue.json"
+    queue_file.write_text(json.dumps({"entries": [{"id": "a"}]}))
+
+    proc = subprocess.run(
+        [sys.executable, docket.__file__, "next", "--queue", str(queue_file)],
+        capture_output=True, text=True, check=False,
+    )
+
+    assert proc.returncode == 2, proc.stderr
+    assert "Traceback" not in proc.stderr
+    assert proc.stderr.strip()
+    assert proc.stdout == ""
