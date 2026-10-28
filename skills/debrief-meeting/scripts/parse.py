@@ -12,7 +12,6 @@ Usage: parse.py TRANSCRIPT [--out DIR]
 from __future__ import annotations
 
 import argparse
-import difflib
 import json
 import re
 import sys
@@ -185,10 +184,22 @@ def name_key(name: str) -> tuple[str, ...]:
 
 
 def _prefix_match(a: tuple[str, ...], b: tuple[str, ...]) -> bool:
-    """'A. Rivera' vs 'Alex Rivera': same token count, every token a prefix pair."""
+    """'A. Rivera' vs 'Alex Rivera': same token count, every token identical or a
+    single-letter initial standing for the other token's first letter. Numeric
+    tokens never match this way, so "1" and "10" stay distinct."""
     if len(a) != len(b) or not a:
         return False
-    return all(x.startswith(y) or y.startswith(x) for x, y in zip(a, b))
+    for x, y in zip(a, b):
+        if x == y:
+            continue
+        if x.isdigit() or y.isdigit():
+            return False
+        if len(x) == 1 and y.startswith(x):
+            continue
+        if len(y) == 1 and x.startswith(y):
+            continue
+        return False
+    return True
 
 
 def canonicalize(names: list[str]) -> tuple[dict[str, str], list[dict]]:
@@ -202,16 +213,7 @@ def canonicalize(names: list[str]) -> tuple[dict[str, str], list[dict]]:
         key = name_key(raw)
         hit = key if key in groups else None
         if hit is None:
-            hit = next(
-                (
-                    k
-                    for k in groups
-                    if _prefix_match(k, key)
-                    or difflib.SequenceMatcher(None, " ".join(k), " ".join(key)).ratio()
-                    >= 0.9
-                ),
-                None,
-            )
+            hit = next((k for k in groups if _prefix_match(k, key)), None)
             if hit is not None:
                 merges.append(
                     {"kind": "speaker-merge", "from": raw, "to": groups[hit][0]},
