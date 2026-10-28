@@ -156,9 +156,13 @@ Updated: 2026-10-27 (full catchup, `catchup: force`, PRD 00044 build entry, new 
   fast-track lane; sweep-fix excludes `docs/dev/project-management/audit-results`
   reports from its own source sweeps so it no longer double-counts its own
   output as a hit.
+- [x] 00094-guest-labels-merge-speaker-turns-v1.md (1/1 tasks, 1 cycle) —
+  fast-track lane; debrief-meeting strips a trailing role suffix before the
+  speaker plausibility check so a guest label does not merge into another
+  person's turn.
 
 Observations: fast-track lane cards continue to close in one cycle with no
-deferred items; batch has 22 PRDs remaining in backlog.
+deferred items; batch has 21 PRDs remaining in backlog.
 
 ### Batch 202610242338
 - [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1

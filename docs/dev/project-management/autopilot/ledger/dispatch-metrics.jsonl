@@ -2351,3 +2351,5 @@
 {"id":"f930aa91","ended_at":1793149528,"elapsed_s":313,"outcome":"ok","detail":null}
 {"id":"9fcd8a32","ended_at":1793149537,"elapsed_s":318,"outcome":"error","detail":"codex sandbox blocked both runs (sandbox_apply: Operation not permitted before any cat); no retry left, counts failed"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793150028,"phase":"done","prd":"00094-guest-labels-merge-speaker-turns-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793152829,"phase":"build","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793152838,"phase":"build","prd":"00094-guest-labels-merge-speaker-turns-v1.md"}
