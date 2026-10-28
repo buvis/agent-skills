@@ -17,13 +17,20 @@ fi
 echo "=== Dependency Update PRs ==="
 echo ""
 
+FAILED_REPOS=""
+
 for REPO in $REPOS; do
     PRS=$(gh pr list --repo "$REPO" --state open --json number,title,author,labels,createdAt,url \
         --jq '.[] | select(
             (.author.login | test("^(app/)?(renovate|dependabot)(\\[bot\\])?$")) or
             (.title | test("^(chore\\(deps\\)|bump |update |\\[security\\])"; "i")) or
             (.title | test("^fix\\(deps\\)"; "i"))
-        )' 2>/dev/null) || continue
+        )' 2>/dev/null) && PR_STATUS=0 || PR_STATUS=$?
+    if [ "$PR_STATUS" -ne 0 ]; then
+        echo "gh pr list failed for $REPO" >&2
+        FAILED_REPOS="$FAILED_REPOS $REPO"
+        continue
+    fi
 
     if [ -n "$PRS" ]; then
         echo "--- $REPO ---"
@@ -31,3 +38,7 @@ for REPO in $REPOS; do
         echo ""
     fi
 done
+
+if [ -n "$FAILED_REPOS" ]; then
+    exit 2
+fi

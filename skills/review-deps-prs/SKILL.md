@@ -82,3 +82,4 @@ Report results (success/failure) for each action.
 | No repos found | Stop with message |
 | PR merge fails (CI not passing, conflicts) | Report failure, continue with remaining |
 | Rate limited | Report and stop |
+| Discovery script exits 2 | One or more repos' PR lookups failed; stderr names them. Treat the output as incomplete — do not report it as the full set of dependency PRs. |
