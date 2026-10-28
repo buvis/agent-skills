@@ -45,6 +45,11 @@ def _is_compaction_entry(entry: dict) -> bool:
     return False
 
 
+class _DamagedTranscript(Exception):
+    """Raised when a transcript line parses as JSON but is not an object,
+    signalling the whole file is untrustworthy and should be skipped."""
+
+
 def _iter_entries(path: Path) -> Iterator[tuple[int, dict]]:
     """Yield (line_no, entry) for each parseable JSON line. Skips blank
     lines and invalid JSON exactly like parser.py's parse_session loop
@@ -56,9 +61,12 @@ def _iter_entries(path: Path) -> Iterator[tuple[int, dict]]:
             if not raw:
                 continue
             try:
-                yield line_no, json.loads(raw)
+                parsed = json.loads(raw)
             except ValueError:
                 continue
+            if not isinstance(parsed, dict):
+                raise _DamagedTranscript(f"line {line_no} is not a JSON object")
+            yield line_no, parsed
 
 
 def _assistant_text_blocks(entry: dict) -> list[str]:
@@ -151,10 +159,15 @@ def scan(transcripts: list[Path]) -> tuple[int, list[Slice]]:
     matched = 0
     kept: list[Slice] = []
     for path in transcripts:
-        for line_no, entry in _iter_entries(path):
-            entry_matched, entry_kept = _matches_and_slices_for_entry(line_no, entry, path)
-            matched += entry_matched
-            kept.extend(entry_kept)
+        try:
+            for line_no, entry in _iter_entries(path):
+                entry_matched, entry_kept = _matches_and_slices_for_entry(line_no, entry, path)
+                matched += entry_matched
+                kept.extend(entry_kept)
+        except UnicodeDecodeError:
+            print(f"{path.name}: could not be read as UTF-8, skipping", file=sys.stderr)
+        except _DamagedTranscript as exc:
+            print(f"{path.name}: {exc}, skipping", file=sys.stderr)
     return matched, kept
 
 
