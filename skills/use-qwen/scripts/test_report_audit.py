@@ -728,6 +728,28 @@ def test_main_render_rejects_a_wrong_shape_run_json_with_no_traceback(
         assert _names_field(stderr, field)
 
 
+def test_render_refusal_writes_no_output_files_on_a_never_rendered_run(rounds):
+    """A run refused on its first render never gets report.md/evidence.md/audit-queue.md,
+    not just byte-identical files from a prior successful render (the other refusal
+    tests in this module all render once before corrupting the input)."""
+    round_ = rounds("r1")
+    output_paths = [round_.run / name
+                    for name in ("evidence.md", "report.md", "audit-queue.md")]
+    for path in output_paths:
+        path.unlink(missing_ok=True)
+    run_path = round_.run / "run.json"
+    original = run_path.read_text(encoding="utf-8")
+    run_path.write_text('{"engines":[],"tasks":[]}', encoding="utf-8")
+    try:
+        with pytest.raises(ValueError):
+            report.render(round_.root, round_.run.name)
+
+        for path in output_paths:
+            assert not path.exists()
+    finally:
+        run_path.write_text(original, encoding="utf-8")
+
+
 def test_render_rejects_a_malformed_vetting_json_naming_the_task_directory(rounds):
     round_ = rounds("r1")
     task_dir = sorted((round_.root / "tasks").iterdir())[0]
