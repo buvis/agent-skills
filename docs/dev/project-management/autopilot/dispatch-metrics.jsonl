@@ -2399,3 +2399,5 @@
 {"id":"21b28a8e","kind":"fast-track:delta","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793161984,"prompt_bytes":6931}
 {"id":"21b28a8e","ended_at":1793162169,"elapsed_s":185,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"done","edge":"leave","at":1793162326,"phase":"done","prd":"00096-brush-hides-pull-request-failures-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1793162360,"phase":"done","prd":"00096-brush-hides-pull-request-failures-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793162420,"phase":"build","prd":"00096-brush-hides-pull-request-failures-v1.md"}

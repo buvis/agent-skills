@@ -163,9 +163,12 @@ Updated: 2026-10-27 (full catchup, `catchup: force`, PRD 00044 build entry, new 
 - [x] 00095-similar-names-collapse-distinct-speakers-v1.md (1/1 tasks, 1
   cycle) — fast-track lane; debrief-meeting keeps similarly-spelled and
   numbered speakers distinct instead of collapsing them.
+- [x] 00096-brush-hides-pull-request-failures-v1.md (1/1 tasks, 1 cycle) —
+  fast-track lane; `brush` propagates a pull-request probe failure instead
+  of hiding it.
 
 Observations: fast-track lane cards continue to close in one cycle with no
-deferred items; batch has 19 PRDs remaining in backlog.
+deferred items; batch has 18 PRDs remaining in backlog.
 
 ### Batch 202610242338
 - [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1
