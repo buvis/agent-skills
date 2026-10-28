@@ -34,8 +34,22 @@ case "$1 $2" in
         DATA='[{"nameWithOwner":"me/personal"}]' ;;
     "api user/repos")
         [ -n "${STUB_FAIL_API:-}" ] && { echo "gh: Bad credentials (HTTP 401)" >&2; exit 1; }
-        DATA='[{"full_name":"me/personal"},{"full_name":"acme/org-repo"}]' ;;
+        if [ -n "${STUB_FAIL_REPO:-}" ]; then
+            # A third repo, queried after the one that fails, proves the loop
+            # keeps going instead of stopping at the first failure.
+            DATA='[{"full_name":"me/personal"},{"full_name":"acme/org-repo"},{"full_name":"acme/third-repo"}]'
+        else
+            DATA='[{"full_name":"me/personal"},{"full_name":"acme/org-repo"}]'
+        fi ;;
     "pr list")
+        if [ -n "${STUB_FAIL_ALL_PRS:-}" ]; then
+            echo "gh: rate limited (HTTP 403) for $REPO" >&2
+            exit 1
+        fi
+        if [ -n "${STUB_FAIL_REPO:-}" ] && [ "$REPO" = "$STUB_FAIL_REPO" ]; then
+            echo "gh: rate limited (HTTP 403) for $REPO" >&2
+            exit 1
+        fi
         case "$REPO" in
             me/personal)
                 DATA='[{"number":1,"title":"Pin dependencies","author":{"login":"app/renovate","is_bot":true},"labels":[],"createdAt":"2026-10-01T00:00:00Z","url":"https://example.invalid/1"},
@@ -43,6 +57,8 @@ case "$1 $2" in
             acme/org-repo)
                 DATA='[{"number":2,"title":"Bump jq from 1.6 to 1.7","author":{"login":"dependabot[bot]","is_bot":true},"labels":[],"createdAt":"2026-10-02T00:00:00Z","url":"https://example.invalid/2"},
                        {"number":4,"title":"Pin jq to 1.7","author":{"login":"dependabot[bot]","is_bot":true},"labels":[],"createdAt":"2026-10-04T00:00:00Z","url":"https://example.invalid/4"}]' ;;
+            acme/third-repo)
+                DATA='[{"number":5,"title":"Bump lodash from 4.1 to 4.2","author":{"login":"dependabot[bot]","is_bot":true},"labels":[],"createdAt":"2026-10-05T00:00:00Z","url":"https://example.invalid/5"}]' ;;
             *)
                 DATA='[]' ;;
         esac ;;
@@ -105,6 +121,75 @@ if [ "$FAIL_EXIT" -ne 0 ] && grep -qF "gh api user/repos failed" "$FAIL_ERR"; th
     PASS "a failed gh api call exits non-zero with a message on stderr"
 else
     FAIL "a failed gh api call exits non-zero with a message on stderr" "exit: $FAIL_EXIT -- stderr: $(tr '\n' '|' < "$FAIL_ERR")"
+fi
+
+# 7. One repo's PR lookup fails (rate limit, bad permissions) among three.
+#    The failure must not be swallowed: exit code signals incomplete results,
+#    the failed repo's name reaches a diagnostic, and repos queried both
+#    before and after the failure keep their successful results.
+PARTIAL_OUT="$STUBDIR/partial_out.txt"
+PARTIAL_ERR="$STUBDIR/partial_err.txt"
+PATH="$STUBDIR:$PATH" STUB_FAIL_REPO="acme/org-repo" bash "$LIST_SH" > "$PARTIAL_OUT" 2> "$PARTIAL_ERR"
+PARTIAL_EXIT=$?
+
+if [ "$PARTIAL_EXIT" -eq 2 ]; then
+    PASS "exits 2 when one repository's PR lookup fails"
+else
+    FAIL "exits 2 when one repository's PR lookup fails" "exit: $PARTIAL_EXIT -- stderr: $(tr '\n' '|' < "$PARTIAL_ERR")"
+fi
+
+if grep -qF "acme/org-repo" "$PARTIAL_ERR"; then
+    PASS "names the failed repository on stderr in the partial-failure case"
+else
+    FAIL "names the failed repository on stderr in the partial-failure case" "stderr: $(tr '\n' '|' < "$PARTIAL_ERR")"
+fi
+
+if grep -qF '"Pin dependencies"' "$PARTIAL_OUT"; then
+    PASS "retains the earlier successful repository's results in the partial-failure case"
+else
+    FAIL "retains the earlier successful repository's results in the partial-failure case" "stdout: $(tr '\n' '|' < "$PARTIAL_OUT")"
+fi
+
+# acme/third-repo is queried only after acme/org-repo fails (api order is
+# me/personal, acme/org-repo, acme/third-repo), and its name shares the
+# "acme/" prefix with the failed repo, so a substring match on the failed
+# name alone could not account for this result appearing too.
+if grep -qF -- "--- acme/third-repo ---" "$PARTIAL_OUT" && grep -qF '"Bump lodash from 4.1 to 4.2"' "$PARTIAL_OUT"; then
+    PASS "keeps querying and keeps results for repositories after the failed one"
+else
+    FAIL "keeps querying and keeps results for repositories after the failed one" "stdout: $(tr '\n' '|' < "$PARTIAL_OUT")"
+fi
+
+if grep -qF -- "--- acme/org-repo ---" "$PARTIAL_OUT"; then
+    FAIL "omits the failed repository's own heading from the partial-failure output" "stdout: $(tr '\n' '|' < "$PARTIAL_OUT")"
+else
+    PASS "omits the failed repository's own heading from the partial-failure output"
+fi
+
+# 8. Every repository's PR lookup fails. An empty "Dependency Update PRs"
+#    section must not read as "no updates" -- it must fail loudly, exit 2,
+#    and name every failed repository.
+ALLFAIL_OUT="$STUBDIR/allfail_out.txt"
+ALLFAIL_ERR="$STUBDIR/allfail_err.txt"
+PATH="$STUBDIR:$PATH" STUB_FAIL_ALL_PRS=1 bash "$LIST_SH" > "$ALLFAIL_OUT" 2> "$ALLFAIL_ERR"
+ALLFAIL_EXIT=$?
+
+if [ "$ALLFAIL_EXIT" -eq 2 ]; then
+    PASS "exits 2 when every repository's PR lookup fails"
+else
+    FAIL "exits 2 when every repository's PR lookup fails" "exit: $ALLFAIL_EXIT -- stderr: $(tr '\n' '|' < "$ALLFAIL_ERR")"
+fi
+
+if grep -qF "me/personal" "$ALLFAIL_ERR" && grep -qF "acme/org-repo" "$ALLFAIL_ERR"; then
+    PASS "names every failed repository on stderr in the all-failed case"
+else
+    FAIL "names every failed repository on stderr in the all-failed case" "stderr: $(tr '\n' '|' < "$ALLFAIL_ERR")"
+fi
+
+if grep -qF '"Pin dependencies"' "$ALLFAIL_OUT" || grep -qF '"Bump jq from 1.6 to 1.7"' "$ALLFAIL_OUT"; then
+    FAIL "produces no PR results when every repository's lookup failed" "stdout: $(tr '\n' '|' < "$ALLFAIL_OUT")"
+else
+    PASS "produces no PR results when every repository's lookup failed"
 fi
 
 echo ""
