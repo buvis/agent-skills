@@ -166,6 +166,9 @@ Updated: 2026-10-27 (full catchup, `catchup: force`, PRD 00044 build entry, new 
 - [x] 00096-brush-hides-pull-request-failures-v1.md (1/1 tasks, 1 cycle) —
   fast-track lane; `brush` propagates a pull-request probe failure instead
   of hiding it.
+- [x] 00097-dependency-review-hides-repository-failures-v1.md (1/1 tasks, 1
+  cycle) — fast-track lane; `review-deps-prs` surfaces per-repo PR-lookup
+  failures instead of swallowing them.
 
 Observations: fast-track lane cards continue to close in one cycle with no
 deferred items; batch has 18 PRDs remaining in backlog.
