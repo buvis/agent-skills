@@ -2421,3 +2421,29 @@
 {"kind":"handoff","site":"build","edge":"leave","at":1793164323,"phase":"done","prd":"00097-dependency-review-hides-repository-failures-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1793164361,"phase":"done","prd":"00097-dependency-review-hides-repository-failures-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793164452,"phase":"build","prd":"00097-dependency-review-hides-repository-failures-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793164460,"phase":"build","prd":"00098-damaged-transcript-aborts-memory-scan-v1.md"}
+{"id":"b7998bc9","kind":"fast-track:tess","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793164582,"prompt_bytes":72721}
+{"id":"b7998bc9","ended_at":1793164762,"elapsed_s":180,"outcome":"ok","detail":null}
+{"id":"6131209a","kind":"fast-track:ivan","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793164784,"prompt_bytes":34259}
+{"id":"6131209a","ended_at":1793164892,"elapsed_s":108,"outcome":"ok","detail":null}
+{"id":"2588e8e8","kind":"fast-track:alice","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793165026,"prompt_bytes":6251}
+{"id":"ce5bde7c","kind":"fast-track:blake","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793165028,"prompt_bytes":7312}
+{"id":"49d7d443","kind":"fast-track:eve","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793165029,"prompt_bytes":5955}
+{"id":"c195f619","kind":"fast-track:bob","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793165031,"prompt_bytes":9432}
+{"id":"ec603db1","kind":"fast-track:carl","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793165032,"prompt_bytes":6607}
+{"id":"2588e8e8","ended_at":1793168596,"elapsed_s":3570,"outcome":"ok","detail":null}
+{"id":"ce5bde7c","ended_at":1793168597,"elapsed_s":3569,"outcome":"ok","detail":null}
+{"id":"49d7d443","ended_at":1793168598,"elapsed_s":3569,"outcome":"ok","detail":null}
+{"id":"c195f619","ended_at":1793168599,"elapsed_s":3568,"outcome":"error","detail":"sandbox blocked before read"}
+{"id":"ec603db1","ended_at":1793168600,"elapsed_s":3568,"outcome":"error","detail":"stalled, no output after 57min watcher budget"}
+{"id":"4e8f34ac","kind":"fast-track:victor","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793168678,"prompt_bytes":3005}
+{"id":"933b26b1","kind":"fast-track:victor","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793168680,"prompt_bytes":2522}
+{"id":"58121fab","kind":"fast-track:victor","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793168681,"prompt_bytes":2778}
+{"id":"58121fab","ended_at":1793168742,"elapsed_s":61,"outcome":"ok","detail":null}
+{"id":"4e8f34ac","ended_at":1793168755,"elapsed_s":77,"outcome":"ok","detail":null}
+{"id":"933b26b1","ended_at":1793168820,"elapsed_s":140,"outcome":"ok","detail":null}
+{"id":"1d9656f1","kind":"fast-track:ivan","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793168850,"prompt_bytes":13480}
+{"id":"1d9656f1","ended_at":1793168952,"elapsed_s":102,"outcome":"ok","detail":null}
+{"id":"75bb588e","kind":"fast-track:delta","task":"00098-damaged-transcript-aborts-memory-scan-v1-c1","queued_at":1793168984,"prompt_bytes":6430}
+{"id":"75bb588e","ended_at":1793169401,"elapsed_s":417,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793169559,"phase":"build","prd":"00098-damaged-transcript-aborts-memory-scan-v1.md"}

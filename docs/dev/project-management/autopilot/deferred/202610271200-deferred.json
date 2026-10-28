@@ -7,6 +7,13 @@
       "detail": "module_drift 2 > 1 (., skills/brush/scripts); note docs/dev/project-management/autopilot/split-notes/00044-windows-ci-junction-claim-v1.md",
       "op_id": "ea146acce589",
       "prd": "00044-windows-ci-junction-claim-v1.md"
+    },
+    {
+      "type": "stall",
+      "site": "fast_track_blocked",
+      "detail": "fast-track/00098-damaged-transcript-aborts-memory-scan-v1-c1: 1 HIGH confirmed (Unicode line-separator regression introduced by rework, splitlines() drops entries at U+2028/U+2029/U+0085, measured 24/3883 real transcripts affected) plus 5 MEDIUM/LOW follow-ups (unpinned UTF-8 test, agoge branch tests not ported, warning-path inconsistency, stale test name/docstring, missing CHANGELOG entry)",
+      "op_id": "619edb70c499",
+      "prd": "00098-damaged-transcript-aborts-memory-scan-v1.md"
     }
   ]
 }
