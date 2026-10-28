@@ -2455,3 +2455,13 @@
 {"id":"1e95c91f","ended_at":1793170729,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"id":"831f1356","ended_at":1793170729,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793170729,"phase":"review","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1793170755,"phase":"review","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
+{"id":"299e98c4","kind":"bob","task":"review-20261028-c1","queued_at":1793171201,"prompt_bytes":13131}
+{"id":"8835a0f3","kind":"carl","task":"review-20261028-c1","queued_at":1793171201,"prompt_bytes":6609}
+{"id":"1ae1c2f6","kind":"bob","task":"review-20261028-c1","queued_at":1793171258,"prompt_bytes":74114}
+{"id":"1ae1c2f6","ended_at":1793171802,"elapsed_s":544,"outcome":"ok","detail":null}
+{"id":"8835a0f3","ended_at":1793171806,"elapsed_s":605,"outcome":"error","detail":"exit 1"}
+{"id":"299e98c4","ended_at":1793171810,"elapsed_s":609,"outcome":"ok","detail":"superseded by inlined-prompt row 1ae1c2f6"}
+{"id":"1ae1c2f6","ended_at":1793171978,"elapsed_s":720,"outcome":"ok","detail":null}
+{"id":"8835a0f3","ended_at":1793171978,"elapsed_s":777,"outcome":"error","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1793172012,"phase":"review","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
