@@ -53,6 +53,10 @@ because a pattern that misses a known-present term is broken, and an
 unverified empty sweep is not a clean sweep). It then renders the report and
 writes it under `docs/dev/project-management/audit-results/`.
 
+A `kind: rg` scan excludes `docs/dev/project-management/audit-results/**` from
+every repo it searches, so a sweep never counts an earlier report (or the one
+it is about to write) as a source hit.
+
 When the scan tool cannot be resolved, the registry is missing or unreadable,
 or the control repo cannot be scanned or searched, `main()` exits 1 with one
 line on stderr naming the cause and writes no report. Report that line to the

@@ -234,10 +234,17 @@ def _repo_cwd_and_targets(repo):
     return repo, ["."]
 
 
+AUDIT_RESULTS_GLOB = "!docs/dev/project-management/audit-results/**"
+
+
 def _scan_rg(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT):
     if not targets:
         return []
-    result = _run_rg(["--json", "--", pattern, *targets], cwd, timeout=timeout)
+    result = _run_rg(
+        ["--json", "--glob", AUDIT_RESULTS_GLOB, "--", pattern, *targets],
+        cwd,
+        timeout=timeout,
+    )
     hits = []
     for line in result.stdout.splitlines():
         event = json.loads(line)
