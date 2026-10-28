@@ -2497,3 +2497,8 @@
 {"id":"12367662","ended_at":1793175850,"elapsed_s":51,"outcome":"ok","detail":null}
 {"id":"9e18e593","kind":"fast-track:delta","task":"00100-link-check-scans-outside-root-v1-c1","queued_at":1793175888,"prompt_bytes":3116}
 {"id":"9e18e593","ended_at":1793176182,"elapsed_s":294,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"resume","at":1793178760,"phase":"build","prd":"00101-damaged-queue-looks-finished-v1.md"}
+{"id":"e210f938","kind":"fast-track:tess","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793178882,"prompt_bytes":55844}
+{"id":"e210f938","ended_at":1793179050,"elapsed_s":168,"outcome":"ok","detail":null}
+{"id":"ac12aab4","kind":"fast-track:ivan","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793179081,"prompt_bytes":36659}
+{"id":"ac12aab4","ended_at":1793179216,"elapsed_s":135,"outcome":"ok","detail":null}
