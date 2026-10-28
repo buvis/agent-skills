@@ -825,6 +825,202 @@ def test_main_refuses_a_directory_holding_a_protected_file_nested_below_another_
     assert not (repo / "docs/dev/tmp/.trash/manifest.tsv").exists()
 
 
+def _fake_gh_run(monkeypatch: pytest.MonkeyPatch, *, rc: int = 0,
+                 stdout: str = "[]",
+                 side_effect: Exception | None = None) -> None:
+    """Replace cf.subprocess.run with a fake `gh pr list` seam.
+
+    Non-`gh` commands (git, pgrep, ...) fall through to the real
+    subprocess.run so the rest of collect_facts keeps working normally.
+    """
+    real = cf.subprocess.run
+
+    def fake(cmd, *a, **kw):
+        if cmd[0] == "gh":
+            if side_effect is not None:
+                raise side_effect
+            return subprocess.CompletedProcess(cmd, rc, stdout=stdout,
+                                               stderr="")
+        return real(cmd, *a, **kw)
+
+    monkeypatch.setattr(cf.subprocess, "run", fake)
+    monkeypatch.setattr(cf.shutil, "which", lambda name: "/usr/bin/gh"
+                        if name == "gh" else None)
+
+
+def test_gather_prs_returns_the_parsed_list_on_success(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    prs = [{"number": 1, "headRefName": "feat", "state": "OPEN"}]
+    _fake_gh_run(monkeypatch, rc=0, stdout=json.dumps(prs))
+
+    assert cf.gather_prs(repo) == prs
+
+
+def test_gather_prs_returns_an_empty_list_when_there_are_no_open_prs(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _fake_gh_run(monkeypatch, rc=0, stdout="[]")
+
+    assert cf.gather_prs(repo) == []
+
+
+def test_gather_prs_raises_on_a_nonzero_exit_instead_of_hiding_it(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A failed `gh` call must never be silently read as 'no open PRs'."""
+    _fake_gh_run(monkeypatch, rc=1, stdout="")
+
+    with pytest.raises(Exception):
+        cf.gather_prs(repo)
+
+
+def test_gather_prs_raises_on_an_error_object_never_treating_it_as_a_list(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`gh` can exit 0 with `{"message": "..."}` on some failures; that is
+    not a list of PRs and must not be returned as if it were."""
+    _fake_gh_run(monkeypatch, rc=0,
+                stdout=json.dumps({"message": "rate limited"}))
+
+    with pytest.raises(Exception):
+        cf.gather_prs(repo)
+
+
+def test_gather_prs_raises_on_malformed_json(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _fake_gh_run(monkeypatch, rc=0, stdout="not json at all")
+
+    with pytest.raises(Exception):
+        cf.gather_prs(repo)
+
+
+def test_gather_prs_raises_on_a_timeout(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _fake_gh_run(monkeypatch,
+                side_effect=subprocess.TimeoutExpired(cmd=["gh"], timeout=15))
+
+    with pytest.raises(Exception):
+        cf.gather_prs(repo)
+
+
+def test_gather_prs_raises_when_gh_is_not_installed(
+        repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Missing tooling is an unknown state, not '0 open PRs'."""
+    monkeypatch.setattr(cf.shutil, "which", lambda name: None)
+
+    with pytest.raises(Exception):
+        cf.gather_prs(repo)
+
+
+def _collect(repo: Path, monkeypatch: pytest.MonkeyPatch,
+            capsys: pytest.CaptureFixture[str]) -> dict:
+    """Run collect_facts.main() in-process so the gh seam monkeypatch applies."""
+    monkeypatch.setattr(
+        "sys.argv", ["collect_facts.py", "--repo", str(repo), "--fast"])
+    cf.main()
+    return json.loads(capsys.readouterr().out)
+
+
+def test_collector_reports_prs_normally_on_success(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    prs = [{"number": 1, "headRefName": "feat", "state": "OPEN"}]
+    _fake_gh_run(monkeypatch, rc=0, stdout=json.dumps(prs))
+
+    facts = _collect(repo, monkeypatch, capsys)
+
+    assert facts["open_prs"] == prs
+    assert not any(w.startswith("open_prs") for w in facts["warnings"])
+
+
+def test_collector_reports_no_open_prs_as_a_known_empty_list(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _fake_gh_run(monkeypatch, rc=0, stdout="[]")
+
+    facts = _collect(repo, monkeypatch, capsys)
+
+    assert facts["open_prs"] == []
+    assert not any(w.startswith("open_prs") for w in facts["warnings"])
+
+
+def test_collector_surfaces_a_warning_and_null_prs_on_a_failed_gh_call(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _fake_gh_run(monkeypatch, rc=1, stdout="")
+
+    facts = _collect(repo, monkeypatch, capsys)
+
+    assert facts["open_prs"] is None
+    assert any(w.startswith("open_prs") for w in facts["warnings"])
+    # the probe failing must not wipe out unrelated fact sections
+    assert facts["branches"] is not None
+    assert facts["stashes"] is not None
+
+
+def test_collector_never_reports_an_error_object_as_the_pr_list(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _fake_gh_run(monkeypatch, rc=0,
+                stdout=json.dumps({"message": "rate limited"}))
+
+    facts = _collect(repo, monkeypatch, capsys)
+
+    assert facts["open_prs"] is None
+    assert facts["open_prs"] != {"message": "rate limited"}
+    assert any(w.startswith("open_prs") for w in facts["warnings"])
+
+
+def test_collector_surfaces_a_warning_on_malformed_json(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _fake_gh_run(monkeypatch, rc=0, stdout="not json at all")
+
+    facts = _collect(repo, monkeypatch, capsys)
+
+    assert facts["open_prs"] is None
+    assert any(w.startswith("open_prs") for w in facts["warnings"])
+
+
+def test_collector_surfaces_a_warning_on_a_timed_out_gh_call(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _fake_gh_run(monkeypatch,
+                side_effect=subprocess.TimeoutExpired(cmd=["gh"], timeout=15))
+
+    facts = _collect(repo, monkeypatch, capsys)
+
+    assert facts["open_prs"] is None
+    assert any(w.startswith("open_prs") for w in facts["warnings"])
+
+
+def test_collector_surfaces_a_warning_when_gh_is_missing_distinct_from_zero_prs(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """Missing `gh` must read as unknown, never as the known-empty case."""
+    monkeypatch.setattr(cf.shutil, "which", lambda name: None)
+
+    facts = _collect(repo, monkeypatch, capsys)
+
+    assert facts["open_prs"] is None
+    assert any(w.startswith("open_prs") for w in facts["warnings"])
+
+
+def test_open_prs_unknown_state_is_distinguishable_from_a_known_empty_list(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """A guard deciding branch-deletion eligibility must be able to tell
+    'no open PRs confirmed' (`[]`) apart from 'could not find out' (`None`
+    plus a warning) - collapsing them is exactly the regression (00096)."""
+    _fake_gh_run(monkeypatch, rc=0, stdout="[]")
+    known_empty = _collect(repo, monkeypatch, capsys)
+
+    _fake_gh_run(monkeypatch, rc=1, stdout="")
+    unknown = _collect(repo, monkeypatch, capsys)
+
+    assert known_empty["open_prs"] == []
+    assert unknown["open_prs"] is None
+    assert not any(w.startswith("open_prs") for w in known_empty["warnings"])
+    assert any(w.startswith("open_prs") for w in unknown["warnings"])
+
+
 def test_main_moves_a_directory_containing_only_old_junk(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
