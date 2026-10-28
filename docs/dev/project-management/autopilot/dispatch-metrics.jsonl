@@ -2375,3 +2375,27 @@
 {"kind":"handoff","site":"build","edge":"leave","at":1793154331,"phase":"done","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1793156935,"phase":"done","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793156999,"phase":"build","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793157024,"phase":"build","prd":"00096-brush-hides-pull-request-failures-v1.md"}
+{"id":"c209916f","kind":"fast-track:tess","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793157135,"prompt_bytes":77706}
+{"id":"c209916f","ended_at":1793157383,"elapsed_s":248,"outcome":"ok","detail":null}
+{"id":"83320b49","kind":"fast-track:ivan","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793157414,"prompt_bytes":45644}
+{"id":"83320b49","ended_at":1793157481,"elapsed_s":67,"outcome":"ok","detail":null}
+{"id":"39f3b172","kind":"fast-track:fanout","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793157646,"prompt_bytes":6243}
+{"id":"2ac045e4","kind":"fast-track:blake","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793157647,"prompt_bytes":7171}
+{"id":"7f982dae","kind":"fast-track:eve","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793157648,"prompt_bytes":5596}
+{"id":"29738276","kind":"fast-track:bob","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793157650,"prompt_bytes":9527}
+{"id":"f77e3f06","kind":"fast-track:carl","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793157651,"prompt_bytes":6599}
+{"id":"39f3b172","ended_at":1793161491,"elapsed_s":3845,"outcome":"error","detail":"Workflow tool refused: scriptPath unreadable"}
+{"id":"782a3f30","kind":"fast-track:alice","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793161493,"prompt_bytes":6243}
+{"id":"782a3f30","ended_at":1793161573,"elapsed_s":80,"outcome":"ok","detail":null}
+{"id":"f77e3f06","ended_at":1793161575,"elapsed_s":3924,"outcome":"error","detail":"gemini copilot backend: monthly quota exceeded (retried once)"}
+{"id":"2ac045e4","ended_at":1793161575,"elapsed_s":3928,"outcome":"ok","detail":null}
+{"id":"7f982dae","ended_at":1793161576,"elapsed_s":3928,"outcome":"ok","detail":null}
+{"id":"29738276","ended_at":1793161739,"elapsed_s":4089,"outcome":"ok","detail":"codex sandbox blocked cat twice; substituted general-purpose Read-tool reviewer"}
+{"id":"6fa83b69","kind":"fast-track:victor","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793161826,"prompt_bytes":2608}
+{"id":"6fa83b69","ended_at":1793161859,"elapsed_s":33,"outcome":"ok","detail":null}
+{"id":"623b1da8","kind":"fast-track:ivan","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793161877,"prompt_bytes":11212}
+{"id":"623b1da8","ended_at":1793161953,"elapsed_s":76,"outcome":"ok","detail":null}
+{"id":"21b28a8e","kind":"fast-track:delta","task":"00096-brush-hides-pull-request-failures-v1-c1","queued_at":1793161984,"prompt_bytes":6931}
+{"id":"21b28a8e","ended_at":1793162169,"elapsed_s":185,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"done","edge":"leave","at":1793162326,"phase":"done","prd":"00096-brush-hides-pull-request-failures-v1.md"}
