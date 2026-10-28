@@ -444,6 +444,95 @@ def test_main_prints_resolved_report_path_to_stdout_on_success_with_default_out(
     assert str(written_report) in captured.out
 
 
+# -- main: a prior report left on disk must not inflate the next run's hits --
+
+
+def test_a_second_run_with_default_out_counts_the_same_hits_as_the_first(
+    tmp_path, monkeypatch
+):
+    try:
+        sweep.resolve_rg()
+    except RuntimeError:
+        pytest.skip("rg is not available in this environment")
+
+    argv, (repo_a, _repo_b, _repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "SELFCOUNTMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    del argv[out_index : out_index + 2]  # omit --out so main() computes the default
+
+    exit_code = sweep.main(argv)
+    assert exit_code == 0
+
+    expected_dir = repo_a / "docs" / "dev" / "project-management" / "audit-results"
+    reports = list(expected_dir.glob("sweep-*.md"))
+    assert len(reports) == 1, f"expected exactly one report in {expected_dir}"
+    first_report = reports[0]
+    first_hits = re.findall(
+        r"^- .+:\d+: .*SELFCOUNTMARKER.*$", first_report.read_text(), re.MULTILINE
+    )
+    first_hit_count = len(first_hits)
+    assert first_hit_count > 0
+
+    # The first report is a tracked-or-not file sitting inside repo_a, quoting
+    # SELFCOUNTMARKER on every hit line. Leave it on disk and sweep again with
+    # a second default --out: a sweep that scans its own prior report would
+    # pick up those quoted lines as new hits.
+    exit_code = sweep.main(argv)
+    assert exit_code == 0
+
+    second_reports = sorted(expected_dir.glob("sweep-*.md"))
+    assert len(second_reports) == 2, f"expected two reports in {expected_dir}"
+    second_report = [r for r in second_reports if r != first_report][0]
+    second_hits = re.findall(
+        r"^- .+:\d+: .*SELFCOUNTMARKER.*$", second_report.read_text(), re.MULTILINE
+    )
+
+    assert len(second_hits) == first_hit_count
+    assert not any(str(first_report) in line for line in second_hits)
+
+
+def test_a_run_after_removing_the_planted_match_reaches_zero_hits_despite_stale_report(
+    tmp_path, monkeypatch
+):
+    try:
+        sweep.resolve_rg()
+    except RuntimeError:
+        pytest.skip("rg is not available in this environment")
+
+    argv, (repo_a, repo_b, repo_c), _scaffold_out_path = _build_sweep_main_scaffold(
+        tmp_path, monkeypatch, "ZEROAFTERFIXMARKER", _make_repo
+    )
+    out_index = argv.index("--out")
+    del argv[out_index : out_index + 2]  # omit --out so main() computes the default
+
+    exit_code = sweep.main(argv)
+    assert exit_code == 0
+
+    expected_dir = repo_a / "docs" / "dev" / "project-management" / "audit-results"
+    first_report = list(expected_dir.glob("sweep-*.md"))[0]
+    assert "ZEROAFTERFIXMARKER" in first_report.read_text()
+
+    # Remove every planted source match -- the real fix -- but keep the stale
+    # report on disk, still quoting the old pattern.
+    for repo in (repo_a, repo_b, repo_c):
+        for match_file in repo.glob("match_*.txt"):
+            match_file.unlink()
+
+    exit_code = sweep.main(argv)
+    assert exit_code == 0
+
+    second_reports = sorted(expected_dir.glob("sweep-*.md"))
+    second_report = [r for r in second_reports if r != first_report][0]
+    report_text = second_report.read_text()
+
+    hit_lines = re.findall(
+        r"^- .+:\d+: .*ZEROAFTERFIXMARKER.*$", report_text, re.MULTILINE
+    )
+    assert hit_lines == []
+    assert "Hits (0):" in report_text
+
+
 # -- main: --cap must be a positive integer ---
 
 
