@@ -18,6 +18,6 @@ One LOW finding: the card said to convert the `agoge/authored-tests-2026-10-26` 
 **00095-similar-names-collapse-distinct-speakers-v1-c1**
 FIX (4): missing CHANGELOG entry for a user-visible fix commit (card said `changelog: none`, so not actioned); card's instruction to convert the agoge branch's xfail test was not followed (new ad-hoc tests written instead, one mislabeled); stale "fuzzy merge" comment; `_prefix_match` name no longer matches its behavior. VERIFY: none. KNOWN (1): pre-existing `name_key` sort-order limitation on initials, out of scope. All findings MEDIUM/LOW — none reached CRITICAL/HIGH, so no Victor verification, rework, or delta review ran. Rubric D1-D5: all pass.
 
-Verdict: N findings (N = 5, all MEDIUM/LOW; 0 CRITICAL/HIGH)
+Verdict: 5 findings
 Tests: 3988 passed, 0 failed, 9 skipped (fast-track batch suite)
 codex_rung_guard: not fired
