@@ -76,7 +76,10 @@ def _plausible_name(name: str) -> bool:
     name = name.strip()
     if not name or len(name) > 60 or name[-1] in ".?!":
         return False
-    tokens = [t for t in re.split(r"[\s,]+", name) if t]
+    core = re.sub(r"\s*\([^)]*\)\s*$", "", name).strip()
+    if not core:
+        return False
+    tokens = [t for t in re.split(r"[\s,]+", core) if t]
     if not tokens or len(tokens) > 5:
         return False
     return all(
