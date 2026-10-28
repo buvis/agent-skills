@@ -2353,3 +2353,23 @@
 {"kind":"handoff","site":"build","edge":"leave","at":1793150028,"phase":"done","prd":"00094-guest-labels-merge-speaker-turns-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793152829,"phase":"build","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793152838,"phase":"build","prd":"00094-guest-labels-merge-speaker-turns-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793152855,"phase":"build","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
+{"id":"c56a70d3","kind":"fast-track:tess","task":"00095-similar-names-collapse-distinct-speakers-v1-c1","queued_at":1793153042,"prompt_bytes":37865}
+{"id":"c56a70d3","ended_at":1793153105,"elapsed_s":63,"outcome":"ok","detail":null}
+{"id":"43487062","kind":"fast-track:ivan","task":"00095-similar-names-collapse-distinct-speakers-v1-c1","queued_at":1793153132,"prompt_bytes":18380}
+{"id":"43487062","ended_at":1793153197,"elapsed_s":65,"outcome":"ok","detail":null}
+{"id":"58f0a158","kind":"fast-track:fanout","task":"00095-similar-names-collapse-distinct-speakers-v1-c1","queued_at":1793153336,"prompt_bytes":4793}
+{"id":"79a090e8","kind":"fast-track:blake","task":"00095-similar-names-collapse-distinct-speakers-v1-c1","queued_at":1793153339,"prompt_bytes":7270}
+{"id":"2a97822c","kind":"fast-track:eve","task":"00095-similar-names-collapse-distinct-speakers-v1-c1","queued_at":1793153343,"prompt_bytes":5786}
+{"id":"ba0c9e5c","kind":"fast-track:bob","task":"00095-similar-names-collapse-distinct-speakers-v1-c1","queued_at":1793153346,"prompt_bytes":9555}
+{"id":"24ecdfa5","kind":"fast-track:carl","task":"00095-similar-names-collapse-distinct-speakers-v1-c1","queued_at":1793153350,"prompt_bytes":6613}
+{"id":"58f0a158","ended_at":1793153371,"elapsed_s":35,"outcome":"error","detail":"Workflow tool refused external scriptPath"}
+{"id":"f19bae45","kind":"fast-track:alice","task":"00095-similar-names-collapse-distinct-speakers-v1-c1","queued_at":1793153381,"prompt_bytes":6257}
+{"id":"f19bae45","ended_at":1793154044,"elapsed_s":663,"outcome":"ok","detail":null}
+{"id":"79a090e8","ended_at":1793154044,"elapsed_s":705,"outcome":"ok","detail":null}
+{"id":"2a97822c","ended_at":1793154044,"elapsed_s":701,"outcome":"ok","detail":null}
+{"id":"ba0c9e5c","ended_at":1793154044,"elapsed_s":698,"outcome":"ok","detail":null}
+{"id":"6057f581","kind":"fast-track:bob","task":"00095-similar-names-collapse-distinct-speakers-v1-c1","queued_at":1793154064,"prompt_bytes":9555}
+{"id":"24ecdfa5","ended_at":1793154077,"elapsed_s":727,"outcome":"error","detail":"copilot backend monthly quota exceeded (one retry also failed)"}
+{"id":"6057f581","ended_at":1793154149,"elapsed_s":85,"outcome":"error","detail":"codex blocked by its own Fact-Forcing Gate PreToolUse hook before any read (retry also failed the same way)"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793154331,"phase":"done","prd":"00095-similar-names-collapse-distinct-speakers-v1.md"}
