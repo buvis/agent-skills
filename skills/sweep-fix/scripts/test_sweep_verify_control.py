@@ -1,5 +1,8 @@
 """Tests for sweep.py: verify_control."""
+import os
+import signal
 import subprocess
+import time
 
 import pytest
 
@@ -160,5 +163,149 @@ def test_verify_control_raises_one_line_error_when_control_term_search_fails(
     assert str(control_repo) in message
     assert collapsed_reason in message
     assert "\n" not in message
+
+
+# -- verify_control: one deadline budget for both checks ---------------------
+
+
+def _clean_control_repo(tmp_path, content="unrelated content\n"):
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text(content)
+    return control_repo
+
+
+@pytest.mark.skipif(
+    os.name == "nt", reason="the hanging rg shim is a POSIX sh script"
+)
+def test_verify_control_bounds_the_control_term_search_by_what_the_scan_left_of_the_deadline(
+    tmp_path, monkeypatch
+):
+    # The control scan is injected to burn 2s of a 3s budget and come back
+    # clean, so the fallback control-term search runs next against a real
+    # `rg` shim that sleeps 10s. It may only use the ~1s left: a fresh 3s
+    # window would end near 5s, the default per-call timeout far later.
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    pid_file = tmp_path / "shim.pid"
+    shim = bin_dir / "rg"
+    shim.write_text(f'#!/bin/sh\necho $$ > "{pid_file}"\nexec sleep 10\n')
+    shim.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+    control_repo = _clean_control_repo(tmp_path)
+    scan_deadlines = []
+
+    def slow_clean_scan(*args, **kwargs):
+        scan_deadlines.append(kwargs.get("deadline"))
+        time.sleep(2.0)
+        return [], {}, {}
+
+    monkeypatch.setattr(sweep, "scan", slow_clean_scan)
+
+    started = time.monotonic()
+    try:
+        with pytest.raises(TimeoutError):
+            sweep.verify_control(
+                "NOTPRESENTPATTERN", "rg", control_repo, "BUDGETTERM", deadline=3
+            )
+        elapsed = time.monotonic() - started
+    finally:
+        if pid_file.exists() and pid_file.read_text().strip():
+            try:
+                os.kill(int(pid_file.read_text()), signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+
+    assert len(scan_deadlines) == 1
+    assert scan_deadlines[0] is not None and 0 < scan_deadlines[0] <= 3
+    assert elapsed < 4.0  # 3s shared budget + 1s cleanup tolerance
+
+
+@pytest.mark.parametrize(
+    ("scan_reason", "expected_error"),
+    [
+        (sweep.DEADLINE_REASON, TimeoutError),
+        ("sweep deadline", RuntimeError),  # prefix of DEADLINE_REASON, not equal
+        ("permission denied", RuntimeError),
+    ],
+    ids=["deadline-expired", "deadline-prefix-near-miss", "other-failure"],
+)
+def test_verify_control_raises_timeout_only_when_its_scan_ran_out_of_deadline(
+    tmp_path, monkeypatch, scan_reason, expected_error
+):
+    control_repo = _clean_control_repo(tmp_path)
+    monkeypatch.setattr(
+        sweep,
+        "scan",
+        lambda *a, **k: ([], {}, {str(control_repo): scan_reason}),
+    )
+    searches = []
+    monkeypatch.setattr(
+        sweep,
+        "_run_rg",
+        lambda *a, **k: searches.append(a) or subprocess.CompletedProcess([], 1, "", ""),
+    )
+
+    with pytest.raises((TimeoutError, RuntimeError)) as exc_info:
+        sweep.verify_control(
+            "NOTPRESENTPATTERN", "rg", control_repo, "TIMEOUTTERM", deadline=5
+        )
+
+    assert exc_info.type is expected_error
+    assert searches == []  # a failed control scan never falls through to the term search
+    if expected_error is RuntimeError:
+        message = str(exc_info.value)
+        assert "could not be scanned" in message
+        assert str(control_repo) in message
+        assert scan_reason in message
+
+
+@pytest.mark.parametrize(
+    ("content", "pattern", "control_term"),
+    [
+        ("AMPLEMARKER line\n", "AMPLEMARKER", "irrelevant-term"),
+        ("unrelated content\n", "AMPLEABSENTPATTERN", "AMPLEABSENTTERM"),
+    ],
+    ids=["pattern-confirmed", "both-absent"],
+)
+def test_verify_control_with_ample_deadline_returns_none_as_without_one(
+    tmp_path, content, pattern, control_term
+):
+    control_repo = _clean_control_repo(tmp_path, content)
+
+    result = sweep.verify_control(pattern, "rg", control_repo, control_term, deadline=60)
+
+    assert result is None
+
+
+def test_verify_control_with_ample_deadline_still_exits_one_for_a_broken_pattern(
+    tmp_path, capsys
+):
+    control_repo = _clean_control_repo(tmp_path, "AMPLETERM appears here\n")
+
+    with pytest.raises(SystemExit) as exc_info:
+        sweep.verify_control(
+            "AMPLEBROKENPATTERN", "rg", control_repo, "AMPLETERM", deadline=60
+        )
+
+    assert exc_info.value.code == 1
+    message = capsys.readouterr().err
+    assert "unverified" in message
+    assert "AMPLETERM" in message
+
+
+def test_verify_control_with_ample_deadline_still_raises_runtime_error_for_a_missing_repo(
+    tmp_path,
+):
+    control_repo = tmp_path / "does-not-exist"
+
+    with pytest.raises(RuntimeError) as exc_info:
+        sweep.verify_control(
+            "NOTPRESENTPATTERN", "rg", control_repo, "NOTPRESENTTERM", deadline=60
+        )
+
+    assert exc_info.type is RuntimeError
+    assert "could not be scanned" in str(exc_info.value)
+    assert str(control_repo) in str(exc_info.value)
 
 
