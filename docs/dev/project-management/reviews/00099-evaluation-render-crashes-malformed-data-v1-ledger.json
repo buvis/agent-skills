@@ -1,12 +1,122 @@
 [
-  {"cycle": 1, "disposition": "discarded", "severity": "medium", "issue": "`test_render_succeeds_on_a_well_formed_run_json` asserts only `result is None`, which `render`'s `-> None` signature guarantees; the assert cannot fail, and the clean path is already pinned by `test_main_render_returns_0_with_empty_stderr_on_a_clean_round` (test_report_audit.py:761) and by `_render` inside every refusal helper. Drop it, or assert the three report files' content.", "file": "skills/use-qwen/scripts/test_report_audit.py:652", "reason": "single-voice"},
-  {"cycle": 1, "disposition": "discarded", "severity": "medium", "issue": "Engine field validation is presence-only: `engine[\"id\"]` type is unchecked, so a non-string id reaches `\", \".join(engine_order)` and raises `TypeError: sequence item 0: expected str instance, int found` with a traceback (reproduced at HEAD)", "file": "skills/use-qwen/scripts/eval_harness/report.py:513", "reason": "single-voice"},
-  {"cycle": 1, "disposition": "discarded", "severity": "medium", "issue": "The PRD says to derive required fields from the current writer, but `records.validate_record(\"run\", ...)`/`records_domains._check_run` already encodes that writer contract (run_id, started, config, engines[].id/command, tasks[].id/slug/repo/kind, versions, server) and render ignores it in favour of a 3-key check, which is the \"separate incompatible schema\" the Solution section forbids", "file": "skills/use-qwen/scripts/eval_harness/records_domains.py:74", "reason": "single-voice"},
-  {"cycle": 1, "disposition": "discarded", "severity": "medium", "issue": "Four syntax-control tests repeat two bodies, differing only between `\"{trunc\"` and `\"\"`. Replace them with two parametrized tests, preserving their assertions.", "file": "skills/use-qwen/scripts/test_report_audit.py:610", "reason": "single-voice"},
-  {"cycle": 1, "disposition": "discarded", "severity": "low", "issue": "`test_render_rejects_a_truncated_run_json_with_the_malformed_refusal` is a literal clone of the pre-existing `test_render_rejects_a_malformed_run_json_naming_the_run_and_file` (test_report_audit.py:600) with `\"{trunc\"` swapped for `\"{not json\"`; the four syntax controls collapse into one `parametrize` over the three texts, matching the new RUN_JSON_WRONG_SHAPE idiom the same diff introduces.", "file": "skills/use-qwen/scripts/test_report_audit.py:610", "reason": "single-voice"},
-  {"cycle": 1, "disposition": "discarded", "severity": "low", "issue": "The raising `fail()` closure departs from this module's established error idiom: `_audit_error` (report.py:79) returns the exception and its 11 callers write `raise _audit_error(...)`. A raising closure makes every `if ...: fail(...)` read as fall-through to humans and type checkers.", "file": "skills/use-qwen/scripts/eval_harness/report.py:503", "reason": "single-voice"},
-  {"cycle": 1, "disposition": "discarded", "severity": "low", "issue": "`not isinstance(engine, dict)` is the one new validation branch with no test; the matrix covers only the `\"id\" not in engine` half. `pytest.param('{\"engines\":[3]}', \"id\", id=\"engine-not-an-object\")` closes it.", "file": "skills/use-qwen/scripts/eval_harness/report.py:514", "reason": "single-voice"},
-  {"cycle": 1, "disposition": "discarded", "severity": "low", "issue": "Fail-first replay adjudication (MECH line): 5 touched tests pass against pre-change code. Four are PRD-mandated preservation controls for the syntax path (two of them add CLI coverage that did not exist), so they are intentional, not tautological; the fifth is the redundant well-formed-render test flagged above.", "file": "skills/use-qwen/scripts/test_report_audit.py", "reason": "single-voice; the adjudication itself asks for no change"},
-  {"cycle": 1, "disposition": "discarded", "severity": "low", "issue": "Module docstring still lists refusal causes as \"a missing or malformed run.json\" and was not updated for the new wrong-shape refusal path", "file": "skills/use-qwen/scripts/eval_harness/report.py:7", "reason": "single-voice"},
-  {"cycle": 1, "disposition": "discarded", "severity": "low", "issue": "Pre-existing uncontrolled diagnostic survives: an `engines` list that omits an engine present in attempt directory names makes `engine_order.index(...)` raise a bare `ValueError: 'qwen' is not in list`, which the CLI prints as a refusal that names neither run.json nor the invalid field", "file": "skills/use-qwen/scripts/eval_harness/report.py:70", "reason": "single-voice; pre-existing behaviour outside this PRD's diff"}
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`test_render_succeeds_on_a_well_formed_run_json` asserts only `result is None`, which `render`'s `-> None` signature guarantees; the assert cannot fail, and the clean path is already pinned by `test_main_render_returns_0_with_empty_stderr_on_a_clean_round` (test_report_audit.py:761) and by `_render` inside every refusal helper. Drop it, or assert the three report files' content.",
+    "file": "skills/use-qwen/scripts/test_report_audit.py:652",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Engine field validation is presence-only: `engine[\"id\"]` type is unchecked, so a non-string id reaches `\", \".join(engine_order)` and raises `TypeError: sequence item 0: expected str instance, int found` with a traceback (reproduced at HEAD)",
+    "file": "skills/use-qwen/scripts/eval_harness/report.py:513",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The PRD says to derive required fields from the current writer, but `records.validate_record(\"run\", ...)`/`records_domains._check_run` already encodes that writer contract (run_id, started, config, engines[].id/command, tasks[].id/slug/repo/kind, versions, server) and render ignores it in favour of a 3-key check, which is the \"separate incompatible schema\" the Solution section forbids",
+    "file": "skills/use-qwen/scripts/eval_harness/records_domains.py:74",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Four syntax-control tests repeat two bodies, differing only between `\"{trunc\"` and `\"\"`. Replace them with two parametrized tests, preserving their assertions.",
+    "file": "skills/use-qwen/scripts/test_report_audit.py:610",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`test_render_rejects_a_truncated_run_json_with_the_malformed_refusal` is a literal clone of the pre-existing `test_render_rejects_a_malformed_run_json_naming_the_run_and_file` (test_report_audit.py:600) with `\"{trunc\"` swapped for `\"{not json\"`; the four syntax controls collapse into one `parametrize` over the three texts, matching the new RUN_JSON_WRONG_SHAPE idiom the same diff introduces.",
+    "file": "skills/use-qwen/scripts/test_report_audit.py:610",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The raising `fail()` closure departs from this module's established error idiom: `_audit_error` (report.py:79) returns the exception and its 11 callers write `raise _audit_error(...)`. A raising closure makes every `if ...: fail(...)` read as fall-through to humans and type checkers.",
+    "file": "skills/use-qwen/scripts/eval_harness/report.py:503",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`not isinstance(engine, dict)` is the one new validation branch with no test; the matrix covers only the `\"id\" not in engine` half. `pytest.param('{\"engines\":[3]}', \"id\", id=\"engine-not-an-object\")` closes it.",
+    "file": "skills/use-qwen/scripts/eval_harness/report.py:514",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Fail-first replay adjudication (MECH line): 5 touched tests pass against pre-change code. Four are PRD-mandated preservation controls for the syntax path (two of them add CLI coverage that did not exist), so they are intentional, not tautological; the fifth is the redundant well-formed-render test flagged above.",
+    "file": "skills/use-qwen/scripts/test_report_audit.py",
+    "reason": "single-voice; the adjudication itself asks for no change"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Module docstring still lists refusal causes as \"a missing or malformed run.json\" and was not updated for the new wrong-shape refusal path",
+    "file": "skills/use-qwen/scripts/eval_harness/report.py:7",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Pre-existing uncontrolled diagnostic survives: an `engines` list that omits an engine present in attempt directory names makes `engine_order.index(...)` raise a bare `ValueError: 'qwen' is not in list`, which the CLI prints as a refusal that names neither run.json nor the invalid field",
+    "file": "skills/use-qwen/scripts/eval_harness/report.py:70",
+    "reason": "single-voice; pre-existing behaviour outside this PRD's diff"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Tests cover only the quoted evidence bodies plus a few extra id, tasks and started cases. No case for a missing or wrong-type `config`, `versions`, `server`, `slug`, `repo` or `kind`, or for wrong-type `id` values. That is why the gap above is not caught.",
+    "file": "skills/use-qwen/scripts/test_report_audit.py:663",
+    "reason": "single-voice; the coverage it asks for is the test half of the R1 cap-overflow deferral and travels with it"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "test_report_audit.py is now 799 lines, one short of the 800-line limit, so the next added test breaches it. Split the run.json shape tests into their own module when the field-validation rows above are added.",
+    "file": "skills/use-qwen/scripts/test_report_audit.py:799",
+    "reason": "single-voice; not a defect at HEAD, and the split it asks for belongs with whoever resolves the R1 cap-overflow deferral"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Every body quoted in the accepted evidence is refused with a ValueError naming the run and run.json; the CLI wrapper prints `render refused: ...` and returns 1; `_check_run_shape` runs before any output write, and the existing syntax-error and audit paths are unchanged. These parts meet the spec.",
+    "file": "skills/use-qwen/scripts/test_report_audit.py:703",
+    "reason": "single-voice; an all-clear note that asserts no defect and asks for no change"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The new non-object task-item rejection is untested: `tasks:[{}]` exercises only the missing-key case. Add `tasks:[null]` to the existing direct/CLI matrix to cover the other branch.",
+    "file": "skills/use-qwen/scripts/test_report_audit.py:671",
+    "reason": "single-voice; one uncovered branch of a guard whose own coverage gap is already carried by the R1 cap-overflow deferral"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Fail-first replay (MECH line): 1 touched test passes against the pre-change code, test_render_refusal_writes_no_output_files_on_a_never_rendered_run.",
+    "file": "skills/use-qwen/scripts/test_report_audit.py",
+    "reason": "the base renderer already wrote nothing on refusal, so the test is the PRD-mandated preservation control cycle-1 R2 asked for, not a tautology; the adjudication itself asks for no change"
+  }
 ]

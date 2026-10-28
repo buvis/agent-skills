@@ -2466,3 +2466,9 @@
 {"id":"8835a0f3","ended_at":1793171978,"elapsed_s":777,"outcome":"error","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1793172012,"phase":"review","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
 {"kind":"handoff","site":"review","edge":"leave","at":1793172851,"phase":"review","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1793172879,"phase":"review","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
+{"id":"88c7285c","kind":"bob","task":"review-00099-c2","queued_at":1793173389,"prompt_bytes":22642}
+{"id":"b2c329e0","kind":"carl","task":"review-00099-c2","queued_at":1793173389,"prompt_bytes":15678}
+{"id":"b2c329e0","ended_at":1793173495,"elapsed_s":106,"outcome":"error","detail":"exit 1"}
+{"id":"88c7285c","ended_at":1793173636,"elapsed_s":247,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1793174426,"phase":"done","prd":"00099-evaluation-render-crashes-malformed-data-v1.md"}
