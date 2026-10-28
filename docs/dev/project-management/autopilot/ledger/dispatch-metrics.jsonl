@@ -2526,3 +2526,4 @@
 {"id":"992aad6a","kind":"fast-track:delta","task":"00101-damaged-queue-looks-finished-v1-c1","queued_at":1793222613,"prompt_bytes":4897}
 {"id":"992aad6a","ended_at":1793223305,"elapsed_s":692,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793223830,"phase":"done","prd":"00101-damaged-queue-looks-finished-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793225254,"phase":"build","prd":"00101-damaged-queue-looks-finished-v1.md"}

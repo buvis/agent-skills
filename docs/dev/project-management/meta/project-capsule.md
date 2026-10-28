@@ -143,6 +143,26 @@ Updated: 2026-10-28 (full catchup, PRD 00099 selection, same batch 202610271200,
 ## Active Work
 
 ### Batch 202610271200
+- [x] 00101-damaged-queue-looks-finished-v1.md (1/1 tasks, 1 cycle) —
+  fast-track lane, escalated to full (unnamed_path signal); `docket.py`'s
+  `load()` now runs the shared `_check_entry` so a damaged queue entry is
+  caught consistently rather than only inside `unpublished()`.
+- [ ] 00102-prd-validation-release-notes-missing-v1.md
+- [ ] 00103-sweep-scanning-release-notes-missing-v1.md
+- [ ] 00104-sweep-overruns-process-deadline-v1.md
+- [ ] 00105-qwen-silently-exits-mise-failure-v1.md
+- [ ] 00106-cleanup-manifests-use-different-paths-v1.md
+- [ ] 00107-meeting-tools-crash-malformed-input-v1.md
+- [ ] 00108-mistyped-store-hides-unpublished-work-v1.md
+- [ ] 00109-sweep-hides-stale-registry-entries-v1.md
+- [ ] 00110-trash-manifest-breaks-retains-dead-records-v1.md
+- [ ] 00111-braid-state-misses-link-removals-v1.md
+- [ ] 00112-glean-crashes-invalid-ledger-structure-v1.md
+- [ ] 00113-triage-check-run-shape-validates-only-the-per-t-v1.md (hold stub)
+- [ ] 00114-qwen-audit-hides-discovery-fallback-v1.md
+- [ ] 00115-documentation-has-three-stale-statements-v1.md
+- [ ] 00116-survey-truncation-explanation-incomplete-v1.md
+- [ ] 00117-four-scripts-ignore-help-v1.md
 - [x] 00099-evaluation-render-crashes-malformed-data-v1.md (3/3 tasks, 2
   cycles) — `eval_harness/report.py`'s `render` validates run-data structure
   (object root, `engines`/`tasks`/`run_id` containers, per-task `id`, root
@@ -183,8 +203,10 @@ Updated: 2026-10-28 (full catchup, PRD 00099 selection, same batch 202610271200,
 
 Observations: fast-track lane cards continue to close in one cycle with no
 deferred items; the full-lane security_path PRD (00099) took 2 cycles and
-hit the rework cap once. Batch has 9 PRDs done, remaining backlog unchanged
-minus 00099.
+hit the rework cap once. 00101 started on the fast-track lane but escalated
+to full on an unnamed_path signal and still closed in 1 cycle with no
+deferred items. Batch has 10 PRDs done; 00113 is a hold-stub triage card
+minted from 00099's cap-overflow and is not drained by autopilot.
 
 ### Batch 202610242338
 - [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1
