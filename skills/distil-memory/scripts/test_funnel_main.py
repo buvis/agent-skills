@@ -645,13 +645,14 @@ def test_main_isolates_non_object_json_and_non_utf8_damage_per_file_and_still_re
     assert exit_code == 0
     captured = capsys.readouterr()
 
-    # Only the two valid transcripts' slices count: the non-object lines in
-    # the third transcript's secret-bearing entry must never be counted, and
-    # neither must the unreadable non-UTF-8 transcript's.
+    # The two valid transcripts' slices count, plus the valid secret-bearing
+    # line that follows the non-object lines in the third transcript (each
+    # bad line there is skipped per-entry, not treated as file-wide damage).
+    # The unreadable non-UTF-8 transcript still contributes nothing.
     expected_counts = {
         "transcripts_read": 4,
-        "slices_matched": 2,
-        "slices_kept": 2,
+        "slices_matched": 3,
+        "slices_kept": 3,
         "survivors": None,
         "claude_checkup_version": version,
     }
@@ -667,5 +668,7 @@ def test_main_isolates_non_object_json_and_non_utf8_damage_per_file_and_still_re
     # The damaged files are named in the warning, and the secret text that
     # only reached them must never leak into stderr.
     assert "n_non_utf8.jsonl" in captured.err
+    assert "m_non_object.jsonl" in captured.err
+    assert "line 1" in captured.err
     assert _DAMAGED_SECRET_TEXT not in captured.err
     assert _DAMAGED_SECRET_TEXT not in captured.out

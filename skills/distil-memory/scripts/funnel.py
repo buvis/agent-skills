@@ -45,28 +45,26 @@ def _is_compaction_entry(entry: dict) -> bool:
     return False
 
 
-class _DamagedTranscript(Exception):
-    """Raised when a transcript line parses as JSON but is not an object,
-    signalling the whole file is untrustworthy and should be skipped."""
-
-
 def _iter_entries(path: Path) -> Iterator[tuple[int, dict]]:
     """Yield (line_no, entry) for each parseable JSON line. Skips blank
     lines and invalid JSON exactly like parser.py's parse_session loop
     (shape reused, not imported - this is a 6-line generator, not worth a
-    cross-module dependency for)."""
-    with path.open("r", encoding="utf-8") as fh:
-        for line_no, raw in enumerate(fh, 1):
-            raw = raw.strip()
-            if not raw:
-                continue
-            try:
-                parsed = json.loads(raw)
-            except ValueError:
-                continue
-            if not isinstance(parsed, dict):
-                raise _DamagedTranscript(f"line {line_no} is not a JSON object")
-            yield line_no, parsed
+    cross-module dependency for). The whole file is decoded as UTF-8 up
+    front so a bad byte anywhere in the file isolates the whole file
+    rather than only the lines after it."""
+    text = path.read_bytes().decode("utf-8")
+    for line_no, raw in enumerate(text.splitlines(), 1):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            continue
+        if not isinstance(parsed, dict):
+            print(f"{path}: line {line_no} is not a JSON object, skipping", file=sys.stderr)
+            continue
+        yield line_no, parsed
 
 
 def _assistant_text_blocks(entry: dict) -> list[str]:
@@ -166,8 +164,6 @@ def scan(transcripts: list[Path]) -> tuple[int, list[Slice]]:
                 kept.extend(entry_kept)
         except UnicodeDecodeError:
             print(f"{path.name}: could not be read as UTF-8, skipping", file=sys.stderr)
-        except _DamagedTranscript as exc:
-            print(f"{path.name}: {exc}, skipping", file=sys.stderr)
     return matched, kept
 
 
