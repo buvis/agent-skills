@@ -158,7 +158,9 @@ Updated: 2026-10-29 (full catchup, PRD 00104 selection, same batch 202610271200;
   00031-sweep-parallel-with-deadline, done — propagates one remaining deadline
   budget through scan + control verification, terminates expired search
   subprocess trees)
-- [ ] 00105-qwen-silently-exits-mise-failure-v1.md
+- [x] 00105-qwen-silently-exits-mise-failure-v1.md (1/1 tasks, 1 cycle) —
+  fast-track lane; `use-qwen`'s dispatch script falls back to the original
+  PATH when mise env setup fails, instead of silently exiting.
 - [ ] 00106-cleanup-manifests-use-different-paths-v1.md
 - [ ] 00107-meeting-tools-crash-malformed-input-v1.md
 - [ ] 00108-mistyped-store-hides-unpublished-work-v1.md
@@ -214,9 +216,11 @@ deferred items; the full-lane security_path PRD (00099) took 2 cycles and
 hit the rework cap once. 00101 started on the fast-track lane but escalated
 to full on an unnamed_path signal and still closed in 1 cycle with no
 deferred items. 00102 ran the solo lane (docs/test-only, zero-context review)
-and closed in 1 cycle with no deferred items. Batch has 11 PRDs done; 00113
-is a hold-stub triage card minted from 00099's cap-overflow and is not
-drained by autopilot.
+and closed in 1 cycle with no deferred items. 00105 closed on the fast-track
+lane in 1 cycle with Carl (copilot quota) and Bob's codex CLI (sandbox
+fact-forcing gate) both falling back after one retry; no C/H raised, zero
+deferred items. Batch has 13 PRDs done; 00113 is a hold-stub triage card
+minted from 00099's cap-overflow and is not drained by autopilot.
 
 ### Batch 202610242338
 - [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1

@@ -2606,3 +2606,5 @@
 {"id":"2dbf4297","ended_at":1793242445,"elapsed_s":69,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793243033,"phase":"done","prd":"00105-qwen-silently-exits-mise-failure-v1-c1.md"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793243037,"phase":"done","prd":"00105-qwen-silently-exits-mise-failure-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1793244799,"phase":"done","prd":"00105-qwen-silently-exits-mise-failure-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793244902,"phase":"build","prd":"00105-qwen-silently-exits-mise-failure-v1.md"}
