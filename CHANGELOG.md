@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **purge-devtmp**: candidate paths containing a tab or line break are refused and reported as `refused-unsafe-path` instead of writing an unrestorable manifest row; emptying a trash batch now also removes its manifest rows (from either tool), preserving retained-batch and unparseable historical rows.
 - **brush**: the manifest's fourth column is now store-relative (`.trash/<date>/<rel>`, resolve from `docs/dev/tmp`), matching purge-devtmp, so one base restores rows from either tool.
 - **sweep-fix**: `sweep.py` terminates every search process tree (and its descendants) still running when the `--deadline` expires, instead of merely stopping to wait for it; the deadline now also bounds the final control-verification check, so an expired zero-hit sweep refuses as unverified (`sweep unverified: ...` on stderr, exit 1, no report written) instead of running an unbounded fresh verification.
 - **review-deps-prs**: the discovery script now reports each repo whose PR lookup failed on stderr and exits 2, so a partial or empty scan is not mistaken for a clean one.

@@ -266,6 +266,20 @@ def test_malformed_row_sharing_a_removed_batch_name_is_preserved(tmp_path):
     assert well_formed_line not in manifest_lines
 
 
+def test_well_formed_row_with_an_extra_tab_in_its_path_field_is_still_removed(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    now = noon_today()
+    old_batch = time.strftime("%Y-%m-%d", time.localtime(now - 40 * gc.DAY))
+    seed_batch(store, old_batch, "junk.txt")
+    extra_field_line = f"{old_batch}\tbrush-junk\tweird\tname.txt\t{gc.TRASH_DIR}/{old_batch}/weird\tname.txt"
+    truly_malformed_line = f"{old_batch}\tonly-two-fields"
+    write_manifest(store, [extra_field_line, truly_malformed_line])
+    gc.empty_old_trash(store, now, 30, keep=None)
+    manifest_lines = (store / gc.TRASH_DIR / "manifest.tsv").read_text().splitlines()
+    assert extra_field_line not in manifest_lines
+    assert truly_malformed_line in manifest_lines
+
+
 def test_historical_malformed_row_is_preserved_byte_for_byte(tmp_path):
     _repo, store = repo_store(tmp_path)
     now = noon_today()

@@ -43,7 +43,8 @@ defaults.
 The manifest at `docs/dev/tmp/.trash/manifest.tsv` records date, rule,
 original relative path, and trash path. Restore with `mv`.
 
-A candidate path containing a tab or newline is refused and left in place,
+A candidate path containing a tab or any line-break character (newline,
+carriage return, and the other `str.splitlines` separators) is refused and left in place,
 reported as `refused-unsafe-path` with the reason; it is never trashed.
 When a trash batch is emptied, its manifest rows are removed along with it
 (rows from any cleanup tool sharing that batch date). Rows for retained

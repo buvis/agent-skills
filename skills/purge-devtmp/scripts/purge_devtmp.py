@@ -124,7 +124,8 @@ def classify(rel: Path, mtime: float, live: set[str], now: float, args) -> str:
 
 
 def path_has_unsafe_characters(path: Path) -> str | None:
-    """Return a reason if any path component has a tab or newline, else None."""
+    """Return a reason if any path component has a tab or any line-break
+    character (any `str.splitlines` separator), else None."""
     for part in path.parts:
         if "\t" in part:
             return f"{part!r}: contains a tab"
@@ -219,14 +220,12 @@ def empty_old_trash(store: Path, now: float, days: float, keep: str | None = Non
             lines = text.split("\n")
             if lines and lines[-1] == "":
                 lines.pop()
-            kept_lines = [
-                line
-                for line in lines
-                if not (
-                    len(line.split("\t")) == 4
-                    and line.split("\t", 1)[0] in removed_batches
-                )
-            ]
+            kept_lines = []
+            for line in lines:
+                fields = line.split("\t")
+                if len(fields) >= 4 and fields[0] in removed_batches:
+                    continue
+                kept_lines.append(line)
             if len(kept_lines) != len(lines):
                 try:
                     text = "".join(f"{line}\n" for line in kept_lines)
