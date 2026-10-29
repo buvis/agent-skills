@@ -92,11 +92,7 @@ def resolve_ast_grep():
 
 DEFAULT_SCAN_TIMEOUT = 30
 
-KILL_TREE_TIMEOUT = 5
-"""Bound a single `taskkill` call at deadline cleanup. Registry cleanup on
-Windows runs `_kill_tree` serially across every still-registered process;
-using DEFAULT_SCAN_TIMEOUT here let cleanup alone overrun the sweep deadline
-by up to 30s per process."""
+KILL_TREE_TIMEOUT = 5  # bounds one taskkill call; serial registry cleanup must not cost DEFAULT_SCAN_TIMEOUT per process
 
 DEADLINE_REASON = "sweep deadline expired"
 
@@ -382,12 +378,8 @@ def _scan_astgrep(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT, registry=
 def _scan_repo(repo, pattern, kind, ast_grep_error, timeout, registry=None, deadline=None, start=None):
     """Scan a single `repo` entry. Returns `(cwd_key, hits, error)`, where
     `error` is set (and `hits` empty) when the repo could not be scanned.
-    The search process is tracked in `registry` under `cwd_key`.
-
-    When `deadline` (seconds from `start`) has already passed by the time a
-    queued worker picks this repo up, the repo is recorded under
-    DEADLINE_REASON without ever calling Popen -- a freed worker thread must
-    not launch a fresh search after the sweep has already expired."""
+    The search process is tracked in `registry` under `cwd_key`. Past
+    `deadline`, records DEADLINE_REASON without calling Popen."""
     if isinstance(repo, dict) and "error" in repo:
         return str(repo["cwd"]), [], repo["error"]
 
@@ -506,9 +498,7 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
     executor = ThreadPoolExecutor(max_workers=8)
     try:
         futures = [
-            executor.submit(
-                _scan_repo, repo, pattern, kind, ast_grep_error, timeout, registry, deadline, start
-            )
+            executor.submit(_scan_repo, repo, pattern, kind, ast_grep_error, timeout, registry, deadline, start)
             for repo in repos
         ]
         results, deadline_hit = _collect_scan_results(repos, futures, deadline, start, registry)
