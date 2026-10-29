@@ -8,7 +8,7 @@ Pydantic models for both input and output, error handling.
 import os
 from typing import Annotated, Literal
 
-import httpx
+import httpx2
 from pydantic import BaseModel, Field
 
 from mcp.server import MCPServer
@@ -98,7 +98,7 @@ async def list_tasks(
     if assignee:
         params["assignee"] = assignee
 
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.get(f"{BASE_URL}/tasks", params=params, headers=HEADERS)
         response.raise_for_status()
         data = response.json()
@@ -119,7 +119,7 @@ async def get_task(
     task_id: Annotated[str, Field(description="The task ID to retrieve.")],
 ) -> Task:
     """Get a single task by its ID."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.get(f"{BASE_URL}/tasks/{task_id}", headers=HEADERS)
         response.raise_for_status()
         return Task(**response.json())
@@ -136,7 +136,7 @@ async def get_task(
 )
 async def create_task(task: TaskCreate) -> Task:
     """Create a new task."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.post(
             f"{BASE_URL}/tasks",
             json=task.model_dump(exclude_none=True),
@@ -160,7 +160,7 @@ async def update_task(
     updates: TaskUpdate = TaskUpdate(),
 ) -> Task:
     """Update an existing task. Only provided fields are changed."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.patch(
             f"{BASE_URL}/tasks/{task_id}",
             json=updates.model_dump(exclude_none=True),
@@ -183,7 +183,7 @@ async def delete_task(
     task_id: Annotated[str, Field(description="The task ID to delete.")],
 ) -> DeleteConfirmation:
     """Permanently delete a task. This cannot be undone."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.delete(f"{BASE_URL}/tasks/{task_id}", headers=HEADERS)
         response.raise_for_status()
 

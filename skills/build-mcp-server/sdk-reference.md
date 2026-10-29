@@ -9,7 +9,7 @@ uv add "mcp[cli]"
 # or: pip install "mcp[cli]"
 ```
 
-Requires Python 3.10+.
+Requires Python 3.10+ for `mcp` itself; the `httpx2` HTTP client needs 3.11+. Verified against `mcp==2.3.0`.
 
 ## Server Class
 
@@ -40,7 +40,7 @@ def add(a: int, b: int) -> int:
 @mcp.tool()
 async def fetch_data(query: str) -> DataModel:
     """Fetch data from upstream API."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         resp = await client.get(f"{BASE_URL}/data", params={"q": query})
         resp.raise_for_status()
         return DataModel(**resp.json())
@@ -190,7 +190,7 @@ def greeting(name: str) -> str:
 @mcp.tool()
 async def get_user(user_id: str) -> User:
     """Get user by ID."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         resp = await client.get(f"{BASE_URL}/users/{user_id}")
         resp.raise_for_status()  # HTTPStatusError → model sees "404 Not Found" etc.
         return User(**resp.json())

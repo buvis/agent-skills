@@ -7,7 +7,7 @@ Demonstrates: simple GET endpoints, Pydantic response models, ToolAnnotations.
 import os
 from typing import Annotated
 
-import httpx
+import httpx2
 from pydantic import BaseModel, Field
 
 from mcp.server import MCPServer
@@ -62,7 +62,7 @@ async def get_current_weather(
     city: Annotated[str, Field(description="City name (e.g., 'London', 'New York').")],
 ) -> CurrentWeather:
     """Get the current weather for a city."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.get(
             f"{BASE_URL}/weather",
             params={"q": city, "appid": API_KEY, "units": "metric"},
@@ -94,7 +94,7 @@ async def get_forecast(
     days: Annotated[int, Field(ge=1, le=5, description="Number of days (1-5).")] = 3,
 ) -> list[ForecastDay]:
     """Get a multi-day weather forecast for a city."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.get(
             f"{BASE_URL}/forecast",
             params={"q": city, "appid": API_KEY, "units": "metric", "cnt": days * 8},

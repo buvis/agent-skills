@@ -12,12 +12,21 @@ Also handles migration of existing v1 servers to v2.
 
 ## Dependencies
 
-Python, uv, the chosen MCP SDK, and the target API specification. Dependency
-templates and test scaffolding are included in `project-template.md`. Verify
-the SDK and protocol versions against their official documentation before using
-these migration inputs: the supplied scaffold uses `httpx`, while its migration
-instructions use `httpx2`. That inconsistency has not been resolved in this bundle.
-If the API specification is unavailable, request it rather than invent endpoints.
+Python 3.11+, uv, the target API specification, and the pinned SDK stack
+`mcp==2.3.0` with `httpx2==2.16.0` (v2 of the SDK depends on `httpx2`, not
+`httpx`; `httpx2` itself needs Python 3.11+). Dependency templates and test
+scaffolding are in `project-template.md`. If the API specification is
+unavailable, request it rather than invent endpoints.
+
+**Verified** with `mcp==2.3.0` in a throwaway environment: `MCPServer`,
+`Client(mcp)`, `is_error`, `structured_content`, `LATEST_PROTOCOL_VERSION`
+(2026-07-28), both examples, and the generated scaffold's tests (success,
+validation error, upstream failure, with `httpx2.MockTransport` and authored
+payloads), and a stdio `initialize` exchange through `mcp run`. **Unverified**:
+HTTP transport options, `ctx.elicit()` and sampling behavior, the `mode="legacy"`
+client, OAuth, and every v1-to-v2 claim in `migration-v1-to-v2.md` beyond the
+renames above. Label anything outside the verified list as unverified in output.
+Bump the pins deliberately: re-run `tests/test_examples_smoke.py` first.
 
 ## Trigger
 
@@ -118,7 +127,7 @@ async def tool_name(
     optional_param: Annotated[int, Field(ge=1, le=100, description="Page size.")] = 20,
 ) -> ResponseModel:
     """Docstring becomes the tool description the model sees."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.get(f"{BASE_URL}/endpoint", params={"q": param})
         response.raise_for_status()
         data = response.json()
@@ -126,7 +135,7 @@ async def tool_name(
 ```
 
 **Code requirements:**
-- `httpx` for all HTTP calls (async)
+- `httpx2` for all HTTP calls (async)
 - Config from env vars (`os.environ["API_KEY"]`)
 - All I/O tools must be `async def`
 - Return Pydantic models — never raw dicts
@@ -138,32 +147,39 @@ async def tool_name(
 Every tool gets an in-memory test:
 
 ```python
+import httpx2
 import pytest
+from unittest.mock import patch
 from mcp import Client
-from unittest.mock import patch, AsyncMock, MagicMock
 from src.server import mcp
+
+REAL_CLIENT = httpx2.AsyncClient
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+def upstream(handler):
+    def factory(*args, **kwargs):
+        return REAL_CLIENT(*args, transport=httpx2.MockTransport(handler), **kwargs)
+    return patch.object(httpx2, "AsyncClient", factory)
 
 @pytest.mark.anyio
 async def test_tool_name():
-    mock_response = MagicMock()
-    mock_response.json.return_value = {"key": "value"}
-    mock_response.raise_for_status = MagicMock()
-
-    with patch("src.server.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_response)
-        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+    with upstream(lambda request: httpx2.Response(200, json={"key": "value"})):
         async with Client(mcp) as client:
             result = await client.call_tool("tool_name", {"param": "test"})
-            assert result.structured_content is not None
+    assert not result.is_error
+    assert result.structured_content is not None
 ```
+
+Also test a validation error (out-of-range argument, upstream never called) and an
+upstream failure (HTTP 500 gives `is_error`) per tool; see `project-template.md`.
 
 ### Step 6 — Generate Project Files
 
 Use templates from `project-template.md`:
-- `pyproject.toml`: `mcp[cli]>=2.0.0,<3`, `httpx>=0.28`, `pydantic>=2.0`, dev deps
+- `pyproject.toml`: `mcp[cli]==2.3.0`, `httpx2==2.16.0`, `pydantic>=2.12`, dev deps
 - `README.md`: description, prerequisites, quick start, env vars table, tools table, integration examples
 - `.env.example`: all required env vars with placeholder values
 
@@ -193,7 +209,7 @@ Before presenting:
 # DO: Let exceptions become tool errors the model can read
 async def get_user(user_id: str) -> User:
     """Get a user by ID."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.get(f"{BASE_URL}/users/{user_id}")
         response.raise_for_status()  # HTTPStatusError → is_error=True
         return User(**response.json())
@@ -236,7 +252,7 @@ Identify: import style, transport config, context usage, HTTP client, camelCase 
 | `FastMCP("Name", "Instructions")` | `MCPServer("Name", instructions="Instructions")` |
 | `McpError` | `MCPError` |
 | `Content` | `ContentBlock` |
-| `httpx` | `httpx2` |
+| `httpx` | `httpx2` (the SDK depends on it; Python 3.11+) |
 | `.inputSchema` | `.input_schema` |
 | `.isError` | `.is_error` |
 | `.nextCursor` | `.next_cursor` |
@@ -272,7 +288,7 @@ async def my_tool(x: int, ctx: Context) -> str:
 
 ```python
 # v1: import httpx
-# v2: import httpx2  (same API, different package)
+# v2: import httpx2  (separate package; the SDK depends on it, Python 3.11+)
 ```
 
 ### Step 6 — Fix Tests
@@ -295,7 +311,7 @@ After mechanical migration:
 - Add `ToolAnnotations` to every tool
 - Add return type annotations for structured output
 - Add `Field(description=...)` to parameters
-- Update pyproject.toml: `mcp>=2,<3`, `httpx2>=2.5`
+- Update pyproject.toml: `mcp[cli]==2.3.0`, `httpx2==2.16.0`, `requires-python = ">=3.11"`
 - Remove deprecated features (logging, sampling push calls)
 
 ### Step 8 — Verify

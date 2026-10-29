@@ -22,18 +22,16 @@
 name = "<SERVER_NAME>"
 version = "0.1.0"
 description = "<ONE_LINE_DESCRIPTION>"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "mcp[cli]>=2.0.0,<3",
-    "httpx>=0.28",
-    "pydantic>=2.0",
+    "mcp[cli]==2.3.0",
+    "httpx2==2.16.0",
+    "pydantic>=2.12",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "anyio[trio]>=4.0",
-    "pytest-anyio>=0.0.0",
 ]
 
 [build-system]
@@ -59,7 +57,7 @@ build-backend = "hatchling.build"
 import os
 from typing import Annotated
 
-import httpx
+import httpx2
 from pydantic import BaseModel, Field
 
 from mcp.server import MCPServer
@@ -96,7 +94,7 @@ async def example_tool(
     limit: Annotated[int, Field(ge=1, le=100, description="Maximum results.")] = 20,
 ) -> list[ExampleResponse]:
     """Search for examples matching the query."""
-    async with httpx.AsyncClient() as client:
+    async with httpx2.AsyncClient() as client:
         response = await client.get(
             f"{BASE_URL}/examples",
             params={"q": query, "limit": limit},
@@ -114,56 +112,88 @@ async def example_tool(
 
 ## tests/test_server.py — Skeleton
 
+The upstream API is faked with `httpx2.MockTransport`, and the server is called
+through a real in-memory `Client(mcp)`. Fixture payloads are authored, not
+captured from the real API.
+
 ```python
 """Tests for <SERVER_NAME> MCP Server."""
 
+from unittest.mock import patch
+
+import httpx2
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from mcp import Client
 
 from src.server import mcp
 
+REAL_CLIENT = httpx2.AsyncClient
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+def upstream(handler):
+    """Patch httpx2.AsyncClient so every request is answered by handler."""
+    def factory(*args, **kwargs):
+        return REAL_CLIENT(*args, transport=httpx2.MockTransport(handler), **kwargs)
+    return patch.object(httpx2, "AsyncClient", factory)
+
 
 @pytest.mark.anyio
 async def test_example_tool():
-    """Test example_tool returns structured results."""
-    mock_response = MagicMock()
-    mock_response.json.return_value = {
-        "results": [{"id": "1", "name": "Test Item"}]
-    }
-    mock_response.raise_for_status = MagicMock()
+    """Success: structured results come back."""
+    def handler(request):
+        return httpx2.Response(200, json={"results": [{"id": "1", "name": "Test Item"}]})
 
-    with patch("src.server.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_response)
-        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+    with upstream(handler):
         async with Client(mcp) as client:
             result = await client.call_tool("example_tool", {"query": "test"})
-            assert result.structured_content is not None
-            assert result.structured_content["result"][0]["id"] == "1"
+    assert not result.is_error
+    assert result.structured_content["result"][0]["id"] == "1"
 
 
 @pytest.mark.anyio
-async def test_example_tool_with_limit():
-    """Test example_tool respects limit parameter."""
-    mock_response = MagicMock()
-    mock_response.json.return_value = {"results": []}
-    mock_response.raise_for_status = MagicMock()
+async def test_example_tool_passes_limit_upstream():
+    """The limit argument reaches the upstream API."""
+    seen = []
 
-    with patch("src.server.httpx.AsyncClient") as mock_client_cls:
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_response)
-        mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+    def handler(request):
+        seen.append(request)
+        return httpx2.Response(200, json={"results": []})
 
+    with upstream(handler):
         async with Client(mcp) as client:
-            result = await client.call_tool("example_tool", {"query": "x", "limit": 5})
-            # Verify the limit was passed to the upstream API
-            call_args = mock_client.get.call_args
-            assert call_args[1]["params"]["limit"] == 5
+            await client.call_tool("example_tool", {"query": "x", "limit": 5})
+    assert seen[0].url.params["limit"] == "5"
+
+
+@pytest.mark.anyio
+async def test_example_tool_rejects_invalid_arguments():
+    """Validation error: out-of-range input never reaches the upstream API."""
+    seen = []
+
+    def handler(request):
+        seen.append(request)
+        return httpx2.Response(200, json={"results": []})
+
+    with upstream(handler):
+        async with Client(mcp) as client:
+            result = await client.call_tool("example_tool", {"query": "x", "limit": 1000})
+    assert result.is_error
+    assert seen == []
+
+
+@pytest.mark.anyio
+async def test_example_tool_reports_upstream_failure():
+    """Upstream failure: an HTTP 500 surfaces as a tool error."""
+    with upstream(lambda request: httpx2.Response(500, json={"error": "boom"})):
+        async with Client(mcp) as client:
+            result = await client.call_tool("example_tool", {"query": "x"})
+    assert result.is_error
 ```
 
 ## .env.example
@@ -183,7 +213,7 @@ async def test_example_tool_with_limit():
 
 ## Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - API key from <SERVICE_NAME>
 
