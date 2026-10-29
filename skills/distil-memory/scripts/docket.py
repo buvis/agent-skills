@@ -239,6 +239,18 @@ def unpublished(store, path=None) -> list[str]:
     return ids
 
 
+def _has_kept_entries_for_store(store, path=None) -> bool:
+    """True if any kept queue entry's transcript resolves to `store`."""
+    data = load(path=path)
+    own_store = Path(store).resolve()
+    for entry in data["entries"]:
+        if entry["decision"] != "kept":
+            continue
+        if (Path(entry["transcript"]).parent / "memory").resolve() == own_store:
+            return True
+    return False
+
+
 def _parse_args(argv):
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -389,6 +401,17 @@ def main(argv: list[str] | None = None) -> int:
             except (write.WriteError, OSError) as exc:
                 print(f"cannot check the store {args.store}: {exc}", file=sys.stderr)
                 return 1
+            if not ids:
+                store_path = Path(args.store)
+                if not store_path.exists():
+                    print(
+                        f"warning: store {args.store} does not exist", file=sys.stderr
+                    )
+                elif not _has_kept_entries_for_store(args.store, path=args.queue):
+                    print(
+                        f"warning: no kept queue entries belong to store {args.store}",
+                        file=sys.stderr,
+                    )
             for entry_id in ids:
                 print(entry_id)
             return 1 if ids else 0
