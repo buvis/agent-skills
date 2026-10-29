@@ -204,3 +204,178 @@ def test_backslash_correction_produces_page_without_regex_error(
     _run_main(tmp_path, monkeypatch, workdir, out_path)
 
     assert out_path.is_file()
+
+
+def test_truncated_transcript_json_exits_with_single_line_message_naming_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text('{"turns": [', encoding="utf-8")
+    monkeypatch.setattr(build, "TEMPLATE", _make_template(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["build.py", str(workdir)])
+
+    with pytest.raises(SystemExit) as excinfo:
+        build.main()
+
+    assert excinfo.value.code
+    assert len(excinfo.value.args) == 1
+    message = str(excinfo.value.args[0])
+    assert "\n" not in message
+    assert "Traceback" not in message
+    assert str(workdir / "transcript.json") in message
+    assert not (workdir / "debrief.html").exists()
+
+
+def test_transcript_json_missing_turns_key_exits_with_single_line_message(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text(json.dumps({}), encoding="utf-8")
+    monkeypatch.setattr(build, "TEMPLATE", _make_template(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["build.py", str(workdir)])
+
+    with pytest.raises(SystemExit) as excinfo:
+        build.main()
+
+    assert excinfo.value.code
+    assert len(excinfo.value.args) == 1
+    message = str(excinfo.value.args[0])
+    assert "\n" not in message
+    assert "Traceback" not in message
+    assert not (workdir / "debrief.html").exists()
+
+
+def test_extract_json_as_list_exits_with_single_line_message(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text(
+        json.dumps({"turns": []}), encoding="utf-8"
+    )
+    (workdir / "extract.json").write_text(json.dumps([1, 2]), encoding="utf-8")
+    monkeypatch.setattr(build, "TEMPLATE", _make_template(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["build.py", str(workdir)])
+
+    with pytest.raises(SystemExit) as excinfo:
+        build.main()
+
+    assert excinfo.value.code
+    assert len(excinfo.value.args) == 1
+    message = str(excinfo.value.args[0])
+    assert "\n" not in message
+    assert "Traceback" not in message
+    assert not (workdir / "debrief.html").exists()
+
+
+def test_extract_json_as_null_exits_with_single_line_message(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text(
+        json.dumps({"turns": []}), encoding="utf-8"
+    )
+    (workdir / "extract.json").write_text(json.dumps(None), encoding="utf-8")
+    monkeypatch.setattr(build, "TEMPLATE", _make_template(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["build.py", str(workdir)])
+
+    with pytest.raises(SystemExit) as excinfo:
+        build.main()
+
+    assert excinfo.value.code
+    assert len(excinfo.value.args) == 1
+    message = str(excinfo.value.args[0])
+    assert "\n" not in message
+    assert "Traceback" not in message
+    assert not (workdir / "debrief.html").exists()
+
+
+def test_extract_json_corrections_as_string_exits_with_single_line_message(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text(
+        json.dumps({"turns": [{"i": 0, "text": "hello world"}]}),
+        encoding="utf-8",
+    )
+    (workdir / "extract.json").write_text(
+        json.dumps({"corrections": "oops"}), encoding="utf-8"
+    )
+    monkeypatch.setattr(build, "TEMPLATE", _make_template(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["build.py", str(workdir)])
+
+    with pytest.raises(SystemExit) as excinfo:
+        build.main()
+
+    assert excinfo.value.code
+    assert len(excinfo.value.args) == 1
+    message = str(excinfo.value.args[0])
+    assert "\n" not in message
+    assert "Traceback" not in message
+    assert not (workdir / "debrief.html").exists()
+
+
+def test_corrections_list_with_non_dict_entry_exits_with_single_line_message(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text(
+        json.dumps({"turns": [{"i": 0, "text": "old-path lives here"}]}),
+        encoding="utf-8",
+    )
+    (workdir / "extract.json").write_text(
+        json.dumps(
+            {
+                "corrections": [
+                    {"from": "old-path", "to": "new-path"},
+                    "not-a-correction-object",
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(build, "TEMPLATE", _make_template(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["build.py", str(workdir)])
+
+    with pytest.raises(SystemExit) as excinfo:
+        build.main()
+
+    assert excinfo.value.code
+    assert len(excinfo.value.args) == 1
+    message = str(excinfo.value.args[0])
+    assert "\n" not in message
+    assert "Traceback" not in message
+    assert not (workdir / "debrief.html").exists()
+
+
+def test_valid_correction_entry_still_applies_when_extract_json_is_well_formed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text(
+        json.dumps({"turns": [{"i": 0, "text": "old-path lives here"}]}),
+        encoding="utf-8",
+    )
+    (workdir / "extract.json").write_text(
+        json.dumps({"corrections": [{"from": "old-path", "to": "new-path"}]}),
+        encoding="utf-8",
+    )
+    out_path = tmp_path / "out.html"
+
+    _run_main(tmp_path, monkeypatch, workdir, out_path)
+
+    payload = _load_payload(out_path)
+    assert payload["transcript"]["turns"][0]["text"] == "new-path lives here"

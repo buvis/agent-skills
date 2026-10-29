@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 import zipfile
+from pathlib import Path
 
 import parse
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 VTT = """WEBVTT
 
@@ -242,3 +247,65 @@ def test_keeps_similar_names_as_separate_turns_in_transcript() -> None:
     assert len(data["turns"]) == 2
     speaker_ids = {t["s"] for t in data["turns"]}
     assert len(speaker_ids) == 2
+
+
+def test_exits_one_line_no_traceback_for_text_file_named_docx(tmp_path) -> None:
+    docx_path = tmp_path / "notes.docx"
+    docx_path.write_text("this is plain text, not a zip archive", encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT_DIR / "parse.py"), str(docx_path)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    stderr_lines = [line for line in result.stderr.splitlines() if line.strip()]
+    assert len(stderr_lines) == 1
+    assert str(docx_path) in stderr_lines[0]
+    assert not list(tmp_path.glob("*-debrief"))
+
+
+def test_exits_one_line_no_traceback_for_docx_zip_missing_document_xml(
+    tmp_path,
+) -> None:
+    docx_path = tmp_path / "corrupt.docx"
+    with zipfile.ZipFile(docx_path, "w") as archive:
+        archive.writestr("word/other.xml", "<w:p><w:t>irrelevant</w:t></w:p>")
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT_DIR / "parse.py"), str(docx_path)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    stderr_lines = [line for line in result.stderr.splitlines() if line.strip()]
+    assert len(stderr_lines) == 1
+    assert str(docx_path) in stderr_lines[0]
+    assert not list(tmp_path.glob("*-debrief"))
+
+
+def test_still_parses_valid_docx_zip_with_document_xml_present(tmp_path) -> None:
+    xml = (
+        "<w:p><w:r><w:t>Sam Okafor</w:t></w:r><w:tab/>"
+        "<w:r><w:t>0:05</w:t></w:r></w:p>"
+        "<w:p><w:r><w:t>Decision made.</w:t></w:r></w:p>"
+    )
+    docx_path = tmp_path / "valid.docx"
+    with zipfile.ZipFile(docx_path, "w") as archive:
+        archive.writestr("word/document.xml", xml)
+
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT_DIR / "parse.py"), str(docx_path)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0
+    assert (tmp_path / "valid-debrief" / "transcript.json").is_file()
