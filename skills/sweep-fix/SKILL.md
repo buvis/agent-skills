@@ -56,6 +56,13 @@ because a pattern that misses a known-present term is broken, and an
 unverified empty sweep is not a clean sweep). It then renders the report and
 writes it under `docs/dev/project-management/audit-results/`.
 
+The report's `Gaps:` section covers two different things: repos found on disk
+under the portfolio root that are missing from the registry, and registered
+rows that could not be scanned at all (a path no longer on disk, or a path
+that exists but has no `.git`). Each gap line names its path and a reason, so
+a missing path and a registered-but-not-a-repo path read as distinct cases
+rather than one undifferentiated gap.
+
 A `kind: rg` scan excludes `docs/dev/project-management/audit-results/**` from
 every repo it searches, so a sweep never counts an earlier report (or the one
 it is about to write) as a source hit.

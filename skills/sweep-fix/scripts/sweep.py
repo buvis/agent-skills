@@ -181,6 +181,14 @@ def enumerate_repos(registry, cwd):
         repos.append(cwd)
 
     gaps = []
+    for path in registered:
+        if path == work_tree or (path / ".git").exists():
+            continue
+        if path.is_dir():
+            gaps.append(f"{path}: exists but is not a git repository")
+        else:
+            gaps.append(f"{path}: not found on disk")
+
     if PORTFOLIO_ROOT.is_dir():
         for repo_dir in sorted(PORTFOLIO_ROOT.glob("*/*")):
             if repo_dir.is_dir() and (repo_dir / ".git").exists() and repo_dir not in repos:
