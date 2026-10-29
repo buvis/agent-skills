@@ -58,26 +58,48 @@ def load_json(path: Path) -> dict:
         sys.exit(f"glean: {path} is not valid JSON: {e}")
 
 
+def validate_entries(data: dict, path: Path) -> list[dict]:
+    entries = data.get("entries", [])
+    if not isinstance(entries, list):
+        sys.exit(f"glean: {path} has a non-list 'entries'")
+    for e in entries:
+        if not isinstance(e, dict):
+            sys.exit(f"glean: {path} has a non-object entry: {e!r}")
+        v = e.get("verdict")
+        if v not in VOLATILE | STABLE:
+            sys.exit(f"glean: unknown verdict {v!r} for {e.get('path')}")
+        if v in VOLATILE:
+            if not (e.get("sha256") or e.get("count_mtime")):
+                sys.exit(f"glean: volatile entry {e.get('path')} needs sha256 or count_mtime")
+            decided = e.get("decided")
+            try:
+                date.fromisoformat(decided)
+            except (TypeError, ValueError):
+                sys.exit(f"glean: volatile entry {e.get('path')} in {path} has invalid decided date {decided!r}")
+    return entries
+
+
 def load_ledgers(local_path: Path) -> tuple[dict, list[dict]]:
     local = load_json(local_path)
+    if not isinstance(local, dict):
+        sys.exit(f"glean: {local_path} must be a JSON object, not {type(local).__name__}")
     cfg = local.get("config")
     if not cfg or "git_dir" not in cfg:
         sys.exit(
             f"glean: no config in {local_path}. First run: create it with "
             '{"config": {"git_dir": "~/<bare-repo>", "public_ledger": "~/<path>.json"}, "entries": []}'
         )
-    entries = BUILTIN + local.get("entries", [])
+    if not git_dir(cfg).resolve().is_relative_to(HOME.resolve()):
+        sys.exit(f"glean: git_dir {git_dir(cfg)} is outside the supported home layout ({HOME})")
+    entries = BUILTIN + validate_entries(local, local_path)
     if cfg.get("public_ledger"):
         public_path = Path(cfg["public_ledger"]).expanduser()
         if not public_path.exists():
             sys.exit(f"glean: public_ledger {public_path} does not exist")
-        entries += load_json(public_path).get("entries", [])
-    for e in entries:
-        v = e.get("verdict")
-        if v not in VOLATILE | STABLE:
-            sys.exit(f"glean: unknown verdict {v!r} for {e.get('path')}")
-        if v in VOLATILE and not (e.get("sha256") or e.get("count_mtime")):
-            sys.exit(f"glean: volatile entry {e.get('path')} needs sha256 or count_mtime")
+        public = load_json(public_path)
+        if not isinstance(public, dict):
+            sys.exit(f"glean: {public_path} must be a JSON object, not {type(public).__name__}")
+        entries += validate_entries(public, public_path)
     return cfg, entries
 
 
