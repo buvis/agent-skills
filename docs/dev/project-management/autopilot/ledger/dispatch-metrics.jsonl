@@ -2608,3 +2608,30 @@
 {"kind":"handoff","site":"build","edge":"leave","at":1793243037,"phase":"done","prd":"00105-qwen-silently-exits-mise-failure-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1793244799,"phase":"done","prd":"00105-qwen-silently-exits-mise-failure-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793244902,"phase":"build","prd":"00105-qwen-silently-exits-mise-failure-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793244914,"phase":"build","prd":"00106-cleanup-manifests-use-different-paths-v1.md"}
+{"id":"b938e2af","kind":"fast-track:tess","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793245069,"prompt_bytes":86717}
+{"id":"b938e2af","ended_at":1793245298,"elapsed_s":229,"outcome":"ok","detail":null}
+{"id":"93912216","kind":"fast-track:ivan","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793245332,"prompt_bytes":49976}
+{"id":"93912216","ended_at":1793245441,"elapsed_s":109,"outcome":"ok","detail":null}
+{"id":"d24956e0","kind":"fast-track:alice","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793245639,"prompt_bytes":6251}
+{"id":"b2eaed5f","kind":"fast-track:blake","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793245640,"prompt_bytes":7135}
+{"id":"1d35ca8a","kind":"fast-track:eve","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793245641,"prompt_bytes":5550}
+{"id":"68cb6b8d","kind":"fast-track:bob","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793245643,"prompt_bytes":9432}
+{"id":"f0d7965a","kind":"fast-track:carl","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793245644,"prompt_bytes":6607}
+{"id":"f0d7965a","ended_at":1793246320,"elapsed_s":676,"outcome":"error","detail":"copilot backend: monthly quota exceeded"}
+{"id":"d24956e0","ended_at":1793246320,"elapsed_s":681,"outcome":"ok","detail":null}
+{"id":"b2eaed5f","ended_at":1793246321,"elapsed_s":681,"outcome":"ok","detail":null}
+{"id":"1d35ca8a","ended_at":1793246322,"elapsed_s":681,"outcome":"ok","detail":null}
+{"id":"68cb6b8d","ended_at":1793246323,"elapsed_s":680,"outcome":"ok","detail":null}
+{"id":"72825f75","kind":"fast-track:bob","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793246334,"prompt_bytes":9432}
+{"id":"72825f75","ended_at":1793246431,"elapsed_s":97,"outcome":"error","detail":"codex sandbox: file reads blocked twice, one retry spent, counts as failed"}
+{"id":"00bcb87f","kind":"fast-track:victor","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793246539,"prompt_bytes":2489}
+{"id":"100e854c","kind":"fast-track:victor","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793246540,"prompt_bytes":2361}
+{"id":"100e854c","ended_at":1793246582,"elapsed_s":42,"outcome":"ok","detail":null}
+{"id":"00bcb87f","ended_at":1793246587,"elapsed_s":48,"outcome":"ok","detail":null}
+{"id":"a7af2736","kind":"fast-track:ivan","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793246615,"prompt_bytes":11267}
+{"id":"a7af2736","ended_at":1793246731,"elapsed_s":116,"outcome":"ok","detail":null}
+{"id":"821a05a2","kind":"fast-track:delta","task":"00106-cleanup-manifests-use-different-paths-v1-c1","queued_at":1793246773,"prompt_bytes":5783}
+{"id":"821a05a2","ended_at":1793247449,"elapsed_s":676,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793248011,"phase":"done","prd":"00106-cleanup-manifests-use-different-paths-v1-v1.md"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793248016,"phase":"done","prd":"00106-cleanup-manifests-use-different-paths-v1.md"}
