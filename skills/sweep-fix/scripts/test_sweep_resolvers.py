@@ -22,7 +22,8 @@ def test_run_rg_never_invokes_a_bare_rg_binary_by_name():
     # PATH), this parses sweep.py's own source (like
     # test_sweep_module_imports_only_stdlib_modules does) and fails if
     # someone drops the `executable=` argument or changes argv[0] away from
-    # the literal "rg".
+    # the literal "rg". The launching call may be `run` or `Popen`: the
+    # invocation shape is the contract, not which one launches it.
     source = Path(sweep.__file__).read_text()
     tree = ast.parse(source, filename=sweep.__file__)
 
@@ -36,7 +37,7 @@ def test_run_rg_never_invokes_a_bare_rg_binary_by_name():
         for node in ast.walk(run_rg)
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "run"
+        and node.func.attr in {"run", "Popen"}
     )
 
     argv0 = call.args[0].elts[0]
@@ -182,9 +183,12 @@ def test_sweep_module_imports_only_stdlib_modules():
     # parses a single argument on a machine that never installed anything
     # for it. Parses the source rather than inspecting sys.modules, so this
     # fails on the import statement itself rather than on whatever happens
-    # to be installed on the machine running the suite.
+    # to be installed on the machine running the suite. Sibling modules
+    # shipped beside sweep.py are allowed - they travel with the script and
+    # are importable wherever it runs. Third-party packages are not.
     source = Path(sweep.__file__).read_text()
     tree = ast.parse(source, filename=sweep.__file__)
+    siblings = {path.stem for path in Path(sweep.__file__).parent.glob("*.py")}
 
     top_level_modules = set()
     for node in ast.walk(tree):
@@ -195,7 +199,7 @@ def test_sweep_module_imports_only_stdlib_modules():
             if node.level == 0 and node.module:
                 top_level_modules.add(node.module.split(".")[0])
 
-    non_stdlib = sorted(top_level_modules - sys.stdlib_module_names)
+    non_stdlib = sorted(top_level_modules - sys.stdlib_module_names - siblings)
     assert not non_stdlib, f"sweep.py imports non-stdlib module(s): {non_stdlib}"
 
 
