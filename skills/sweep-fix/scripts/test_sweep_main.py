@@ -944,21 +944,9 @@ def test_main_report_retains_missing_and_non_repo_registered_rows_as_distinct_ga
     assert str(missing_path) in report
     assert str(non_repo_path) in report
 
-    missing_line = next(
-        (line for line in report.splitlines() if str(missing_path) in line), ""
-    )
-    non_repo_line = next(
-        (line for line in report.splitlines() if str(non_repo_path) in line), ""
-    )
-    assert missing_line, f"expected {missing_path} to appear on its own report line"
-    assert non_repo_line, f"expected {non_repo_path} to appear on its own report line"
-    assert missing_line.strip() != non_repo_line.strip()
-
-    missing_reason = missing_line.replace(str(missing_path), "", 1).strip(" :-()")
-    non_repo_reason = non_repo_line.replace(str(non_repo_path), "", 1).strip(" :-()")
-    assert missing_reason, "expected the missing-path gap line to carry a reason"
-    assert non_repo_reason, "expected the non-repo gap line to carry a reason"
-    assert missing_reason.lower() != non_repo_reason.lower()
+    assert "Gaps (2):" in report
+    assert f"- {missing_path}: not found on disk" in report
+    assert f"- {non_repo_path}: exists but is not a git repository" in report
 
     # neither invalid row was ever scanned as a repo
     hit_lines = re.findall(r"^- .+:\d+: .*MIXEDREGISTRYMARKER.*$", report, re.MULTILINE)

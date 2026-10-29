@@ -547,23 +547,6 @@ def test_enumerate_repos_resolves_a_relative_dotdot_cwd_to_the_absolute_repo_roo
 # -- enumerate_repos: unreadable registry ------------------------------------
 
 
-def _gap_reason_for(gaps, path):
-    """Find the gap entry naming `path` and return its reason text, however
-    the implementation represents gaps (a dict with a path/reason key, or a
-    string embedding both). Returns None when `path` has no gap entry."""
-    path_str = str(path)
-    for gap in gaps:
-        if isinstance(gap, dict):
-            gap_path = str(gap.get("path", gap.get("repo", "")))
-            if gap_path == path_str:
-                return str(gap.get("reason", "")).strip()
-        else:
-            gap_str = str(gap)
-            if path_str in gap_str:
-                return gap_str.replace(path_str, "", 1).strip(" :-()–")
-    return None
-
-
 def test_enumerate_repos_reports_missing_and_non_repo_registered_rows_as_distinct_gaps(
     tmp_path, monkeypatch
 ):
@@ -589,15 +572,8 @@ def test_enumerate_repos_reports_missing_and_non_repo_registered_rows_as_distinc
     assert missing_path not in repos
     assert non_repo_path not in repos
 
-    missing_reason = _gap_reason_for(gaps, missing_path)
-    non_repo_reason = _gap_reason_for(gaps, non_repo_path)
-
-    assert missing_reason, f"expected {missing_path} to be reported as a gap with a reason"
-    assert non_repo_reason, f"expected {non_repo_path} to be reported as a gap with a reason"
-    assert missing_reason.lower() != non_repo_reason.lower(), (
-        "a missing path and an exists-but-not-a-repo path must carry "
-        "distinguishable gap reasons"
-    )
+    assert f"{missing_path}: not found on disk" in gaps
+    assert f"{non_repo_path}: exists but is not a git repository" in gaps
 
     # the pre-existing unregistered-on-disk gap must still be reported
     assert any(str(unregistered) in str(gap) for gap in gaps)

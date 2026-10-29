@@ -139,6 +139,21 @@ def _git_root(path):
     return path
 
 
+def _unresolved_registry_gaps(registered, work_tree):
+    """Gap-line strings for registered rows that cannot be scanned: a path
+    no longer on disk, or a path that exists but has no `.git`. Each line is
+    `"{path}: {reason}"`, so the two causes read as distinct cases."""
+    gaps = []
+    for path in registered:
+        if path == work_tree or (path / ".git").exists():
+            continue
+        if path.is_dir():
+            gaps.append(f"{path}: exists but is not a git repository")
+        else:
+            gaps.append(f"{path}: not found on disk")
+    return gaps
+
+
 def enumerate_repos(registry, cwd):
     """Enumerate the repos sweep should operate on.
 
@@ -156,8 +171,12 @@ def enumerate_repos(registry, cwd):
       rather than one entry per tracked file, since a directory walk would
       not find files living outside the home-relative repo layout (and would
       pull in untracked files sweep must not search).
-    - `gaps`: `.git` repos found on disk at `PORTFOLIO_ROOT/<org>/<repo>`
-      that are missing from the registry, as path strings.
+    - `gaps`: a mix of two cases, both as path-prefixed strings. ".git" repos
+      found on disk at `PORTFOLIO_ROOT/<org>/<repo>` that are missing from
+      the registry appear as a bare path. A registered row that could not be
+      scanned (a path no longer on disk, or a path that exists but has no
+      `.git`) appears as `"{path}: {reason}"`, so the two causes read as
+      distinct cases.
 
     The registry file is only ever read, never written.
     """
@@ -180,14 +199,7 @@ def enumerate_repos(registry, cwd):
     if cwd != work_tree and cwd not in repos:
         repos.append(cwd)
 
-    gaps = []
-    for path in registered:
-        if path == work_tree or (path / ".git").exists():
-            continue
-        if path.is_dir():
-            gaps.append(f"{path}: exists but is not a git repository")
-        else:
-            gaps.append(f"{path}: not found on disk")
+    gaps = _unresolved_registry_gaps(registered, work_tree)
 
     if PORTFOLIO_ROOT.is_dir():
         for repo_dir in sorted(PORTFOLIO_ROOT.glob("*/*")):
