@@ -123,6 +123,16 @@ def classify(rel: Path, mtime: float, live: set[str], now: float, args) -> str:
     return "stale-temp"
 
 
+def path_has_unsafe_characters(path: Path) -> str | None:
+    """Return a reason if any path component has a tab or newline, else None."""
+    for part in path.parts:
+        if "\t" in part:
+            return f"{part!r}: contains a tab"
+        if "\n" in part:
+            return f"{part!r}: contains a newline"
+    return None
+
+
 def _dedup_dest(batch_root: Path, rel: Path) -> Path:
     parts = list(rel.parts)
     for depth, base in enumerate(rel.parts):
@@ -173,11 +183,17 @@ def prune_empty_dirs(store: Path) -> None:
 
 
 def empty_old_trash(store: Path, now: float, days: float, keep: str | None = None) -> int:
-    """Remove batches older than days, never the batch named keep."""
+    """Remove batches older than days, never the batch named keep.
+
+    Manifest rows for successfully removed batches are dropped; rows for
+    retained batches, malformed historical rows, and rows whose batch
+    failed to delete are left untouched.
+    """
     trash = store / TRASH_DIR
     if not trash.is_dir():
         return 0
     removed = 0
+    removed_batches: set[str] = set()
     for batch in trash.iterdir():
         if not batch.is_dir() or batch.name == keep:
             continue
@@ -186,8 +202,28 @@ def empty_old_trash(store: Path, now: float, days: float, keep: str | None = Non
         except ValueError:
             continue
         if (now - batch_time) / DAY > days:
-            shutil.rmtree(batch)
+            try:
+                shutil.rmtree(batch)
+            except OSError:
+                continue
             removed += 1
+            removed_batches.add(batch.name)
+
+    if removed_batches:
+        manifest = trash / "manifest.tsv"
+        if manifest.is_file():
+            lines = manifest.read_text(encoding="utf-8").splitlines()
+            kept_lines = [
+                line for line in lines if line.split("\t", 1)[0] not in removed_batches
+            ]
+            if len(kept_lines) != len(lines):
+                try:
+                    text = "".join(f"{line}\n" for line in kept_lines)
+                    tmp = manifest.with_name(manifest.name + ".tmp")
+                    tmp.write_text(text, encoding="utf-8")
+                    os.replace(tmp, manifest)
+                except OSError:
+                    pass
     return removed
 
 
@@ -196,8 +232,15 @@ def process_store(label: str, store: Path, args, now: float) -> Counter:
     live = live_prd_numbers(store)
     counts: Counter = Counter()
     candidates: list[Path] = []
+    refused: list[tuple[Path, str]] = []
     for rel, mtime in sorted(walk_store(store)):
         rule = classify(rel, mtime, live, now, args)
+        if rule == "stale-temp":
+            reason = path_has_unsafe_characters(rel)
+            if reason is not None:
+                counts["refused-unsafe-path"] += 1
+                refused.append((rel, reason))
+                continue
         counts[rule] += 1
         if rule == "stale-temp":
             candidates.append(rel)
@@ -212,11 +255,14 @@ def process_store(label: str, store: Path, args, now: float) -> Counter:
 
     print(
         f"{label}: trash={len(candidates)} live-linked={counts['live-linked']} "
-        f"fresh={counts['fresh']} trash-batches-emptied={emptied}"
+        f"fresh={counts['fresh']} trash-batches-emptied={emptied} "
+        f"stale-temp={counts['stale-temp']} refused-unsafe-path={counts['refused-unsafe-path']}"
     )
     if args.verbose:
         for rel in candidates:
             print(f"  stale-temp: {rel.as_posix()}")
+        for rel, reason in refused:
+            print(f"  refused-unsafe-path: {rel.as_posix()} ({reason})")
     return counts
 
 
