@@ -750,6 +750,11 @@ def _verify_zero_hit_sweep(args, start):
     )
 
 
+def _scan_deadline_after_setup(args, start):
+    """`scan()`'s deadline after deducting setup time already spent since `start`."""
+    return max(args.deadline - (time.monotonic() - start), 0)
+
+
 def main(argv=None):
     """CLI entry point: wire enumerate_repos, scan and render_report
     together, then write the rendered report to `--out`.
@@ -776,10 +781,7 @@ def main(argv=None):
         start = time.monotonic()
         resolve_rg() if args.kind == "rg" else resolve_ast_grep()
         repos, gaps = enumerate_repos(args.registry, args.cwd)
-        # Setup (resolve + enumerate) already spent part of --deadline; the
-        # scan budget is what is left of it, not the full flag value, so
-        # total wall time stays bounded by --deadline instead of setup+deadline.
-        scan_deadline = max(args.deadline - (time.monotonic() - start), 0)
+        scan_deadline = _scan_deadline_after_setup(args, start)
         hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap, deadline=scan_deadline)
         if not hits:
             _verify_zero_hit_sweep(args, start)
