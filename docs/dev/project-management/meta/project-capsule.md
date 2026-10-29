@@ -173,7 +173,10 @@ Updated: 2026-10-29 (full catchup, PRD 00104 selection, same batch 202610271200;
 - [x] 00109-sweep-hides-stale-registry-entries-v1.md (1/1 tasks, 1 cycle) —
   fast-track lane; sweep's registry sweep now retains stale entries as
   coverage gaps instead of hiding them.
-- [ ] 00110-trash-manifest-breaks-retains-dead-records-v1.md
+- [x] 00110-trash-manifest-breaks-retains-dead-records-v1.md (1/1 tasks, 1
+  cycle) — fast-track lane; purge-devtmp refuses unsafe manifest paths and
+  removes trash-manifest records only after their batch is fully emptied,
+  preserving other records.
 - [ ] 00111-braid-state-misses-link-removals-v1.md
 - [ ] 00112-glean-crashes-invalid-ledger-structure-v1.md
 - [ ] 00113-triage-check-run-shape-validates-only-the-per-t-v1.md (hold stub)

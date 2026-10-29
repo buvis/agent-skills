@@ -2733,3 +2733,5 @@
 {"id":"e5c60fd1","ended_at":1793264111,"elapsed_s":799,"outcome":"ok","detail":null}
 {"id":"f43cfe71","ended_at":1793265366,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793265366,"phase":"done","prd":"00110-trash-manifest-breaks-retains-dead-records-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1793265459,"phase":"done","prd":"00110-trash-manifest-breaks-retains-dead-records-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793265544,"phase":"build","prd":"00110-trash-manifest-breaks-retains-dead-records-v1.md"}
