@@ -801,3 +801,38 @@ def test_stable_entry_needs_no_fingerprint(home):
     entry = {"path": ".config/newtool/", "verdict": "noise", "decided": TODAY}
     _, loaded = glean.load_ledgers(write_ledger(home, [entry]))
     assert entry in loaded
+
+
+def test_load_ledgers_rejects_non_dict_config_instead_of_crashing(home):
+    ledger = write_raw(home / "ledger.json", {"config": ["git_dir"], "entries": []})
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr
+
+
+def test_load_ledgers_rejects_non_string_git_dir_instead_of_crashing(home):
+    ledger = write_raw(home / "ledger.json", {"config": {"git_dir": 5}, "entries": []})
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr
+
+
+def test_scan_accepts_relative_git_dir_under_home(home):
+    ledger = write_raw(home / "ledger.json", {"config": {"git_dir": ".dots"}, "entries": []})
+    r = run_cli(home, ledger, "scan")
+    assert "Traceback" not in r.stderr, r.stderr
+    assert r.returncode == 0, r.stderr
+
+
+def test_load_ledgers_rejects_entry_missing_path_instead_of_crashing(home):
+    (home / ".untracked-file").write_text("x\n")
+    ledger = write_raw(home / "ledger.json", {
+        "config": {"git_dir": str(home / ".dots")},
+        "entries": [{"verdict": "never", "sha256": "abc123", "decided": TODAY}],
+    })
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr

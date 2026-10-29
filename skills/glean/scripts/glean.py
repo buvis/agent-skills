@@ -65,6 +65,8 @@ def validate_entries(data: dict, path: Path) -> list[dict]:
     for e in entries:
         if not isinstance(e, dict):
             sys.exit(f"glean: {path} has a non-object entry: {e!r}")
+        if not isinstance(e.get("path"), str):
+            sys.exit(f"glean: entry in {path} has a missing or non-string 'path': {e!r}")
         v = e.get("verdict")
         if v not in VOLATILE | STABLE:
             sys.exit(f"glean: unknown verdict {v!r} for {e.get('path')}")
@@ -84,12 +86,20 @@ def load_ledgers(local_path: Path) -> tuple[dict, list[dict]]:
     if not isinstance(local, dict):
         sys.exit(f"glean: {local_path} must be a JSON object, not {type(local).__name__}")
     cfg = local.get("config")
-    if not cfg or "git_dir" not in cfg:
+    if not isinstance(cfg, dict) or "git_dir" not in cfg:
         sys.exit(
             f"glean: no config in {local_path}. First run: create it with "
             '{"config": {"git_dir": "~/<bare-repo>", "public_ledger": "~/<path>.json"}, "entries": []}'
         )
-    if not git_dir(cfg).resolve().is_relative_to(HOME.resolve()):
+    if not isinstance(cfg["git_dir"], str):
+        sys.exit(f"glean: {local_path} has a non-string 'git_dir': {cfg['git_dir']!r}")
+    if "public_ledger" in cfg and not isinstance(cfg["public_ledger"], str):
+        sys.exit(f"glean: {local_path} has a non-string 'public_ledger': {cfg['public_ledger']!r}")
+    if "link_roots" in cfg and not isinstance(cfg["link_roots"], list):
+        sys.exit(f"glean: {local_path} has a non-list 'link_roots': {cfg['link_roots']!r}")
+    try:
+        git_dir(cfg).relative_to(HOME)
+    except ValueError:
         sys.exit(f"glean: git_dir {git_dir(cfg)} is outside the supported home layout ({HOME})")
     entries = BUILTIN + validate_entries(local, local_path)
     if cfg.get("public_ledger"):
@@ -104,7 +114,8 @@ def load_ledgers(local_path: Path) -> tuple[dict, list[dict]]:
 
 
 def git_dir(cfg: dict) -> Path:
-    return Path(cfg["git_dir"]).expanduser()
+    p = Path(cfg["git_dir"]).expanduser()
+    return p if p.is_absolute() else HOME / p
 
 
 def git(cfg: dict, *args: str) -> str:
