@@ -1092,9 +1092,14 @@ def test_cli_exits_one_unverified_with_no_report_when_the_deadline_leaves_no_bud
     code, elapsed, _out, err = _run_cli(tmp_path, argv, bin_dir)
     spawned = _recorded_pids(shim_pid_dir, "shim") + _recorded_pids(shim_pid_dir, "grandchild")
 
-    assert elapsed < 5, err
+    # Under 1s past the deadline: a control check handed a fresh budget of
+    # its own (even 1s) after the sweep spent the shared one ends later.
+    assert elapsed < 4, err
     assert code == 1, err
-    assert any(line.startswith("sweep unverified: ") for line in err.splitlines()), err
+    unverified = [line for line in err.splitlines() if line.startswith("sweep unverified: ")]
+    assert len(unverified) == 1, err
+    assert str(control_repo) in unverified[0]
+    assert "deadline expired" in unverified[0]
     assert not out_path.exists()
     assert not out_path.parent.exists()
     assert spawned

@@ -594,8 +594,8 @@ _POSIX_SHIM = pytest.mark.skipif(
 )
 
 
-def _write_tree_shim(bin_dir, pid_dir, fast_repo_name="", fast_output=""):
-    """Put a fake `rg` in bin_dir. Every run leaves shim-<pid> in pid_dir. A
+def _write_tree_shim(bin_dir, pid_dir, fast_repo_name="", fast_output="", tool="rg"):
+    """Put a fake `tool` in bin_dir. Every run leaves shim-<pid> in pid_dir. A
     run whose cwd is named fast_repo_name prints fast_output and exits. Any
     other run forks a 10s `sleep` grandchild, leaves grandchild-<pid>, waits
     on it, and only then leaves finished-<pid> and exits 1 (no matches)."""
@@ -611,13 +611,14 @@ def _write_tree_shim(bin_dir, pid_dir, fast_repo_name="", fast_output=""):
             f': > "{pid_dir}/grandchild-$!"',
             "wait",
             f': > "{pid_dir}/finished-$$"',
-            "exit 1",  # rg's "no matches"
+            "exit 1",  # "no matches" for both rg and ast-grep
             "",
         ]
     )
-    shim = bin_dir / "rg"
+    shim = bin_dir / tool
     shim.write_text(script)
     shim.chmod(0o755)
+    return shim
 
 
 def _recorded_pids(pid_dir, role):
@@ -677,14 +678,16 @@ def test_scan_kills_a_hung_search_and_its_grandchild_at_the_deadline_and_keeps_f
     repo_slow, repo_fast = repos = _make_repos(tmp_path, ["repo_slow", "repo_fast"])
 
     started = time.monotonic()
-    hits, suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, deadline=1)
+    # The fast repo has 2 hits: cap=1 proves the per-repo cap still applies
+    # on a run the deadline cut short.
+    hits, suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, cap=1, deadline=1)
     elapsed = time.monotonic() - started
     spawned = _recorded_pids(shim_pid_dir, "shim") + _recorded_pids(shim_pid_dir, "grandchild")
 
     assert elapsed < 3  # 1s deadline + 2s cleanup tolerance; the shim sleeps 10s
     assert failed == {str(repo_slow): sweep.DEADLINE_REASON}
-    assert suppressed == {}
-    assert [(h["repo"], h["line"]) for h in hits] == [(str(repo_fast), 1), (str(repo_fast), 2)]
+    assert suppressed == {str(repo_fast): 1}
+    assert [(h["repo"], h["line"]) for h in hits] == [(str(repo_fast), 1)]
     # The slow repo really went through the process-launch path.
     assert _recorded_pids(shim_pid_dir, "grandchild")
     # Grace covers signal delivery only; an unkilled sleeper lives 10s.
@@ -693,19 +696,52 @@ def test_scan_kills_a_hung_search_and_its_grandchild_at_the_deadline_and_keeps_f
 
 
 @_POSIX_SHIM
+def test_scan_kills_a_hung_ast_grep_search_and_its_grandchild_at_the_deadline(
+    tmp_path, monkeypatch, shim_pid_dir
+):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    shim = _write_tree_shim(bin_dir, shim_pid_dir, tool="ast-grep")
+    monkeypatch.setattr(sweep, "resolve_ast_grep", lambda: str(shim))
+    (repo_slow,) = repos = _make_repos(tmp_path, ["repo_slow"])
+    (repo_slow / "sample.py").write_text("print(1)\n")
+
+    started = time.monotonic()
+    hits, suppressed, failed = sweep.scan("print($X)", "astgrep", repos, deadline=1)
+    elapsed = time.monotonic() - started
+    spawned = _recorded_pids(shim_pid_dir, "shim") + _recorded_pids(shim_pid_dir, "grandchild")
+
+    assert elapsed < 3  # 1s deadline + 2s cleanup tolerance; the shim sleeps 10s
+    assert (hits, suppressed) == ([], {})
+    assert failed == {str(repo_slow): sweep.DEADLINE_REASON}
+    assert _recorded_pids(shim_pid_dir, "grandchild")  # the shim really ran
+    assert _still_running_after(spawned, grace=1.0) == []
+    assert list(shim_pid_dir.glob("finished-*")) == []
+
+
+@_POSIX_SHIM
 def test_scan_leaves_no_search_running_for_repos_still_queued_at_the_deadline(
     tmp_path, monkeypatch, shim_pid_dir
 ):
-    # More repos than any worker pool runs at once, all hanging. A queued
-    # repo whose search starts after scan() returns would still be sleeping
-    # when the process table is read 1.5s later.
+    # More repos than any worker pool runs at once, all hanging. Every
+    # process launch is timed, so a queued repo whose search starts after
+    # scan() returns is caught even if it dies before leaving a pid file.
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     _write_tree_shim(bin_dir, shim_pid_dir)
     monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
     repos = _make_repos(tmp_path, [f"repo_{i:02d}" for i in range(40)])
+    launched_at = []
+
+    class TimedPopen(subprocess.Popen):
+        def __init__(self, *args, **kwargs):
+            launched_at.append(time.monotonic())
+            super().__init__(*args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", TimedPopen)
 
     hits, _suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, deadline=1)
+    returned_at = time.monotonic()
     time.sleep(1.5)
     spawned = _recorded_pids(shim_pid_dir, "shim") + _recorded_pids(shim_pid_dir, "grandchild")
 
@@ -713,6 +749,8 @@ def test_scan_leaves_no_search_running_for_repos_still_queued_at_the_deadline(
     assert failed == {str(repo): sweep.DEADLINE_REASON for repo in repos}
     assert list(failed) == [str(repo) for repo in repos]
     assert spawned  # searches really started
+    assert launched_at  # and went through subprocess.Popen, so the timing is real
+    assert [t for t in launched_at if t > returned_at] == []
     assert _still_running_after(spawned, grace=0) == []
     assert list(shim_pid_dir.glob("finished-*")) == []
 

@@ -175,24 +175,34 @@ def _clean_control_repo(tmp_path, content="unrelated content\n"):
     return control_repo
 
 
-@pytest.mark.skipif(
-    os.name == "nt", reason="the hanging rg shim is a POSIX sh script"
+_POSIX_RG_SHIM = pytest.mark.skipif(
+    os.name == "nt", reason="the slow rg shim is a POSIX sh script"
 )
-def test_verify_control_bounds_the_control_term_search_by_what_the_scan_left_of_the_deadline(
-    tmp_path, monkeypatch
-):
-    # The control scan is injected to burn 2s of a 3s budget and come back
-    # clean, so the fallback control-term search runs next against a real
-    # `rg` shim that sleeps 10s. It may only use the ~1s left: a fresh 3s
-    # window would end near 5s, the default per-call timeout far later.
+
+
+@pytest.fixture
+def shim_pid_file(tmp_path):
+    # Kills the rg shim if a failing test left it running.
+    pid_file = tmp_path / "shim.pid"
+    yield pid_file
+    if pid_file.exists() and pid_file.read_text().strip():
+        try:
+            os.kill(int(pid_file.read_text()), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+
+def _slow_scan_then_rg_shim(tmp_path, monkeypatch, pid_file, shim_tail):
+    """Inject a control scan that burns 2s and comes back clean, so the
+    control-term search runs next against a real `rg` shim on PATH that
+    records its pid and then runs shim_tail. Returns the list each scan
+    call appends its `deadline` keyword to."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    pid_file = tmp_path / "shim.pid"
     shim = bin_dir / "rg"
-    shim.write_text(f'#!/bin/sh\necho $$ > "{pid_file}"\nexec sleep 10\n')
+    shim.write_text(f'#!/bin/sh\necho $$ > "{pid_file}"\n{shim_tail}\n')
     shim.chmod(0o755)
     monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
-    control_repo = _clean_control_repo(tmp_path)
     scan_deadlines = []
 
     def slow_clean_scan(*args, **kwargs):
@@ -201,24 +211,54 @@ def test_verify_control_bounds_the_control_term_search_by_what_the_scan_left_of_
         return [], {}, {}
 
     monkeypatch.setattr(sweep, "scan", slow_clean_scan)
+    return scan_deadlines
+
+
+@_POSIX_RG_SHIM
+def test_verify_control_bounds_the_control_term_search_by_what_the_scan_left_of_the_deadline(
+    tmp_path, monkeypatch, shim_pid_file
+):
+    # The scan burns 2s of a 3s budget; the shim sleeps 10s. The term search
+    # may only use the ~1s left: a fresh 3s window would end near 5s, the
+    # default per-call timeout far later.
+    scan_deadlines = _slow_scan_then_rg_shim(
+        tmp_path, monkeypatch, shim_pid_file, "exec sleep 10"
+    )
+    control_repo = _clean_control_repo(tmp_path)
 
     started = time.monotonic()
-    try:
-        with pytest.raises(TimeoutError):
-            sweep.verify_control(
-                "NOTPRESENTPATTERN", "rg", control_repo, "BUDGETTERM", deadline=3
-            )
-        elapsed = time.monotonic() - started
-    finally:
-        if pid_file.exists() and pid_file.read_text().strip():
-            try:
-                os.kill(int(pid_file.read_text()), signal.SIGKILL)
-            except (ProcessLookupError, PermissionError):
-                pass
+    with pytest.raises(TimeoutError):
+        sweep.verify_control(
+            "NOTPRESENTPATTERN", "rg", control_repo, "BUDGETTERM", deadline=3
+        )
+    elapsed = time.monotonic() - started
 
-    assert len(scan_deadlines) == 1
-    assert scan_deadlines[0] is not None and 0 < scan_deadlines[0] <= 3
+    # The scan gets the whole original budget, not a pre-shrunk share.
+    assert scan_deadlines == [pytest.approx(3, abs=0.1)]
+    assert shim_pid_file.exists()  # the term search really ran
+    assert elapsed >= 2.8  # ...and was given the remaining ~1s, not cut at once
     assert elapsed < 4.0  # 3s shared budget + 1s cleanup tolerance
+
+
+@_POSIX_RG_SHIM
+def test_verify_control_lets_the_control_term_search_use_all_the_budget_the_scan_left(
+    tmp_path, monkeypatch, shim_pid_file
+):
+    # The scan burns 2s of a 6s budget; the shim needs 2.5s, then reports
+    # "no matches". It fits in the 4s left, so a term search held to any
+    # fixed window shorter than that would be cut off and misreported.
+    scan_deadlines = _slow_scan_then_rg_shim(
+        tmp_path, monkeypatch, shim_pid_file, "sleep 2.5\nexit 1"
+    )
+    control_repo = _clean_control_repo(tmp_path)
+
+    result = sweep.verify_control(
+        "NOTPRESENTPATTERN", "rg", control_repo, "SPARETERM", deadline=6
+    )
+
+    assert result is None
+    assert scan_deadlines == [pytest.approx(6, abs=0.1)]
+    assert shim_pid_file.exists()
 
 
 @pytest.mark.parametrize(
@@ -253,8 +293,12 @@ def test_verify_control_raises_timeout_only_when_its_scan_ran_out_of_deadline(
 
     assert exc_info.type is expected_error
     assert searches == []  # a failed control scan never falls through to the term search
-    if expected_error is RuntimeError:
-        message = str(exc_info.value)
+    message = str(exc_info.value)
+    if expected_error is TimeoutError:
+        assert message.startswith("sweep unverified: ")
+        assert str(control_repo) in message
+        assert "deadline expired" in message
+    else:
         assert "could not be scanned" in message
         assert str(control_repo) in message
         assert scan_reason in message
