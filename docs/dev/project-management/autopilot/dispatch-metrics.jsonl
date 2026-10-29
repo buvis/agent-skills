@@ -2683,3 +2683,24 @@
 {"id":"cdce4729","ended_at":1793255951,"elapsed_s":1090,"outcome":"ok","detail":null}
 {"id":"9a8e94cf","ended_at":1793255955,"elapsed_s":1090,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793257181,"phase":"build","prd":""}
+{"kind":"handoff","site":"build","edge":"resume","at":1793258508,"phase":"build","prd":"00109-sweep-hides-stale-registry-entries-v1.md"}
+{"id":"08c8dfde","kind":"fast-track:tess","task":"00109-sweep-hides-stale-registry-entries-v1-c1","queued_at":1793258594,"prompt_bytes":60613}
+{"id":"08c8dfde","ended_at":1793258767,"elapsed_s":173,"outcome":"ok","detail":null}
+{"id":"502d1804","kind":"fast-track:ivan","task":"00109-sweep-hides-stale-registry-entries-v1-c1","queued_at":1793258779,"prompt_bytes":65925}
+{"id":"502d1804","ended_at":1793258863,"elapsed_s":84,"outcome":"ok","detail":null}
+{"id":"dc2154ca","kind":"fast-track:fanout","task":"00109-sweep-hides-stale-registry-entries-v1-c1","queued_at":1793259012,"prompt_bytes":6245}
+{"id":"f1821402","kind":"fast-track:blake","task":"00109-sweep-hides-stale-registry-entries-v1-c1","queued_at":1793259013,"prompt_bytes":7010}
+{"id":"f48fcd4f","kind":"fast-track:eve","task":"00109-sweep-hides-stale-registry-entries-v1-c1","queued_at":1793259014,"prompt_bytes":5497}
+{"id":"a2240286","kind":"fast-track:bob","task":"00109-sweep-hides-stale-registry-entries-v1-c1","queued_at":1793259016,"prompt_bytes":9420}
+{"id":"8c1b7798","kind":"fast-track:carl","task":"00109-sweep-hides-stale-registry-entries-v1-c1","queued_at":1793259017,"prompt_bytes":6601}
+{"id":"dc2154ca","ended_at":1793259105,"elapsed_s":93,"outcome":"error","detail":"Workflow tool refused scriptPath: not a readable file for this session"}
+{"id":"b7d1c1ae","kind":"fast-track:alice","task":"00109-sweep-hides-stale-registry-entries-v1-c1","queued_at":1793259106,"prompt_bytes":6245}
+{"id":"8c1b7798","ended_at":1793259716,"elapsed_s":699,"outcome":"error","detail":"copilot backend monthly quota exceeded, retried once, same failure"}
+{"id":"f1821402","ended_at":1793259722,"elapsed_s":709,"outcome":"ok","detail":null}
+{"id":"b7d1c1ae","ended_at":1793259723,"elapsed_s":617,"outcome":"ok","detail":null}
+{"id":"a2240286","ended_at":1793259724,"elapsed_s":708,"outcome":"ok","detail":null}
+{"id":"4179c25b","kind":"fast-track:bob","task":"00109-sweep-hides-stale-registry-entries-v1-c1","queued_at":1793259741,"prompt_bytes":9420}
+{"id":"4179c25b","ended_at":1793259844,"elapsed_s":103,"outcome":"error","detail":"codex sandbox denied cat/mcp reads twice (sandbox_apply: Operation not permitted); one-retry budget exhausted"}
+{"id":"a2240286","ended_at":1793259845,"elapsed_s":829,"outcome":"error","detail":"superseded; original close was premature, actual output was sandbox-blocked unverified review"}
+{"id":"f48fcd4f","ended_at":1793259881,"elapsed_s":867,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793260770,"phase":"done","prd":"00109-sweep-hides-stale-registry-entries-v1.md"}
