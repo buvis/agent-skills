@@ -3,7 +3,6 @@ import concurrent.futures
 import json
 import os
 import re
-import signal
 import subprocess
 import threading
 import time
@@ -12,7 +11,14 @@ from pathlib import Path
 import pytest
 
 import sweep
-from sweep_test_helpers import _git_status_porcelain, _plant_matches
+from sweep_test_helpers import (
+    _git_status_porcelain,
+    _is_running,
+    _plant_matches,
+    _recorded_pids,
+    _still_running_after,
+    _write_tree_shim,
+)
 
 
 # -- scan ---------------------------------------------------------------
@@ -606,79 +612,6 @@ _POSIX_SHIM = pytest.mark.skipif(
     reason="the search shim is a POSIX sh script that forks a grandchild; "
     "Windows has no compiler-free arg-agnostic equivalent (see the hung-search test)",
 )
-
-
-def _write_tree_shim(bin_dir, pid_dir, fast_repo_name="", fast_output="", tool="rg"):
-    """Put a fake `tool` in bin_dir. Every run leaves shim-<pid> in pid_dir. A
-    run whose cwd is named fast_repo_name prints fast_output and exits. Any
-    other run forks a 10s `sleep` grandchild, leaves grandchild-<pid>, waits
-    on it, and only then leaves finished-<pid> and exits 1 (no matches)."""
-    script = "\n".join(
-        [
-            "#!/bin/sh",
-            f': > "{pid_dir}/shim-$$"',
-            f'if [ "$(basename "$(pwd -P)")" = "{fast_repo_name}" ]; then',
-            f"  printf '%s' '{fast_output}'",
-            "  exit 0",
-            "fi",
-            "sleep 10 &",
-            f': > "{pid_dir}/grandchild-$!"',
-            "wait",
-            f': > "{pid_dir}/finished-$$"',
-            "exit 1",  # "no matches" for both rg and ast-grep
-            "",
-        ]
-    )
-    shim = bin_dir / tool
-    shim.write_text(script)
-    shim.chmod(0o755)
-    return shim
-
-
-def _recorded_pids(pid_dir, role):
-    return sorted(int(path.name.split("-")[1]) for path in pid_dir.glob(f"{role}-*"))
-
-
-def _is_running(pid):
-    # No `ps`: sandboxed runners may deny it. A killed shim that is our own
-    # child can linger as a zombie, which signal 0 still reaches, so reap it
-    # first; a zombie has already exited.
-    try:
-        if os.waitpid(pid, os.WNOHANG)[0] == pid:
-            return False
-    except ChildProcessError:
-        pass
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
-
-
-def _still_running_after(pids, grace):
-    give_up = time.monotonic() + grace
-    while True:
-        running = [pid for pid in pids if _is_running(pid)]
-        if not running or time.monotonic() >= give_up:
-            return running
-        time.sleep(0.05)
-
-
-@pytest.fixture
-def shim_pid_dir(tmp_path):
-    # Kills any shim or grandchild a failing test left behind, so a red run
-    # never leaks 10s sleepers.
-    pid_dir = tmp_path / "shim-pids"
-    pid_dir.mkdir()
-    yield pid_dir
-    for pid in _recorded_pids(pid_dir, "shim") + _recorded_pids(pid_dir, "grandchild"):
-        if _is_running(pid):
-            try:
-                os.kill(pid, signal.SIGKILL)
-            except (ProcessLookupError, PermissionError):
-                pass
 
 
 @_POSIX_SHIM
