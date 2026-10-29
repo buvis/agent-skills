@@ -1,0 +1,98 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "Scope creep: the diff extracts `_yaml_quote` and `_render_astgrep_rule_block` into a new `sweep_rule_pack.py` and adds a sibling-module import in sweep.py. It also loosens the stdlib-only import test in test_sweep_resolvers.py to allow sibling modules. Neither is in the PRD's file list or the design doc. It looks like a size workaround to keep sweep.py under 800 lines (now 787). It works and the tests pass, but the PRD and design should name it, or it should be split into a separate change",
+    "file": "skills/sweep-fix/scripts/sweep_rule_pack.py:1",
+    "reason": "requirements ambiguity, not a defect: the extraction works and the suite is green, but whether the PRD and design doc should name the new module is a spec decision for a human at batch end, not something rework should invent"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`_kill_tree` runs `taskkill` on Windows with `timeout=DEFAULT_SCAN_TIMEOUT` (30s). The design asks for a short, separate timeout so a hung `taskkill` cannot stall deadline cleanup. A 30s stall would defeat the \"exit within the deadline plus 2s\" goal on Windows",
+    "file": "skills/sweep-fix/scripts/sweep.py:219",
+    "reason": "duplicate of R3: the same taskkill 30s cleanup timeout, cited at a different line. Folded into R3's consensus [3/3] and fixed there"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The new subprocess test harness duplicates shim generation, PID discovery, polling, and cleanup across two test files. Extract shared fixture/helpers while preserving the distinct child-reaping behavior.",
+    "file": "skills/sweep-fix/scripts/test_sweep_main.py:908",
+    "reason": "duplicate of R5: the same duplicated subprocess test harness at the same site. Folded into R5's consensus [2/3] and fixed there"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "New CLI regressions further expand `test_sweep_main.py` beyond the mandatory 800-line limit; the supplied function table places its final test at line 1120. Split the CLI tests into focused modules below the limit.",
+    "file": "skills/sweep-fix/scripts/test_sweep_main.py:1120",
+    "reason": "duplicate of R4: the same 800-line violation in the same file, cited at a different line. Folded into R4's consensus [2/3] and fixed there"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The Windows tree-kill path (`taskkill /F /T`, `CREATE_NEW_PROCESS_GROUP`) has no test. The real-CLI timing tests are POSIX-only (`_POSIX_SHIM` skips on `nt`). `taskkill` itself carries a 30s timeout, which could stretch cleanup. The spec's Windows-compatibility requirement is met only by code inspection.",
+    "file": "skills/sweep-fix/scripts/sweep.py:215",
+    "reason": "duplicate of R3: the same untested Windows branch. Folded into R3's consensus [3/3], whose fix adds Windows-branch coverage"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "In `_ProcessRegistry.kill` and `kill_all`, a process that has already exited but is not yet unregistered can be sent `os.killpg` on its pid. That is a theoretical pid-reuse window, since the group id equals the reaped pid. It is negligible for a short window, but worth a one-line comment",
+    "file": "skills/sweep-fix/scripts/sweep.py:264",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`main()` uses a new `_verify_zero_hit_sweep` helper instead of the inline `remaining` check in the design's `main()` contract. Behavior is equivalent: exit 1, one stderr line, no report. The `except (RuntimeError, TimeoutError)` widening matches the contract. Informational only",
+    "file": "skills/sweep-fix/scripts/sweep.py:723",
+    "reason": "single-voice; the reviewer labelled it informational only and confirmed the behaviour matches the design contract"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`_communicate_tracked` calls `proc.communicate()` with no timeout after `_kill_tree` on a per-search timeout. If a search command's descendant leaves the killed session or group (own `setsid`, or a detached grandchild that holds the pipe), the worker blocks on pipe EOF. `scan()` then blocks in `executor.shutdown(wait=True)`. The shim tests only cover descendants that stay in the group.",
+    "file": "skills/sweep-fix/scripts/sweep.py:288",
+    "reason": "single-voice; a search command that deliberately escapes its own session is outside the PRD's stated scope, which covers subprocess trees created by a search command"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The worker cleanup in `scan()` runs only when `deadline_hit` is true. If the collection loop raises (for example `KeyboardInterrupt`), `finally` still calls `executor.shutdown(wait=True, cancel_futures=False)` and does not call `kill_all()`. Live searches then delay exit on that path. This is outside the stated expiry case.",
+    "file": "skills/sweep-fix/scripts/sweep.py:499",
+    "reason": "single-voice; the reviewer states it is outside the expiry case the PRD specifies"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "2 touched test(s) pass against the pre-change code: test_cli_zero_hit_sweep_with_ample_deadline_verifies_control_as_before",
+    "file": "skills/sweep-fix/scripts/test_sweep_main.py",
+    "reason": "behaviour-preserving by design: the PRD requires preserving normal successful control checks, so this retained control test is supposed to pass against the pre-change code"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "2 touched test(s) pass against the pre-change code: test_run_rg_never_invokes_a_bare_rg_binary_by_name, test_sweep_module_imports_only_stdlib_modules",
+    "file": "skills/sweep-fix/scripts/test_sweep_resolvers.py",
+    "reason": "behaviour-preserving by design: both are pre-existing invariant tests the diff only adjusted, not new behaviour this change introduces. The loosening of the stdlib-import assertion is carried separately as the R7 deferral"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "4 touched test(s) pass against the pre-change code: test_scan_runs_repo_searches_concurrently, test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs",
+    "file": "skills/sweep-fix/scripts/test_sweep_scan.py",
+    "reason": "behaviour-preserving by design: these two were rebound to the Popen launch path and keep their prior coverage; the PRD requires retaining their successful-control coverage"
+  }
+]
