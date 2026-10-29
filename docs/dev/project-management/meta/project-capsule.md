@@ -165,7 +165,10 @@ Updated: 2026-10-29 (full catchup, PRD 00104 selection, same batch 202610271200;
   cycle) — fast-track lane; brush manifest's fourth field now stores the
   store-relative destination so purge-devtmp and brush agree on one path
   base in the shared trash manifest.
-- [ ] 00107-meeting-tools-crash-malformed-input-v1.md
+- [x] 00107-meeting-tools-crash-malformed-input-v1.md (1/1 tasks, 1 cycle) —
+  fast-track lane; `debrief-meeting`'s `parse.py` and `build.py` now reject
+  malformed Word archives and malformed transcript/extraction structures
+  instead of crashing.
 - [ ] 00108-mistyped-store-hides-unpublished-work-v1.md
 - [ ] 00109-sweep-hides-stale-registry-entries-v1.md
 - [ ] 00110-trash-manifest-breaks-retains-dead-records-v1.md
