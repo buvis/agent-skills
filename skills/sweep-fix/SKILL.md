@@ -43,7 +43,10 @@ python3 ~/.agents/skills/sweep-fix/scripts/sweep.py \
 out is reported, not waited for: it lands in the report's `Failed:` block and
 is counted in a `Partial: N repos not scanned (sweep deadline expired)` line
 above it. A `Partial:` line therefore means the sweep is incomplete - the
-pattern may have hits in those repos.
+pattern may have hits in those repos. The same budget also bounds the control
+check below: when a zero-hit sweep runs out of budget before the control check
+can confirm it, `sweep.py` exits 1 with a `sweep unverified: ...` stderr line
+and writes no report, the same refusal a broken pattern gets.
 
 `--control-repo` is the current repo, where the fix commit lives. `main()`
 resolves the scan tool, enumerates every repo in the gita registry, scans

@@ -602,12 +602,11 @@ def test_main_passes_deadline_through_to_scan(tmp_path, monkeypatch):
     assert without_flag[0] == 300
 
 
-def test_main_never_passes_deadline_into_verify_control(tmp_path, monkeypatch):
+def test_main_passes_remaining_deadline_into_verify_control(tmp_path, monkeypatch):
     # main() finds zero hits, so it falls through to verify_control(), which
     # calls scan() a second time on just the control repo. That second call
-    # must never be deadline-bound by the sweep's own --deadline budget: a
-    # small, fast control check must not be starved by a large sweep's
-    # configured deadline.
+    # is bound by what the sweep left of the shared --deadline budget, and a
+    # control check that fits in it still succeeds.
     argv, _repos, out_path = _build_sweep_main_scaffold(
         tmp_path, monkeypatch, "VERIFYDEADLINEMARKER", _make_repo
     )
@@ -627,7 +626,11 @@ def test_main_never_passes_deadline_into_verify_control(tmp_path, monkeypatch):
 
     assert exit_code == 0
     assert out_path.exists()
-    assert deadlines == [5, "<not passed>"]
+    assert len(deadlines) == 2
+    assert deadlines[0] == 5
+    # Every repo is empty, so main()'s own scan leaves nearly all of the 5s.
+    assert deadlines[1] == pytest.approx(5, abs=0.5)
+    assert deadlines[1] <= 5
 
 
 def test_main_accepts_cap_of_one_as_smallest_legal_value(tmp_path, monkeypatch):

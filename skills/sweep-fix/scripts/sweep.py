@@ -6,8 +6,10 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import date
@@ -205,18 +207,104 @@ def _build_hit(repo, file, line, snippet):
     }
 
 
-def _run_rg(args, cwd, timeout=DEFAULT_SCAN_TIMEOUT):
-    result = subprocess.run(
+def _kill_tree(proc):
+    """Terminate `proc` and its descendants (its process group on POSIX,
+    `taskkill /T` on Windows), falling back to `proc.kill()`. Never raises."""
+    try:
+        if os.name == "nt":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                capture_output=True,
+                timeout=DEFAULT_SCAN_TIMEOUT,
+            )
+        else:
+            os.killpg(proc.pid, signal.SIGKILL)
+    except (OSError, subprocess.SubprocessError):
+        pass
+    try:
+        proc.kill()
+    except OSError:
+        pass
+
+
+def _popen_new_group_kwargs():
+    """Popen kwargs that launch a search into its own killable group."""
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {"start_new_session": True}
+
+
+class _ProcessRegistry:
+    """In-flight search processes by repo key, so an expired repo's process
+    tree can be killed from outside the worker thread that owns it. After
+    `kill_all()` the registry is closed: a process registered later is
+    killed on the spot, so no search outlives the deadline cleanup."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._procs = {}
+        self._closed = False
+
+    def register(self, key, proc):
+        with self._lock:
+            if not self._closed:
+                self._procs.setdefault(key, []).append(proc)
+                return
+        _kill_tree(proc)
+
+    def unregister(self, key, proc):
+        with self._lock:
+            procs = self._procs.get(key, [])
+            if proc in procs:
+                procs.remove(proc)
+            if not procs:
+                self._procs.pop(key, None)
+
+    def kill(self, key):
+        with self._lock:
+            procs = self._procs.pop(key, [])
+        for proc in procs:
+            _kill_tree(proc)
+
+    def kill_all(self):
+        with self._lock:
+            self._closed = True
+            keys = list(self._procs)
+        for key in keys:
+            self.kill(key)
+
+
+def _communicate_tracked(proc, timeout, registry, key):
+    """`proc.communicate(timeout)` with `proc` registered under `key` while
+    it runs. On timeout the whole tree is killed before re-raising."""
+    if registry is not None:
+        registry.register(key, proc)
+    try:
+        try:
+            return proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            _kill_tree(proc)
+            proc.communicate()
+            raise
+    finally:
+        if registry is not None:
+            registry.unregister(key, proc)
+
+
+def _run_rg(args, cwd, timeout=DEFAULT_SCAN_TIMEOUT, registry=None, key=None):
+    proc = subprocess.Popen(
         ["rg", *args],
         executable=resolve_rg(),
         cwd=cwd,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=timeout,
+        **_popen_new_group_kwargs(),
     )
-    if result.returncode not in (0, 1):
-        raise RuntimeError(f"rg failed: {result.stderr}")
-    return result
+    stdout, stderr = _communicate_tracked(proc, timeout, registry, key)
+    if proc.returncode not in (0, 1):
+        raise RuntimeError(f"rg failed: {stderr}")
+    return subprocess.CompletedProcess(proc.args, proc.returncode, stdout, stderr)
 
 
 def _repo_cwd_and_targets(repo):
@@ -237,13 +325,15 @@ def _repo_cwd_and_targets(repo):
 AUDIT_RESULTS_GLOB = "!docs/dev/project-management/audit-results/**"
 
 
-def _scan_rg(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT):
+def _scan_rg(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT, registry=None, key=None):
     if not targets:
         return []
     result = _run_rg(
         ["--json", "--glob", AUDIT_RESULTS_GLOB, "--", pattern, *targets],
         cwd,
         timeout=timeout,
+        registry=registry,
+        key=key,
     )
     hits = []
     for line in result.stdout.splitlines():
@@ -258,19 +348,21 @@ def _scan_rg(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT):
     return hits
 
 
-def _scan_astgrep(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT):
+def _scan_astgrep(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT, registry=None, key=None):
     if not targets:
         return []
-    result = subprocess.run(
+    proc = subprocess.Popen(
         [resolve_ast_grep(), "run", "--pattern", pattern, "--json", "--", *targets],
         cwd=cwd,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
-        timeout=timeout,
+        **_popen_new_group_kwargs(),
     )
-    if result.returncode not in (0, 1):
-        raise RuntimeError(f"ast-grep failed: {result.stderr}")
-    matches = json.loads(result.stdout) if result.stdout.strip() else []
+    stdout, stderr = _communicate_tracked(proc, timeout, registry, key)
+    if proc.returncode not in (0, 1):
+        raise RuntimeError(f"ast-grep failed: {stderr}")
+    matches = json.loads(stdout) if stdout.strip() else []
     hits = []
     for match in matches:
         file = match["file"]
@@ -280,9 +372,10 @@ def _scan_astgrep(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT):
     return hits
 
 
-def _scan_repo(repo, pattern, kind, ast_grep_error, timeout):
+def _scan_repo(repo, pattern, kind, ast_grep_error, timeout, registry=None):
     """Scan a single `repo` entry. Returns `(cwd_key, hits, error)`, where
-    `error` is set (and `hits` empty) when the repo could not be scanned."""
+    `error` is set (and `hits` empty) when the repo could not be scanned.
+    The search process is tracked in `registry` under `cwd_key`."""
     if isinstance(repo, dict) and "error" in repo:
         return str(repo["cwd"]), [], repo["error"]
 
@@ -293,20 +386,21 @@ def _scan_repo(repo, pattern, kind, ast_grep_error, timeout):
 
     try:
         if kind == "rg":
-            repo_hits = _scan_rg(pattern, cwd, targets, timeout=timeout)
+            repo_hits = _scan_rg(pattern, cwd, targets, timeout=timeout, registry=registry, key=str(cwd))
         else:
-            repo_hits = _scan_astgrep(pattern, cwd, targets, timeout=timeout)
+            repo_hits = _scan_astgrep(pattern, cwd, targets, timeout=timeout, registry=registry, key=str(cwd))
     except Exception as exc:
         return str(cwd), [], str(exc)
 
     return str(cwd), repo_hits, None
 
 
-def _collect_scan_results(repos, futures, deadline, start):
+def _collect_scan_results(repos, futures, deadline, start, registry=None):
     """Await each future in `repos` order, bounded by `deadline` (seconds
     from `start`, or None for no bound). Returns `(results, deadline_hit)`
     where `results` holds each repo's `(cwd_key, hits, error)` tuple and an
-    unfinished repo past the deadline is recorded under DEADLINE_REASON."""
+    unfinished repo past the deadline is recorded under DEADLINE_REASON and
+    has its search process tree killed through `registry`."""
     results = []
     deadline_hit = False
     for repo, future in zip(repos, futures):
@@ -318,6 +412,8 @@ def _collect_scan_results(repos, futures, deadline, start):
             cwd_key = str(_repo_cwd_and_targets(repo)[0])
             results.append((cwd_key, [], DEADLINE_REASON))
             deadline_hit = True
+            if registry is not None:
+                registry.kill(cwd_key)
             continue
         try:
             results.append(future.result())
@@ -368,7 +464,8 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
     sweep, measured with `time.monotonic()` from the start of this call.
     When set, a repo whose search has not finished by the time the deadline
     passes is recorded in `failed` under DEADLINE_REASON instead of being
-    awaited further, and scan() returns without waiting for its worker.
+    awaited further. Its search process tree is killed, queued repos are
+    never started, and no search scan() launched outlives its return.
     """
     if kind not in ("rg", "astgrep"):
         raise ValueError(f"unknown kind: {kind!r}")
@@ -383,22 +480,25 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
     repos = list(repos)
     start = time.monotonic() if deadline is not None else None
     deadline_hit = False
-    # No `with` block: leaving one always waits for every worker, so a hung
-    # search would block scan() past its deadline.
+    registry = _ProcessRegistry()
+    # No `with` block: on a deadline every live search must be killed before
+    # waiting for the workers, or a hung search would block scan() past it.
     executor = ThreadPoolExecutor(max_workers=8)
     try:
         futures = [
-            executor.submit(_scan_repo, repo, pattern, kind, ast_grep_error, timeout)
+            executor.submit(_scan_repo, repo, pattern, kind, ast_grep_error, timeout, registry)
             for repo in repos
         ]
-        results, deadline_hit = _collect_scan_results(repos, futures, deadline, start)
+        results, deadline_hit = _collect_scan_results(repos, futures, deadline, start, registry)
     finally:
-        executor.shutdown(wait=not deadline_hit, cancel_futures=deadline_hit)
+        if deadline_hit:
+            registry.kill_all()
+        executor.shutdown(wait=True, cancel_futures=deadline_hit)
 
     return _apply_scan_cap(results, cap)
 
 
-def verify_control(pattern, kind, control_repo, control_term):
+def verify_control(pattern, kind, control_repo, control_term, deadline=None):
     """Verify `pattern` actually matches in `control_repo` before trusting a
     sweep run elsewhere.
 
@@ -413,18 +513,43 @@ def verify_control(pattern, kind, control_repo, control_term):
 
     Raises `RuntimeError` (one-line message) when the control repo cannot be
     scanned or the control-term search cannot run.
+
+    `deadline` (seconds) is one budget shared by both searches, measured
+    from entry: the control-term search gets only what the scan left. When
+    the budget runs out first, raises `TimeoutError` instead.
     """
-    hits, _suppressed, failed = scan(pattern, kind, [control_repo])
+    verify_start = time.monotonic()
+    expired = (
+        f"sweep unverified: deadline expired before control verification "
+        f"could confirm the result in {control_repo}"
+    )
+    hits, _suppressed, failed = scan(pattern, kind, [control_repo], deadline=deadline)
     if failed:
-        reason = " ".join(next(iter(failed.values())).split())
+        raw_reason = next(iter(failed.values()))
+        if raw_reason == DEADLINE_REASON:
+            raise TimeoutError(expired)
+        reason = " ".join(raw_reason.split())
         raise RuntimeError(
             f"sweep unverified: control repo {control_repo} could not be scanned: {reason}"
         )
     if hits:
         return None
 
+    timeout = DEFAULT_SCAN_TIMEOUT
+    if deadline is not None:
+        remaining = deadline - (time.monotonic() - verify_start)
+        if remaining <= 0:
+            raise TimeoutError(expired)
+        timeout = min(remaining, DEFAULT_SCAN_TIMEOUT)
     try:
-        result = _run_rg(["-F", "--", control_term, "."], control_repo)
+        result = _run_rg(["-F", "--", control_term, "."], control_repo, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        if timeout < DEFAULT_SCAN_TIMEOUT:
+            raise TimeoutError(expired) from exc
+        reason = " ".join(str(exc).split())
+        raise RuntimeError(
+            f'sweep unverified: could not search control term "{control_term}" in {control_repo}: {reason}'
+        ) from exc
     except Exception as exc:
         reason = " ".join(str(exc).split())
         raise RuntimeError(
@@ -639,7 +764,9 @@ def main(argv=None):
     repo is refused.
 
     Returns 0 on success. Returns 1 with one stderr line, writing no report,
-    on a setup failure (scan tool, registry, control check).
+    on a setup failure (scan tool, registry, control check) or when
+    `--deadline` runs out before the control check can confirm a zero-hit
+    sweep: the deadline bounds the sweep and the control check together.
     """
     args = _parse_args(argv)
 
@@ -647,12 +774,23 @@ def main(argv=None):
     out_path = _resolve_report_path(cwd_path, args.out, args.reason)
 
     try:
+        start = time.monotonic()
         resolve_rg() if args.kind == "rg" else resolve_ast_grep()
         repos, gaps = enumerate_repos(args.registry, args.cwd)
         hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap, deadline=args.deadline)
         if not hits:
-            verify_control(args.pattern, args.kind, Path(args.control_repo), args.control_term)
-    except RuntimeError as exc:
+            remaining = args.deadline - (time.monotonic() - start)
+            if remaining <= 0:
+                print(
+                    "sweep unverified: deadline expired before control "
+                    f"verification could run in {args.control_repo}",
+                    file=sys.stderr,
+                )
+                return 1
+            verify_control(
+                args.pattern, args.kind, Path(args.control_repo), args.control_term, deadline=remaining
+            )
+    except (RuntimeError, TimeoutError) as exc:
         print(exc, file=sys.stderr)
         return 1
 

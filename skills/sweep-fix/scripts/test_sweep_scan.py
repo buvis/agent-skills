@@ -286,15 +286,24 @@ def test_scan_runs_repo_searches_concurrently(tmp_path, monkeypatch, repo_count)
     # over the cap, so the concurrent path must also truncate and count.
     repos = _make_repos(tmp_path, [f"repo_{i}" for i in range(repo_count)])
     barrier = threading.Barrier(repo_count, timeout=5)
-    real_run = subprocess.run
 
-    def overlapping_run(cmd, *args, **kwargs):
-        if cmd[0] != "rg":
-            return real_run(cmd, *args, **kwargs)
-        barrier.wait()
-        return subprocess.CompletedProcess(cmd, 0, stdout=_rg_match_lines(3), stderr="")
+    class OverlappingPopen(subprocess.Popen):
+        # The barrier holds every rg launch until all are in flight; the real
+        # rg then runs (empty repo, no matches) and its output is swapped for
+        # three fake hits.
+        def __init__(self, cmd, *args, **kwargs):
+            self._is_rg = cmd[0] == "rg"
+            if self._is_rg:
+                barrier.wait()
+            super().__init__(cmd, *args, **kwargs)
 
-    monkeypatch.setattr(subprocess, "run", overlapping_run)
+        def communicate(self, *args, **kwargs):
+            stdout, stderr = super().communicate(*args, **kwargs)
+            if self._is_rg:
+                return _rg_match_lines(3), ""
+            return stdout, stderr
+
+    monkeypatch.setattr(subprocess, "Popen", OverlappingPopen)
 
     hits, suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, cap=2)
 
@@ -461,33 +470,38 @@ def test_scan_keeps_repos_that_finish_within_the_deadline(tmp_path, monkeypatch)
     assert [h["repo"] for h in hits] == [str(repo) for repo in repos]
 
 
+@pytest.mark.skipif(os.name == "nt", reason="the hanging search is a POSIX sh shim")
 def test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs(
     tmp_path, monkeypatch
 ):
-    # Real clock, real hung worker. repo_b blocks on an event for up to 5s.
-    # scan() must stop waiting at the 0.3s deadline and must not wait for the
-    # still-running worker on the way out (no blocking pool shutdown). The
-    # finally releases the worker so the test process never hangs.
-    repo_a, repo_b, repo_c = repos = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
-    release = threading.Event()
-
-    def hanging_scan_repo(repo, *args, **kwargs):
-        if repo == repo_b:
-            release.wait(timeout=5)
-        return str(repo), [_stub_hit(repo)], None
-
-    monkeypatch.setattr(sweep, "_scan_repo", hanging_scan_repo)
-
-    try:
-        started = time.monotonic()
-        hits, _suppressed, failed = sweep.scan(
-            "PARALLELMARKER", "rg", repos, deadline=0.3
+    # Real clock, real hung search process. The fake rg on PATH sleeps 5s in
+    # repo_b and prints one hit anywhere else. scan() must stop waiting at
+    # the 0.3s deadline and must not wait out the still-running search on
+    # the way out: the deadline kills it, so pool shutdown stays prompt.
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    shim = bin_dir / "rg"
+    shim.write_text(
+        "\n".join(
+            [
+                "#!/bin/sh",
+                'if [ "$(basename "$(pwd -P)")" = "repo_b" ]; then exec sleep 5; fi',
+                f"printf '%s' '{_rg_match_lines(1)}'",
+                "",
+            ]
         )
-        elapsed = time.monotonic() - started
-    finally:
-        release.set()
+    )
+    shim.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+    repo_a, repo_b, repo_c = repos = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
 
-    assert elapsed < 2  # far short of the hung worker's own 5s timeout
+    started = time.monotonic()
+    hits, _suppressed, failed = sweep.scan(
+        "PARALLELMARKER", "rg", repos, deadline=0.3
+    )
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 2  # far short of the hung search's own 5s sleep
     assert failed == {str(repo_b): sweep.DEADLINE_REASON}
     assert [h["repo"] for h in hits] == [str(repo_a), str(repo_c)]
 
