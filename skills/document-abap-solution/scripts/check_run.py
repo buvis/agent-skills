@@ -58,12 +58,37 @@ def check_deliverables(root: Path, out: Report, research_only: bool) -> None:
     out("research/snippets/ bank", bool(snippets), "snippet bank empty or missing")
 
 
+def _ident_pattern(min_len: int) -> "re.Pattern[str]":
+    """Custom ABAP identifiers: Z-prefixed, Y-prefixed (must contain an
+    underscore, so ordinary Y-words in prose do not match), and
+    /NAMESPACE/NAME. The namespace branch is case-sensitive so file paths
+    like /usr/bin never match."""
+    n = min_len
+    return re.compile(
+        r"(?<![A-Za-z0-9_/])(?:"
+        r"Z[A-Z0-9_]{%d,}"
+        r"|Y(?=[A-Z0-9]*_)[A-Z0-9_]{%d,}"
+        r"|(?-i:/[A-Z][A-Z0-9_]{1,9}/)[A-Z0-9_]{%d,}"
+        r")(?![A-Za-z0-9_])" % (n, n, max(n, 3)), re.I)
+
+
+def custom_idents(text: str, min_len: int) -> list[str]:
+    """Upper-cased custom identifiers found in text."""
+    return [m.upper() for m in _ident_pattern(min_len).findall(text)]
+
+
+def has_receipt(text: str) -> bool:
+    """The receipt must be on the FIRST line, as the contract states."""
+    first = text.lstrip("\ufeff").split("\n", 1)[0]
+    return "Fetched:" in first
+
+
 def check_snippet_receipts(root: Path, out: Report) -> None:
     snip_dir = root / "research" / "snippets"
     abap = list(snip_dir.glob("*.abap"))
     if not abap:
         return  # empty bank already reported by check_deliverables
-    unreceipted = [p.name for p in abap if "Fetched:" not in read(p)]
+    unreceipted = [p.name for p in abap if not has_receipt(read(p))]
     out("snippets carry fetch receipts", not unreceipted,
         "banked without a '\" Fetched: <tool> <timestamp>' first-line "
         "receipt (unfetched = memory, not source): " + ", ".join(sorted(unreceipted)[:6]))
@@ -80,7 +105,7 @@ def check_blessed_banked(root: Path, notes_text: str, out: Report) -> None:
     # collect Z-identifiers from the blessed line and the line after it
     tail = notes_text[m.start():]
     window = "".join(tail.splitlines(keepends=True)[:2])
-    named = set(re.findall(r"\bZ[A-Z0-9_]{4,}\b", window, re.I))
+    named = set(custom_idents(window, 4))
     if not named:
         return  # blessed pattern named by pattern-ID only, no object cited here
     bank = " ".join(read(p).upper() for p in (root / "research" / "snippets").glob("*")
@@ -228,7 +253,7 @@ def check_source_citations(root: Path, out: Report) -> None:
         if not path.is_file():
             continue
         for m in re.finditer(r"Source:([^\n]*)", read(path), re.I):
-            for ident in re.findall(r"\bZ[A-Z0-9_]{2,}\b", m.group(1), re.I):
+            for ident in custom_idents(m.group(1), 2):
                 if ident.upper() not in bank:
                     missing.add(ident.upper())
     out("cited sources are banked", not missing,
@@ -251,7 +276,7 @@ def check_doc_identifiers(root: Path, out: Report) -> None:
         path = root / rel
         if not path.is_file():
             continue
-        for ident in set(re.findall(r"\bZ[A-Z0-9_]{6,}\b", read(path).upper())):
+        for ident in set(custom_idents(read(path), 6)):
             if ident not in corpus:
                 missing.add(ident)
     out("doc identifiers trace to research", not missing,
@@ -449,6 +474,24 @@ def selftest() -> int:
         passed = {r[0] for r in run_checks(root) if r[1]}
         assert "blessed exemplar is banked" in passed, passed
         (root / "research" / "snippets" / "blessed.abap").unlink()
+
+        # receipt must be on the FIRST line, not buried below the code
+        late = root / "research" / "snippets" / "late.abap"
+        late.write_text('CLASS ZCL_X.\n" Fetched: t 2026-01-01 - ZCL_X\n', encoding="utf-8")
+        failed = {r[0] for r in run_checks(root) if not r[1]}
+        assert "snippets carry fetch receipts" in failed, failed
+        late.unlink()
+
+        # Y-prefixed and /NAMESPACE/ identifiers are covered, paths are not
+        for invented in ("YCL_INVENTED_ONE", "/EXAMPLE/INVENTED_CLASS"):
+            (root / "reference.md").write_text(
+                "| %s | CLAS | fabricated |" % invented, encoding="utf-8")
+            failed = {r[0] for r in run_checks(root) if not r[1]}
+            assert "doc identifiers trace to research" in failed, (invented, failed)
+        (root / "reference.md").write_text("see /usr/local/bin/tool", encoding="utf-8")
+        failed = {r[0] for r in run_checks(root) if not r[1]}
+        assert "doc identifiers trace to research" not in failed, failed
+        (root / "reference.md").write_text("doc", encoding="utf-8")
 
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)  # research-only package: no docs, no explorer

@@ -40,7 +40,15 @@ class Finding(NamedTuple):
 DOC_FILES = ["README.md", "architecture.md", "quick-start.md",
              "cookbook.md", "reference.md", "quick-reference.md"]
 
-IDENT_RE = re.compile(r"\bZ[A-Z0-9_]{6,}\b")
+# Custom ABAP identifiers: Z-prefixed, Y-prefixed (must contain an underscore, so
+# ordinary Y-words in prose do not match), and /NAMESPACE/NAME. The namespace
+# branch is case-sensitive so file paths like /usr/bin never match.
+IDENT_RE = re.compile(
+    r"(?<![A-Za-z0-9_/])(?:"
+    r"Z[A-Z0-9_]{6,}"
+    r"|Y(?=[A-Z0-9]*_)[A-Z0-9_]{6,}"
+    r"|(?-i:/[A-Z][A-Z0-9_]{1,9}/)[A-Z0-9_]{6,}"
+    r")(?![A-Za-z0-9_])", re.I)
 FETCH_TS_RE = re.compile(
     r'"?\s*Fetched:\s*\S+\s+(\d{4}-\d{2}-\d{2}T?\d{2}:\d{2})', re.I)
 ABAP_BLOCK_RE = re.compile(
@@ -54,7 +62,11 @@ COUNT_PATTERNS = [
     (r"(\d+)\s+bugs?", "bugs"),
     (r"(\d+)\s+recipes?", "recipes"),
 ]
-WILDCARD_IDENT_RE = re.compile(r"\bZ[A-Z0-9_]*\*")
+NAMING_RE = re.compile(
+    r"(?<![A-Za-z0-9_/])(?:Z[A-Za-z0-9_]{6,}|Y(?=[A-Za-z0-9]*_)[A-Za-z0-9_]{6,}"
+    r"|/[A-Z][A-Z0-9_]{1,9}/[A-Za-z0-9_]{6,})(?![A-Za-z0-9_])")
+WILDCARD_IDENT_RE = re.compile(
+    r"(?<![A-Za-z0-9_/])(?:[ZY][A-Z0-9_]*|/[A-Z][A-Z0-9_]{1,9}/[A-Z0-9_]*)\*")
 
 
 # ─── Utilities ─────────────────────────────────────────────────────────────────
@@ -64,8 +76,8 @@ def read(path: Path) -> str:
 
 
 def extract_identifiers(text: str) -> set[str]:
-    """Extract all Z-prefixed identifiers (normalized to upper)."""
-    return set(IDENT_RE.findall(text.upper()))
+    """Extract all custom identifiers: Z, Y, /NAMESPACE/ (normalized to upper)."""
+    return {m.upper() for m in IDENT_RE.findall(text)}
 
 
 def extract_counts(text: str, label: str = "") -> dict[str, list[int]]:
@@ -111,7 +123,7 @@ def check_d1_code_blocks(root: Path, docs: dict[str, str],
     findings = []
     snippet_by_ident: dict[str, str] = {}
     for name, content in snippets.items():
-        for ident in IDENT_RE.findall(content.upper()):
+        for ident in extract_identifiers(content):
             if ident not in snippet_by_ident:
                 snippet_by_ident[ident] = content
 
@@ -120,7 +132,7 @@ def check_d1_code_blocks(root: Path, docs: dict[str, str],
             block = m.group(1)
             if not ABAP_KEYWORDS.search(block):
                 continue
-            block_idents = IDENT_RE.findall(block.upper())
+            block_idents = sorted(extract_identifiers(block))
             for ident in block_idents:
                 if ident in snippet_by_ident:
                     # Compare: strip comment-only lines added as annotations
@@ -197,12 +209,12 @@ def check_d2_naming(docs: dict[str, str],
     all_occurrences: dict[str, set[str]] = defaultdict(set)
 
     for filename, content in docs.items():
-        for m in re.finditer(r"\bZ[A-Za-z0-9_]{6,}\b", content):
+        for m in re.finditer(NAMING_RE, content):
             name = m.group(0)
             all_occurrences[name.upper()].add(name)
 
     # Also check against research
-    for m in re.finditer(r"\bZ[A-Za-z0-9_]{6,}\b", research_corpus):
+    for m in re.finditer(NAMING_RE, research_corpus):
         name = m.group(0)
         all_occurrences[name.upper()].add(name)
 
@@ -586,6 +598,24 @@ def selftest() -> int:
         d1 = [f for f in findings if f.dimension == "D1"]
         assert d1, "expected D1 finding for orphan identifier"
         assert "ZCL_INVENTED_FAKE" in d1[0].evidence
+
+    # ── Y-prefixed and /NAMESPACE/ identifiers are covered (D1), paths are not ──
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "research" / "snippets").mkdir(parents=True)
+        (root / "research" / "notes.md").write_text("Status: COMPLETE\n",
+                                                    encoding="utf-8")
+        (root / "research" / "core.md").write_text("### ZCL_REAL_OBJECT\n",
+                                                   encoding="utf-8")
+        (root / "README.md").write_text(
+            "Uses YCL_INVENTED_ONE, /EXAMPLE/INVENTED_CLASS and /usr/local/bin/tool.\n",
+            encoding="utf-8")
+
+        findings, _ = run_audit(root)
+        evidence = " ".join(f.evidence for f in findings if f.dimension == "D1")
+        assert "YCL_INVENTED_ONE" in evidence, evidence
+        assert "/EXAMPLE/INVENTED_CLASS" in evidence, evidence
+        assert "USR" not in evidence.upper().replace("INVENTED", ""), evidence
 
     # ── Family inflation (D5) ──
     with tempfile.TemporaryDirectory() as td:
