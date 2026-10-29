@@ -92,6 +92,12 @@ def resolve_ast_grep():
 
 DEFAULT_SCAN_TIMEOUT = 30
 
+KILL_TREE_TIMEOUT = 5
+"""Bound a single `taskkill` call at deadline cleanup. Registry cleanup on
+Windows runs `_kill_tree` serially across every still-registered process;
+using DEFAULT_SCAN_TIMEOUT here let cleanup alone overrun the sweep deadline
+by up to 30s per process."""
+
 DEADLINE_REASON = "sweep deadline expired"
 
 PORTFOLIO_ROOT = Path.home() / "git" / "src" / "github.com"
@@ -216,7 +222,7 @@ def _kill_tree(proc):
             subprocess.run(
                 ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
                 capture_output=True,
-                timeout=DEFAULT_SCAN_TIMEOUT,
+                timeout=KILL_TREE_TIMEOUT,
             )
         else:
             os.killpg(proc.pid, signal.SIGKILL)
@@ -373,14 +379,22 @@ def _scan_astgrep(pattern, cwd, targets, timeout=DEFAULT_SCAN_TIMEOUT, registry=
     return hits
 
 
-def _scan_repo(repo, pattern, kind, ast_grep_error, timeout, registry=None):
+def _scan_repo(repo, pattern, kind, ast_grep_error, timeout, registry=None, deadline=None, start=None):
     """Scan a single `repo` entry. Returns `(cwd_key, hits, error)`, where
     `error` is set (and `hits` empty) when the repo could not be scanned.
-    The search process is tracked in `registry` under `cwd_key`."""
+    The search process is tracked in `registry` under `cwd_key`.
+
+    When `deadline` (seconds from `start`) has already passed by the time a
+    queued worker picks this repo up, the repo is recorded under
+    DEADLINE_REASON without ever calling Popen -- a freed worker thread must
+    not launch a fresh search after the sweep has already expired."""
     if isinstance(repo, dict) and "error" in repo:
         return str(repo["cwd"]), [], repo["error"]
 
     cwd, targets = _repo_cwd_and_targets(repo)
+
+    if deadline is not None and time.monotonic() - start >= deadline:
+        return str(cwd), [], DEADLINE_REASON
 
     if ast_grep_error is not None:
         return str(cwd), [], ast_grep_error
@@ -492,7 +506,9 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
     executor = ThreadPoolExecutor(max_workers=8)
     try:
         futures = [
-            executor.submit(_scan_repo, repo, pattern, kind, ast_grep_error, timeout, registry)
+            executor.submit(
+                _scan_repo, repo, pattern, kind, ast_grep_error, timeout, registry, deadline, start
+            )
             for repo in repos
         ]
         results, deadline_hit = _collect_scan_results(repos, futures, deadline, start, registry)
@@ -760,7 +776,11 @@ def main(argv=None):
         start = time.monotonic()
         resolve_rg() if args.kind == "rg" else resolve_ast_grep()
         repos, gaps = enumerate_repos(args.registry, args.cwd)
-        hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap, deadline=args.deadline)
+        # Setup (resolve + enumerate) already spent part of --deadline; the
+        # scan budget is what is left of it, not the full flag value, so
+        # total wall time stays bounded by --deadline instead of setup+deadline.
+        scan_deadline = max(args.deadline - (time.monotonic() - start), 0)
+        hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap, deadline=scan_deadline)
         if not hits:
             _verify_zero_hit_sweep(args, start)
     except (RuntimeError, TimeoutError) as exc:

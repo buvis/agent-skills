@@ -633,7 +633,10 @@ def test_main_passes_remaining_deadline_into_verify_control(tmp_path, monkeypatc
     assert exit_code == 0
     assert out_path.exists()
     assert len(deadlines) == 2
-    assert deadlines[0] == 5
+    # Setup time is deducted from the flag value before this first scan()
+    # call, same as test_main_passes_deadline_through_to_scan (R1).
+    assert deadlines[0] == pytest.approx(5, abs=0.5)
+    assert deadlines[0] <= 5
     # Every repo is empty, so main()'s own scan leaves nearly all of the 5s.
     assert deadlines[1] == pytest.approx(5, abs=0.5)
     assert deadlines[1] <= 5
