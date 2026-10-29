@@ -96,8 +96,11 @@ def check_verdict(text: str, out: Report) -> str | None:
 def check_findings(text: str, out: Report) -> dict[str, int]:
     """Parse individual findings and validate their structure."""
     findings = list(FINDING_RE.finditer(text))
-    out("findings present", bool(findings),
-        "no '### F<N>:' headings in the Findings section")
+    counts = SUMMARY_COUNTS_RE.search(text)
+    declared_zero = bool(counts) and all(int(g) == 0 for g in counts.groups())
+    out("findings present", bool(findings) or declared_zero,
+        "no '### F<N>:' headings in the Findings section and no explicit "
+        "'Findings: 0 (CRITICAL: 0, ...)' summary declaring a clean review")
 
     severity_counts: dict[str, int] = {s: 0 for s in VALID_SEVERITIES}
     numbered_ok = True
@@ -324,6 +327,22 @@ def selftest() -> int:
         (root / "review-report.md").write_text(no_fields, encoding="utf-8")
         failed = {r[0] for r in run_checks(root) if not r[1]}
         assert "findings have all required fields" in failed, failed
+
+        # A clean review: zero findings, declared explicitly, must pass.
+        import re as _re
+        clean = _re.sub(r"(?ms)^### F\d+:.*?(?=^## |\Z)", "", PASSING_REPORT)
+        clean = _re.sub(r"(?m)^Findings:.*$",
+                        "Findings: 0 (CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, INFO: 0)",
+                        clean)
+        (root / "review-report.md").write_text(clean, encoding="utf-8")
+        fails = [r for r in run_checks(root) if not r[1]]
+        assert not fails, "declared zero-finding report should pass, got: %s" % fails
+
+        # No headings and no zero declaration (non-zero claimed) must fail.
+        undeclared = _re.sub(r"(?ms)^### F\d+:.*?(?=^## |\Z)", "", PASSING_REPORT)
+        (root / "review-report.md").write_text(undeclared, encoding="utf-8")
+        failed = {r[0] for r in run_checks(root) if not r[1]}
+        assert "findings present" in failed, failed
 
         # ── Verdict-rule edge case 1: 2 HIGH + TRUSTWORTHY → should FAIL ──
         two_high = """\

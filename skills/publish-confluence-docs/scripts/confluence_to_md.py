@@ -26,6 +26,7 @@ class ConfluenceToMd(HTMLParser):
         self.is_header_row = False
         self.list_stack = []  # track nested ul/ol
         self.inline_buf = []
+        self.href_stack = []  # one entry per open <a>; "" when it has no href
         self.skip = False
         self.macro_name = ""
 
@@ -53,21 +54,24 @@ class ConfluenceToMd(HTMLParser):
         if self.skip:
             return
 
+        self._flush_inline()  # pending inline text precedes any block markup
+
         if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
             level = int(tag[1])
             self.md.append(f"\n{'#' * level} ")
         elif tag == "p":
             pass
         elif tag == "strong" or tag == "b":
-            self.inline_buf.append("**")
+            self._emit("**")
         elif tag == "em" or tag == "i":
-            self.inline_buf.append("*")
+            self._emit("*")
         elif tag == "code":
-            self.inline_buf.append("`")
+            self._emit("`")
         elif tag == "a":
             href = attrs_d.get("href", "")
-            self.inline_buf.append(f"[")
-            self.tag_stack[-1] = f"a:{href}"
+            self.href_stack.append(href)
+            if href:
+                self._emit("[")
         elif tag == "ul":
             self.list_stack.append("ul")
         elif tag == "ol":
@@ -112,24 +116,22 @@ class ConfluenceToMd(HTMLParser):
         if self.skip:
             return
 
+        self._flush_inline()  # close inline markers before block separators
+
         if tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
             self.md.append("\n")
         elif tag == "p":
             self.md.append("\n\n")
         elif tag == "strong" or tag == "b":
-            self.inline_buf.append("**")
+            self._emit("**")
         elif tag == "em" or tag == "i":
-            self.inline_buf.append("*")
+            self._emit("*")
         elif tag == "code" and not self.in_code_macro:
-            self.inline_buf.append("`")
+            self._emit("`")
         elif tag == "a":
-            # find the href from tag_stack
-            href = ""
-            for t in reversed(self.tag_stack + [f"a:"]):
-                if t.startswith("a:"):
-                    href = t[2:]
-                    break
-            self.inline_buf.append(f"]({href})")
+            href = self.href_stack.pop() if self.href_stack else ""
+            if href:
+                self._emit(f"]({href})")
         elif tag in ("ul", "ol"):
             if self.list_stack:
                 self.list_stack.pop()
@@ -156,11 +158,15 @@ class ConfluenceToMd(HTMLParser):
             return
         if self.skip:
             return
-        if self.in_table and self.current_cell is not None:
-            self.current_cell.append(data)
-            return
-        self.inline_buf.append(data)
+        self._emit(data)
         self._flush_inline()
+
+    def _emit(self, text):
+        """Route inline text to the open table cell, else to the inline buffer."""
+        if self.in_table:
+            self.current_cell.append(text)
+        else:
+            self.inline_buf.append(text)
 
     def _flush_inline(self):
         if self.inline_buf:
