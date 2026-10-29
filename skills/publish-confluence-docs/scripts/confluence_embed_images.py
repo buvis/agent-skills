@@ -48,13 +48,14 @@ def update_page(page_id, title, content, version, token):
 def image_tag(filename, width):
     return f'<p><ac:image ac:width="{width}"><ri:attachment ri:filename="{filename}" /></ac:image></p>'
 
-if __name__ == "__main__":
+def main(argv=None):
+    """Return 0 only when the page was read and updated."""
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("page_id", help="Confluence page ID")
     p.add_argument("images", nargs="+", help="Image filenames (must be already attached)")
     p.add_argument("--token", default=None)
     p.add_argument("--width", type=int, default=900, help="Display width (default: 900)")
-    args = p.parse_args()
+    args = p.parse_args(argv)
 
     if not BASE_URL:
         p.error("Set CONFLUENCE_BASE_URL to the selected Confluence instance.")
@@ -63,9 +64,14 @@ if __name__ == "__main__":
 
     token = get_token(args.token)
     if not token:
-        print("ERROR: No token.", file=sys.stderr); sys.exit(1)
+        print("ERROR: No token.", file=sys.stderr)
+        return 1
 
-    page = get_page(args.page_id, token)
+    try:
+        page = get_page(args.page_id, token)
+    except OSError as exc:  # URLError and HTTPError are OSError subclasses
+        print(f"ERROR: could not read page: {exc}", file=sys.stderr)
+        return 1
     content = page["body"]["storage"]["value"]
     ver = page["version"]["number"]
 
@@ -81,5 +87,13 @@ if __name__ == "__main__":
             content += f"\n{tag}"
             print(f"Appended {img} at end of page")
 
-    result = update_page(args.page_id, page["title"], content, ver + 1, token)
+    try:
+        result = update_page(args.page_id, page["title"], content, ver + 1, token)
+    except OSError as exc:
+        print(f"ERROR: page update failed: {exc}", file=sys.stderr)
+        return 1
     print(f"Updated to version {result['version']['number']}")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

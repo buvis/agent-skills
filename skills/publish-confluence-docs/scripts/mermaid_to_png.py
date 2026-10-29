@@ -48,14 +48,23 @@ def render(blocks, output_dir, width, scale):
             print(f"FAIL: {name} — {r.stderr}", file=sys.stderr)
     return results
 
-if __name__ == '__main__':
+def main(argv=None):
+    """Return 0 only when every block rendered."""
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('input', help='Markdown file with mermaid blocks')
     p.add_argument('--output-dir', default=None, help='Output directory (default: same as input)')
     p.add_argument('--width', type=int, default=1600, help='Image width in pixels (default: 1600)')
     p.add_argument('--scale', type=int, default=2, help='Scale factor for retina (default: 2)')
-    args = p.parse_args()
+    args = p.parse_args(argv)
     out = args.output_dir or os.path.dirname(os.path.abspath(args.input))
     blocks = extract_mermaid_blocks(args.input)
     print(f"Found {len(blocks)} mermaid block(s)")
-    render(blocks, out, args.width, args.scale)
+    results = render(blocks, out, args.width, args.scale)
+    if len(results) != len(blocks):
+        print(f"ERROR: {len(blocks) - len(results)} of {len(blocks)} diagram(s) failed to render",
+              file=sys.stderr)
+        return 1
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
