@@ -2665,3 +2665,21 @@
 {"kind":"handoff","site":"build","edge":"leave","at":1793253026,"phase":"done","prd":"00107-meeting-tools-crash-malformed-input-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1793254224,"phase":"done","prd":"00107-meeting-tools-crash-malformed-input-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793254305,"phase":"build","prd":"00107-meeting-tools-crash-malformed-input-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793254313,"phase":"build","prd":"00108-mistyped-store-hides-unpublished-work-v1.md"}
+{"id":"42170b73","kind":"fast-track:tess","task":"00108-mistyped-store-hides-unpublished-work-v1-c1","queued_at":1793254456,"prompt_bytes":57459}
+{"id":"42170b73","ended_at":1793254569,"elapsed_s":113,"outcome":"ok","detail":null}
+{"id":"af8d48e3","kind":"fast-track:ivan","task":"00108-mistyped-store-hides-unpublished-work-v1-c1","queued_at":1793254597,"prompt_bytes":31685}
+{"id":"af8d48e3","ended_at":1793254688,"elapsed_s":91,"outcome":"ok","detail":null}
+{"id":"3818cb93","kind":"fast-track:fanout","task":"00108-mistyped-store-hides-unpublished-work-v1-c1","queued_at":1793254858,"prompt_bytes":6251}
+{"id":"cdce4729","kind":"fast-track:blake","task":"00108-mistyped-store-hides-unpublished-work-v1-c1","queued_at":1793254861,"prompt_bytes":6899}
+{"id":"9a8e94cf","kind":"fast-track:eve","task":"00108-mistyped-store-hides-unpublished-work-v1-c1","queued_at":1793254865,"prompt_bytes":5381}
+{"id":"96b1e7d5","kind":"fast-track:bob","task":"00108-mistyped-store-hides-unpublished-work-v1-c1","queued_at":1793254869,"prompt_bytes":9432}
+{"id":"6d53999f","kind":"fast-track:carl","task":"00108-mistyped-store-hides-unpublished-work-v1-c1","queued_at":1793254872,"prompt_bytes":6607}
+{"id":"6d53999f","ended_at":1793255258,"elapsed_s":386,"outcome":"error","detail":"exit 1: copilot monthly quota exceeded"}
+{"id":"96b1e7d5","ended_at":1793255268,"elapsed_s":399,"outcome":"error","detail":"fact-forcing gate blocked all file reads; retrying once"}
+{"id":"65ab9c21","kind":"fast-track:bob","task":"00108-mistyped-store-hides-unpublished-work-v1-c1","queued_at":1793255272,"prompt_bytes":9432}
+{"id":"65ab9c21","ended_at":1793255369,"elapsed_s":97,"outcome":"error","detail":"codex fact-forcing gate blocked file reads again on retry"}
+{"id":"3818cb93","ended_at":1793255947,"elapsed_s":1089,"outcome":"ok","detail":null}
+{"id":"cdce4729","ended_at":1793255951,"elapsed_s":1090,"outcome":"ok","detail":null}
+{"id":"9a8e94cf","ended_at":1793255955,"elapsed_s":1090,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793257181,"phase":"build","prd":""}

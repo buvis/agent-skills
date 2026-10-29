@@ -185,6 +185,13 @@
       "reason": "rework cap reached with this finding unresolved",
       "prd": "00104-sweep-overruns-process-deadline-v1.md",
       "op_id": "9725262e2cee-dd10"
+    },
+    {
+      "type": "stall",
+      "site": "fast_track_blocked",
+      "detail": "fast-track/00108-mistyped-store-hides-unpublished-work-v1-c1: suite red: 1 failed, 4110 passed, 9 skipped (skills/sweep-fix/scripts/test_sweep_scan.py::test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs, unrelated pre-existing timing flake, reproduced on two consecutive full-suite runs)",
+      "op_id": "37fd2ca8c05e",
+      "prd": "00108-mistyped-store-hides-unpublished-work-v1.md"
     }
   ]
 }
