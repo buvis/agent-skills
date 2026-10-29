@@ -2637,3 +2637,29 @@
 {"kind":"handoff","site":"build","edge":"leave","at":1793248016,"phase":"done","prd":"00106-cleanup-manifests-use-different-paths-v1.md"}
 {"kind":"handoff","site":"done","edge":"resume","at":1793249223,"phase":"done","prd":"00106-cleanup-manifests-use-different-paths-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793249325,"phase":"build","prd":"00106-cleanup-manifests-use-different-paths-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793249333,"phase":"build","prd":"00107-meeting-tools-crash-malformed-input-v1.md"}
+{"id":"8dfbf060","kind":"fast-track:tess","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793249501,"prompt_bytes":36614}
+{"id":"8dfbf060","ended_at":1793249794,"elapsed_s":293,"outcome":"ok","detail":null}
+{"id":"54ad094d","kind":"fast-track:ivan","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793249823,"prompt_bytes":32466}
+{"id":"54ad094d","ended_at":1793249950,"elapsed_s":127,"outcome":"ok","detail":null}
+{"id":"c410ef69","kind":"fast-track:fanout","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793250582,"prompt_bytes":6898}
+{"id":"ab88a513","kind":"fast-track:blake","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793250592,"prompt_bytes":7871}
+{"id":"76dccbe7","kind":"fast-track:eve","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793250595,"prompt_bytes":5819}
+{"id":"f6b02b35","kind":"fast-track:bob","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793250599,"prompt_bytes":10075}
+{"id":"6eab91c4","kind":"fast-track:carl","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793250602,"prompt_bytes":7254}
+{"id":"c410ef69","ended_at":1793250634,"elapsed_s":52,"outcome":"error","detail":"Workflow tool requires explicit user opt-in, not available in this session"}
+{"id":"f12aa6f9","kind":"fast-track:alice","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793250638,"prompt_bytes":6898}
+{"id":"6eab91c4","ended_at":1793251311,"elapsed_s":709,"outcome":"error","detail":"copilot backend exceeded monthly quota"}
+{"id":"f6b02b35","ended_at":1793251321,"elapsed_s":722,"outcome":"error","detail":"sandbox_apply denied on first attempt, retrying"}
+{"id":"78a1895d","kind":"fast-track:bob","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793251324,"prompt_bytes":10075}
+{"id":"f12aa6f9","ended_at":1793251334,"elapsed_s":696,"outcome":"ok","detail":null}
+{"id":"ab88a513","ended_at":1793251336,"elapsed_s":744,"outcome":"ok","detail":null}
+{"id":"76dccbe7","ended_at":1793251412,"elapsed_s":817,"outcome":"ok","detail":null}
+{"id":"78a1895d","ended_at":1793251434,"elapsed_s":110,"outcome":"error","detail":"sandbox denied again on retry; counted as failed per one-retry budget"}
+{"id":"26451aa3","kind":"fast-track:victor","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793251500,"prompt_bytes":2719}
+{"id":"26451aa3","ended_at":1793251541,"elapsed_s":41,"outcome":"ok","detail":null}
+{"id":"5f76a5b9","kind":"fast-track:ivan","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793251582,"prompt_bytes":12055}
+{"id":"5f76a5b9","ended_at":1793251639,"elapsed_s":57,"outcome":"ok","detail":null}
+{"id":"3457bf26","kind":"fast-track:delta","task":"00107-meeting-tools-crash-malformed-input-v1-c1","queued_at":1793251696,"prompt_bytes":8129}
+{"id":"3457bf26","ended_at":1793252450,"elapsed_s":754,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793253026,"phase":"done","prd":"00107-meeting-tools-crash-malformed-input-v1.md"}
