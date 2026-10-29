@@ -5,7 +5,13 @@ set -eo pipefail
 
 # Ensure mise-managed tools (like pi) are on PATH.
 if command -v mise &>/dev/null; then
-    PATH="$(mise env -s bash < /dev/null 2>/dev/null | sed -n "s/^export PATH='\\(.*\\)'/\\1/p"):$PATH"
+    _mise_env_out="$(mise env -s bash < /dev/null 2>/dev/null)" || _mise_env_out=""
+    _mise_path="$(printf '%s' "$_mise_env_out" | sed -n "s/^export PATH='\\(.*\\)'/\\1/p")"
+    if [ -n "$_mise_path" ]; then
+        PATH="$_mise_path:$PATH"
+    else
+        echo "WARNING: mise env failed; falling back to the original PATH." >&2
+    fi
 fi
 
 # Local model served by llama.cpp - free to run, no API cost.
