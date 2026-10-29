@@ -224,6 +224,48 @@ def test_manifest_update_failure_leaves_manifest_unchanged_and_does_not_raise(tm
     assert (store / gc.TRASH_DIR / "manifest.tsv").read_text() == original_text
 
 
+def test_path_has_unsafe_characters_flags_a_carriage_return():
+    reason = gc.path_has_unsafe_characters(Path("notes\rbad.txt"))
+    assert reason is not None
+
+
+def test_manifest_rewrite_preserves_an_unrelated_row_containing_a_carriage_return(
+    tmp_path,
+):
+    _repo, store = repo_store(tmp_path)
+    now = noon_today()
+    old_batch = time.strftime("%Y-%m-%d", time.localtime(now - 40 * gc.DAY))
+    kept_batch = time.strftime("%Y-%m-%d", time.localtime(now))
+    seed_batch(store, old_batch, "junk.txt")
+    seed_batch(store, kept_batch, "keep.txt")
+    cr_line = f"{kept_batch}\tstale-temp\tweird\rname.txt\t{gc.TRASH_DIR}/{kept_batch}/weird\rname.txt"
+    old_line = f"{old_batch}\tstale-temp\tjunk.txt\t{gc.TRASH_DIR}/{old_batch}/junk.txt"
+    write_manifest(store, [cr_line, old_line])
+    removed = gc.empty_old_trash(store, now, 30, keep=kept_batch)
+    assert removed == 1
+    with (store / gc.TRASH_DIR / "manifest.tsv").open(
+        "r", encoding="utf-8", newline=""
+    ) as handle:
+        manifest_lines = handle.read().split("\n")
+    assert cr_line in manifest_lines
+    assert not any(line.startswith(old_batch) for line in manifest_lines)
+
+
+def test_malformed_row_sharing_a_removed_batch_name_is_preserved(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    now = noon_today()
+    old_batch = time.strftime("%Y-%m-%d", time.localtime(now - 40 * gc.DAY))
+    seed_batch(store, old_batch, "junk.txt")
+    malformed_line = f"{old_batch}\tonly-two-fields"
+    well_formed_line = f"{old_batch}\tstale-temp\tjunk.txt\t{gc.TRASH_DIR}/{old_batch}/junk.txt"
+    write_manifest(store, [malformed_line, well_formed_line])
+    removed = gc.empty_old_trash(store, now, 30, keep=None)
+    assert removed == 1
+    manifest_lines = (store / gc.TRASH_DIR / "manifest.tsv").read_text().splitlines()
+    assert malformed_line in manifest_lines
+    assert well_formed_line not in manifest_lines
+
+
 def test_historical_malformed_row_is_preserved_byte_for_byte(tmp_path):
     _repo, store = repo_store(tmp_path)
     now = noon_today()

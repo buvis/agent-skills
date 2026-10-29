@@ -130,6 +130,8 @@ def path_has_unsafe_characters(path: Path) -> str | None:
             return f"{part!r}: contains a tab"
         if "\n" in part:
             return f"{part!r}: contains a newline"
+        if part.splitlines() != [part]:
+            return f"{part!r}: contains a line break"
     return None
 
 
@@ -212,9 +214,18 @@ def empty_old_trash(store: Path, now: float, days: float, keep: str | None = Non
     if removed_batches:
         manifest = trash / "manifest.tsv"
         if manifest.is_file():
-            lines = manifest.read_text(encoding="utf-8").splitlines()
+            with manifest.open("r", encoding="utf-8", newline="") as handle:
+                text = handle.read()
+            lines = text.split("\n")
+            if lines and lines[-1] == "":
+                lines.pop()
             kept_lines = [
-                line for line in lines if line.split("\t", 1)[0] not in removed_batches
+                line
+                for line in lines
+                if not (
+                    len(line.split("\t")) == 4
+                    and line.split("\t", 1)[0] in removed_batches
+                )
             ]
             if len(kept_lines) != len(lines):
                 try:
