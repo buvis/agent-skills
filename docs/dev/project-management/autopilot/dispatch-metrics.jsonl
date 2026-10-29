@@ -2704,3 +2704,5 @@
 {"id":"a2240286","ended_at":1793259845,"elapsed_s":829,"outcome":"error","detail":"superseded; original close was premature, actual output was sandbox-blocked unverified review"}
 {"id":"f48fcd4f","ended_at":1793259881,"elapsed_s":867,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793260770,"phase":"done","prd":"00109-sweep-hides-stale-registry-entries-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1793260813,"phase":"done","prd":"00109-sweep-hides-stale-registry-entries-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793260890,"phase":"build","prd":"00109-sweep-hides-stale-registry-entries-v1.md"}
