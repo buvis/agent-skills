@@ -8,6 +8,7 @@ import json
 import os
 import posixpath
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -1136,3 +1137,27 @@ def test_manifest_appends_a_store_relative_row_after_an_old_repository_relative_
     new_row = lines[1].rstrip("\n").split("\t")
     assert new_row == [FROZEN_DATE, "brush-junk", "old_junk.log",
                        f".trash/{FROZEN_DATE}/old_junk.log"]
+
+
+def test_brush_and_purge_devtmp_manifest_rows_share_one_store_base(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """Both writers' fourth field must resolve under the same docs/dev/tmp
+    store, proving the shared convention, not just brush's own literal."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]
+                           / "purge-devtmp" / "scripts"))
+    import purge_devtmp as pd
+
+    store = repo / "docs" / "dev" / "tmp"
+    store.mkdir(parents=True)
+    (store / "stale.log").write_text("s")
+    pd.trash_file(store, Path("stale.log"), "2026-07-13")
+
+    _old_file(repo, "old_junk.log")
+    _run_main(repo, monkeypatch, capsys, "--apply", "old_junk.log")
+
+    rows = [line.split("\t") for line in
+            (store / ".trash" / "manifest.tsv").read_text().strip().splitlines()]
+    assert len(rows) == 2
+    for row in rows:
+        assert (repo / "docs/dev/tmp" / row[3]).is_file()
