@@ -2635,3 +2635,5 @@
 {"id":"821a05a2","ended_at":1793247449,"elapsed_s":676,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793248011,"phase":"done","prd":"00106-cleanup-manifests-use-different-paths-v1-v1.md"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793248016,"phase":"done","prd":"00106-cleanup-manifests-use-different-paths-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1793249223,"phase":"done","prd":"00106-cleanup-manifests-use-different-paths-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1793249325,"phase":"build","prd":"00106-cleanup-manifests-use-different-paths-v1.md"}

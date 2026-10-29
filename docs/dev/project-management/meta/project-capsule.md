@@ -161,7 +161,10 @@ Updated: 2026-10-29 (full catchup, PRD 00104 selection, same batch 202610271200;
 - [x] 00105-qwen-silently-exits-mise-failure-v1.md (1/1 tasks, 1 cycle) —
   fast-track lane; `use-qwen`'s dispatch script falls back to the original
   PATH when mise env setup fails, instead of silently exiting.
-- [ ] 00106-cleanup-manifests-use-different-paths-v1.md
+- [x] 00106-cleanup-manifests-use-different-paths-v1.md (1/1 tasks, 1
+  cycle) — fast-track lane; brush manifest's fourth field now stores the
+  store-relative destination so purge-devtmp and brush agree on one path
+  base in the shared trash manifest.
 - [ ] 00107-meeting-tools-crash-malformed-input-v1.md
 - [ ] 00108-mistyped-store-hides-unpublished-work-v1.md
 - [ ] 00109-sweep-hides-stale-registry-entries-v1.md
