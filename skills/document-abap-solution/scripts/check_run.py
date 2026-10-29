@@ -10,7 +10,10 @@ Usage:
 (census, scope decision, ledger, gates, sweep, status), domain cards, and a
 receipted snippet bank. The full check adds the document-abap-solution
 contract on top: doc deliverables, banners on INCOMPLETE runs, cited sources
-banked, doc identifiers traced to research/, explorer and solution.json.
+banked, doc identifiers traced to research/, the explorer, and the solution
+data INLINED in explorer.html (<script type="application/json" id="solution-data">).
+This copy validates the final output; the copy in explore-abap-solution is
+used with --research-only.
 It cannot check truth against the SAP system -- Phase 6 does that when access
 exists. Exit 0 only when every check passes. Paste the output verbatim into
 the Validation Report and the final report; never edit files just to turn a
@@ -305,16 +308,20 @@ def check_solution_json(root: Path, out: Report) -> None:
     if not path.is_file():
         return  # absence already reported
     html = read(path)
-    m = re.search(
-        r'<script[^>]*type="application/json"[^>]*id="solution-data"[^>]*>(.*?)</script>',
-        html, re.DOTALL)
+    m = None
+    for tag in re.finditer(r"<script\b([^>]*)>(.*?)</script>", html, re.DOTALL | re.I):
+        attrs = tag.group(1)  # attribute order and quote style do not matter
+        if (re.search(r"""\btype\s*=\s*["']application/json["']""", attrs, re.I)
+                and re.search(r"""\bid\s*=\s*["']solution-data["']""", attrs, re.I)):
+            m = tag
+            break
     if not m:
         out("solution data inlined", False,
             "no <script type=\"application/json\" id=\"solution-data\"> in explorer.html "
             "-- the solution data must be INLINED, not loaded via fetch/XHR "
             "(file:// protocol blocks external requests)")
         return
-    raw = m.group(1).strip()
+    raw = m.group(2).strip()
     if not raw or raw == '{"_placeholder": true}' or len(raw) < 50:
         out("solution data inlined", False,
             "solution-data script tag contains a placeholder or is empty -- "
@@ -414,6 +421,22 @@ def selftest() -> int:
         (root / "research" / "notes.md").write_text(PASSING_NOTES, encoding="utf-8")
         fails = [r for r in run_checks(root) if not r[1]]
         assert not fails, "clean fixture should pass, got: %s" % fails
+
+        # attribute order and quote style of the inline data tag do not matter
+        html_path = root / EXPLORER_HTML
+        original_html = html_path.read_text(encoding="utf-8")
+        html_path.write_text(
+            original_html.replace('type="application/json" id="solution-data"',
+                                  "id='solution-data' type='application/json'"),
+            encoding="utf-8")
+        fails = [r for r in run_checks(root) if not r[1]]
+        assert not fails, "id-before-type tag should pass, got: %s" % fails
+        html_path.write_text(
+            original_html.replace('id="solution-data"', 'id="other-data"'),
+            encoding="utf-8")
+        failed = {r[0] for r in run_checks(root) if not r[1]}
+        assert "solution data inlined" in failed, failed
+        html_path.write_text(original_html, encoding="utf-8")
 
         (root / "research" / "notes.md").write_text(
             "**Status:** COMPLETE (scope-limited)\n\n| ZCL_Y | domain | pending |\n",

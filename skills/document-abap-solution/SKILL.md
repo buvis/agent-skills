@@ -105,7 +105,7 @@ All content from the files above — nothing from memory.)
 ### Phase 6: Validation
 
 1. **Manifest:** list the output directory against Deliverables; every file exists or the final report names it as skipped with the reason. Regenerate README's doc map from the listing. INCOMPLETE runs: grep every doc and the SPA for the banner.
-2. **Existence, mechanically:** extract every custom identifier (Z-prefixed, Y-prefixed, or `/NAMESPACE/NAME`) from every doc and solution.json (grep), resolve each against the ledger. An unknown name is writer invention — replace it; both variants of a mutated name are wrong until the ledger settles it.
+2. **Existence, mechanically:** extract every custom identifier (Z-prefixed, Y-prefixed, or `/NAMESPACE/NAME`) from every doc and the inlined solution data (grep), resolve each against the ledger. An unknown name is writer invention — replace it; both variants of a mutated name are wrong until the ledger settles it.
 3. **Provenance, mechanically:** diff every code block citing a real object against its banked snippet; any difference beyond added annotation comments is a doc bug — re-paste. A cited block with no banked snippet becomes a [GAP] + fetch-list entry.
 4. **Completeness mapping:** every IMPL → recipe(s) or a documented stub.
 5. **Consistency, by numbers:** diff counts (objects, patterns, recipes, bugs by severity), the naming table, the copy-this exemplar, and the trigger anatomy (URL/transaction/job shape) across README, architecture, quick-reference, notes.md, solution.json, SPA footer. Any mismatch is a bug to fix, not explain. Unverified trigger paths carry "*inferred — not verified*" everywhere, consistently.

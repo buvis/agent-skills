@@ -6,6 +6,11 @@ Usage:
     python3 check_run.py --research-only <output_dir>  # research package only
     python3 check_run.py --selftest
 
+The explore-abap-solution skill supports ONLY --research-only. The full check in
+this copy is legacy: it expects a separate explorer/solution.json, which the
+document skill does not produce. Validate final output with the copy in
+document-abap-solution instead.
+
 --research-only verifies the explore-abap-solution contract: research/notes.md
 (census, scope decision, ledger, gates, sweep, status), domain cards, and a
 receipted snippet bank. The full check adds the document-abap-solution
