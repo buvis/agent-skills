@@ -2584,3 +2584,25 @@
 {"id":"30a411e7","ended_at":1793240345,"elapsed_s":692,"outcome":"ok","detail":null}
 {"id":"cc8363c6","ended_at":1793240345,"elapsed_s":692,"outcome":"error","detail":"exit 1"}
 {"kind":"handoff","site":"review","edge":"leave","at":1793240528,"phase":"build","prd":"00104-sweep-overruns-process-deadline-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793240544,"phase":"build","prd":"00105-qwen-silently-exits-mise-failure-v1.md"}
+{"id":"89cd330d","kind":"fast-track:tess","task":"00105-qwen-silently-exits-mise-failure-v1-c1","queued_at":1793240669,"prompt_bytes":159008}
+{"id":"89cd330d","ended_at":1793240883,"elapsed_s":214,"outcome":"ok","detail":null}
+{"id":"37138698","kind":"fast-track:ivan","task":"00105-qwen-silently-exits-mise-failure-v1-c1","queued_at":1793240913,"prompt_bytes":80707}
+{"id":"37138698","ended_at":1793241001,"elapsed_s":88,"outcome":"ok","detail":null}
+{"id":"4aa07a1b","kind":"fast-track:fanout","task":"00105-qwen-silently-exits-mise-failure-v1-c1","queued_at":1793241173,"prompt_bytes":1843}
+{"id":"482e6edf","kind":"fast-track:blake","task":"00105-qwen-silently-exits-mise-failure-v1-c1","queued_at":1793241174,"prompt_bytes":7013}
+{"id":"4ca2d26b","kind":"fast-track:eve","task":"00105-qwen-silently-exits-mise-failure-v1-c1","queued_at":1793241175,"prompt_bytes":5511}
+{"id":"4c59f61e","kind":"fast-track:bob","task":"00105-qwen-silently-exits-mise-failure-v1-c1","queued_at":1793241177,"prompt_bytes":8775}
+{"id":"5ef4daf8","kind":"fast-track:carl","task":"00105-qwen-silently-exits-mise-failure-v1-c1","queued_at":1793241178,"prompt_bytes":6597}
+{"id":"4aa07a1b","ended_at":1793241216,"elapsed_s":43,"outcome":"error","detail":"fanout not dispatched; using autopilot:alice fallback"}
+{"id":"7c76db14","kind":"fast-track:alice","task":"00105-qwen-silently-exits-mise-failure-v1-c1","queued_at":1793241227,"prompt_bytes":6241}
+{"id":"5ef4daf8","ended_at":1793241431,"elapsed_s":253,"outcome":"error","detail":"copilot backend monthly quota exceeded (exit 1), one retry also failed"}
+{"id":"4c59f61e","ended_at":1793241431,"elapsed_s":254,"outcome":"ok","detail":null}
+{"id":"482e6edf","ended_at":1793241436,"elapsed_s":262,"outcome":"ok","detail":null}
+{"id":"7c76db14","ended_at":1793241580,"elapsed_s":353,"outcome":"ok","detail":null}
+{"id":"4ca2d26b","ended_at":1793242232,"elapsed_s":1057,"outcome":"ok","detail":null}
+{"id":"4c59f61e","ended_at":1793242369,"elapsed_s":1192,"outcome":"error","detail":"codex CLI blocked by its own sandbox fact-forcing gate on both attempts; substituted general-purpose fallback"}
+{"id":"2dbf4297","kind":"fast-track:bob","task":"00105-qwen-silently-exits-mise-failure-v1-c1","queued_at":1793242376,"prompt_bytes":8775}
+{"id":"2dbf4297","ended_at":1793242445,"elapsed_s":69,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793243033,"phase":"done","prd":"00105-qwen-silently-exits-mise-failure-v1-c1.md"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793243037,"phase":"done","prd":"00105-qwen-silently-exits-mise-failure-v1.md"}
