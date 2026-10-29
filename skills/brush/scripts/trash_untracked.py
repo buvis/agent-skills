@@ -3,10 +3,12 @@
 
 Same trash and manifest convention as purge-devtmp (date, rule, original,
 trash path in .trash/manifest.tsv), so its 30-day empty-trash pass collects
-brush moves too. Refuses tracked files, project-management records, docs,
-secrets, paths
+brush moves too. The manifest's fourth field is store-relative (relative to
+docs/dev/tmp, e.g. ".trash/<date>/<rel>"), matching purge-devtmp's writer.
+Refuses tracked files, project-management records, docs, secrets, paths
 outside the repo, and anything fresher than --min-age-days.
-Restore: mv the file back per the manifest line.
+Restore: mv docs/dev/tmp/<fourth field> back to the original path (second
+to last manifest column).
 """
 
 from __future__ import annotations
@@ -125,8 +127,9 @@ def note_manifest(root: Path, date: str, rule: str, rel: str,
                   trash_rel: str) -> None:
     manifest = root / "docs/dev/tmp/.trash/manifest.tsv"
     manifest.parent.mkdir(parents=True, exist_ok=True)
+    store_rel = trash_rel.removeprefix("docs/dev/tmp/")
     with manifest.open("a", encoding="utf-8") as fh:
-        fh.write(f"{date}\t{rule}\t{rel}\t{trash_rel}\n")
+        fh.write(f"{date}\t{rule}\t{rel}\t{store_rel}\n")
 
 
 def main() -> int:

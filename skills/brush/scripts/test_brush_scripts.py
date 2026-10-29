@@ -143,7 +143,8 @@ def test_relocate_writes_manifest_row(repo: Path) -> None:
     tu.note_manifest(repo, date, "brush-junk", "old_junk.log", trash_rel)
     assert (repo / trash_rel).is_file()
     row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
-    assert row == [date, "brush-junk", "old_junk.log", trash_rel]
+    assert row == [date, "brush-junk", "old_junk.log",
+                   trash_rel.removeprefix("docs/dev/tmp/")]
 
 
 def _tree(root: Path) -> list[tuple[str, str]]:
@@ -297,7 +298,7 @@ def test_manifest_row_names_the_file_that_was_moved(
 
     row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
     assert row[2] == "old_junk.log"
-    assert (repo / row[3]).is_file()
+    assert (repo / "docs/dev/tmp" / row[3]).is_file()
 
 
 def test_a_tracked_nested_file_is_refused_by_its_slash_form_name(
@@ -435,10 +436,10 @@ def test_main_reports_one_identity_for_a_moved_path_with_spaces(
     row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
     assert out["refused"] == []
     assert out["moved"] == [{"path": "old logs/run one.log",
-                             "trash": row[3]}]
+                             "trash": f"docs/dev/tmp/{row[3]}"}]
     assert row[2] == "old logs/run one.log"
-    assert row[3].startswith("docs/dev/tmp/.trash/")
-    assert (repo / row[3]).is_file()
+    assert row[3].startswith(".trash/")
+    assert (repo / "docs/dev/tmp" / row[3]).is_file()
     assert not p.exists()
 
 
@@ -679,8 +680,8 @@ def test_apply_moves_the_file_and_writes_a_manifest_row(
     assert not p.exists()
     assert (repo / expected).read_text() == "j"
     row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
-    assert row == [FROZEN_DATE, "brush-junk",
-                   "charts/sub/old_junk.log", expected]
+    assert row == [FROZEN_DATE, "brush-junk", "charts/sub/old_junk.log",
+                   expected.removeprefix("docs/dev/tmp/")]
 
 
 def test_dry_run_without_apply_prints_the_marker_exactly_once_regardless_of_path_count(
@@ -711,7 +712,8 @@ def test_apply_honors_the_rule_flag_in_the_manifest(
 
     row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
     assert row[1] == "custom-rule"
-    assert row == [FROZEN_DATE, "custom-rule", "old_junk.log", expected]
+    assert row == [FROZEN_DATE, "custom-rule", "old_junk.log",
+                   expected.removeprefix("docs/dev/tmp/")]
 
 
 def test_apply_prints_no_dry_run_marker(
