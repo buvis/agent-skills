@@ -496,3 +496,130 @@ def test_main_unpublished_exits_two_with_a_diagnostic_when_a_queue_entry_is_malf
     assert captured.err.strip() != ""
     assert "Traceback" not in captured.err
     assert captured.out == ""
+
+
+# A mistyped or empty-matching --store must not silently look like "all
+# published": the operator gets a warning naming the path and the reason,
+# while stdout/exit code stay exactly what today's code already produces.
+
+
+def _assert_warns_about_the_store(err, store):
+    assert str(store) in err
+    assert err.strip() != ""
+    assert "Traceback" not in err
+
+
+def _snapshot_queue_and_store(queue_path, store):
+    queue_bytes = queue_path.read_bytes() if queue_path.exists() else None
+    store_files = sorted(p.relative_to(store) for p in store.rglob("*")) if store.exists() else None
+    return queue_bytes, store_files
+
+
+def test_main_unpublished_warns_on_a_nonexistent_store_path(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    queue_path = tmp_path / "q.json"
+    project = _project(tmp_path)
+    kept = _kept(project, 1, "elsewhere-fact")
+    _queue_kept(queue_path, [kept])
+    store = tmp_path / "no-such-store"
+    before = _snapshot_queue_and_store(queue_path, store)
+    capsys.readouterr()
+
+    exit_code = docket.main(["unpublished", "--store", str(store), "--queue", str(queue_path)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    _assert_warns_about_the_store(captured.err, store)
+    assert _snapshot_queue_and_store(queue_path, store) == before
+
+
+def test_main_unpublished_warns_when_every_kept_entry_belongs_to_another_store(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    queue_path = tmp_path / "q.json"
+    own_project = _project(tmp_path, "own")
+    other_project = _project(tmp_path, "other")
+    other_a = _kept(other_project, 1, "other-fact-a")
+    other_b = _kept(other_project, 2, "other-fact-b")
+    _queue_kept(queue_path, [other_a, other_b])
+    store = own_project / "memory"
+    before = _snapshot_queue_and_store(queue_path, store)
+    capsys.readouterr()
+
+    exit_code = docket.main(["unpublished", "--store", str(store), "--queue", str(queue_path)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    _assert_warns_about_the_store(captured.err, store)
+    assert _snapshot_queue_and_store(queue_path, store) == before
+
+
+def test_main_unpublished_prints_no_warning_for_a_store_with_a_real_unpublished_match(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    queue_path = tmp_path / "q.json"
+    project = _project(tmp_path)
+    store = project / "memory"
+    missing = _kept(project, 1, "missing-fact")
+    _queue_kept(queue_path, [missing])
+    before = _snapshot_queue_and_store(queue_path, store)
+    capsys.readouterr()
+
+    exit_code = docket.main(["unpublished", "--store", str(store), "--queue", str(queue_path)])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.out == f"{_id(missing)}\n"
+    assert captured.err == ""
+    assert _snapshot_queue_and_store(queue_path, store) == before
+
+
+def test_main_unpublished_prints_no_warning_for_a_fully_published_matching_store(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    queue_path = tmp_path / "q.json"
+    project = _project(tmp_path)
+    store = project / "memory"
+    entry = _kept(project, 1, "first-fact")
+    _queue_kept(queue_path, [entry])
+    _publish(entry, store)
+    before = _snapshot_queue_and_store(queue_path, store)
+    capsys.readouterr()
+
+    exit_code = docket.main(["unpublished", "--store", str(store), "--queue", str(queue_path)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+    assert _snapshot_queue_and_store(queue_path, store) == before
+
+
+def test_main_unpublished_prints_no_warning_for_an_alternately_spelled_matching_store(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    queue_path = tmp_path / "q.json"
+    project = _project(tmp_path)
+    store = project / "memory"
+    missing = _kept(project, 1, "missing-fact")
+    _queue_kept(queue_path, [missing])
+    (project / "sub").mkdir()
+    store_spelled_another_way = project / "sub" / ".." / "memory"
+    before = _snapshot_queue_and_store(queue_path, store)
+    capsys.readouterr()
+
+    exit_code = docket.main(
+        ["unpublished", "--store", str(store_spelled_another_way), "--queue", str(queue_path)]
+    )
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.out == f"{_id(missing)}\n"
+    assert captured.err == ""
+    assert _snapshot_queue_and_store(queue_path, store) == before
