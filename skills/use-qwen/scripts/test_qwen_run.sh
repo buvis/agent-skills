@@ -29,6 +29,7 @@ SERVER_REG_PID=""
 SERVER_REG2_PID=""
 SERVER_REG3_PID=""
 SERVER_DEF_PID=""
+SERVER_MISE_PID=""
 cleanup() {
     [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null
     [ -n "$SERVER_LOW_PID" ] && kill "$SERVER_LOW_PID" 2>/dev/null
@@ -42,6 +43,7 @@ cleanup() {
     [ -n "$SERVER_REG2_PID" ] && kill "$SERVER_REG2_PID" 2>/dev/null
     [ -n "$SERVER_REG3_PID" ] && kill "$SERVER_REG3_PID" 2>/dev/null
     [ -n "$SERVER_DEF_PID" ] && kill "$SERVER_DEF_PID" 2>/dev/null
+    [ -n "$SERVER_MISE_PID" ] && kill "$SERVER_MISE_PID" 2>/dev/null
     local d
     for d in "${_DIRS[@]+"${_DIRS[@]}"}"; do
         rm -rf "$d"
@@ -1183,6 +1185,151 @@ if [ "$RC" -eq 0 ] && ! grep -q "no ':<quant>' tag" <<< "$OUT"; then
     PASS "registering a quant-tagged id emits no alias warning"
 else
     FAIL "registering a quant-tagged id emits no alias warning" "rc=$RC; output: $OUT"
+fi
+
+# ══ mise-fixture: a fresh healthy provider dedicated to the mise-failure
+# regressions (the earlier $SERVER_PID backend was killed at T5) ═════════════
+MODE_FILE_MISE="$WORK/mode_mise"
+echo "ok" > "$MODE_FILE_MISE"
+PORT_MISE=$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
+python3 "$WORK/server.py" "$PORT_MISE" "$MODE_FILE_MISE" "mock-qwen" &
+SERVER_MISE_PID=$!
+i=0
+until curl -sf --max-time 1 "http://127.0.0.1:$PORT_MISE/v1/models" > /dev/null 2>&1; do
+    i=$((i + 1))
+    if [ "$i" -ge 50 ]; then
+        echo "FATAL: mise-fixture mock server did not start on port $PORT_MISE"
+        exit 1
+    fi
+    sleep 0.1
+done
+CFGDIR_MISE="$WORK/agent_mise"
+mkdir -p "$CFGDIR_MISE"
+cat > "$CFGDIR_MISE/models.json" <<EOF
+{"providers": {"llamacpp": {"baseUrl": "http://127.0.0.1:$PORT_MISE/v1", "api": "openai-completions", "apiKey": "llamacpp", "models": [{"id": "mock-qwen"}]}}}
+EOF
+
+# ── mise stub variants for the failure regressions ────────────────────────────
+# FAIL: `mise env` exits non-zero with NO PATH output at all (e.g. the
+# "untrusted configuration" shape from the incident description).
+MISEDIR_FAIL="$WORK/mise_fail"
+mkdir -p "$MISEDIR_FAIL"
+cat > "$MISEDIR_FAIL/mise" <<'STUB'
+#!/bin/bash
+if [ "${1:-}" = "env" ]; then
+    exit 1
+fi
+exit 0
+STUB
+chmod +x "$MISEDIR_FAIL/mise"
+
+# PARTIAL: `mise env` writes a truncated `export PATH=...` line to stdout and
+# THEN fails - the "emits partial PATH output before failure" shape.
+MISEDIR_PARTIAL="$WORK/mise_partial"
+mkdir -p "$MISEDIR_PARTIAL"
+cat > "$MISEDIR_PARTIAL/mise" <<'STUB'
+#!/bin/bash
+if [ "${1:-}" = "env" ]; then
+    printf "export PATH='/var/em"
+fi
+exit 1
+STUB
+chmod +x "$MISEDIR_PARTIAL/mise"
+
+# ABSENT: no `mise` binary anywhere on PATH, for the absent-mise control.
+# Keep a pi-only stub dir (never carries `mise`) plus every real PATH entry
+# that does NOT itself provide an executable `mise`.
+NOMISE_STUBDIR="$WORK/stub_nomise"
+mkdir -p "$NOMISE_STUBDIR"
+cp "$STUBDIR/pi" "$NOMISE_STUBDIR/pi"
+chmod +x "$NOMISE_STUBDIR/pi"
+NOMISE_REST=""
+IFS=':' read -r -a _REAL_PATH_DIRS <<< "$PATH"
+for d in "${_REAL_PATH_DIRS[@]}"; do
+    [ -x "$d/mise" ] && continue
+    NOMISE_REST="$NOMISE_REST:$d"
+done
+NOMISE_PATH="$NOMISE_STUBDIR$NOMISE_REST"
+
+# ══ T40: mise env failing outright falls back instead of aborting the wrapper
+export STUB_ARGV_FILE="$WORK/t40.argv"
+export STUB_STDIN_FILE="$WORK/t40.stdin"
+OUT=$(PI_CODING_AGENT_DIR="$CFGDIR_MISE" PATH="$MISEDIR_FAIL:$STUBDIR:$PATH" bash "$QWEN_RUN_SH" -f "$PROMPT_FILE_T" < /dev/null 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ]; then
+    PASS "a failing mise env exits 0 via fallback instead of aborting the wrapper"
+else
+    FAIL "a failing mise env exits 0 via fallback instead of aborting the wrapper" "rc=$RC; output: $OUT"
+fi
+if [ -f "$WORK/t40.argv" ] && grep -q "say hi" "$WORK/t40.argv"; then
+    PASS "a failing mise env still dispatches the original-path pi shim"
+else
+    FAIL "a failing mise env still dispatches the original-path pi shim" "argv file: $(cat "$WORK/t40.argv" 2>/dev/null || echo MISSING)"
+fi
+if grep -qi "mise" <<< "$OUT" && grep -qi "warn" <<< "$OUT"; then
+    PASS "a failing mise env warns on stderr naming mise"
+else
+    FAIL "a failing mise env warns on stderr naming mise" "output: $OUT"
+fi
+
+# ══ T41: mise env emitting partial PATH output before failing falls back the
+# same way, and does not leave a broken PATH behind that changes tool
+# selection ════════════════════════════════════════════════════════════════
+export STUB_ARGV_FILE="$WORK/t41.argv"
+export STUB_STDIN_FILE="$WORK/t41.stdin"
+OUT=$(PI_CODING_AGENT_DIR="$CFGDIR_MISE" PATH="$MISEDIR_PARTIAL:$STUBDIR:$PATH" bash "$QWEN_RUN_SH" -f "$PROMPT_FILE_T" < /dev/null 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ]; then
+    PASS "mise env emitting a partial PATH line before failing still exits 0 via fallback"
+else
+    FAIL "mise env emitting a partial PATH line before failing still exits 0 via fallback" "rc=$RC; output: $OUT"
+fi
+if [ -f "$WORK/t41.argv" ] && grep -q "say hi" "$WORK/t41.argv"; then
+    PASS "partial-output mise failure still dispatches the original-path pi shim (failing output does not change tool selection)"
+else
+    FAIL "partial-output mise failure still dispatches the original-path pi shim (failing output does not change tool selection)" "argv file: $(cat "$WORK/t41.argv" 2>/dev/null || echo MISSING)"
+fi
+if grep -qi "mise" <<< "$OUT" && grep -qi "warn" <<< "$OUT"; then
+    PASS "partial-output mise failure warns on stderr naming mise"
+else
+    FAIL "partial-output mise failure warns on stderr naming mise" "output: $OUT"
+fi
+
+# ══ T42: after a mise fallback, normal outcome handling still runs (not just
+# dispatch) - --preflight must still reach and report a verdict ═════════════
+export STUB_ARGV_FILE="$WORK/t42.argv"
+export STUB_STDIN_FILE="$WORK/t42.stdin"
+OUT=$(PI_CODING_AGENT_DIR="$CFGDIR_MISE" PATH="$MISEDIR_FAIL:$STUBDIR:$PATH" bash "$QWEN_RUN_SH" --preflight < /dev/null 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] && grep -q "healthy" <<< "$OUT"; then
+    PASS "after a mise fallback, --preflight still runs normal outcome handling and reports healthy"
+else
+    FAIL "after a mise fallback, --preflight still runs normal outcome handling and reports healthy" "rc=$RC; output: $OUT"
+fi
+
+# ══ T43: successful-mise control - the existing working mise path is
+# unaffected by the new fallback logic (no spurious warning) ════════════════
+export STUB_ARGV_FILE="$WORK/t43.argv"
+export STUB_STDIN_FILE="$WORK/t43.stdin"
+OUT=$(PI_CODING_AGENT_DIR="$CFGDIR_MISE" PATH="$STUBDIR:$PATH" bash "$QWEN_RUN_SH" -f "$PROMPT_FILE_T" < /dev/null 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] && [ -f "$WORK/t43.argv" ] && grep -q "say hi" "$WORK/t43.argv" && ! grep -qi "warn" <<< "$OUT"; then
+    PASS "successful-mise control: dispatch succeeds with no fallback warning"
+else
+    FAIL "successful-mise control: dispatch succeeds with no fallback warning" "rc=$RC; argv: $(cat "$WORK/t43.argv" 2>/dev/null || echo MISSING); output: $OUT"
+fi
+
+# ══ T44: absent-mise control - no mise binary anywhere on PATH, dispatch is
+# unaffected and emits no fallback warning (there was nothing to fall back
+# from) ═══════════════════════════════════════════════════════════════════
+export STUB_ARGV_FILE="$WORK/t44.argv"
+export STUB_STDIN_FILE="$WORK/t44.stdin"
+OUT=$(PI_CODING_AGENT_DIR="$CFGDIR_MISE" PATH="$NOMISE_PATH" bash "$QWEN_RUN_SH" -f "$PROMPT_FILE_T" < /dev/null 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] && [ -f "$WORK/t44.argv" ] && grep -q "say hi" "$WORK/t44.argv" && ! grep -qi "warn" <<< "$OUT"; then
+    PASS "absent-mise control: no mise binary on PATH, dispatch succeeds with no warning"
+else
+    FAIL "absent-mise control: no mise binary on PATH, dispatch succeeds with no warning" "rc=$RC; argv: $(cat "$WORK/t44.argv" 2>/dev/null || echo MISSING); output: $OUT"
 fi
 
 # ── summary ───────────────────────────────────────────────────────────────────
