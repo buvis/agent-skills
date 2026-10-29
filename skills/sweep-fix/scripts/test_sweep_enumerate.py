@@ -547,6 +547,62 @@ def test_enumerate_repos_resolves_a_relative_dotdot_cwd_to_the_absolute_repo_roo
 # -- enumerate_repos: unreadable registry ------------------------------------
 
 
+def _gap_reason_for(gaps, path):
+    """Find the gap entry naming `path` and return its reason text, however
+    the implementation represents gaps (a dict with a path/reason key, or a
+    string embedding both). Returns None when `path` has no gap entry."""
+    path_str = str(path)
+    for gap in gaps:
+        if isinstance(gap, dict):
+            gap_path = str(gap.get("path", gap.get("repo", "")))
+            if gap_path == path_str:
+                return str(gap.get("reason", "")).strip()
+        else:
+            gap_str = str(gap)
+            if path_str in gap_str:
+                return gap_str.replace(path_str, "", 1).strip(" :-()–")
+    return None
+
+
+def test_enumerate_repos_reports_missing_and_non_repo_registered_rows_as_distinct_gaps(
+    tmp_path, monkeypatch
+):
+    portfolio_root = tmp_path / "portfolio"
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", portfolio_root)
+
+    valid_repo = _make_repo(portfolio_root / "org" / "valid-repo")
+    missing_path = portfolio_root / "org" / "missing-repo"  # never created on disk
+    non_repo_path = portfolio_root / "org" / "non-repo-dir"
+    non_repo_path.mkdir(parents=True)  # exists on disk but has no .git
+    unregistered = _make_repo(
+        portfolio_root / "org" / "unregistered-repo"
+    )  # pre-existing kind of gap: on disk, not registered
+
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(valid_repo), str(missing_path), str(non_repo_path)])
+    cwd = tmp_path / "cwd_dir"
+    cwd.mkdir()
+
+    repos, gaps = sweep.enumerate_repos(registry, cwd)
+
+    assert valid_repo in repos
+    assert missing_path not in repos
+    assert non_repo_path not in repos
+
+    missing_reason = _gap_reason_for(gaps, missing_path)
+    non_repo_reason = _gap_reason_for(gaps, non_repo_path)
+
+    assert missing_reason, f"expected {missing_path} to be reported as a gap with a reason"
+    assert non_repo_reason, f"expected {non_repo_path} to be reported as a gap with a reason"
+    assert missing_reason.lower() != non_repo_reason.lower(), (
+        "a missing path and an exists-but-not-a-repo path must carry "
+        "distinguishable gap reasons"
+    )
+
+    # the pre-existing unregistered-on-disk gap must still be reported
+    assert any(str(unregistered) in str(gap) for gap in gaps)
+
+
 def test_enumerate_repos_raises_runtimeerror_naming_an_unreadable_registry(
     tmp_path, monkeypatch
 ):

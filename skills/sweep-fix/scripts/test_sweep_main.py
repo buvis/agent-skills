@@ -892,5 +892,79 @@ def test_a_missing_registry_exits_one_naming_the_path(
     assert capsys.readouterr().err.strip() == f"registry not found: {missing_registry}"
 
 
+# -- main: unresolved registry rows survive into the saved report as gaps --
+
+
+def test_main_report_retains_missing_and_non_repo_registered_rows_as_distinct_gaps(
+    tmp_path, monkeypatch
+):
+    empty_portfolio_root = tmp_path / "empty_portfolio_root"
+    empty_portfolio_root.mkdir()
+    monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
+
+    valid_repo = _make_repo(tmp_path / "org" / "valid-repo")
+    _plant_matches(valid_repo, "MIXEDREGISTRYMARKER", 1)
+
+    missing_path = tmp_path / "org" / "missing-repo"  # never created on disk
+    non_repo_path = tmp_path / "org" / "non-repo-dir"
+    non_repo_path.mkdir(parents=True)  # exists on disk but has no .git
+
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text("MIXEDREGISTRYMARKER control line\n")
+
+    registry = tmp_path / "repos.csv"
+    _write_registry(registry, [str(valid_repo), str(missing_path), str(non_repo_path)])
+
+    out_path = valid_repo / "report.md"
+    argv = [
+        "--kind", "rg",
+        "--pattern", "MIXEDREGISTRYMARKER",
+        "--reason", "regression test for mixed-registry gap reporting",
+        "--control-term", "MIXEDREGISTRYMARKER",
+        "--control-repo", str(control_repo),
+        "--registry", str(registry),
+        "--cwd", str(valid_repo),
+        "--out", str(out_path),
+    ]
+
+    exit_code = sweep.main(argv)
+
+    assert exit_code == 0
+    assert out_path.exists()
+    report = out_path.read_text()
+
+    # the valid repo's own result is retained
+    assert "Hits (1):" in report
+    assert str(valid_repo) in report
+
+    # both invalid registry rows are retained in the report as gaps, with
+    # reasons that let an operator tell "missing" apart from "exists but not
+    # a repository"
+    assert str(missing_path) in report
+    assert str(non_repo_path) in report
+
+    missing_line = next(
+        (line for line in report.splitlines() if str(missing_path) in line), ""
+    )
+    non_repo_line = next(
+        (line for line in report.splitlines() if str(non_repo_path) in line), ""
+    )
+    assert missing_line, f"expected {missing_path} to appear on its own report line"
+    assert non_repo_line, f"expected {non_repo_path} to appear on its own report line"
+    assert missing_line.strip() != non_repo_line.strip()
+
+    missing_reason = missing_line.replace(str(missing_path), "", 1).strip(" :-()")
+    non_repo_reason = non_repo_line.replace(str(non_repo_path), "", 1).strip(" :-()")
+    assert missing_reason, "expected the missing-path gap line to carry a reason"
+    assert non_repo_reason, "expected the non-repo gap line to carry a reason"
+    assert missing_reason.lower() != non_repo_reason.lower()
+
+    # neither invalid row was ever scanned as a repo
+    hit_lines = re.findall(r"^- .+:\d+: .*MIXEDREGISTRYMARKER.*$", report, re.MULTILINE)
+    assert all(str(missing_path) not in line for line in hit_lines)
+    assert all(str(non_repo_path) not in line for line in hit_lines)
+
+
 # -- main as a real CLI process, deadline-bounded: moved to
 # test_sweep_main_deadline.py (00104 rework T3, split-hygiene finding R4)
