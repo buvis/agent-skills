@@ -1,13 +1,12 @@
-## 1: Add runbook-vs-harness drift test
+# Assumption ledger
 
-- `run_eval_harness._parser()` subparsers action is located by finding the one `_actions` entry whose `.choices is not None` (argparse's internal `_SubParsersAction`), since the task said to "walk parser._subparsers / the subparsers action's choices dict" but didn't specify the exact attribute name to find that action - this is the standard, only way to get there from a plain `ArgumentParser`.
-- Used `._actions` (not `._subparsers`) consistently, matching the task's own phrasing ("each one's `._actions` for `.option_strings`").
+Per-plan. Current plan: 00104-sweep-overruns-process-deadline-v1.
 
-## 3: [D1] Tail sweep: skills/use-qwen/scripts/test_runbook_matches_harness.py
+## 1: Propagate deadline through sweep scan and control verification; terminate search subprocess trees at expiry
 
-- Used the `--bound` removal, not `--shape`, as the word-boundary bite proof: removing `--shape` from the usage line still passes because section 7 prose documents `--shape` itself at line 115, which is a legitimate match rather than a masked one.
-- Annotated the new `_subparsers_action` helper as `argparse.Action`, which the task did not specify.
+Step-7 regression-fix dispatch (test_sweep_resolvers.py):
 
-## 4: [D1] Tail sweep: prose
+- `Path.glob("*.py")` on `Path(sweep.__file__).parent` is the intended way to compute "module names that exist as `.py` files" there; it also sweeps in `sweep` itself and the sibling `test_*.py` names, which is harmless since `sweep.py` imports none of them.
+- Comment wording for both repaired tests was the implementor's; the instruction specified the content, not the exact text.
 
-- None. Both corrected statements were read off the code first (`eval_harness/evidence.py:162-194` for the seven `inputs_sha256` labels, `eval_harness/attempt.py:109-138` for `vet`'s exit codes and the `ready: false` record), so neither needed a guess.
+Earlier dispatches for this task ran in a session that was rotated at the context cap; their `ASSUMPTIONS:` lines were not carried over.

@@ -2547,3 +2547,21 @@
 {"id":"5a187e65","kind":"deslop","task":"1","queued_at":1793233490,"prompt_bytes":8021}
 {"id":"5a187e65","ended_at":1793233551,"elapsed_s":61,"outcome":"ok","detail":null}
 {"id":"3a1edb26","kind":"ivan","task":"1","queued_at":1793233603,"prompt_bytes":15451}
+{"id":"5ec12ea6","ended_at":1793233791,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"b3ac7a22","ended_at":1793233791,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"2c37bde9","ended_at":1793233791,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"f5d9405b","ended_at":1793233791,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"5413d88a","ended_at":1793233791,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"0527008f","ended_at":1793233791,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"b9147ab8","ended_at":1793233791,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"id":"3a1edb26","ended_at":1793233791,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793233791,"phase":"build","prd":"00104-sweep-overruns-process-deadline-v1.md"}
+{"id":"aa754d3b","kind":"pat","task":"1","queued_at":1793234020,"prompt_bytes":100919}
+{"id":"0c5d178e","kind":"pat","task":"1","queued_at":1793234032,"prompt_bytes":61358}
+{"id":"033d0f86","kind":"pat","task":"1","queued_at":1793234060,"prompt_bytes":31039}
+{"id":"033d0f86","ended_at":1793234123,"elapsed_s":63,"outcome":"ok","detail":null}
+{"id":"5f4547a6","kind":"ivan","task":"1","queued_at":1793234701,"prompt_bytes":12182}
+{"id":"5f4547a6","ended_at":1793234789,"elapsed_s":88,"outcome":"ok","detail":null}
+{"id":"aa754d3b","ended_at":1793235315,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"id":"0c5d178e","ended_at":1793235315,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793235315,"phase":"review","prd":"00104-sweep-overruns-process-deadline-v1.md"}
