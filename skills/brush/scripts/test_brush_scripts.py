@@ -1056,3 +1056,81 @@ def test_main_moves_a_directory_containing_only_old_junk(
     assert not (repo / "sdir").exists()
     row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
     assert row[2] == "sdir"
+
+
+# -- shared-destination-base regression (00106): brush's manifest fourth
+# field must be store-relative (relative to docs/dev/tmp, no leading
+# "docs/dev/tmp/"), matching purge-devtmp's writer, while the move-location
+# and the moved/preview JSON "trash" path stay repository-relative as today.
+
+def test_manifest_fourth_field_is_store_relative_for_a_nested_path(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    _old_file(repo, "charts/sub/old_junk.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys,
+                       "--apply", "charts/sub/old_junk.log")
+
+    row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
+    assert row[3] == f".trash/{FROZEN_DATE}/charts/sub/old_junk.log"
+    assert not row[3].startswith("docs/")
+    assert "docs/dev/tmp" not in row[3]
+    # the move itself, and the moved/preview JSON, stay repository-relative
+    repo_relative = f"docs/dev/tmp/.trash/{FROZEN_DATE}/charts/sub/old_junk.log"
+    assert out["moved"] == [{"path": "charts/sub/old_junk.log",
+                             "trash": repo_relative}]
+    assert (repo / repo_relative).is_file()
+
+
+def test_manifest_fourth_field_is_store_relative_for_a_top_level_file(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """Second, distinct fixture value: an un-nested path at the top level."""
+    _old_file(repo, "old_junk.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "--apply", "old_junk.log")
+
+    row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
+    assert row[3] == f".trash/{FROZEN_DATE}/old_junk.log"
+    assert not row[3].startswith("docs/")
+    repo_relative = f"docs/dev/tmp/.trash/{FROZEN_DATE}/old_junk.log"
+    assert out["moved"] == [{"path": "old_junk.log", "trash": repo_relative}]
+    assert (repo / repo_relative).is_file()
+
+
+def test_manifest_fourth_field_is_store_relative_on_a_collision_suffix(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """A dup-suffixed destination is still spelled from the store, not the repo root."""
+    _old_file(repo, "old_junk.log", "new")
+    taken = repo / "docs/dev/tmp/.trash" / FROZEN_DATE / "old_junk.log"
+    taken.parent.mkdir(parents=True)
+    taken.write_text("earlier")
+
+    _run_main(repo, monkeypatch, capsys, "--apply", "old_junk.log")
+
+    row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text().strip().split("\t")
+    prefix = f".trash/{FROZEN_DATE}/old_junk.log.dup"
+    assert row[3].startswith(prefix) and row[3][len(prefix):].isdigit()
+    assert not row[3].startswith("docs/")
+    assert (repo / f"docs/dev/tmp/{row[3]}").is_file()
+
+
+def test_manifest_appends_a_store_relative_row_after_an_old_repository_relative_row_unchanged(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """An old-format row already on disk must survive byte-identical."""
+    manifest = repo / "docs/dev/tmp/.trash/manifest.tsv"
+    manifest.parent.mkdir(parents=True)
+    old_row = (f"2026-07-13\tbrush-junk\tprior.log\t"
+              f"docs/dev/tmp/.trash/2026-07-13/prior.log\n")
+    manifest.write_text(old_row)
+    _old_file(repo, "old_junk.log")
+
+    _run_main(repo, monkeypatch, capsys, "--apply", "old_junk.log")
+
+    lines = manifest.read_text().splitlines(keepends=True)
+    assert lines[0] == old_row
+    new_row = lines[1].rstrip("\n").split("\t")
+    assert new_row == [FROZEN_DATE, "brush-junk", "old_junk.log",
+                       f".trash/{FROZEN_DATE}/old_junk.log"]
