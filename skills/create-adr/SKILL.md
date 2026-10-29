@@ -1,6 +1,6 @@
 ---
 name: create-adr
-description: Use when creating Architecture Decision Records (ADRs) from meeting transcripts, discussions, or on-demand from user-provided information. Triggers on "create ADR", "write ADR", "document decision", "architectural decision", "identify decisions in transcript", "ADR from meeting".
+description: Use when creating Architecture Decision Records (ADRs) from meeting transcripts, discussions, or user input. Triggers on "create ADR", "write ADR", "document decision", "architectural decision", "ADR from meeting".
 ---
 
 # Create ADR

@@ -1,6 +1,7 @@
 ---
 name: explore-abap-solution
 description: Use when exhaustively exploring an ABAP solution into a validated research package (census, ledger, object cards, verbatim snippet bank) - the input for document-abap-solution. Triggers on "explore abap solution", "research abap framework".
+compatibility: "Portable; needs Python 3.12+ and a caller-supplied read-only SAP source/search provider (no provider ships here)."
 ---
 
 # Explore ABAP Solution
@@ -204,7 +205,7 @@ The log accumulates through the run. When you correct a claim in notes.md, ALSO 
 
 **THE SELF-CHECK IS MANDATORY AND COMES FIRST.** Do not write the `Status:` line until `check_run.py` passes. The sequence is: (1) run the script, (2) fix every FAIL it reports, (3) re-run until 0 FAIL, (4) THEN write Status. A run that writes Status before running the script has declared the package valid without checking — every historical resume run traced back to this inversion.
 
-1. Run `python3 <skill_dir>/scripts/check_run.py --research-only <output_dir>` and paste its output verbatim into `research/notes.md` §8 (Validation Report). When the script is missing, say so (incomplete skill copy) and reproduce every check by hand in the same per-line format with the directory listings that justify each PASS.
+1. Run `python3 ~/.agents/skills/explore-abap-solution/scripts/check_run.py --research-only <output_dir>` and paste its output verbatim into `research/notes.md` §8 (Validation Report). When the script is missing, say so (incomplete skill copy) and reproduce every check by hand in the same per-line format with the directory listings that justify each PASS.
 2. Resolve every FAIL by doing the missing work or declaring INCOMPLETE honestly — never by editing a file to green a marker. **See `references/quality-gates.md` § Phase V: Self-Check Fix Guide** for common FAILs and their exact fixes.
 3. Write the `Status:` line ONCE, now: COMPLETE (both gates passed, self-check green) or INCOMPLETE (what is missing and why). Anything appended to COMPLETE makes it INCOMPLETE.
 

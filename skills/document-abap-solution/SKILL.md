@@ -1,6 +1,7 @@
 ---
 name: document-abap-solution
 description: Use when generating a developer onboarding package (progressive docs + interactive explorer SPA) from a validated research/ directory produced by explore-abap-solution. Triggers on "document abap solution", "generate abap docs", "onboarding package".
+compatibility: "Portable; needs Python 3.12+ and Node + npm (or the no-build vanilla path), and the validated research/ package from explore-abap-solution. Needs no SAP access."
 ---
 
 # Document ABAP Solution
@@ -54,7 +55,7 @@ Levels are the anti-overwhelm mechanism: each level answers more and links one l
 
 ### Phase 0: Entry Gate (hard)
 
-1. Run `python3 <skill_dir>/scripts/check_run.py --research-only <input_dir>` and paste the output verbatim.
+1. Run `python3 ~/.agents/skills/document-abap-solution/scripts/check_run.py --research-only <input_dir>` and paste the output verbatim.
 2. **Any FAIL → STOP.** Report the failing lines and hand back: "the research package is not ready — re-run `explore-abap-solution` (or its resume) to fix these, then relaunch me." Writing docs over an invalid package launders its gaps into confident prose; refusing is the job.
 3. Read `research/notes.md` fully: Status, scope decision, census, ledger, synthesis, bug register, open questions. Read every `research/{domain}.md` card file and LIST the snippet bank. **Verify that an Existence Validation section is present under §2** — this section documents that every ledger object was confirmed to exist in the SAP system. Its absence means the exploration run predates this requirement; warn the user and note the gap in the run log.
 4. **Carry the run status forward.** Research `Status: INCOMPLETE` → banner mode: every doc and the SPA render a visible "partial coverage — N of M objects read" banner naming the unread domains; recipes and the blessed pattern come only from source-read objects; the coverage number appears in `meta.coverage_pct` and the SPA footer. A single doc without the banner reads as complete to whoever opens only it.
@@ -93,11 +94,11 @@ Read `references/spa-blueprint.md` and follow it exactly: emit the solution data
 ```
 Build a single-file HTML explorer for the ABAP solution.
 Read {dir}/research/notes.md (patterns, bugs, domains, traces), {dir}/architecture.md, {dir}/cookbook.md.
-Write to {dir}/explorer/dist/explorer.html. Follow {skill_dir}/references/spa-blueprint.md.
+Write to {dir}/explorer/dist/explorer.html. Follow ~/.agents/skills/document-abap-solution/references/spa-blueprint.md.
 The solution data is INLINED into the HTML as <script type="application/json" id="solution-data">.
 No external solution.json file. No fetch/XHR. Must work from file:// with zero network.
 (Fallback if unreadable: vanilla HTML tabs — architecture, recipes, capabilities, decision tree;
-embed {skill_dir}/assets/explorer.css verbatim first; copy buttons; ABAP tokenizer; showModal() dialogs.
+embed ~/.agents/skills/document-abap-solution/assets/explorer.css verbatim first; copy buttons; ABAP tokenizer; showModal() dialogs.
 All content from the files above — nothing from memory.)
 ```
 
@@ -112,7 +113,7 @@ All content from the files above — nothing from memory.)
 7. **Newcomer test, blind:** a fresh agent with ONLY the generated docs answers: what does this do; what do I copy for task X; which package and transport; how do I verify; where do I look when it fails. Wrong or unanswerable items are doc bugs — fix and re-run.
 8. **SPA checklist** from the blueprint, on the built file, offline.
 9. **Validation Report:** append `## Validation Report (docs run)` to `research/notes.md` with each check's numbers, the fetch list, and the newcomer-test outcome.
-10. **Self-check:** run `python3 <skill_dir>/scripts/check_run.py <dir>` (full mode). Paste verbatim into the Validation Report AND the final report. Resolve FAILs by doing the work or declaring INCOMPLETE — never by editing files to green a marker.
+10. **Self-check:** run `python3 ~/.agents/skills/document-abap-solution/scripts/check_run.py <dir>` (full mode). Paste verbatim into the Validation Report AND the final report. Resolve FAILs by doing the work or declaring INCOMPLETE — never by editing files to green a marker.
 
 ## Momentum
 

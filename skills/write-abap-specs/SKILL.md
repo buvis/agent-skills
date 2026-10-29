@@ -1,6 +1,7 @@
 ---
 name: write-abap-specs
-description: Read functional requirements from documents and Jira, analyse existing ABAP code in SAP systems, and produce structured development specifications as Jira stories. Use when creating development specifications, planning ABAP features, or documenting technical designs. Triggers on "write abap spec", "abap spec", "create dev spec", "spec from requirements", "specification from jira".
+description: Use when writing ABAP development specifications as Jira stories from requirements and existing SAP code. Triggers on "write abap spec", "abap spec", "create dev spec", "spec from requirements", "specification from jira".
+compatibility: "Portable; needs caller-supplied SAP, Jira, and Confluence provider capabilities. Word/PDF input additionally needs the publish-confluence-docs skill (Python 3.12+); without it, give Markdown input."
 ---
 
 # Write ABAP Specs
@@ -11,12 +12,15 @@ Read functional requirements from any source, analyse existing ABAP artefacts in
 
 - A read-only SAP source/search/cross-reference provider, or a source export.
   Discover the actual tool names and argument schemas in the current session.
+  SAP, Jira, and Confluence access is caller-supplied; this skill ships no provider.
 - An issue reader/writer and optional Confluence page reader. Map the capability
   to the configured provider; the names below are not a prescribed tool API.
   Without a writer, save the approved specification locally and report that it
   has not been published.
-- For Word/PDF input, the sibling `publish-confluence-docs` skill and its declared
-  dependencies. If unavailable, request Markdown or plain-text input.
+- For Word/PDF input only: invoke the `publish-confluence-docs` skill
+  (`~/.agents/skills/publish-confluence-docs/`) and its declared dependencies.
+  If it is absent or cannot run, request Markdown or plain-text input instead.
+  Never invent converted content.
 - Naming rules from the target project. Do not assume an employer-specific
   namespace or impose one length limit on every ABAP object type.
 
@@ -25,8 +29,8 @@ Read functional requirements from any source, analyse existing ABAP artefacts in
 | Format | How to read |
 |--------|-------------|
 | Markdown (.md) | Read directly |
-| Word (.docx) | Resolve the sibling skill and run `scripts/docx_to_md.py` with its Python environment |
-| PDF (.pdf) | Resolve the sibling skill and run `scripts/pdf_to_md.py` with its Python environment |
+| Word (.docx) | Run `~/.agents/skills/publish-confluence-docs/scripts/docx_to_md.py` with that skill's Python environment |
+| PDF (.pdf) | Run `~/.agents/skills/publish-confluence-docs/scripts/pdf_to_md.py` with that skill's Python environment |
 | Jira ticket | Use the configured issue-reader capability |
 | Confluence page | Use the configured page-reader capability |
 

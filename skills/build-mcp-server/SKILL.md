@@ -1,6 +1,7 @@
 ---
 name: build-mcp-server
-description: Generate complete, production-ready MCP servers in Python from API specifications (OpenAPI, plain-text docs, URLs, or verbal descriptions). Follows MCP protocol 2026-07-28 and Python SDK v2 conventions. Can also migrate v1 servers to v2. Use when creating, scaffolding, or upgrading MCP servers. Triggers on "build mcp server", "create mcp server", "scaffold mcp", "migrate mcp v1 to v2", "new mcp server".
+description: Use when creating, scaffolding, or upgrading Python MCP servers from API specs (OpenAPI, docs, URLs, descriptions) or migrating v1 servers to v2. Triggers on "build mcp server", "create mcp server", "scaffold mcp", "migrate mcp v1 to v2".
+compatibility: "Portable; needs Python, uv, and the pinned MCP SDK. API access is caller-supplied."
 ---
 
 # Build MCP Server

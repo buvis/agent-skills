@@ -1,6 +1,7 @@
 ---
 name: review-abap-solution-documentation
 description: Use when auditing an ABAP solution documentation package for hallucinations, internal inconsistencies, and evidence gaps that undermine trustworthiness. Triggers on "review abap solution documentation", "audit abap docs".
+compatibility: "Portable; needs Python 3.12+, the document-abap-solution skill (hard dependency), and optionally a caller-supplied read-only SAP provider for spot-checks."
 ---
 
 # Review ABAP Solution Documentation
@@ -11,7 +12,7 @@ Adversarial audit of a completed `explore-abap-solution` + `document-abap-soluti
 
 ## Dependencies
 
-- **Input:** a directory with both `research/` and documentation deliverables. The full-mode validator at `../document-abap-solution/scripts/check_run.py` must have passed. Resolve it from this skill's directory, not the shell's current directory. If the sibling skill is missing, report the missing dependency and stop.
+- **Input:** a directory with both `research/` and documentation deliverables. The full-mode validator at `~/.agents/skills/document-abap-solution/scripts/check_run.py` must have passed. If the sibling skill is missing, report the missing dependency and stop.
 - **Python 3.12+** for `scripts/check_trust.py` (mechanical audit) and `scripts/check_review.py` (report validator).
 - **SAP read access** (OPTIONAL). When an authorized SAP reader is available, D7 spot-checks run. When unavailable, the review is offline-only and says so.
 
@@ -29,7 +30,7 @@ Run `check_trust.py` first. Its output (markdown findings) is the starting point
 ## Execution
 
 1. **Entry gate:** verify input directory has `research/notes.md` + `README.md`. Run the sibling documentation skill's `scripts/check_run.py <dir>` — any FAIL → stop. Do not use the exploration skill's older full-mode format.
-2. **Mechanical audit:** run `python3 <skill_dir>/scripts/check_trust.py <dir>`. Capture the output (markdown fragment with M1, M2, ... findings). This covers D1, D2, D5, D6.
+2. **Mechanical audit:** run `python3 ~/.agents/skills/review-abap-solution-documentation/scripts/check_trust.py <dir>`. Capture the output (markdown fragment with M1, M2, ... findings). This covers D1, D2, D5, D6.
 3. **Read the package:** notes.md (census, ledger, patterns, bugs), all doc files, snippet bank listing. Probe the configured SAP reader without changing any objects.
 4. **Semantic audit:** evaluate D3, D4, D7 (see below). These require reading comprehension.
 5. **Assemble report:** merge mechanical + semantic findings into `review-report.md`, renumbering as F1, F2, ... Apply verdict rules. Run `check_review.py` to validate.

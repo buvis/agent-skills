@@ -1,6 +1,7 @@
 ---
 name: publish-confluence-docs
 description: Convert Word, PDF, Markdown, and Confluence documents, render Mermaid diagrams, and publish attachments. Use when publishing to Confluence, converting downloaded SharePoint documents, exporting pages to Word, or embedding diagrams.
+compatibility: "Portable; needs Python 3.12+ with uv, Node 18.19+ or 20+ with npm for Mermaid (plus its Chromium prerequisites), curl for uploads, LibreOffice for legacy .doc, and caller-supplied Confluence access."
 ---
 
 # Publish Confluence Docs
@@ -38,9 +39,13 @@ for both `--project` and the script, not a hardcoded agent configuration directo
 
 ## Dependencies
 
+No other skill is required. Confluence page create/read/update needs a
+caller-supplied provider or credentials; this skill ships none and only
+converts documents and uploads attachments.
+
 ```bash
-uv sync --project . --python 3.12
-npm install --prefix .
+uv sync --project ~/.agents/skills/publish-confluence-docs --python 3.12
+npm install --prefix ~/.agents/skills/publish-confluence-docs
 ```
 
 The included `pyproject.toml` declares python-docx, PyMuPDF, and PyYAML.
