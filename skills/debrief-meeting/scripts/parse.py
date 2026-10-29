@@ -50,8 +50,11 @@ def read_source(path: Path) -> tuple[str, str]:
     """Return (text, format). DOCX is unzipped with the stdlib, no dependency."""
     suffix = path.suffix.lower()
     if suffix == ".docx":
-        with zipfile.ZipFile(path) as archive:
-            xml = archive.read("word/document.xml").decode("utf-8", "replace")
+        try:
+            with zipfile.ZipFile(path) as archive:
+                xml = archive.read("word/document.xml").decode("utf-8", "replace")
+        except (zipfile.BadZipFile, KeyError) as exc:
+            sys.exit(f"{path} is not a readable .docx file: {exc}")
         xml = re.sub(r"</w:p>", "\n", xml)
         xml = re.sub(r"<w:tab[^>]*/>", "  ", xml)
         return TAG_RE.sub("", xml), "docx"
@@ -443,9 +446,8 @@ def main() -> None:
         if args.out
         else path.parent / f"{path.stem}-debrief"
     )
-    outdir.mkdir(parents=True, exist_ok=True)
-
     data = normalize(path)
+    outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "transcript.json").write_text(
         json.dumps(data, ensure_ascii=False, indent=1),
     )

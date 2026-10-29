@@ -91,6 +91,8 @@ def load_extract(extract_file: Path, transcript: dict) -> tuple[dict, bool]:
             extract = json.loads(extract_file.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             sys.exit(f"{extract_file} is not valid JSON: {exc}")
+        if not isinstance(extract, dict):
+            sys.exit(f"{extract_file} must contain a JSON object")
     else:
         warn(
             transcript,
@@ -117,11 +119,22 @@ def main() -> None:
     source = workdir / "transcript.json"
     if not source.is_file():
         sys.exit(f"missing {source} — run parse.py first")
-    transcript = json.loads(source.read_text(encoding="utf-8"))
+    try:
+        transcript = json.loads(source.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        sys.exit(f"{source} is not valid JSON: {exc}")
+    if not isinstance(transcript, dict) or "turns" not in transcript:
+        sys.exit(f"{source} is missing a 'turns' key")
 
     extract, extract_ran = load_extract(workdir / "extract.json", transcript)
 
-    fixes = apply_corrections(transcript["turns"], extract.get("corrections") or [])
+    corrections = extract.get("corrections") or []
+    if not isinstance(corrections, list) or any(
+        not isinstance(c, dict) for c in corrections
+    ):
+        sys.exit(f"{workdir / 'extract.json'} has a malformed 'corrections' value")
+
+    fixes = apply_corrections(transcript["turns"], corrections)
     for fix in fixes:
         if not fix["applied"]:
             warn(
