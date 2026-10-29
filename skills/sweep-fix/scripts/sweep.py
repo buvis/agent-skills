@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import date
 from pathlib import Path
 
+from sweep_rule_pack import _render_astgrep_rule_block
 
 @functools.lru_cache()
 def resolve_rg():
@@ -443,6 +444,17 @@ def _apply_scan_cap(results, cap):
     return hits, suppressed, failed
 
 
+def _probe_ast_grep(kind):
+    """Why ast-grep cannot run for an "astgrep" `kind`, or None."""
+    if kind != "astgrep":
+        return None
+    try:
+        resolve_ast_grep()
+    except Exception as exc:
+        return str(exc)
+    return None
+
+
 def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=None):
     """Search `pattern` across `repos` using `kind` ("rg" or "astgrep").
 
@@ -470,13 +482,7 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
     if kind not in ("rg", "astgrep"):
         raise ValueError(f"unknown kind: {kind!r}")
 
-    ast_grep_error = None
-    if kind == "astgrep":
-        try:
-            resolve_ast_grep()
-        except Exception as exc:
-            ast_grep_error = str(exc)
-
+    ast_grep_error = _probe_ast_grep(kind)
     repos = list(repos)
     start = time.monotonic() if deadline is not None else None
     deadline_hit = False
@@ -496,6 +502,32 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
         executor.shutdown(wait=True, cancel_futures=deadline_hit)
 
     return _apply_scan_cap(results, cap)
+
+
+def _search_control_term(control_repo, control_term, deadline, verify_start, expired):
+    """Search `control_repo` for `control_term` within what `deadline` left
+    since `verify_start`. Raises `TimeoutError(expired)` when that budget
+    runs out, `RuntimeError` when the search fails for any other reason."""
+    timeout = DEFAULT_SCAN_TIMEOUT
+    if deadline is not None:
+        remaining = deadline - (time.monotonic() - verify_start)
+        if remaining <= 0:
+            raise TimeoutError(expired)
+        timeout = min(remaining, DEFAULT_SCAN_TIMEOUT)
+    try:
+        return _run_rg(["-F", "--", control_term, "."], control_repo, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        if timeout < DEFAULT_SCAN_TIMEOUT:
+            raise TimeoutError(expired) from exc
+        reason = " ".join(str(exc).split())
+        raise RuntimeError(
+            f'sweep unverified: could not search control term "{control_term}" in {control_repo}: {reason}'
+        ) from exc
+    except Exception as exc:
+        reason = " ".join(str(exc).split())
+        raise RuntimeError(
+            f'sweep unverified: could not search control term "{control_term}" in {control_repo}: {reason}'
+        ) from exc
 
 
 def verify_control(pattern, kind, control_repo, control_term, deadline=None):
@@ -535,26 +567,7 @@ def verify_control(pattern, kind, control_repo, control_term, deadline=None):
     if hits:
         return None
 
-    timeout = DEFAULT_SCAN_TIMEOUT
-    if deadline is not None:
-        remaining = deadline - (time.monotonic() - verify_start)
-        if remaining <= 0:
-            raise TimeoutError(expired)
-        timeout = min(remaining, DEFAULT_SCAN_TIMEOUT)
-    try:
-        result = _run_rg(["-F", "--", control_term, "."], control_repo, timeout=timeout)
-    except subprocess.TimeoutExpired as exc:
-        if timeout < DEFAULT_SCAN_TIMEOUT:
-            raise TimeoutError(expired) from exc
-        reason = " ".join(str(exc).split())
-        raise RuntimeError(
-            f'sweep unverified: could not search control term "{control_term}" in {control_repo}: {reason}'
-        ) from exc
-    except Exception as exc:
-        reason = " ".join(str(exc).split())
-        raise RuntimeError(
-            f'sweep unverified: could not search control term "{control_term}" in {control_repo}: {reason}'
-        ) from exc
+    result = _search_control_term(control_repo, control_term, deadline, verify_start, expired)
     if result.returncode == 1:
         return None
 
@@ -613,50 +626,6 @@ def _render_gaps_section(gaps):
     lines = [f"Gaps ({len(gaps)}):"]
     for gap in gaps:
         lines.append(f"- {gap}")
-    lines.append("")
-    return lines
-
-
-def _yaml_quote(value):
-    """Render `value` as a YAML double-quoted scalar. A JSON string is a
-    valid YAML double-quoted scalar; characters JSON leaves raw that YAML
-    forbids or folds (DEL, C1 incl. U+0085, U+2028/2029, BOM, other
-    non-printables) are escaped as \\uXXXX / \\UXXXXXXXX."""
-    return "".join(
-        ch if ch.isprintable()
-        else f"\\u{ord(ch):04x}" if ord(ch) <= 0xFFFF
-        else f"\\U{ord(ch):08x}"
-        for ch in json.dumps(value, ensure_ascii=False)
-    )
-
-
-def _render_astgrep_rule_block(derivation, hits):
-    lines = []
-    if derivation["kind"] != "astgrep":
-        return lines
-
-    seen_langs = list(dict.fromkeys(hit["lang"] for hit in hits if hit["lang"]))
-    if not seen_langs:
-        return lines
-
-    message = _yaml_quote(derivation["reason"])
-    pattern = _yaml_quote(derivation["pattern"])
-    rule_docs = [
-        "\n".join(
-            [
-                f"id: sweep-{lang}",
-                f"language: {lang}",
-                "severity: warning",
-                f"message: {message}",
-                "rule:",
-                f"  pattern: {pattern}",
-            ]
-        )
-        for lang in seen_langs
-    ]
-    lines.append("```yaml")
-    lines.append("\n---\n".join(rule_docs))
-    lines.append("```")
     lines.append("")
     return lines
 
@@ -751,6 +720,20 @@ def _resolve_report_path(cwd_path, out, reason):
     return out_path
 
 
+def _verify_zero_hit_sweep(args, start):
+    """Run the control check on what `--deadline` left since `start`.
+    Raises `TimeoutError` when nothing is left for it to run."""
+    remaining = args.deadline - (time.monotonic() - start)
+    if remaining <= 0:
+        raise TimeoutError(
+            "sweep unverified: deadline expired before control "
+            f"verification could run in {args.control_repo}"
+        )
+    verify_control(
+        args.pattern, args.kind, Path(args.control_repo), args.control_term, deadline=remaining
+    )
+
+
 def main(argv=None):
     """CLI entry point: wire enumerate_repos, scan and render_report
     together, then write the rendered report to `--out`.
@@ -779,17 +762,7 @@ def main(argv=None):
         repos, gaps = enumerate_repos(args.registry, args.cwd)
         hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap, deadline=args.deadline)
         if not hits:
-            remaining = args.deadline - (time.monotonic() - start)
-            if remaining <= 0:
-                print(
-                    "sweep unverified: deadline expired before control "
-                    f"verification could run in {args.control_repo}",
-                    file=sys.stderr,
-                )
-                return 1
-            verify_control(
-                args.pattern, args.kind, Path(args.control_repo), args.control_term, deadline=remaining
-            )
+            _verify_zero_hit_sweep(args, start)
     except (RuntimeError, TimeoutError) as exc:
         print(exc, file=sys.stderr)
         return 1
