@@ -130,7 +130,10 @@ def main() -> None:
 
     corrections = extract.get("corrections") or []
     if not isinstance(corrections, list) or any(
-        not isinstance(c, dict) for c in corrections
+        not isinstance(c, dict)
+        or ("from" in c and not isinstance(c["from"], str))
+        or ("to" in c and not isinstance(c["to"], str))
+        for c in corrections
     ):
         sys.exit(f"{workdir / 'extract.json'} has a malformed 'corrections' value")
 

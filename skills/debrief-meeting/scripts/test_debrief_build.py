@@ -359,6 +359,62 @@ def test_corrections_list_with_non_dict_entry_exits_with_single_line_message(
     assert not (workdir / "debrief.html").exists()
 
 
+def test_confirmed_correction_entry_with_non_string_from_rejected_with_single_line_message(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text(
+        json.dumps({"turns": [{"i": 0, "text": "old-path lives here"}]}),
+        encoding="utf-8",
+    )
+    (workdir / "extract.json").write_text(
+        json.dumps({"corrections": [{"from": 5, "to": "x"}]}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(build, "TEMPLATE", _make_template(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["build.py", str(workdir)])
+
+    with pytest.raises(SystemExit) as excinfo:
+        build.main()
+
+    assert excinfo.value.code
+    assert len(excinfo.value.args) == 1
+    message = str(excinfo.value.args[0])
+    assert "\n" not in message
+    assert "Traceback" not in message
+    assert not (workdir / "debrief.html").exists()
+
+
+def test_confirmed_correction_entry_with_non_string_to_rejected_with_single_line_message(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workdir = tmp_path / "meeting"
+    workdir.mkdir()
+    (workdir / "transcript.json").write_text(
+        json.dumps({"turns": [{"i": 0, "text": "old-path lives here"}]}),
+        encoding="utf-8",
+    )
+    (workdir / "extract.json").write_text(
+        json.dumps({"corrections": [{"from": "old", "to": 5}]}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(build, "TEMPLATE", _make_template(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["build.py", str(workdir)])
+
+    with pytest.raises(SystemExit) as excinfo:
+        build.main()
+
+    assert excinfo.value.code
+    assert len(excinfo.value.args) == 1
+    message = str(excinfo.value.args[0])
+    assert "\n" not in message
+    assert "Traceback" not in message
+    assert not (workdir / "debrief.html").exists()
+
+
 def test_valid_correction_entry_still_applies_when_extract_json_is_well_formed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
