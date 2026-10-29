@@ -31,6 +31,12 @@
       "detail": "fast-track/00100-link-check-scans-outside-root-v1-c1: Windows HOME-isolation gap in the ordinary-root CLI regression (repo's isolate_home fixture not used) plus missing symlink coverage for resolved root spellings",
       "op_id": "b1cca3e6633a",
       "prd": "00100-link-check-scans-outside-root-v1.md"
+    },
+    {
+      "type": "assumed-ambiguity",
+      "question": "Two pre-existing test_sweep_scan.py tests mock subprocess.run/a bare Event and regress once scan() always launches via a killable Popen and waits for shutdown; should they be updated or is the design wrong?",
+      "assumption": "Adapt both tests to mock subprocess.Popen instead, preserving their documented intent/assertions; the design stays as reviewed (process-group kill + unconditional wait=True once everything is a killable subprocess)",
+      "prd": "00104-sweep-overruns-process-deadline-v1.md"
     }
   ]
 }

@@ -2534,3 +2534,16 @@
 {"kind":"handoff","site":"build","edge":"resume","at":1793227351,"phase":"build","prd":"00103-sweep-scanning-release-notes-missing-v1.md"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793229861,"phase":"done","prd":"00103-sweep-scanning-release-notes-missing-v1.md"}
 {"kind":"handoff","site":"done","edge":"leave","at":1793229987,"phase":"build","prd":"00103-sweep-scanning-release-notes-missing-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793229997,"phase":"build","prd":"00104-sweep-overruns-process-deadline-v1.md"}
+{"id":"5ec12ea6","kind":"tess","task":"1","queued_at":1793231298,"prompt_bytes":57733}
+{"id":"b3ac7a22","kind":"tess","task":"1","queued_at":1793231318,"prompt_bytes":35525}
+{"id":"6e572e1b","kind":"devon","task":"1","queued_at":1793231992,"prompt_bytes":6009}
+{"id":"6e572e1b","ended_at":1793232325,"elapsed_s":333,"outcome":"ok","detail":null}
+{"id":"2c37bde9","kind":"tess","task":"1","queued_at":1793232353,"prompt_bytes":13569}
+{"id":"f5d9405b","kind":"ivan","task":"1","queued_at":1793232685,"prompt_bytes":108931}
+{"id":"5413d88a","kind":"ivan","task":"1","queued_at":1793232740,"prompt_bytes":95383}
+{"id":"0527008f","kind":"ivan","task":"1","queued_at":1793232910,"prompt_bytes":47437}
+{"id":"b9147ab8","kind":"ivan","task":"1","queued_at":1793233274,"prompt_bytes":22514}
+{"id":"5a187e65","kind":"deslop","task":"1","queued_at":1793233490,"prompt_bytes":8021}
+{"id":"5a187e65","ended_at":1793233551,"elapsed_s":61,"outcome":"ok","detail":null}
+{"id":"3a1edb26","kind":"ivan","task":"1","queued_at":1793233603,"prompt_bytes":15451}
