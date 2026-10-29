@@ -754,8 +754,8 @@ def test_scan_leaves_no_search_running_for_repos_still_queued_at_the_deadline(
 
     monkeypatch.setattr(subprocess, "Popen", TimedPopen)
 
+    started_at = time.monotonic()
     hits, _suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, deadline=1)
-    returned_at = time.monotonic()
     time.sleep(1.5)
     spawned = _recorded_pids(shim_pid_dir, "shim") + _recorded_pids(shim_pid_dir, "grandchild")
 
@@ -764,8 +764,63 @@ def test_scan_leaves_no_search_running_for_repos_still_queued_at_the_deadline(
     assert list(failed) == [str(repo) for repo in repos]
     assert spawned  # searches really started
     assert launched_at  # and went through subprocess.Popen, so the timing is real
-    assert [t for t in launched_at if t > returned_at] == []
+    # Checked against the 1s deadline itself (plus signal/scheduling slack),
+    # not against when scan() happened to return: a queued repo picked up by
+    # a freed worker thread must not launch a search after expiry, even if
+    # scan()'s own cleanup (killing hung trees, shutting the pool down) takes
+    # a while longer to return (R2).
+    expiry = started_at + 1
+    assert [t for t in launched_at if t > expiry + 0.5] == []
     assert _still_running_after(spawned, grace=0) == []
     assert list(shim_pid_dir.glob("finished-*")) == []
+
+
+def test_scan_repo_never_launches_a_search_once_its_own_deadline_has_expired(
+    tmp_path, monkeypatch
+):
+    # Deterministic complement to the timing test above: _scan_repo itself
+    # must refuse to call _scan_rg/_scan_astgrep (and therefore Popen) once
+    # `deadline` has already passed, independent of real elapsed time.
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("_scan_rg must not run past the deadline")
+
+    monkeypatch.setattr(sweep, "_scan_rg", _boom)
+
+    cwd_key, hits, error = sweep._scan_repo(
+        repo, "PATTERN", "rg", None, sweep.DEFAULT_SCAN_TIMEOUT, deadline=1, start=time.monotonic() - 2
+    )
+
+    assert cwd_key == str(repo)
+    assert hits == []
+    assert error == sweep.DEADLINE_REASON
+
+
+# -- _kill_tree: Windows cleanup is bounded by KILL_TREE_TIMEOUT -------------
+
+
+def test_kill_tree_bounds_windows_taskkill_to_kill_tree_timeout_not_scan_timeout(
+    monkeypatch,
+):
+    monkeypatch.setattr(sweep.os, "name", "nt")
+    calls = []
+
+    def _fake_run(*args, **kwargs):
+        calls.append(kwargs)
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+
+    proc = object.__new__(subprocess.Popen)
+    proc.pid = 4242
+    monkeypatch.setattr(subprocess.Popen, "kill", lambda self: None, raising=False)
+
+    sweep._kill_tree(proc)
+
+    assert len(calls) == 1
+    assert calls[0]["timeout"] == sweep.KILL_TREE_TIMEOUT
+    assert calls[0]["timeout"] < sweep.DEFAULT_SCAN_TIMEOUT
 
 

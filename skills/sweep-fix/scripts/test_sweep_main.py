@@ -593,13 +593,19 @@ def test_main_passes_deadline_through_to_scan(tmp_path, monkeypatch):
     with_flag = _run_main_and_record_deadlines(
         tmp_path / "with-flag", "DEADLINEWIREMARKER", ["--deadline", "5"]
     )
-    assert with_flag == [5]
+    # Setup (resolve + enumerate) runs before this call, so the deadline
+    # passed to scan() is --deadline minus that setup time, not --deadline
+    # itself -- setup time is charged against the budget (R1).
+    assert len(with_flag) == 1
+    assert with_flag[0] == pytest.approx(5, abs=0.5)
+    assert with_flag[0] <= 5
 
     without_flag = _run_main_and_record_deadlines(
         tmp_path / "without-flag", "NODEADLINEWIREMARKER", []
     )
     assert len(without_flag) == 1
-    assert without_flag[0] == 300
+    assert without_flag[0] == pytest.approx(300, abs=0.5)
+    assert without_flag[0] <= 300
 
 
 def test_main_passes_remaining_deadline_into_verify_control(tmp_path, monkeypatch):
