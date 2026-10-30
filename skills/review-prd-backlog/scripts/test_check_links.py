@@ -165,3 +165,285 @@ def test_a_repeated_reference_is_statted_once(tmp_path, monkeypatch):
 
     real = tmp_path / "docs/dev/project-management/notes/real.md"
     assert calls.count(real) == 1
+
+
+def empty_memory(tmp_path, monkeypatch, *names):
+    mem = tmp_path / "memory"
+    mem.mkdir()
+    for name in names:
+        (mem / f"{name}.md").write_text("body\n")
+    monkeypatch.setattr(check_links, "project_memory_dir", lambda _root: mem)
+
+
+def test_backtick_wrapped_bracket_is_not_a_memory_link(tmp_path, monkeypatch):
+    make_tree(tmp_path)
+    empty_memory(tmp_path, monkeypatch, "real-mem")
+    findings, errors = scan(
+        tmp_path,
+        "write `[[fake]]` or `[[other-fake]]` for links\n"
+        "see [[ghost-memory]] and [[real-mem]]\n"
+        "half-wrapped `[[left-only]] and [[right-only]]` still count\n"
+        "syntax `[[wrapped]]` sits beside bare [[mixed-ghost]] on one line\n",
+    )
+    assert errors == []
+    assert sorted((f[1], f[2]) for f in findings) == [
+        (2, "[[ghost-memory]] (no memory)"),
+        (3, "[[left-only]] (no memory)"),
+        (3, "[[right-only]] (no memory)"),
+        (4, "[[mixed-ghost]] (no memory)"),
+    ]
+
+
+def test_prd_number_inside_uuid_is_not_a_citation(tmp_path):
+    make_tree(tmp_path)
+    findings, errors = scan(
+        tmp_path,
+        "codex_thread_id 01a17278-82e1-7811-975b-0c2d3e4f5a6b done\n"
+        "dispatch f3b42051-aaaa-bbbb-cccc-dddddddddddd and run_12345-x\n"
+        "cite 00099-nope-v1.md and `00098-gone-v1.md` and (00097-lost-v1.md)\n"
+        "00096-start-v1.md opens the line, 00001-alpha-v1.md resolves\n"
+        "bold **00095-a-v1.md** link [00094-b-v1.md] quote \"00093-c-v1.md\" PRD#00092-d-v1.md\n",
+    )
+    assert errors == []
+    assert sorted((f[1], f[2]) for f in findings) == [
+        (3, "00097- (no PRD/discovery file)"),
+        (3, "00098- (no PRD/discovery file)"),
+        (3, "00099- (no PRD/discovery file)"),
+        (4, "00096- (no PRD/discovery file)"),
+        (5, "00092- (no PRD/discovery file)"),
+        (5, "00093- (no PRD/discovery file)"),
+        (5, "00094- (no PRD/discovery file)"),
+        (5, "00095- (no PRD/discovery file)"),
+    ]
+
+
+def test_self_quoted_no_prd_diagnostic_is_not_a_fresh_citation(tmp_path):
+    make_tree(tmp_path)
+    findings, errors = scan(
+        tmp_path,
+        "last run said 00057- (no PRD/discovery file) for that doc\n"
+        "it also said 00058- (no PRD file) and 00095-gone-v1.md here\n"
+        "unrelated: cite 00099-nope-v1.md\n"
+        "quoted 00057- (no PRD/discovery file) beside fresh 00094-new-v1.md\n"
+        "fresh 00093-gone-v1.md was flagged (no PRD/discovery file) later\n",
+    )
+    assert errors == []
+    assert sorted((f[1], f[2]) for f in findings) == [
+        (2, "00058- (no PRD/discovery file)"),
+        (2, "00095- (no PRD/discovery file)"),
+        (3, "00099- (no PRD/discovery file)"),
+        (4, "00094- (no PRD/discovery file)"),
+        (5, "00093- (no PRD/discovery file)"),
+    ]
+
+
+def test_observed_evidence_fence_is_opaque(tmp_path, monkeypatch):
+    make_tree(tmp_path)
+    empty_memory(tmp_path, monkeypatch)
+    findings, errors = scan(
+        tmp_path,
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "\n"
+        "```text\n"
+        "[[package]] name = \"x\"\n"
+        "id 99999-zz\n"
+        "docs/dev/project-management/notes/fenced-ghost.md\n"
+        "```\n"
+        "prose: [[package]] 99999-zz docs/dev/project-management/notes/fenced-ghost.md\n"
+        "```text\n"
+        "[[plain-ghost]]\n"
+        "```\n",
+    )
+    assert errors == []
+    assert sorted((f[1], f[2]) for f in findings) == [
+        (8, "99999- (no PRD/discovery file)"),
+        (8, "[[package]] (no memory)"),
+        (8, "docs/dev/project-management/notes/fenced-ghost.md"),
+        (10, "[[plain-ghost]] (no memory)"),
+    ]
+
+
+def test_evidence_fence_without_a_following_fence_is_not_armed(tmp_path, monkeypatch):
+    make_tree(tmp_path)
+    empty_memory(tmp_path, monkeypatch)
+    findings, errors = scan(
+        tmp_path,
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "[[package]]\n"
+        "docs/dev/project-management/notes/ghost.md\n"
+        "\n"
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "```text\n"
+        "[[suppressed-package]]\n"
+        "```\n",
+    )
+    assert errors == []
+    # the un-fenced heading's content is still scanned normally (preserved),
+    # and a separate, genuinely-closed evidence fence later in the same
+    # document still suppresses - the exact-equality check below already
+    # pins both: only these two findings exist, so [[suppressed-package]]
+    # cannot be among them.
+    assert sorted((f[1], f[2]) for f in findings) == [
+        (2, "[[package]] (no memory)"),
+        (3, "docs/dev/project-management/notes/ghost.md"),
+    ]
+
+
+def test_marker_quoted_in_closed_ordinary_fence_does_not_arm_a_later_heading(tmp_path, monkeypatch):
+    """Pins the fix: the pre-fix code armed from the trigger substring found
+    inside a closed ordinary fence, then misread that fence's own closing
+    delimiter as an evidence-fence open, swallowing the genuine heading and
+    findings that followed. A test with no ordinary fence ahead of the
+    heading (like the sibling test above) cannot distinguish old from new
+    behavior; this one can and does."""
+    make_tree(tmp_path)
+    empty_memory(tmp_path, monkeypatch)
+    findings, errors = scan(
+        tmp_path,
+        "Example output:\n"
+        "```python\n"
+        'if "Carry the observed evidence verbatim" in stripped:\n'
+        "```\n"
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "[[package]]\n"
+        "docs/dev/project-management/notes/ghost.md\n",
+    )
+    assert errors == []
+    assert sorted((f[1], f[2]) for f in findings) == [
+        (6, "[[package]] (no memory)"),
+        (7, "docs/dev/project-management/notes/ghost.md"),
+    ]
+
+
+def test_unclosed_evidence_fence_falls_back_to_normal_scanning(tmp_path):
+    make_tree(tmp_path)
+    findings, errors = scan(
+        tmp_path,
+        "preamble\n"
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "```text\n"
+        "docs/dev/project-management/notes/ghost.md\n",
+    )
+    assert [(f[1], f[2]) for f in findings] == [(4, "docs/dev/project-management/notes/ghost.md")]
+    assert len(errors) == 1
+    assert "evidence fence opened at line 3 never closed" in errors[0]
+
+
+def test_unclosed_evidence_fence_error_names_the_fence_line_not_the_heading(tmp_path):
+    make_tree(tmp_path)
+    findings, errors = scan(
+        tmp_path,
+        "preamble\n"
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "\n"
+        "```text\n"
+        "docs/dev/project-management/notes/ghost.md\n",
+    )
+    assert [(f[1], f[2]) for f in findings] == [(5, "docs/dev/project-management/notes/ghost.md")]
+    assert len(errors) == 1
+    assert "evidence fence opened at line 4 never closed" in errors[0]
+    assert "line 3" not in errors[0]
+
+
+def test_only_the_evidence_heading_arms_the_fence(tmp_path):
+    make_tree(tmp_path)
+    findings, errors = scan(
+        tmp_path,
+        "Example output:\n"
+        "```text\n"
+        "docs/dev/project-management/notes/colon-ghost.md\n"
+        "```\n"
+        "Carry the observed evidence verbatim from the accepted packet.\n"
+        "```text\n"
+        "docs/dev/project-management/notes/quiet-ghost.md\n"
+        "```\n",
+    )
+    assert errors == []
+    assert [(f[1], f[2]) for f in findings] == [(3, "docs/dev/project-management/notes/colon-ghost.md")]
+
+
+def test_marker_quoted_inside_code_fence_does_not_arm(tmp_path):
+    make_tree(tmp_path)
+    findings, errors = scan(
+        tmp_path,
+        "```python\n"
+        'if "Carry the observed evidence verbatim" in stripped:\n'
+        "    pass\n"
+        "```\n"
+        "docs/dev/project-management/notes/after-ghost.md\n",
+    )
+    assert errors == []
+    assert [(f[1], f[2]) for f in findings] == [
+        (5, "docs/dev/project-management/notes/after-ghost.md"),
+    ]
+
+
+def test_repeated_marker_inside_evidence_fence_does_not_leak_armed_state(tmp_path, monkeypatch):
+    make_tree(tmp_path)
+    empty_memory(tmp_path, monkeypatch)
+    findings, errors = scan(
+        tmp_path,
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "```text\n"
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "[[hidden-in-fence]]\n"
+        "```\n"
+        "```text\n"
+        "[[plain-ghost]]\n"
+        "```\n",
+    )
+    assert errors == []
+    assert [(f[1], f[2]) for f in findings] == [
+        (7, "[[plain-ghost]] (no memory)"),
+    ]
+
+
+def test_evidence_fence_opacity_starts_at_the_fence_not_the_heading(tmp_path):
+    make_tree(tmp_path)
+    findings, errors = scan(
+        tmp_path,
+        "Carry the observed evidence verbatim from 00091-heading-v1.md:\n"
+        "prose between cites docs/dev/project-management/notes/between-ghost.md\n"
+        "```text\n"
+        "docs/dev/project-management/notes/fenced-ghost.md\n"
+        "```\n",
+    )
+    assert errors == []
+    assert sorted((f[1], f[2]) for f in findings) == [
+        (1, "00091- (no PRD/discovery file)"),
+        (2, "docs/dev/project-management/notes/between-ghost.md"),
+    ]
+
+
+def test_nested_language_tagged_fence_does_not_close_outer_evidence_fence(tmp_path, monkeypatch):
+    make_tree(tmp_path)
+    empty_memory(tmp_path, monkeypatch)
+    findings, errors = scan(
+        tmp_path,
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "```text\n"
+        "```python\n"
+        "[[nested-ghost]]\n"
+        "```\n"
+        "docs/dev/project-management/notes/nested-ghost.md\n"
+        "```\n",
+    )
+    assert errors == []
+    assert findings == []
+
+
+def test_four_backtick_evidence_fence_not_closed_by_inner_three_backtick_fence(tmp_path, monkeypatch):
+    make_tree(tmp_path)
+    empty_memory(tmp_path, monkeypatch)
+    findings, errors = scan(
+        tmp_path,
+        "Carry the observed evidence verbatim from the accepted packet:\n"
+        "````text\n"
+        "```python\n"
+        "[[inner-ghost]]\n"
+        "```\n"
+        "docs/dev/project-management/notes/four-tick-ghost.md\n"
+        "````\n",
+    )
+    assert errors == []
+    assert findings == []
