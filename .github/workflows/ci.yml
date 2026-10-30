@@ -180,7 +180,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Install debrief-meeting dependencies
         run: npm --prefix skills/debrief-meeting/app ci
