@@ -379,6 +379,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "save":
             return _save_from_proposals_dir(Path(args.proposals_dir), path=args.queue)
         elif args.command == "start":
+            queue_path = _resolve_path(args.queue)
+            if not queue_path.exists():
+                print(f"warning: queue file {queue_path} does not exist", file=sys.stderr)
             try:
                 advance(path=args.queue)
             except OSError as error:
@@ -386,6 +389,9 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             return 0
         elif args.command == "next":
+            queue_path = _resolve_path(args.queue)
+            if not queue_path.exists():
+                print(f"warning: queue file {queue_path} does not exist", file=sys.stderr)
             entry = next_undecided(path=args.queue)
             if entry is None:
                 return 1
@@ -396,6 +402,9 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "unpublished":
             import write
 
+            queue_path = _resolve_path(args.queue)
+            if not queue_path.exists():
+                print(f"warning: queue file {queue_path} does not exist", file=sys.stderr)
             try:
                 ids = unpublished(args.store, path=args.queue)
             except (write.WriteError, OSError) as exc:
