@@ -237,3 +237,39 @@ def test_cli_reports_a_failed_state_write_on_one_line_and_exits_2(
     error = capsys.readouterr().err
     assert error.startswith(f"braid: cannot write Braid state {state_path}: ")
     assert error.count("\n") == 1
+
+
+def test_cli_reports_an_unreadable_state_file_on_one_line_and_exits_2(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = tmp_path / "personal"
+    make_skill(source, "portable")
+    agents_root = tmp_path / "home" / ".agents"
+    agents_root.mkdir(parents=True)
+    state_path = agents_root / ".braid-state.json"
+    invalid_bytes = b"\xff\xfe\x00"
+    state_path.write_bytes(invalid_bytes)
+    monkeypatch.setattr(cli, "_repository_root", lambda: source)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "braid",
+            "--check",
+            "--no-kiro",
+            "--agents-root",
+            str(agents_root),
+            "--claude-root",
+            str(tmp_path / "home" / ".claude"),
+            "--config-root",
+            str(tmp_path / "empty-config"),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as stopped:
+        cli.entrypoint()
+
+    assert stopped.value.code == 2
+    error = capsys.readouterr().err
+    assert error.startswith(f"braid: cannot read Braid state {state_path}: ")
+    assert error.count("\n") == 1
+    assert state_path.read_bytes() == invalid_bytes

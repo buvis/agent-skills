@@ -253,7 +253,7 @@ def _load_state(path: Path) -> State:
         return State.empty()
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise BraidError(f"cannot read Braid state {path}: {error}") from error
     if not isinstance(payload, dict) or payload.get("version") != STATE_VERSION:
         raise BraidError(f"unsupported Braid state version in {path}")
