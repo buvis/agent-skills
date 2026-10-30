@@ -54,6 +54,9 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
 
 ## Active Work
 
+- `plans/repository-closeout-plan.md` defines three execution sessions and a
+  fourth independent verification session. It covers archive safety, Windows
+  CI, and PRs #17/#15/#16; PRD 00133 implementation remains outside its scope.
 - Batch 202610271200 is stopped after 33 completed PRDs. PRD 00133 remains in
   `wip/`, build phase, zero completed tasks. The interrupted run's telemetry
   and unchanged backlog-to-wip move are committed.
@@ -85,14 +88,16 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
 
 ## GitHub State
 
-- Remote master remains `02a1423`; grooming has not pushed it.
+- Remote master was observed at `6b52b2a` during closeout planning, after the
+  grooming session ended. The grouped history is now published.
 - Open PRs: #17 migration skills; #16 Node 26; #15 setup-uv 10.3.3.
   All three remote branches have live PRs and are retained.
-- Latest remote-master CI, run 40584704851, failed on Windows with 60 Qwen
-  harness clone-path/hash tests. This is historical baseline failure, not
-  proof that the regrouped local tip was tested on Windows.
+- Latest remote-master CI, run 41032617118 at `6b52b2a`, failed on Windows:
+  61 failed, 4166 passed, 40 skipped. Linux 3.10/3.13, lint, Node, and shell
+  passed. Use its current logs instead of the older 60-failure baseline.
 - Migration run 41030058506 at `9249695`: Linux Python 3.10/3.13, lint,
-  Node, and shell jobs passed; Windows was still running at this snapshot.
+  Node, and shell jobs passed; Windows failed with 65 failed, 4062 passed,
+  and 43 skipped.
 - PR #17's body still names PRD 00150; its branch now carries PRD 00159.
   Correct that description when next updating PR metadata.
 - One open issue: Dependency Dashboard. No GitHub releases were returned.
