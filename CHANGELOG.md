@@ -14,10 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **purge-devtmp**: candidate paths containing a tab or line break are refused and reported as `refused-unsafe-path` instead of writing an unrestorable manifest row; emptying a trash batch now also removes its manifest rows (from either tool), preserving retained-batch and unparseable historical rows.
+- **purge-devtmp**: restoration instructions now create the original parent directory before moving a trashed file or directory unit back, so restoring a unit whose parent was pruned no longer fails with `mv` exit 1.
 - **brush**: the manifest's fourth column is now store-relative (`.trash/<date>/<rel>`, resolve from `docs/dev/tmp`), matching purge-devtmp, so one base restores rows from either tool.
 - **sweep-fix**: `sweep.py` terminates every search process tree (and its descendants) still running when the `--deadline` expires, instead of merely stopping to wait for it; the deadline now also bounds the final control-verification check, so an expired zero-hit sweep refuses as unverified (`sweep unverified: ...` on stderr, exit 1, no report written) instead of running an unbounded fresh verification.
 - **review-deps-prs**: the discovery script now reports each repo whose PR lookup failed on stderr and exits 2, so a partial or empty scan is not mistaken for a clean one.
 - **create-prd**: `ground_prd.py` exits 2 with a clear message for an invalid `--root` or unreadable input; relative PRD paths are excluded relative to cwd.
+- **review-prd-backlog**: `check_links.py` no longer misreads UUID/dispatch-id fragments, quoted prior-run diagnostics, or backtick-wrapped `[[...]]` syntax examples and fenced "observed evidence" transcripts as dangling PRD or memory references.
+- **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
 
 ### Changed
 

@@ -119,7 +119,7 @@ jobs:
       - name: Run the suite
         run: uv run --python 3.13 pytest
 
-  # Four skills ship five bash suites their helper scripts are the subject of.
+  # Five skills ship six bash suites their helper scripts are the subject of.
   # pytest never sees them, so without this job they pass or fail invisibly.
   shell:
     runs-on: ubuntu-latest
