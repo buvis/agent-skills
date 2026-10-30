@@ -21,7 +21,7 @@ unsloth/Qwen3.6-27B-MTP-GGUF:UD-Q6_K_XL
 # (whole-file revert where safe, surgical function-level revert where the
 # file had unrelated later history). Evidence: docs/dev/project-management/audit-results/
 # qwen-eval-unsloth-Qwen3.8-27B-GGUF-UD-Q6_K_XL-2026-08-31.md. Served via
-# llama.cpp on :8002. Not yet promoted to default - see SKILL.md.
+# llama.cpp on :8002. Promoted to default - see default-model.txt.
 #
 # Correction (still 2026-08-31): the ddb task's first pass was contaminated -
 # a killed-and-restarted eval run left the file already fixed before the

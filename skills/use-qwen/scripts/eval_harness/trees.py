@@ -122,6 +122,47 @@ def _refuse_escaping_links(root: Path) -> None:
         _land(links, relpath)
 
 
+def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) -> None:
+    """Refuse an archive whose extraction order a link graph cannot describe.
+
+    A name met twice means extraction order, not the final name table, decides
+    what a later write reaches, so a repeat is refused outright. Every member,
+    not only the links, is then walked hop by hop, on its *own* text: a name
+    normalized ahead of the walk (`alias/../outside/x` -> `outside/x`) throws
+    away the very hop through `alias` that `_land` exists to judge. A hardlink
+    is refused outright - unlike a symlink it names bytes directly, so there is
+    no hop for `_land` to walk and no way to tell where it really points.
+    Two members that land in the same place, however their names read, are as
+    much a collision as one name met twice: `alias -> pkg` plus `alias/file`
+    reaches the same place as `pkg/file`, and extraction order would decide
+    which one wins.
+    """
+    names = set()
+    originals: list[str] = []
+    for member in members:
+        if os.path.isabs(member.name):
+            raise TreeError("%s is absolute" % member.name)
+        if not (member.isfile() or member.isdir() or member.issym()):
+            raise TreeError("%s is not a file, directory or symlink" % member.name)
+        name = posixpath.normpath(member.name)
+        if name in names:
+            raise TreeError("%s is a duplicate member" % name)
+        names.add(name)
+        originals.append(member.name)
+    links = {posixpath.normpath(m.name): m.linkname for m in members if m.issym()}
+    landings: set[str] = set()
+    for member, original in zip(members, originals):
+        landing = _land(links, original)
+        # A symlink's own landing is wherever it points, by construction - not a
+        # second write to that place. Only content members (files, dirs) can
+        # collide over who writes last.
+        if member.issym():
+            continue
+        if landing in landings:
+            raise TreeError("%s is a duplicate member" % original)
+        landings.add(landing)
+
+
 def build_template(repo: Path, first: str, dest: Path) -> str:
     """Seal the tree before `first` at `dest` as one commit, and answer its sha.
 
@@ -135,10 +176,11 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
         # Read off the archive rather than off an extracted tree: a host that
         # cannot create a symlink at all still has to refuse one that escapes,
         # and refusing here leaves no half-built template behind.
-        links = {member.name: member.linkname for member in archive.getmembers() if member.issym()}
-        for name in links:
-            _land(links, name)
-        archive.extractall(dest)
+        _refuse_duplicate_or_crossing_members(archive.getmembers())
+        if hasattr(tarfile, "data_filter"):
+            archive.extractall(dest, filter="data")
+        else:
+            archive.extractall(dest)
     _git(dest, *IDENTITY, "init")
     _git(dest, "add", "-A")
     # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the

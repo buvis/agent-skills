@@ -9,7 +9,10 @@ helpers and the capability guard are spelled there and imported here, so there
 is one spelling of each.
 """
 import hashlib
+import io
 import os
+import tarfile
+import warnings
 from pathlib import Path
 
 import pytest
@@ -247,6 +250,263 @@ def test_build_template_seals_a_dangling_link_whose_target_stays_inside(
         assert (dest / name).is_symlink(), name
         assert not (dest / name).exists()
         assert _link_text(dest / name) == target
+
+
+# -- build_template on a crafted archive -----------------------------------
+
+# Git will not commit two entries at one path, nor a file under a path that is
+# a link, so these archives are built by hand and handed to `build_template` in
+# place of `git archive`'s output. `dest` is `tmp_path/template`, so a link
+# reading `../outside` reaches the sentinel directory beside it.
+ESCAPE = ("sym", "../outside")
+SAFE_LINK = ("sym", ".")
+DIRECTORY = ("dir", None)
+PAYLOAD = ("file", b"pwned\n")
+
+DUPLICATE_MEMBERS = [
+    pytest.param([("escape", ESCAPE), ("escape", DIRECTORY)], id="escaping-link-then-directory"),
+    pytest.param([("escape", DIRECTORY), ("escape", ESCAPE)], id="directory-then-escaping-link"),
+    pytest.param(
+        [("escape", ESCAPE), ("escape/secret.txt", PAYLOAD), ("escape", SAFE_LINK)],
+        id="escaping-link-write-through-then-safe-link",
+    ),
+    pytest.param(
+        [("escape", SAFE_LINK), ("escape", ESCAPE), ("escape/secret.txt", PAYLOAD)],
+        id="safe-link-then-escaping-link-write-through",
+    ),
+    # Two spellings of one path: a check keyed on raw member text misses it.
+    pytest.param(
+        [("./escape", ESCAPE), ("escape", SAFE_LINK)], id="same-path-under-two-spellings"
+    ),
+    # No member escapes on its own: the repeated name alone must refuse these.
+    pytest.param(
+        [("pkg", DIRECTORY), ("x", ("sym", "pkg")), ("x", DIRECTORY)],
+        id="safe-link-then-directory",
+    ),
+    pytest.param([("x", PAYLOAD), ("x", DIRECTORY)], id="file-then-directory"),
+    pytest.param([("x", PAYLOAD), ("x", ("file", b"other\n"))], id="two-files"),
+]
+
+ANCESTOR_CROSSINGS = [
+    pytest.param([("escape", ESCAPE), ("escape/secret.txt", PAYLOAD)], id="file-under-escaping-link"),
+    pytest.param(
+        [("sub", DIRECTORY), ("sub/vault", ("sym", "../../outside")),
+         ("sub/vault/secret.txt", PAYLOAD)],
+        id="file-under-escaping-link-in-a-subdirectory",
+    ),
+    # Unique names, and each link stays inside when read alone: `x/b` -> `.`
+    # is `x`, and `a` -> `x/b/../..` reads as `.`. Resolved together, `a` is
+    # `x`, then the root, then outside - so the file under `a` escapes.
+    pytest.param(
+        [("x", DIRECTORY), ("x/b", SAFE_LINK), ("a", ("sym", "x/b/../..")),
+         ("a/secret.txt", PAYLOAD)],
+        id="file-under-links-that-escape-only-together",
+    ),
+    # `alias` walked alone stays inside (it points at the root). Normalizing
+    # the file's own name ahead of the walk collapses `alias/..` away before
+    # the hop through `alias` is ever taken, which is exactly the shortcut
+    # that misses the escape.
+    pytest.param(
+        [("alias", SAFE_LINK), ("alias/../outside/secret.txt", PAYLOAD)],
+        id="file-whose-own-path-crosses-a-symlink-that-is-safe-alone",
+    ),
+]
+
+
+def _crafted_tar(members: list) -> bytes:
+    """A tar holding `members` (name, (kind, data)) in the order given."""
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w") as archive:
+        for name, (kind, data) in members:
+            info = tarfile.TarInfo(name)
+            if kind == "sym":
+                info.type, info.linkname = tarfile.SYMTYPE, data
+                archive.addfile(info)
+            elif kind == "dir":
+                info.type, info.mode = tarfile.DIRTYPE, 0o755
+                archive.addfile(info)
+            else:
+                info.size = len(data)
+                archive.addfile(info, io.BytesIO(data))
+    return buffer.getvalue()
+
+
+def _serve_archive(monkeypatch, bundle: bytes) -> None:
+    """Answer `git archive` with `bundle`; every other git call runs for real."""
+    real = trees._git_bytes
+
+    def fake(root, *args):
+        return bundle if args and args[0] == "archive" else real(root, *args)
+
+    monkeypatch.setattr(trees, "_git_bytes", fake)
+
+
+class _TarfileWithoutDataFilter:
+    """Forwards to the real `tarfile` module, except hiding `data_filter`.
+
+    Deleting `tarfile.data_filter` outright breaks `extractall`'s own
+    internals (its `_get_filter_function` references the name bare, with no
+    module prefix), so only `trees.py`'s own `hasattr` check is fooled, by
+    patching the name `trees.tarfile` refers to rather than `tarfile` itself.
+    """
+
+    def __getattr__(self, name):
+        if name == "data_filter":
+            raise AttributeError(name)
+        return getattr(tarfile, name)
+
+
+def _hide_data_filter(monkeypatch) -> None:
+    """Make `build_template` take its compatibility branch, safely."""
+    monkeypatch.setattr(trees, "tarfile", _TarfileWithoutDataFilter())
+
+
+def _outside_sentinel(tmp_path: Path) -> Path:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.txt").write_bytes(b"outside\n")
+    return outside
+
+
+def _assert_refused_cleanly(tmp_path, built_repo, monkeypatch, members) -> None:
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    outside = _outside_sentinel(tmp_path)
+    _serve_archive(monkeypatch, _crafted_tar(members))
+    dest = tmp_path / "template"
+
+    with pytest.raises(trees.TreeError):
+        trees.build_template(repo, first, dest)
+
+    assert list(dest.glob("*")) == []
+    # The escape did not happen: the outside directory holds what it held.
+    assert sorted(p.name for p in outside.iterdir()) == ["secret.txt"]
+    assert (outside / "secret.txt").read_bytes() == b"outside\n"
+
+
+@pytest.mark.parametrize("members", DUPLICATE_MEMBERS)
+def test_build_template_refuses_an_archive_with_two_members_at_one_path(
+    tmp_path, built_repo, monkeypatch, members
+):
+    _assert_refused_cleanly(tmp_path, built_repo, monkeypatch, members)
+
+
+@pytest.mark.parametrize("members", ANCESTOR_CROSSINGS)
+def test_build_template_refuses_a_member_under_a_link_that_leaves_the_tree(
+    tmp_path, built_repo, monkeypatch, members
+):
+    _assert_refused_cleanly(tmp_path, built_repo, monkeypatch, members)
+
+
+@NEEDS_SYMLINKS
+def test_build_template_seals_a_crafted_archive_with_unique_safe_members(
+    tmp_path, built_repo, monkeypatch
+):
+    # The accept case of the same shape as the refusals: distinct names, a link
+    # that stays inside, and a file under a real directory.
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    outside = _outside_sentinel(tmp_path)
+    members = [("pkg", DIRECTORY), ("pkg/secret.txt", PAYLOAD), ("escape", ("sym", "pkg"))]
+    _serve_archive(monkeypatch, _crafted_tar(members))
+    dest = tmp_path / "template"
+
+    sha = trees.build_template(repo, first, dest)
+
+    assert sha == trees.head_sha(dest)
+    assert (dest / "pkg" / "secret.txt").read_bytes() == b"pwned\n"
+    assert _link_text(dest / "escape") == "pkg"
+    assert (dest / "escape" / "secret.txt").read_bytes() == b"pwned\n"
+    assert (outside / "secret.txt").read_bytes() == b"outside\n"
+
+
+@NEEDS_SYMLINKS
+@pytest.mark.parametrize("filter_support", ["with-data-filter", "without-data-filter"])
+def test_build_template_seals_a_safe_tree_with_or_without_tar_data_filter(
+    tmp_path, built_repo, monkeypatch, filter_support
+):
+    if filter_support == "without-data-filter":
+        _hide_data_filter(monkeypatch)
+    repo = Path(built_repo["repo"])
+    _commit_file(repo, "pkg/nested.txt", b"nested\n")
+    links = {"pkg-link": "pkg", "nested": "pkg-link/nested.txt"}
+    first = _commit_links(repo, links)
+    dest = tmp_path / "template"
+
+    sha = trees.build_template(repo, first, dest)
+
+    assert sha == trees.head_sha(dest)
+    assert (dest / "pkg" / "nested.txt").read_bytes() == b"nested\n"
+    for name, target in links.items():
+        assert (dest / name).is_symlink(), name
+        assert _link_text(dest / name) == target
+    assert (dest / "nested").read_bytes() == b"nested\n"
+    assert _git(dest, "status", "--porcelain") == ""
+
+
+# -- build_template's tarfile extraction filter -----------------------------
+
+# The message tarfile.TarFile.extractall raises for a filter left at its
+# deprecated default, distinct from any other DeprecationWarning a dependency
+# might raise: elevating only this one to an error cannot turn an unrelated
+# warning into a failure.
+_OMITTED_FILTER_WARNING = "Python 3.14 will, by default, filter extracted tar archives"
+
+# The same safe-link shape `test_build_template_seals_a_crafted_archive_with_unique_safe_members`
+# uses: a link that stays inside the tree, so a stricter warning filter is
+# shown not to disturb a safe-link control.
+_SAFE_MEMBERS = [("pkg", DIRECTORY), ("pkg/secret.txt", PAYLOAD), ("escape", ("sym", "pkg"))]
+
+
+@NEEDS_SYMLINKS
+def test_build_template_s_data_filter_path_never_raises_the_omitted_filter_warning(
+    tmp_path, built_repo, monkeypatch
+):
+    # The branch this runtime actually takes: `tarfile.data_filter` exists, so
+    # build_template passes filter="data" explicitly, and the warning tarfile
+    # raises for an omitted filter must never fire on this path.
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    _serve_archive(monkeypatch, _crafted_tar(_SAFE_MEMBERS))
+    dest = tmp_path / "template"
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "error", message=_OMITTED_FILTER_WARNING, category=DeprecationWarning
+        )
+        sha = trees.build_template(repo, first, dest)
+
+    # Safe-link control: the archive's own link still lands where it did
+    # before, unaffected by the stricter warning filter.
+    assert sha == trees.head_sha(dest)
+    assert _link_text(dest / "escape") == "pkg"
+    assert (dest / "escape" / "secret.txt").read_bytes() == b"pwned\n"
+
+
+@NEEDS_SYMLINKS
+def test_build_template_s_compatibility_path_seals_a_safe_tree_regardless_of_the_omitted_filter_warning(
+    tmp_path, built_repo, monkeypatch
+):
+    # Without `tarfile.data_filter` visible to build_template, it falls back
+    # to a bare `extractall(dest)`. Whether this runtime's tarfile still
+    # raises the omitted-filter warning for that call varies by Python
+    # version - on this one (verified empirically) it does not, since the
+    # warning text was retired once 3.14 made the default filter effective -
+    # but on every version the compatibility branch still has to seal the
+    # tree the archive describes.
+    _hide_data_filter(monkeypatch)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    _serve_archive(monkeypatch, _crafted_tar(_SAFE_MEMBERS))
+    dest = tmp_path / "template"
+
+    sha = trees.build_template(repo, first, dest)
+
+    # Safe-link control: the archive's own link still lands where it did
+    # before, same as the data_filter path above.
+    assert sha == trees.head_sha(dest)
+    assert _link_text(dest / "escape") == "pkg"
+    assert (dest / "escape" / "secret.txt").read_bytes() == b"pwned\n"
 
 
 # -- fresh_clone -----------------------------------------------------------
