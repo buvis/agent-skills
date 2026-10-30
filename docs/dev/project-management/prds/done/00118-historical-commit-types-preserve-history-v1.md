@@ -51,7 +51,7 @@ docs/dev/project-management/prds/backlog/
 
 ### Module: accepted decision record
 
-- **Location**: `docs/dev/project-management/prds/backlog/00118-historical-commit-types-preserve-history-v1.md`
+- **Location**: `docs/dev/project-management/prds/done/00118-historical-commit-types-preserve-history-v1.md`
 - **Maps-to-capability**: retain the user's accepted historical-risk decision.
 - **Responsibility**: preserve traceability without scheduling a history rewrite.
 - **Exports**: none.

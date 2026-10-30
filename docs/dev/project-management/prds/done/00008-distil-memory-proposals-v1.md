@@ -5,7 +5,7 @@ rework_cap: 5
 
 # Distil Memory Candidates: Distiller and Deduplication
 
-Source: `~/.claude/dev/local/discovery/00147-distil-memory-from-transcripts.md`
+Source: link-ok: `~/.claude/dev/local/discovery/00147-distil-memory-from-transcripts.md`
 (comprehensive, 2026-08-26). Slice 2 of 3: the strong-model distiller, the
 proposal schema, and deduplication against existing memory. Depends on slice 1
 (`00007`, extraction and funnel); slice 3 (`00009`) consumes the proposals.

@@ -59,6 +59,9 @@ Updated: 2026-10-18T16:48Z (full catchup, PRD 00070 selection, same batch 202610
 Updated: 2026-10-27 (full catchup, `catchup: force`, PRD 00044 build entry, new batch 202610271200, HEAD 02a1423; PRD 00044 unparked into `backlog/` the previous commit to fix the Windows CI job, re-selected into `wip/` this pass with its existing design doc reused (`design: "reuse"`). GitHub State: master CI red — latest run 40519480325 at b9e4747, 60 failed / 3874 passed / 32 skipped on the `windows` job, all in `skills/use-qwen/scripts/`: `test_run_eval_cli.py` (dispatch-order clone-path assertions, 2 cases), `test_run_eval_harness.py` (own-gate-in-dispatch-clone), `test_run_eval_harness_outcomes.py` (baseline-clone-per-attempt), `test_run_eval_vet.py` (one hash-mismatch, likely CRLF/LF; plus the known intermittent WinError 32 file-in-use noted in the PRD). Ubuntu matrix green. 1 open issue (Dependency Dashboard, bookkeeping), no open PRs, 6 Renovate updates appear merged/closed since the last capsule pass (dependency commits visible in `git log`: svelte 5.57.3, debrief-meeting deps, setup-uv action, setup-node action). `work_start_sha` captured at 02a1423.)
 Updated: 2026-10-28 (full catchup, PRD 00099 selection, same batch 202610271200, HEAD eba9191; 8 PRDs drained since the last pass (00090-00097), all fast-track, 1 cycle each. GitHub State re-measured: master CI still red, same known `skills/use-qwen/scripts/` Windows-only clone-dispatch-order failures (latest run 40584704851, 2026-10-27, 60 failed/3874 passed/32 skipped), unrelated to 00099's `eval_harness/report.py` target. 1 open issue (Dependency Dashboard, bookkeeping), no open PRs. `design: skip` per frontmatter; `lane: full` (security_path).)
 Updated: 2026-10-29 (full catchup, PRD 00104 selection, same batch 202610271200; 00102 and 00103 drained since the last pass (both solo lane, docs-only), batch now 12 PRDs done. GitHub State re-measured: master CI still red, same known `skills/use-qwen/scripts/` Windows-only clone-dispatch-order failures (latest run 40584704851, 2026-10-27, 60 failed/3874 passed/32 skipped), unrelated to 00104's `sweep.py` target; 1 open issue (Dependency Dashboard, bookkeeping), no open PRs, no releases. `design: run` per frontmatter; `lane: full`. Related context: engram hits are 00031-sweep-parallel-with-deadline (done, the predecessor PRD this one extends) at ~0.016 — repo not stale, portfolio staleness unchanged in shape (memory stale=24/dead=1, prd stale=0/dead=3063).)
+Updated: 2026-10-29 (full catchup, PRD 00111 selection, same batch 202610271200; 00104-00110 drained since the last pass, batch now 17 PRDs done. GitHub State re-measured: master CI still red, same `skills/use-qwen/scripts/` Windows-only clone-dispatch-order failures (run 40584704851, 2026-10-27), unrelated to 00111's `src/agent_skills_braid/cli.py` target; 1 open issue (Dependency Dashboard, bookkeeping), no open PRs, no releases. `design: run` per frontmatter; `lane: full`. Related context: engram hits are the PRD's own text and 00014-braid-check-reports-and-state-writes-fail-clean-v1 (done — prior braid state/fail-clean work, a different drift class per the PRD's own cross-reference) at ~0.016 — noise floor, repo not stale; portfolio staleness unchanged in shape (memory stale=24/dead=1, prd stale=0/dead=3063). Review harvest: `00110-...-review-1.md` upserted, its `-audit.md` parse-failed on missing frontmatter (pre-existing gap, not this pass's doing).)
+Updated: 2026-10-29 (full catchup, PRD 00117 selection, same batch 202610271200; 00114-00116 drained since the last pass, batch now 20 PRDs done. 00111 hit the review rework cap (3/3 unresolved CRITICAL) and shipped to master anyway as a loop-mode `cap_critical`; it is now a pending custody entry awaiting an attended `revert`/`branch-and-revert`/`accept` decision — do not act on it this pass. 00117 classified `fast-track`/`card_sized` at frontmatter parse, but `cards_from_prd.py` exited 2 (`framework: the PRD names no test_*.py or test_*.sh file` — the PRD's four help-flag targets have no companion test file named in the PRD body for the card renderer to key on); `lane_effective` reset to `full`/`uncardable` per the runbook, same fallback 00062 hit. GitHub State re-measured: master CI still red, same `skills/use-qwen/scripts/` Windows-only clone-dispatch-order and hash-mismatch failures (run 40584704851, 2026-10-27, 60 failed/3874 passed/32 skipped), unrelated to 00117's four help-flag targets (`skills/survey/scripts/run.py`, three `skills/review-design-doc/scripts/*.py`); 1 open issue (Dependency Dashboard, bookkeeping), no open PRs, no releases. `design: skip` per frontmatter.)
+Updated: 2026-10-29T21:27Z (full catchup, PRD 00123 selection, same batch 202610271200, HEAD `cfb0460`; 00118-00122 drained since the last pass, batch now 26 PRDs done. Custody: 1 pending entry awaiting an attended revert/branch-and-revert/accept decision — not acted on this pass (loop mode, no human to answer). GitHub State re-measured: master CI still red, latest run 40584704851 (2026-10-27) with the same `skills/use-qwen/scripts/` Windows-only clone-dispatch-order and hash-mismatch failures (60 failed/3874 passed/32 skipped), unrelated to 00123's `skills/glean/scripts/glean.py` target; 1 open issue (Dependency Dashboard, bookkeeping); 3 open PRs now: #17 `feat(skills): adopt seven sanitized migration-bundle skills` (feat/skill-migration-bundle, 2026-10-29) and two Renovate PRs #15/#16 (node 24→26, astral-sh/setup-uv patch bump) — all three show `completed/failure` CI on their branches per the latest workflow-run list. No releases. `design: run` per frontmatter — Phase 0 of this PRD is a reproduction-first spike (confirm the suspected glean large-directory resurfacing defect under an isolated home before any ledger-format change); unconfirmed reproduction means Phase 1 is skipped and the PRD closes on a documented negative result.)
 
 ## Key Invariants
 
@@ -154,10 +157,10 @@ Updated: 2026-10-29 (full catchup, PRD 00104 selection, same batch 202610271200;
 - [x] 00103-sweep-scanning-release-notes-missing-v1.md (1/1 tasks, 1
   cycle) — solo lane, docs-only; `CHANGELOG.md` gains sweep's deadline and
   Partial-indicator and parallel-scanning-by-default bullets.
-- [ ] 00104-sweep-overruns-process-deadline-v1.md (selected 2026-10-29; extends
-  00031-sweep-parallel-with-deadline, done — propagates one remaining deadline
-  budget through scan + control verification, terminates expired search
-  subprocess trees)
+- [x] 00104-sweep-overruns-process-deadline-v1.md (1/1 tasks, 1 cycle) —
+  extends 00031-sweep-parallel-with-deadline, done — propagates one remaining
+  deadline budget through scan + control verification, terminates expired
+  search subprocess trees.
 - [x] 00105-qwen-silently-exits-mise-failure-v1.md (1/1 tasks, 1 cycle) —
   fast-track lane; `use-qwen`'s dispatch script falls back to the original
   PATH when mise env setup fails, instead of silently exiting.
@@ -177,13 +180,105 @@ Updated: 2026-10-29 (full catchup, PRD 00104 selection, same batch 202610271200;
   cycle) — fast-track lane; purge-devtmp refuses unsafe manifest paths and
   removes trash-manifest records only after their batch is fully emptied,
   preserving other records.
-- [ ] 00111-braid-state-misses-link-removals-v1.md
+- [ ] 00111-braid-state-misses-link-removals-v1.md (selected 2026-10-29;
+  accepted option A from agoge finding 22 — skip identical-state writes and
+  persist removals before a later refusal can discard them in
+  `src/agent_skills_braid/cli.py`; cycle 2/2 converged with 3 unresolved
+  CRITICAL R1 — cycle-1 rework's `on_removal(managed)` snapshot discards
+  ownership of stale links, orphaning live links and erasing the refusal
+  record (`src/agent_skills_braid/_run_stages.py:258`), CI lint also red —
+  parked as a pending custody entry (`op_id: 71736f63801b`), awaiting an
+  attended `autopilot custody resolve`)
+- [x] 00127-dependency-discovery-uses-small-pages-v1.md (1/1 tasks, 1 cycle)
+  — fast-track lane; `review-deps-prs`'s repository enumeration now requests
+  100-item pages and stays a GET request.
+- [x] 00128-mistyped-queue-needs-warning-v1.md (1/1 tasks, 1 cycle) —
+  fast-track lane, card_sized, design: skip — warn on stderr when
+  `distil-memory`'s `docket.py` `next`/`unpublished` read a missing queue,
+  preserving existing stdout/exit codes)
+- [x] 00129-nested-trash-restoration-needs-parent-v1.md (1/1 tasks, 1 cycle) —
+  solo lane; restoration instructions now create the original parent
+  directory before the move. Batch now 30 PRDs done.
+- [x] 00130-braid-mislabels-unreadable-state-encoding-v1.md (1/1 tasks, 1
+  cycle) — fast-track lane; braid now catches decode errors reading
+  `state.json`, so an unreadable state encoding no longer mislabels itself.
+  Batch now 31 PRDs done.
+
+Updated: 2026-10-30 (full catchup at PRD 00128 selection, batch 202610271200,
+local HEAD 16793e0; batch has drained 29 PRDs. Open PR #17 (skill-migration
+bundle) and 2 Renovate PRs pending; master CI `completed/failure` on known
+Windows `use-qwen` test flakiness (path-ordering and content-hash assertions
+in `test_run_eval_cli.py`/`test_run_eval_harness.py`/`test_run_eval_vet.py`,
+unrelated to in-flight work). One pending custody entry from PRD 00111 awaits
+an attended resume (see Active Work above); loop mode continues past it per
+policy. See [[master-history-rewrite-pending]] for the separate, unrelated
+local-master history-rewrite task still outstanding before the next
+`git push origin master`.)
 - [ ] 00112-glean-crashes-invalid-ledger-structure-v1.md
 - [ ] 00113-triage-check-run-shape-validates-only-the-per-t-v1.md (hold stub)
-- [ ] 00114-qwen-audit-hides-discovery-fallback-v1.md
-- [ ] 00115-documentation-has-three-stale-statements-v1.md
-- [ ] 00116-survey-truncation-explanation-incomplete-v1.md
-- [ ] 00117-four-scripts-ignore-help-v1.md
+- [x] 00114-qwen-audit-hides-discovery-fallback-v1.md (1/1 tasks, 1 cycle) —
+  fast-track lane; `audit-qwen`'s discovery-fallback note now reaches the
+  report instead of being swallowed when no usable rows are discoverable.
+  2 items deferred to the batch ledger: 5 MEDIUM + 6 LOW test-quality
+  findings not reworked (none CRITICAL/HIGH), and carl (gemini)/bob (codex)
+  reviewer unavailability for this cycle.
+- [x] 00115-documentation-has-three-stale-statements-v1.md (1/1 tasks, 1
+  cycle) — solo lane, docs-only; corrected the CI shell-suite comment, the
+  qwen "not yet promoted" claim, and README's missing autopilot row.
+- [x] 00116-survey-truncation-explanation-incomplete-v1.md (1/1 tasks, 1
+  cycle) — solo lane, docs-only; survey's After-running explanation now
+  names the 50-file sampling cap alongside the 5KB output budget as a
+  truncation-footer trigger.
+- [x] 00117-four-scripts-ignore-help-v1.md (2/2 tasks, 1 cycle) — `lane: full`
+  (uncardable — no `test_*.py`/`test_*.sh` named in the PRD body); added
+  -h/--help handling to `skills/survey/scripts/run.py` and the three
+  `skills/review-design-doc/scripts/*.py` entry points before scanning or
+  file validation.
+- [x] 00118-historical-commit-types-preserve-history-v1.md (1/1 tasks, 1
+  cycle) — solo lane; 1 LOW finding recorded, no rework.
+- [x] 00119-windows-command-has-extra-backslash-v1.md (1/1 tasks, 1 cycle) —
+  solo lane, docs-only; removed the extra backslash from the Windows
+  `braid.py` inline command in the README.
+- [x] 00120-link-check-noise-hides-dead-references-v1.md (8/8 tasks, 2
+  cycles) — `check_links.py` fence-state rework (anchored evidence-marker
+  trigger, bare-and-at-least-as-long fence closer, pending-state cleared on
+  close), inventory/eligibility repairs, and 12 `link-ok:` waivers. 2 items
+  deferred to the batch ledger (waiver-vs-repair wording gap, 00050
+  eligibility-gate override), minted hold stubs 00151/00152. Batch now 24
+  PRDs done.
+- [x] 00121-survey-performance-accepted-observation-v1.md (1/1 tasks, 1
+  cycle) — solo lane, decision-only; accepted survey's existing performance
+  as-is, no production edit, resolution recorded as an applied decision.
+  Batch now 25 PRDs done.
+- [x] 00122-glean-performance-accepted-observation-v1.md (1/1 tasks, 1
+  cycle) — solo lane, decision-only; accepted glean's existing performance
+  as-is, no production edit, resolution recorded as an applied decision.
+  Batch now 26 PRDs done.
+- [x] 00123-large-skipped-directories-may-resurface-v1.md (5/5 tasks, 1
+  cycle) — `glean`'s `describe()` now produces a count+latest-mtime fallback
+  fingerprint (`count_mtime`) for directories over `MAX_DIR_FILES`, so a
+  skip/machine ledger decision on an over-cap directory stops resurfacing
+  forever once it crosses the cap; `load_ledgers`/`cmd_scan` accept it as an
+  alternative to sha256. Converged cycle 1 (12 findings, all medium/low);
+  tail swept 3 multi-voice findings as tasks 3-5, ledgered 6 single-voice
+  rows. CHANGELOG entry added at finalize (single-voice standing-rule gap);
+  an unrelated sweep-fix deadline-test failure flagged mid-work was already
+  fixed by an earlier commit (653e9fa). Carl (gemini) unavailable this
+  cycle (copilot monthly quota), not latched. Batch now 27 PRDs done.
+- [x] 00127-dependency-discovery-uses-small-pages-v1.md (1/1 tasks, 1
+  cycle) — fast-track lane; `review-deps-prs`'s `list-dep-prs.sh` requests
+  100-item repository-enumeration pages via the query-string form
+  `gh api 'user/repos?per_page=100' --paginate`. Round 1's `-f per_page=100`
+  implementation was a CRITICAL regression (silently switched the call from
+  GET to POST, GitHub's create-repository endpoint) caught by Blake, confirmed
+  by Victor, and independently by Eve's live wire trace; reworked in one
+  round. Eve also found the PRD's whole premise was a wire no-op on current
+  gh (which already injects per_page=100 under `--paginate`) — accepted as
+  KNOWN since the card's acceptance criteria are met regardless. 3 items
+  (2 MEDIUM + 1 LOW test-assertion robustness findings, none CRITICAL/HIGH)
+  deferred, not reworked. Codex (sandbox init failure) and gemini
+  (`gemini-run.sh` exit 1) both unavailable after one retry each. Batch now
+  28 PRDs done.
 - [x] 00099-evaluation-render-crashes-malformed-data-v1.md (3/3 tasks, 2
   cycles) — `eval_harness/report.py`'s `render` validates run-data structure
   (object root, `engines`/`tasks`/`run_id` containers, per-task `id`, root
@@ -232,6 +327,58 @@ lane in 1 cycle with Carl (copilot quota) and Bob's codex CLI (sandbox
 fact-forcing gate) both falling back after one retry; no C/H raised, zero
 deferred items. Batch has 13 PRDs done; 00113 is a hold-stub triage card
 minted from 00099's cap-overflow and is not drained by autopilot.
+
+Updated: 2026-10-30 (full catchup, PRD 00131 selection, same batch 202610271200;
+batch has drained 31 PRDs. Custody: 1 pending entry from PRD 00111 still
+awaits an attended resolve (unchanged, loop mode continues past it per
+policy). GitHub State re-measured: master CI still `completed/failure`, same
+`skills/use-qwen/scripts/` Windows-only clone-dispatch-order/hash-mismatch
+failures (run 40584704851, 2026-10-27), unrelated to 00131's
+`skills/use-qwen/scripts/eval_harness/trees.py` target; 1 open issue
+(Dependency Dashboard, bookkeeping); 3 open PRs unchanged (#17 skill-migration
+bundle, #15/#16 Renovate), all `completed/failure` on their branches; no
+releases. See [[master-history-rewrite-pending]] for the unrelated local
+master history-rewrite still pending before the next push. `design: run`
+per frontmatter.)
+- [x] 00131-crafted-template-archive-escapes-directory-v1.md (4/4 tasks, 2
+  cycles) — `eval_harness/trees.py` containment fix for use-qwen template
+  extraction: refuses tar members that escape the destination via symlink
+  ancestors, absolute paths, or unsupported types; keeps a filtered
+  `extractall` path when `tarfile.data_filter` is present. Cycle 2 hit the
+  rework cap with 9 unresolved findings (4 high: R1 missing refusal-path
+  tests, R2 unfiltered compat-branch fallback, R3 stale DeprecationWarning
+  on the compat path, R4 symlink-ancestor containment bypass still open;
+  5 medium/low: untested refusal cases, incomplete warning-replay test,
+  redundant member-name dict, symlink-vs-file landing-collision gap) —
+  deferred to the batch ledger, minted hold stubs 00155-00158 for the 4
+  high findings. Plus 1 medium CHANGELOG-entry deferral from cycle 1 and
+  1 assumed-ambiguity record (compat-branch DeprecationWarning behavior
+  resolved empirically against the pinned Python). Batch now 32 PRDs done.
+- [x] 00132-linked-temp-store-loses-prd-protection-v1.md (1/1 tasks, 1 cycle)
+  — fast-track lane, card_sized; `purge-devtmp`'s live-PRD lookup now resolves
+  against the originating repo instead of a symlinked store's realpath, and
+  `resolve_repo_root` no longer crashes on a relative `--repo` argument.
+  Batch now 32 PRDs done.
+- [ ] 00133-transcript-judge-inherits-tools-v1.md
+- [ ] 00134-empty-sweep-lacks-verification-marker-v1.md
+- [ ] 00135-historical-tag-awaits-green-ci-v1.md
+- [ ] 00136-unusable-judge-replies-look-durable-v1.md
+- [ ] 00137-single-speaker-airtime-copy-misleads-v1.md
+- [ ] 00138-brush-reinterprets-absolute-paths-v1.md
+- [ ] 00139-cleanup-ignores-directory-symlinks-v1.md
+- [ ] 00143-missing-store-error-names-temporary-file-v1.md
+- [ ] 00144-rapid-funnel-runs-overwrite-reports-v1.md
+- [ ] 00145-skill-discovery-and-changelog-disagree-v1.md
+- [ ] 00146-instructions-reference-removed-portfolio-skill-v1.md
+- [ ] 00147-trash-preview-claims-files-moved-v1.md
+- [ ] 00148-changelog-updates-landed-after-changes-v1.md
+- [ ] 00149-survey-invents-convention-without-samples-v1.md
+- [ ] 00150-speaker-matching-grows-quadratically-v1.md
+- [ ] 00153-prescreen-label-exposes-secret-character-v1.md
+- [ ] 00154-documents-publish-personal-home-paths-v1.md
+- [ ] 00049-qwen-completion-status-v1.md (backlog, deprioritized)
+- [ ] 00050-qwen-ivan-capability-eval-v1.md (backlog, deprioritized)
+- [ ] 00078-qwen-dispatch-skips-pi-extensions-v1.md (backlog, deprioritized)
 
 ### Batch 202610242338
 - [x] 00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1.md (3/3 tasks, 1
@@ -878,7 +1025,16 @@ Everything from that batch is pushed: `origin/master` == local `master` at
 
 ## Related context
 
-Topic this pass (2026-10-11): branch `master` + PRD 00075's title, "Ground
+Topic this pass (2026-10-29): branch `master` + PRD 00117's title, "Four
+documented scripts do not answer help requests". Repo and portfolio scope
+both returned the same 5 hits, all ≤0.0164 — noise floor, mostly the PRD's
+own text plus unrelated review/transcript rows; nothing about help-flag
+handling or argument parsing. Portfolio staleness: memory stale=24/dead=1,
+prd stale=3/dead=3063, discovery stale=0/dead=50, code stale=70/dead=1466 —
+`engram status --scope portfolio` exits 1 (stale/dead rows present, as every
+prior pass).
+
+Topic prior pass (2026-10-11): branch `master` + PRD 00075's title, "Ground
 PRD claims against installed code".
 - Repo scope: skipped — `engram index` exited 1 ("not inside a registered
   repo"), the same standing registration gap as every prior pass.
@@ -900,6 +1056,15 @@ Topic prior pass (2026-10-10): branch `master` + PRD 00071's title,
 
 ## GitHub State
 
+- **Current (2026-10-29, PRD 00117 selection, batch 202610271200):** 1 open
+  issue (#2 Renovate Dependency Dashboard, bookkeeping), 0 open PRs, no
+  releases. Master CI still `completed/failure`, latest run 40584704851
+  (2026-10-27, commit 02a1423d): 60 failed / 3874 passed / 32 skipped, all on
+  the Windows job in `skills/use-qwen/scripts/` (clone-dispatch-order
+  assertions, own-gate-in-dispatch-clone, baseline-clone-per-attempt, one
+  hash mismatch) — the same known pre-existing red tracked since PRD 00044's
+  build entry; unrelated to 00117's four help-flag targets. The entries below
+  are older history.
 - **2026-10-11 pass: skipped.** `gh` not authenticated this pass
   (`gh auth login` required); GitHub state not re-measured, no new gap
   introduced beyond the auth block itself. Last known state is the

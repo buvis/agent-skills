@@ -4,7 +4,7 @@ catchup: force
 
 # Distil Memory Candidates: Extraction and Funnel
 
-Source: `~/.claude/dev/local/discovery/00147-distil-memory-from-transcripts.md`
+Source: link-ok: `~/.claude/dev/local/discovery/00147-distil-memory-from-transcripts.md`
 (comprehensive, 2026-08-26). Slice 1 of 3, per that doc's own PRD slicing note:
 extraction, funnel, yield report and dry-run. Slice 2 is the distiller
 (`00008`), slice 3 the queue and walkthrough (`00009`). The doc says explicitly

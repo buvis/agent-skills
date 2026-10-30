@@ -4,7 +4,7 @@ design: skip
 
 # Capture Playground Experiments as Zettels
 
-Source: `~/.claude/dev/local/discovery/00153-capture-experiments-as-zettels.md`
+Source: link-ok: `~/.claude/dev/local/discovery/00153-capture-experiments-as-zettels.md`
 (elicitation complete 2026-08-27, review 2026-08-28).
 
 ## Overview

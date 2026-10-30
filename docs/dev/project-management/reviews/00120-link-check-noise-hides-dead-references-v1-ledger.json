@@ -1,0 +1,106 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "Most \"repairs\" are `link-ok:` waivers on genuinely missing `~/.claude/dev/local/...` citations, not repairs or removals. The spec says to repair with verified replacement targets or remove obsolete citations. Waiver is an existing mechanism, but it hides the dead target and exempts the whole line from every other check. It also leaves tool markers in prose. The PRD does not name this as an accepted outcome",
+    "file": "docs/dev/project-management/prds/done/00006-nag-audit-cadence-in-brief-portfolio-v1.md:3",
+    "reason": "Requirements ambiguity, decision already taken in the design doc: the cited targets live outside this repository (`~/.claude/dev/local/...`), so there is no verified replacement target inside the repo to repair to, and deleting a historical PRD's own evidence citation would rewrite the record. The waiver is the existing mechanism for a citation whose target is out of tree. Deferred to batch end for a human call on whether the PRD should name waiver as an accepted outcome."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "high",
+    "issue": "The one PRD the spec names as the reported genuine dead-link example was deliberately left unrepaired. 00050 still yields 5 findings: prds/done/00049-..., audit-results/qwen-ivan-calibration/protocol.md (lines 6, 113, 208), and a truncated `qwen-ivan-` token (line 156). The design overrides the accepted evidence and calls them a forward-reference eligibility gate.",
+    "file": "docs/dev/project-management/prds/backlog/00050-qwen-ivan-capability-eval-v1.md:6",
+    "reason": "Requirements ambiguity, decision already taken in the design doc: 00050's citations are forward references to artifacts 00049 will produce, and 00049 still sits in prds/backlog. Repairing them now would point at files that do not exist yet; removing them would delete the eligibility link between the two PRDs. Deferred to batch end for a human call on whether the design's forward-reference reading overrides the PRD's literal Phase 1 wording."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The backtick skip for `[[x]]` is purely syntactic. Any memory link wrapped in single backticks is never checked, so a genuinely dangling `[[ghost]]` in inline code is silently hidden. The Risks section names this exact hazard. The design assumes real links are always bare, and the tests encode that assumption",
+    "file": "skills/review-prd-backlog/scripts/check_links.py:130",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`startswith(\"```\")` accepts an opening delimiter such as ```python as a closing fence, suppressing findings from an actually unclosed evidence block without reporting its error. Validate closing delimiter length and trailing whitespace against the opener; add malformed-closer coverage.",
+    "file": "skills/review-prd-backlog/scripts/check_links.py:92",
+    "reason": "single-voice; the fence-state rework queued for R1/R6/R7 rewrites this same open/close path, so the concern is covered by that fix rather than by its own task"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`armed_at` survives any number of intervening lines until the next fence line. The design says a range is trusted only \"before the next armed trigger\", but the code does not enforce this: a re-arm just overwrites `armed_at`. This is acceptable per the design's accepted-edge note, but the comment or docstring should state that arming is unbounded.",
+    "file": "skills/review-prd-backlog/scripts/check_links.py:107",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Residual placeholder noise remains. `PATH_RE` stops at `<` or `{`, so the truncated token no longer matches `PLACEHOLDER`. This yields false positives like `.../audit-results/qwen-ivan-` (from `qwen-ivan-<run-id>/`) and `.../audit-results/sweep-` (from `sweep-{slug}`). The reported classes are fixed, but the checker's noise is not fully removed",
+    "file": "skills/review-prd-backlog/scripts/check_links.py:25",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The backtick exemption drops every `[[name]]` from memory-link checking, whether or not it is a literal example. A genuine memory link written in a code span is now undetectable, which cuts against \"genuine memory links remain detectable\". The rule is pinned by tests but not documented in the module docstring or in SKILL.md step 1.",
+    "file": "skills/review-prd-backlog/scripts/check_links.py:140",
+    "reason": "single-voice; and the same syntactic-backtick-skip concern was already discarded in cycle 1 for the same reason"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The evidence-fence skip is keyed to a hard-coded template phrase, \"Carry the observed evidence verbatim\". About 40 PRDs carry it, including backlog PRDs that SKILL.md:46 blocks on. Any genuine dead path or PRD citation inside the fence after that heading is silently skipped. This hides real rot. The skip is not documented in the docstring or SKILL.md.",
+    "file": "skills/review-prd-backlog/scripts/check_links.py:107",
+    "reason": "single-voice; the phrase-keyed skip is the design's chosen trigger and the suppression it buys is the PRD's whole point, so narrowing it is a new requirement, not a defect in this change"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Tracking ordinary fences introduces spurious evidence errors: an unclosed ordinary code block now reaches the unconditional EOF error branch without any evidence heading. Require `fence_is_evidence` before reporting this error; add a regression confirming ordinary unclosed blocks remain scanned without evidence errors.",
+    "file": "skills/review-prd-backlog/scripts/check_links.py:109",
+    "reason": "single-voice; and contradicted by Alice's measured run at head, which reports scan_errors == [] over the whole corpus, so no spurious evidence error is actually produced"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The new inventory comments repeat the known-missing `~/.claude/dev/local/` path without waivers. Ordinary fenced blocks remain scanned, so these comments introduce fresh dangling-path findings while repairing documentation noise. Replace the repeated path comments with \"historical provenance\"; retain every enumerated repair filename.",
+    "file": "docs/dev/project-management/prds/wip/00120-link-check-noise-hides-dead-references-v1.md:61",
+    "reason": "duplicate of R1 of this same cycle (same file, same lines, same defect), which two reviewers raised and which the tail sweep fixes; folded rather than swept twice"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Scope creep. The spec asks only for double-bracket examples and diagnostic-prefix quotes. The change also widens the `PRD_RE` lookbehind from `\\d` to `\\w` (UUID fragments) and adds a new scan-error type for unclosed fences. The lookbehind change also stops detecting citations glued to a word character, such as `x00099-foo`.",
+    "file": "skills/review-prd-backlog/scripts/check_links.py:26",
+    "reason": "single-voice; both changes are named in the design doc and the UUID-fragment class is one of the noise classes the PRD enumerates, so this is in scope, not creep"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The checker still reports 196 findings, and a few false-positive classes are untouched. Examples are range tokens such as `00039-00043` (`meta/project-capsule.md:1140`) and truncated `{slug}`/`<run-id>` paths (`designs/00073-sweep-loud-failures-v1-design.md:175`). This is not a spec violation, because the spec says the count is not a target.",
+    "file": "skills/review-prd-backlog/scripts/check_links.py:25",
+    "reason": "single-voice; the reviewer states himself that the PRD does not make the count a target, and the residual-placeholder class was already discarded in cycle 1"
+  },
+  {
+    "cycle": 2,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The PRD repairs waive the whole line with `link-ok:` and insert it mid-prose, for example \"Source: link-ok: `~/.claude/dev/local/...`\". This keeps the citations and fabricates nothing. But it also waives any other citation on those lines, and it leaves awkward text. The 00118 lifecycle-path fix (`prds/done/`) is a proper repair.",
+    "file": "docs/dev/project-management/prds/done/00002-add-sweep-fix-skill-v1.md:3",
+    "reason": "single-voice; and it restates the cycle-1 settled deferral on `link-ok:` waivers for out-of-tree citations, whose human call is already queued for batch end"
+  }
+]

@@ -2,9 +2,13 @@
 design: run
 default_model: sonnet
 model_tier_rationale: ownership-state persistence ordering needs coordinated design and refusal/write-failure regression coverage
+ledger: deferred/202610271200-deferred.json#71736f63801b
 ---
 
 # Braid can remove links without updating its ownership records
+
+> **Custody resolved (2026-10-30):** The four braid code/test commits were manually reverted after the automatic branch-and-revert conflicted with later telemetry. The later state-decoding fix and test remain. The `custody/00111-braid-state-misses-link-removals-v1` branch preserves the implementation for follow-up, and historical autopilot records remain on master. `--choice accept` closed the completed manual rollback; it did not accept the defective implementation. Validation: 4258 tests passed, 9 skipped; lint passed; `braid --check` reported zero drift. This PRD remains on hold because its original persistence defect is still unresolved.
+
 
 Source: agoge report `dev/local/audit-results/agoge-2026-10-26.md`, finding 22,
 accepted option A on 2026-10-27. Related to finding 33 of the 2026-10-25 report,

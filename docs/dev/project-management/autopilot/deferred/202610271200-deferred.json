@@ -192,6 +192,270 @@
       "detail": "fast-track/00108-mistyped-store-hides-unpublished-work-v1-c1: suite red: 1 failed, 4110 passed, 9 skipped (skills/sweep-fix/scripts/test_sweep_scan.py::test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs, unrelated pre-existing timing flake, reproduced on two consecutive full-suite runs)",
       "op_id": "37fd2ca8c05e",
       "prd": "00108-mistyped-store-hides-unpublished-work-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "R1 [3/3] CRITICAL regression introduced by cycle-1 rework: on_removal(managed) persists a snapshot that omits every not-yet-processed stale record, so an early removal plus a later refusal discards ownership of still-present links and of the refused hand-changed path. The link becomes a permanent unowned orphan and braid --check then reports 0 drift. Reproduced independently by Alice, Blake and Bob with aa/bb/cc in a temp root. Fix: pass on_removal({**pending, **managed}) where pending is previous-minus-resolved.",
+      "severity": "critical",
+      "consensus": "3/3",
+      "file": "src/agent_skills_braid/_run_stages.py:258",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00111-braid-state-misses-link-removals-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "R2 [2/3] HIGH: the CI lint job is red at HEAD for this PRD. uv run ruff check fails with I001 (unsorted import block) and UP035 (Callable imported from typing) on src/agent_skills_braid/_run_stages.py:12, and uv run ruff format --check fails on src/agent_skills_braid/cli.py. The pre-PRD cli.py at 6091e02 passes both, so this is new with this PRD.",
+      "severity": "high",
+      "consensus": "2/3",
+      "file": "src/agent_skills_braid/_run_stages.py:12",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00111-braid-state-misses-link-removals-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "issue": "R13 [3/3] MEDIUM: empty first-run initialization writes no state file. With an empty inventory and project_claude/project_kiro false, every candidate equals the loaded empty state, so persist skips and .braid-state.json is never created, where the pre-change code always wrote it in SYNC mode. Breaks the PRD must-have on first-run initialization. Raised as R8 in cycle 1 and never dispositioned. Also open from cycle 1: R3/R9 (hosts annotated dict[str,str] but holding link maps).",
+      "severity": "medium",
+      "consensus": "3/3",
+      "file": "src/agent_skills_braid/_run_stages.py:39",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00111-braid-state-misses-link-removals-v1.md"
+    },
+    {
+      "type": "stall",
+      "site": "cap_critical",
+      "detail": "cycle 2/2: unresolved 3/3 CRITICAL R1 - the cycle-1 rework's on_removal(managed) snapshot discards ownership of every not-yet-processed stale link, orphaning live links and erasing the refusal record (src/agent_skills_braid/_run_stages.py:258); CI lint also red (R2)",
+      "op_id": "71736f63801b",
+      "commit_range": "6091e02c41e823f3bd061434edf8bd389ffea8d0..388ce5be5191c83068feffb1d717d197a4fcd8ae",
+      "commits": 10,
+      "branch": "master",
+      "repo_root": "/Users/bob/git/src/github.com/buvis/agent-skills",
+      "git_dir": null,
+      "prd": "00111-braid-state-misses-link-removals-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Empty first-run initialization can be skipped: with an empty inventory and host projection disabled, every candidate equals the loaded empty state, so no state file is created. Track whether the state file existed and force its initial write in sync mode.",
+      "severity": "\ud83d\udfe1",
+      "file": "src/agent_skills_braid/_run_stages.py:26",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00111-braid-state-misses-link-removals-v1.md",
+      "op_id": "71736f63801b-dd0"
+    },
+    {
+      "cycle": 1,
+      "issue": "Both host helpers annotate `hosts` as `dict[str, str]`, but assign link dictionaries and pass it into `State`. Change both annotations to `dict[str, dict[str, str]]`.",
+      "severity": "\ud83d\udfe1",
+      "file": "src/agent_skills_braid/_run_stages.py:64",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00111-braid-state-misses-link-removals-v1.md",
+      "op_id": "71736f63801b-dd1"
+    },
+    {
+      "type": "stall",
+      "site": "fast_track_blocked",
+      "detail": "fast-track/00112-glean-crashes-invalid-ledger-structure-v1-c1: 1 HIGH surviving (link_roots elements never type-checked, TypeError) plus 4 Medium findings after one rework round and delta review; branch fast-track/00112-glean-crashes-invalid-ledger-structure-v1-c1",
+      "op_id": "e566fb480091",
+      "prd": "00112-glean-crashes-invalid-ledger-structure-v1.md"
+    },
+    {
+      "type": "review-finding-not-reworked",
+      "issue": "fast-track lane: 5 MEDIUM + 6 LOW test-quality findings raised, none CRITICAL/HIGH, so the lane committed without a rework round. Converged across 3 lenses: the explicit-repo control asserts against the report title line and can never fail (test_audit_qwen.py:198/508/527); the four fallback-note tests assert only note != \"\" rather than the no-usable-rows wording; no test pins the note reaching the Generated: line through main(); the existing-parent test duplicates test_main_writes_output_file_and_exits_zero. Full detail in reviews/00114-qwen-audit-hides-discovery-fallback-v1-review-1.md.",
+      "detail": "fast-track lane: 5 MEDIUM + 6 LOW test-quality findings raised, none CRITICAL/HIGH, so the lane committed without a rework round. Converged across 3 lenses: the explicit-repo control asserts against the report title line and can never fail (test_audit_qwen.py:198/508/527); the four fallback-note tests assert only note != \"\" rather than the no-usable-rows wording; no test pins the note reaching the Generated: line through main(); the existing-parent test duplicates test_main_writes_output_file_and_exits_zero. Full detail in reviews/00114-qwen-audit-hides-discovery-fallback-v1-review-1.md.",
+      "prd": "00114-qwen-audit-hides-discovery-fallback-v1.md"
+    },
+    {
+      "type": "reviewer-unavailable",
+      "issue": "carl (gemini) lens missing for 00114-c1: copilot backend monthly quota exceeded, gemini-run.sh exit 1. bob (codex) CLI sandbox-denied on both attempts; its lens ran as the read-tool substitute subagent instead.",
+      "detail": "carl (gemini) lens missing for 00114-c1: copilot backend monthly quota exceeded, gemini-run.sh exit 1. bob (codex) CLI sandbox-denied on both attempts; its lens ran as the read-tool substitute subagent instead.",
+      "prd": "00114-qwen-audit-hides-discovery-fallback-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Most \"repairs\" are `link-ok:` waivers on genuinely missing `~/.claude/dev/local/...` citations, not repairs or removals. The spec says to repair with verified replacement targets or remove obsolete citations. Waiver is an existing mechanism, but it hides the dead target and exempts the whole line from every other check. It also leaves tool markers in prose. The PRD does not name this as an accepted outcome",
+      "severity": "\ud83d\udfe0",
+      "file": "docs/dev/project-management/prds/done/00006-nag-audit-cadence-in-brief-portfolio-v1.md:3",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00120-link-check-noise-hides-dead-references-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "The one PRD the spec names as the reported genuine dead-link example was deliberately left unrepaired. 00050 still yields 5 findings: prds/done/00049-..., audit-results/qwen-ivan-calibration/protocol.md (lines 6, 113, 208), and a truncated `qwen-ivan-` token (line 156). The design overrides the accepted evidence and calls them a forward-reference eligibility gate. That is plausible, since 00049 is still in prds/backlog and not in done. But Phase 1 acceptance says every classified broken reference in the enumerated files is repaired or removed. The override is defensible but contradicts the spec's wording, and nothing in the PRD records that decision",
+      "severity": "\ud83d\udfe0",
+      "file": "docs/dev/project-management/prds/backlog/00050-qwen-ivan-capability-eval-v1.md:6",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00120-link-check-noise-hides-dead-references-v1.md"
+    },
+    {
+      "type": "autonomous-decision",
+      "detail": "Task 1 Phase 0 regression test asserted a second post-growth scan would settle quietly while reusing the SAME stale sha256-only entry across both post-growth scans; cmd_scan is stateless and never writes back to the ledger, so no implementation satisfying the task 2 contract (verbatim design-doc comparison, no fabricated hash, no ledger write-back) could pass that assertion as literally written - the entry never acquires a comparable count_mtime fingerprint between the two calls. Fixed by updating the test to re-record the ledger decision with the fingerprint describe() actually produces after the first resurface (the real operator workflow this feature enables), then asserting the re-decided entry settles. Implementation (glean.py describe/load_ledgers/cmd_scan) matches the design doc contract verbatim; Devon adversarially validated the tests pre-implementation; all 65 tests in test_glean.py pass.",
+      "prd": "00123-large-skipped-directories-may-resurface-v1.md",
+      "resolved": {
+        "disposition": "for-awareness-only",
+        "note": "autonomous decision already landed in the committed implementation; no further action needed"
+      }
+    },
+    {
+      "type": "out-of-scope-failure",
+      "detail": "Step 7 full-suite run (uv run pytest) failed on skills/sweep-fix/scripts/test_sweep_scan.py::test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs - a timing-sensitive deadline test unrelated to PRD 00123 (sweep-fix last touched 2026-10-29 by an unrelated PRD/00104 rework, no files this PRD touched are involved). Reproduced in isolation (1 failed, 10 passed, 18 deselected) - not a side effect of the glean count_mtime change. Not reopened as a task 2 regression; flagging for the review phase / a separate fix.",
+      "prd": "00123-large-skipped-directories-may-resurface-v1.md",
+      "resolved": {
+        "disposition": "fixed-elsewhere",
+        "note": "fixed by commit 653e9fa test(sweep-fix): allow measured search startup time in deadline test"
+      }
+    },
+    {
+      "type": "standing-rule",
+      "issue": "CHANGELOG.md has no [Unreleased] entry for the user-visible glean fix shipped by this PRD (commit 0c2a777 fix(glean): add count_mtime fallback fingerprint for over-cap directories). The global changelog rule requires one for every fix commit.",
+      "severity": "medium",
+      "consensus": "1/3",
+      "reason": "single-voice finding, so the tail sweep refuses it by construction; kept as a standing-rule obligation rather than filtered as reviewer noise",
+      "file": "CHANGELOG.md",
+      "cycle": 1,
+      "prd": "00123-large-skipped-directories-may-resurface-v1.md",
+      "resolved": {
+        "disposition": "fixed",
+        "note": "added CHANGELOG [Unreleased] > Fixed entry for the glean count_mtime fallback"
+      }
+    },
+    {
+      "type": "assumed-ambiguity",
+      "question": "task 2 acceptance criteria said neither the filter=data branch nor the no-filter compatibility branch should emit the omitted-filter DeprecationWarning",
+      "assumption": "verified empirically that on this repo pinned Python (3.12.16) the bare archive.extractall(dest) compatibility branch genuinely still raises the warning regardless of hasattr(tarfile,\"data_filter\"); wrote the compatibility-branch test to assert the warning DOES surface there (documenting real behavior) instead of asserting a false absence, since filter=\"data\" -- not the hasattr check -- is what suppresses it",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md",
+      "issue": "Ambiguous acceptance criterion resolved by assumption: task 2 acceptance criteria said neither the filter=data branch nor the no-filter compatibility branch should emit the omitted-filter DeprecationWarning -- Assumed: verified empirically that on this repo pinned Python (3.12.16) the bare archive.extractall(dest) compatibility branch genuinely still raises the warning regardless of hasattr(tarfile,\"data_filter\"); wrote the compatibility-branch test to assert the warning DOES surface there (documenting real behavior) instead of asserting a false absence, since filter=\"data\" -- not the hasattr check -- is what suppresses it"
+    },
+    {
+      "cycle": 1,
+      "issue": "No CHANGELOG.md entry for a containment security fix that changes user-visible refusal behaviour (duplicate and absolute members now raise `TreeError`). CHANGELOG.md already carries `**use-qwen**:` entries under Fixed, so the project convention applies. Add one under `[Unreleased]` / Fixed",
+      "severity": "\ud83d\udfe1",
+      "file": "CHANGELOG.md",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "ref": "R1",
+      "issue": "The rework adds three refusal paths with no test: non-file/dir/symlink members, the os.path.isabs(member.name) refusal (trees.py:143), and the landing-collision refusal (alias -> pkg plus alias/file, trees.py:161). Cycle-1 R1 asked for a hardlink test and an absolute-member test and neither exists; deleting trees.py:145-146 or :161-163 leaves the suite green. _crafted_tar needs a hardlink kind. Merged with Alice's false compat-test comment (test_eval_tree_links.py:490) and Blake's missing warning-as-error check on the compatibility path (:487).",
+      "severity": "high",
+      "consensus": "2/3",
+      "file": "skills/use-qwen/scripts/test_eval_tree_links.py:266",
+      "action": "deferred to batch end",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "ref": "R2",
+      "issue": "The compatibility branch is an unfiltered fallback: with tarfile.data_filter missing, build_template calls bare archive.extractall(dest). The preflight checks no modes, so setuid/setgid bits and ownership metadata from a crafted tar are applied unfiltered. The PRD forbids an unfiltered fallback; the fallback should be a safe manual filter or a TreeError refusal.",
+      "severity": "high",
+      "consensus": "1/3",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:180",
+      "action": "deferred to batch end",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "ref": "R3",
+      "issue": "The compatibility path still raises the omitted-filter DeprecationWarning that finding 42 requires removed. With -W error::DeprecationWarning on CPython 3.12.16 two tests fail on the warning raised from trees.py:183 (test_build_template_seals_a_safe_tree_with_or_without_tar_data_filter[without-data-filter] and the compatibility-path sealing test).",
+      "severity": "high",
+      "consensus": "1/3",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:183",
+      "action": "deferred to batch end",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "ref": "R4",
+      "issue": "Symlink ancestors still permit a containment bypass: for pkg/, alias -> pkg, alias/escape -> ../../outside and pkg/escape/secret.txt, the map records alias/escape but _land looks up pkg/escape after resolving alias, so the escaping target is missed. Reject members beneath archive symlinks before extraction, with a regression on both branches.",
+      "severity": "high",
+      "consensus": "1/3",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:152",
+      "action": "deferred to batch end",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "ref": "R5",
+      "issue": "The compatibility-branch tests only seal benign trees with the filter hidden. No test shows the crafted attack archives refused, or the sentinel untouched, with data_filter hidden, although the PRD asks for both filter-support branches.",
+      "severity": "medium",
+      "consensus": "1/3",
+      "file": "skills/use-qwen/scripts/test_eval_tree_links.py:371",
+      "action": "deferred to batch end",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "ref": "R6",
+      "issue": "Prior R1's hardlink and absolute-member regressions remain absent, and the new unsupported-type refusal and landing-collision check also lack tests. Add isolated refusal cases and exercise the compatibility branch, verifying unchanged outside state.",
+      "severity": "medium",
+      "consensus": "1/3",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:145",
+      "action": "deferred to batch end",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "ref": "R7",
+      "issue": "Prior R2 remains incomplete: the replacement compatibility test removes warning verification entirely, and the proxy still delegates extraction to modern tarfile, so it does not reproduce legacy warning behavior. Mechanical replay confirms the test passes against the previous implementation.",
+      "severity": "medium",
+      "consensus": "1/3",
+      "file": "skills/use-qwen/scripts/test_eval_tree_links.py:487",
+      "action": "deferred to batch end",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "ref": "R8",
+      "issue": "`originals` duplicates every member.name solely to zip it back onto the same members; iterate `for member in members` and pass member.name directly to _land and the diagnostics.",
+      "severity": "medium",
+      "consensus": "1/3",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:141",
+      "action": "deferred to batch end",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "cycle": 2,
+      "ref": "R9",
+      "issue": "The landing-collision check skips symlink members: a symlink alias/ln and a file pkg/ln under alias -> pkg are both accepted although they write the same path, so extraction order decides which survives, while the docstring promises such members are refused.",
+      "severity": "low",
+      "consensus": "1/3",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:159",
+      "action": "deferred to batch end",
+      "reason": "rework cap reached with this finding unresolved",
+      "prd": "00131-crafted-template-archive-escapes-directory-v1.md"
+    },
+    {
+      "type": "custody",
+      "choice": "accept",
+      "commit_range": "6091e02c41e823f3bd061434edf8bd389ffea8d0..388ce5be5191c83068feffb1d717d197a4fcd8ae",
+      "op_id": "71736f63801b-resolve",
+      "prd": "00111-braid-state-misses-link-removals-v1.md"
     }
   ]
 }

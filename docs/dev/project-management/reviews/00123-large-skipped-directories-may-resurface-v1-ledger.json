@@ -1,0 +1,74 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The fail-first replay shows 6 touched tests pass against the pre-change code. They are `test_stable_entry_needs_no_fingerprint`, `test_small_dir_sha256_entry_behaves_as_before`, the `n=5` and `n=200` cases of `test_dir_fingerprint_switches_from_sha256_to_count_mtime_only_past_cap`, and the `sha256` case of `test_volatile_entry_resurfaces_when_candidate_has_no_fingerprint`. They are deliberate PRD-required preservation guards (small-directory hashing, stable verdicts, the no-fingerprint candidate never settling), so I do not count them as tautological. They add no regression pin for this change.",
+    "file": "skills/glean/scripts/test_glean.py:736",
+    "reason": "Computed fact, not a defect: the replay rows are the PRD's own 'preserve existing behavior' guards (small-input sha256, stable verdicts, no-fingerprint candidate never settling). Both the reviewer who raised it and the doubt lens judged them non-tautological and asked that they be retained. Rewriting them to fail against base would delete the compatibility coverage the PRD requires."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The comparison `any(c.get(k) and c[k] == entry.get(k) ...)` is correct. Legacy sha256 entries stay readable and resurface once when a directory crosses the cap. This is covered by tests/test_glean.py:575. Never verdicts, check-staged, and the \"prescreen capped\" hint are untouched (skills/glean/scripts/glean.py:153-155, 228-264).",
+    "file": "skills/glean/scripts/glean.py:207",
+    "reason": "Not a defect. The reviewer's own text is an all-clear confirming the comparison, the legacy-entry path and the preserved protections. There is nothing to fix."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The supplied replay identifies six parameter cases that pass against pre-change code, so they do not pin this change. These cover existing behavior explicitly required to remain unchanged; retain them as compatibility coverage rather than rewriting them solely to fail against base.",
+    "file": "skills/glean/scripts/test_glean.py:520",
+    "reason": "Duplicate of the replay finding already settled above (Bob's KNOWN-bucket wording of the same computed fact), and its own text asks that the tests be retained rather than changed. No action requested."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The test name `test_skip_on_dir_resurfaces_forever_once_grown_past_max_dir_files` and its docstring (\"Under the present code ... expected to FAIL\") describe the defect. The final assertion now requires the directory to settle, so the name says the opposite of what the test checks. Rename it to something like `test_skip_on_dir_settles_after_redecide_once_grown_past_max_dir_files` and reword the docstring in the post-fix tense.",
+    "file": "skills/glean/scripts/test_glean.py:383",
+    "reason": "single-voice ([1/3], ALICE only). The swept 3/3 finding R1 on the same test already rewrites that docstring, so the surviving gap is the function name alone."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The reproduction does not match the PRD's suspected defect. Before the fix an over-cap directory could not carry a valid saved skip/machine entry, because load_ledgers rejected entries without sha256. So \"a saved verdict resurfaces repeatedly\" was unreachable as the PRD worded it. The test works around this by recording a sha256 while the directory was small and then growing it. That makes the confirmation indirect: the real defect was \"cannot record a verdict\", not \"recorded verdict resurfaces\". The PRD's premise was only partly confirmed, and this is not stated anywhere.",
+    "file": "skills/glean/scripts/test_glean.py:383",
+    "reason": "single-voice ([1/3], BLAKE only), and the tail sweep refuses a single-voice row by construction (`review-close` exit 2, `tail_sweep_single_voice`). Recorded here rather than dropped: it overlaps Bob's R7 on the same Phase 0 reproduction, so the two together describe one real concern about how faithfully the repro demonstrates the PRD's premise. Neither row reached two voices in the consolidated table, so neither could be swept this cycle."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Phase 0 no longer performs the required second unchanged scan with the original ledger entry; it re-records first, testing Phase 1 instead. Add the second original-entry scan before re-recording, and distinguish the recorded pre-fix observation from the fixed workflow.",
+    "file": "skills/glean/scripts/test_glean.py:383",
+    "reason": "single-voice ([1/3], BOB only). Same concern as the BLAKE row above about the Phase 0 reproduction's fidelity; see that entry's reason. Bob's own doubt rubric passed D1-D5 on this cycle, so he did not treat it as blocking."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The shipped comparison at glean.py:207 (`not any(c.get(k) and c[k] == entry.get(k) ...)`) differs from the design doc's \"verbatim\" `c.get(\"count_mtime\", c.get(\"sha256\")) != entry.get(...)`. The shipped form is safer, because it never lets None equal None for a candidate with no fingerprint. The deferred-log entry claims the implementation \"matches the design doc contract verbatim\", which is inaccurate. Correct that wording; no code change needed.",
+    "file": "skills/glean/scripts/glean.py:207",
+    "reason": "single-voice ([1/3], ALICE only), and the reviewer states the shipped code is the safer of the two forms, so there is no code defect. The inaccurate wording is in a build-session deferred-log note, not in the product; it is corrected in this cycle's review record instead."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Whole-second truncation (`int(st_mtime)`) means an edit within the same second as the previous newest mtime goes unnoticed. This is the known weakness the PRD accepts, but SKILL.md does not tell operators that count_mtime is weaker than sha256. The PRD says to document \"weaker fingerprints\".",
+    "file": "skills/glean/SKILL.md:55",
+    "reason": "single-voice ([1/3], BLAKE only). The swept 2/3 finding R2 rewrites the same SKILL.md volatile-entry documentation, so the weaker-fingerprint caveat lands naturally with it."
+  },
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "CHANGELOG.md has no Unreleased entry for this user-visible fix. The global changelog rule requires one for `fix` commits.",
+    "file": "CHANGELOG.md",
+    "reason": "single-voice ([1/3], BLAKE only), so the tail sweep cannot carry it. Not discarded, because the user's changelog rule is blocking for `fix` commits and this PRD shipped one (`0c2a777 fix(glean): add count_mtime fallback fingerprint`). Deferred to batch end as a standing-rule obligation so it stays visible instead of being filtered away as reviewer noise."
+  }
+]
