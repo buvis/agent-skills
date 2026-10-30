@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 from pathlib import Path
 
 import audit_qwen as aq
@@ -363,3 +364,190 @@ def test_main_writes_output_file_and_exits_zero(tmp_path):
     rc = aq.main(["--repo", str(repo), "--output", str(out)])
     assert rc == 0
     assert "Qwen Utilization Report Card" in out.read_text(encoding="utf-8")
+
+
+# --- discover_repos: fallback-note gap (PRD 00114) --------------------------
+
+
+def fake_run(returncode: int, stdout: str):
+    def _fake_run(cmd, capture_output=True, text=True, timeout=30, check=False):
+        return subprocess.CompletedProcess(args=cmd, returncode=returncode, stdout=stdout)
+
+    return _fake_run
+
+
+def test_discover_repos_usable_output_returns_two_distinct_repos_with_no_note(
+    tmp_path, monkeypatch,
+):
+    repo_a = tmp_path / "repo-a"
+    repo_b = tmp_path / "repo-b"
+    monkeypatch.setattr(
+        aq.subprocess,
+        "run",
+        fake_run(0, f"repo-a,x,{repo_a}\nrepo-b,x,{repo_b}\n"),
+    )
+    monkeypatch.chdir(tmp_path)  # cwd has no autopilot dir: no fallback addition
+    monkeypatch.setattr(aq.Path, "home", classmethod(lambda cls: tmp_path / "no-home-usable"))
+    paths, note = aq.discover_repos()
+    assert paths == [repo_a, repo_b]
+    assert note == ""
+
+
+def test_discover_repos_empty_output_on_success_is_silent_bug_without_fix(
+    tmp_path, monkeypatch,
+):
+    # The bug this task targets: exit 0 + empty stdout currently produces
+    # paths == [] and note == "" even though nothing was actually scanned.
+    # This is the near-miss negative against the real gita-unavailable path,
+    # which DOES set a note for the same empty-paths outcome.
+    cwd = tmp_path / "no-autopilot-here"
+    cwd.mkdir()
+    monkeypatch.setattr(aq.subprocess, "run", fake_run(0, ""))
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(aq.Path, "home", classmethod(lambda cls: tmp_path / "no-home-empty"))
+    paths, note = aq.discover_repos()
+    assert paths == []
+    assert note != "", (
+        "a successful gita run with empty stdout must still surface a "
+        "discovery-fallback note, not silently report zero repos"
+    )
+
+
+def test_discover_repos_malformed_output_on_success_notes_the_fallback(
+    tmp_path, monkeypatch,
+):
+    cwd = tmp_path / "no-autopilot-either"
+    cwd.mkdir()
+    # Two distinct malformed lines: neither has >= 3 comma-separated parts,
+    # so neither contributes a path, mirroring parse_exclusion_line-style
+    # "shape" guards elsewhere in this module.
+    monkeypatch.setattr(aq.subprocess, "run", fake_run(0, "garbage\nrepo-only,x\n"))
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(aq.Path, "home", classmethod(lambda cls: tmp_path / "no-home-malformed"))
+    paths, note = aq.discover_repos()
+    assert paths == []
+    assert note != ""
+
+
+def test_discover_repos_empty_output_still_falls_back_to_eligible_cwd(
+    tmp_path, monkeypatch,
+):
+    cwd = tmp_path / "home-of-autopilot"
+    (cwd / "docs" / "dev" / "project-management" / "autopilot").mkdir(parents=True)
+    monkeypatch.setattr(aq.subprocess, "run", fake_run(0, ""))
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(aq.Path, "home", classmethod(lambda cls: tmp_path / "no-home-autopilot"))
+    paths, note = aq.discover_repos()
+    assert cwd in paths
+    assert note != ""
+
+
+def test_discover_repos_malformed_output_still_falls_back_to_eligible_cwd(
+    tmp_path, monkeypatch,
+):
+    cwd = tmp_path / "home-of-autopilot-2"
+    (cwd / "docs" / "dev" / "project-management" / "autopilot").mkdir(parents=True)
+    monkeypatch.setattr(aq.subprocess, "run", fake_run(0, "not,enough\nalso bad"))
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(aq.Path, "home", classmethod(lambda cls: tmp_path / "no-home-autopilot-2"))
+    paths, note = aq.discover_repos()
+    assert cwd in paths
+    assert note != ""
+
+
+def test_discover_repos_nonzero_exit_notes_the_exit_code_and_falls_back(
+    tmp_path, monkeypatch,
+):
+    # Control preserved from prior behavior: non-zero exit already produced
+    # a note; this guards that path is not broken by the fallback-note fix.
+    cwd = tmp_path / "nonzero-fallback"
+    (cwd / "docs" / "dev" / "project-management" / "autopilot").mkdir(parents=True)
+    monkeypatch.setattr(aq.subprocess, "run", fake_run(3, ""))
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(aq.Path, "home", classmethod(lambda cls: tmp_path / "no-home-nonzero"))
+    paths, note = aq.discover_repos()
+    assert cwd in paths
+    assert "3" in note
+
+
+def test_discover_repos_gita_unavailable_notes_unavailable_and_falls_back(
+    tmp_path, monkeypatch,
+):
+    # Control preserved from prior behavior: OSError (gita not installed)
+    # already produced a note; must keep doing so after the fix.
+    cwd = tmp_path / "unavailable-fallback"
+    (cwd / "docs" / "dev" / "project-management" / "autopilot").mkdir(parents=True)
+
+    def _raise(cmd, capture_output=True, text=True, timeout=30, check=False):
+        raise OSError("gita not found")
+
+    monkeypatch.setattr(aq.subprocess, "run", _raise)
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(aq.Path, "home", classmethod(lambda cls: tmp_path / "no-home-unavailable"))
+    paths, note = aq.discover_repos()
+    assert cwd in paths
+    assert "unavailable" in note
+
+
+def test_discover_repos_calls_gita_freeze_exactly(tmp_path, monkeypatch):
+    # Dependency assertion: the exact subprocess invocation reaches gita,
+    # so a dropped or renamed call fails this test even though the fake
+    # still returns usable output.
+    seen = {}
+
+    def _fake_run(cmd, capture_output=True, text=True, timeout=30, check=False):
+        seen["cmd"] = cmd
+        seen["capture_output"] = capture_output
+        seen["text"] = text
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="")
+
+    monkeypatch.setattr(aq.subprocess, "run", _fake_run)
+    monkeypatch.chdir(tmp_path)
+    aq.discover_repos()
+    assert seen["cmd"] == ["gita", "freeze"]
+    assert seen["capture_output"] is True
+    assert seen["text"] is True
+
+
+def test_main_with_explicit_repo_skips_discovery_and_carries_no_note(
+    tmp_path, monkeypatch,
+):
+    # Control preserved: --repo bypasses discover_repos entirely, so a
+    # broken fallback note must never leak into an explicit-repo run.
+    def _boom(cmd, capture_output=True, text=True, timeout=30, check=False):
+        raise AssertionError("gita must not be invoked when --repo is given")
+
+    monkeypatch.setattr(aq.subprocess, "run", _boom)
+    repo = make_repo(tmp_path, "explicit", state="state-chains.json")
+    out = tmp_path / "explicit-card.md"
+    rc = aq.main(["--repo", str(repo), "--output", str(out)])
+    assert rc == 0
+    card = out.read_text(encoding="utf-8")
+    assert "Qwen Utilization Report Card" in card
+    assert "gita" not in card.splitlines()[0]  # no gita note on the Generated: line
+
+
+# --- main: output path with missing parent directories ---------------------
+
+
+def test_main_creates_missing_nested_output_parents_before_writing(tmp_path):
+    repo = make_repo(tmp_path, "nested", state="state-chains.json")
+    out = tmp_path / "new" / "deeply" / "nested" / "card.md"
+    assert not out.parent.exists()
+    rc = aq.main(["--repo", str(repo), "--output", str(out)])
+    assert rc == 0
+    assert out.exists()
+    assert "Qwen Utilization Report Card" in out.read_text(encoding="utf-8")
+
+
+def test_main_with_existing_output_parent_still_writes_normally(tmp_path):
+    # Accept/reject pair alongside the nested-parent test: an output whose
+    # parent already exists must keep working unchanged (reject case for
+    # "always mkdir and clobber" style over-fixes).
+    repo = make_repo(tmp_path, "flat", state="state-chains.json")
+    out = tmp_path / "card.md"
+    rc = aq.main(["--repo", str(repo), "--output", str(out)])
+    assert rc == 0
+    assert out.read_text(encoding="utf-8").startswith("# Qwen Utilization Report Card") or (
+        "Qwen Utilization Report Card" in out.read_text(encoding="utf-8")
+    )
