@@ -76,6 +76,10 @@ def find_signals(path: Path) -> tuple[list[dict], list[dict]]:
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+        print("usage: adversarial_signal_scan.py <path/to/doc.md>")
+        return
+
     if len(sys.argv) != 2:
         print("usage: adversarial_signal_scan.py <path/to/doc.md>", file=sys.stderr)
         sys.exit(2)

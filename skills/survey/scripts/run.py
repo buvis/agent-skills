@@ -465,6 +465,12 @@ def _survey(repo_path: Path) -> str:
 
 
 def main() -> None:
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+        print("usage: run.py")
+        return
+
     # No audit event: the brief is ephemeral, and audit-echo (the only reader of
     # audit.jsonl) filters on `phase == "echo"`, so a survey row was never read.
     # Writing one would also break the "survey touches no store" contract.

@@ -35,8 +35,9 @@ as markdown on stdout.
 
 Read the brief and use it. Report anything notable to the user: a degraded run
 (the brief ends with a `_degraded:_` note when tree-sitter was unavailable) or
-a truncated one (it ends with `*brief truncated*` when the repo exceeds the
-5KB budget).
+a truncated one (it ends with `*brief truncated*` when a layer exceeds its
+50-file sampling cap or the brief exceeds the 5KB output budget — either
+trigger alone is enough, so a short brief can still end in this footer).
 
 ## Notes
 
