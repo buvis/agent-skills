@@ -338,3 +338,129 @@ def test_dry_run_does_not_move(tmp_path):
 def test_main_refuses_unscoped_directory(tmp_path, capsys):
     assert gc.main(["--repo", str(tmp_path)]) == 2
     assert "not a repo with docs/dev/tmp" in capsys.readouterr().err
+
+
+def linked_repo_store(tmp_path: Path, name: str = "repo") -> tuple[Path, Path]:
+    """A repo whose docs/dev/tmp symlinks to a scratch store outside it."""
+    repo = tmp_path / name
+    real_store = tmp_path / "linked-store" / name / "docs" / "dev" / "tmp"
+    real_store.mkdir(parents=True)
+    (repo / "docs" / "dev").mkdir(parents=True)
+    (repo / "docs" / "dev" / "tmp").symlink_to(real_store, target_is_directory=True)
+    return repo, real_store
+
+
+def add_prd(repo: Path, bucket: str, number: str) -> None:
+    prds = repo / "docs" / "dev" / "project-management" / "prds" / bucket
+    prds.mkdir(parents=True)
+    (prds / f"{number}-feature.md").write_text("# Feature")
+
+
+@pytest.mark.parametrize("bucket,number", [("backlog", "00111"), ("wip", "00112"), ("hold", "00113")])
+def test_linked_store_dry_run_reports_live_linked_per_bucket(tmp_path, capsys, bucket, number):
+    repo, store = linked_repo_store(tmp_path, name=f"repo-{bucket}")
+    add_prd(repo, bucket, number)
+    note = store / f"{number}-review-prompt.md"
+    note.write_text("x")
+    age(note, 60)
+    assert gc.main(["--repo", str(repo)]) == 0
+    out = capsys.readouterr().out
+    assert "live-linked=1" in out
+    assert "stale-temp=0" in out
+    assert note.is_file()
+
+
+def test_linked_store_distinguishes_live_numbers_from_near_miss_and_fresh(tmp_path, capsys):
+    repo, store = linked_repo_store(tmp_path)
+    add_prd(repo, "backlog", "00123")
+    add_prd(repo, "wip", "00456")
+    live_a = store / "00123-prompt.md"
+    live_a.write_text("x")
+    age(live_a, 60)
+    live_b = store / "00456-notes.md"
+    live_b.write_text("x")
+    age(live_b, 60)
+    near_miss = store / "000123-unrelated.md"
+    near_miss.write_text("x")
+    age(near_miss, 60)
+    fresh = store / "scratch.md"
+    fresh.write_text("x")
+    assert gc.main(["--repo", str(repo)]) == 0
+    out = capsys.readouterr().out
+    assert "live-linked=2" in out
+    assert "stale-temp=1" in out
+    assert "fresh=1" in out
+
+
+def test_linked_store_with_no_prds_treats_everything_by_age_only(tmp_path, capsys):
+    repo, store = linked_repo_store(tmp_path)
+    old = store / "old.md"
+    old.write_text("x")
+    age(old, 60)
+    assert gc.main(["--repo", str(repo)]) == 0
+    out = capsys.readouterr().out
+    assert "live-linked=0" in out
+    assert "stale-temp=1" in out
+
+
+def test_linked_store_dry_run_works_via_explicit_store_path_input(tmp_path, capsys):
+    repo, store = linked_repo_store(tmp_path)
+    add_prd(repo, "hold", "00789")
+    note = store / "00789-prompt.md"
+    note.write_text("x")
+    age(note, 60)
+    assert gc.main(["--repo", str(repo / "docs" / "dev" / "tmp")]) == 0
+    out = capsys.readouterr().out
+    assert "live-linked=1" in out
+    assert "stale-temp=0" in out
+
+
+def test_all_discovery_reports_live_linked_for_symlinked_store(tmp_path, monkeypatch, capsys):
+    home = tmp_path / "scratch-home"
+    repo = home / "git" / "src" / "github.com" / "an-org" / "a-repo"
+    real_store = tmp_path / "outside" / "a-repo" / "docs" / "dev" / "tmp"
+    real_store.mkdir(parents=True)
+    (repo / "docs" / "dev").mkdir(parents=True)
+    (repo / "docs" / "dev" / "tmp").symlink_to(real_store, target_is_directory=True)
+    add_prd(repo, "backlog", "00321")
+    note = real_store / "00321-prompt.md"
+    note.write_text("x")
+    age(note, 60)
+    monkeypatch.setattr(gc.Path, "home", classmethod(lambda cls: home))
+    assert gc.main(["--all"]) == 0
+    out = capsys.readouterr().out
+    assert "an-org/a-repo" in out
+    assert "live-linked=1" in out
+    assert "stale-temp=0" in out
+
+
+def test_relative_repo_argument_from_inside_docs_dev_does_not_crash(tmp_path, monkeypatch, capsys):
+    repo, store = repo_store(tmp_path)
+    note = store / "old.md"
+    note.write_text("x")
+    age(note, 60)
+    monkeypatch.chdir(repo / "docs" / "dev")
+    assert gc.main(["--repo", "tmp"]) == 0
+    out = capsys.readouterr().out
+    assert "live-linked=0" in out
+    assert "stale-temp=1" in out
+
+
+def test_apply_keeps_live_linked_note_but_trashes_ordinary_stale_file(tmp_path, capsys):
+    repo, store = linked_repo_store(tmp_path)
+    add_prd(repo, "wip", "00999")
+    note = store / "00999-prompt.md"
+    note.write_text("linked")
+    age(note, 60)
+    stale = store / "unrelated-old.txt"
+    stale.write_text("stale")
+    age(stale, 60)
+    assert gc.main(["--repo", str(repo), "--apply"]) == 0
+    out = capsys.readouterr().out
+    assert "live-linked=1" in out
+    assert "stale-temp=1" in out
+    assert note.is_file()
+    assert note.read_text() == "linked"
+    assert not stale.exists()
+    batch = time.strftime("%Y-%m-%d", time.localtime())
+    assert (store / gc.TRASH_DIR / batch / "unrelated-old.txt").is_file()

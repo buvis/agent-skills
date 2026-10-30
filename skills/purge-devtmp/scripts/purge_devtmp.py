@@ -17,16 +17,16 @@ PRD_NUM = re.compile(r"(?<!\d)(\d{5})(?!\d)")
 TRASH_DIR = ".trash"
 
 
-def find_stores(home: Path) -> dict[str, Path]:
+def find_stores(home: Path) -> dict[str, tuple[Path, Path]]:
     """Return every existing docs/dev/tmp store in Go-style checkouts."""
-    stores: dict[str, Path] = {}
+    stores: dict[str, tuple[Path, Path]] = {}
     seen: set[str] = set()
 
-    def add(label: str, store: Path) -> None:
+    def add(label: str, repo_root: Path, store: Path) -> None:
         real = Path(os.path.realpath(store))
         if real.is_dir() and str(real) not in seen:
             seen.add(str(real))
-            stores[label] = real
+            stores[label] = (real, repo_root)
 
     src = home / "git" / "src"
     if src.is_dir():
@@ -43,8 +43,8 @@ def find_stores(home: Path) -> dict[str, Path]:
                         if host.name == "github.com"
                         else f"{host.name}/{org.name}/{repo.name}"
                     )
-                    add(label, store)
-    add("~/.claude", home / ".claude" / "docs" / "dev" / "tmp")
+                    add(label, repo, store)
+    add("~/.claude", home / ".claude", home / ".claude" / "docs" / "dev" / "tmp")
     return stores
 
 
@@ -59,10 +59,16 @@ def resolve_store(path: Path) -> Path:
     raise ValueError(f"{path}: not a repo with docs/dev/tmp or a docs/dev/tmp path")
 
 
-def live_prd_numbers(store: Path) -> set[str]:
-    """Numbers of backlog, wip, and hold PRDs beside this tmp store."""
-    root = store.parents[2]
-    prds = root / "docs" / "dev" / "project-management" / "prds"
+def resolve_repo_root(path: Path) -> Path:
+    """Repo root for a --repo argument, without collapsing a symlinked store."""
+    candidate = path / "docs" / "dev" / "tmp"
+    if candidate.is_dir() or candidate.is_symlink():
+        return path
+    return Path(os.path.abspath(path)).parents[2]
+
+
+def _live_prd_numbers_from_root(repo_root: Path) -> set[str]:
+    prds = repo_root / "docs" / "dev" / "project-management" / "prds"
     live: set[str] = set()
     for bucket in ("backlog", "wip", "hold"):
         directory = prds / bucket
@@ -73,6 +79,11 @@ def live_prd_numbers(store: Path) -> set[str]:
             if match:
                 live.add(match.group(1))
     return live
+
+
+def live_prd_numbers(store: Path) -> set[str]:
+    """Numbers of backlog, wip, and hold PRDs beside this tmp store."""
+    return _live_prd_numbers_from_root(store.parents[2])
 
 
 def is_repo_unit(dirs: list[str], files: list[str]) -> bool:
@@ -237,9 +248,9 @@ def empty_old_trash(store: Path, now: float, days: float, keep: str | None = Non
     return removed
 
 
-def process_store(label: str, store: Path, args, now: float) -> Counter:
+def process_store(label: str, store: Path, args, now: float, repo_root: Path | None = None) -> Counter:
     batch = time.strftime("%Y-%m-%d", time.localtime(now))
-    live = live_prd_numbers(store)
+    live = live_prd_numbers(store) if repo_root is None else _live_prd_numbers_from_root(repo_root)
     counts: Counter = Counter()
     candidates: list[Path] = []
     refused: list[tuple[Path, str]] = []
@@ -298,14 +309,14 @@ def main(argv=None) -> int:
                 print(f"error: no such path: {path}", file=sys.stderr)
                 return 2
             try:
-                stores[str(path)] = resolve_store(path)
+                stores[str(path)] = (resolve_store(path), resolve_repo_root(path))
             except ValueError as error:
                 print(f"error: {error}", file=sys.stderr)
                 return 2
 
     total = Counter()
-    for label, store in stores.items():
-        total.update(process_store(label, store, args, now))
+    for label, (store, repo_root) in stores.items():
+        total.update(process_store(label, store, args, now, repo_root=repo_root))
     mode = "APPLIED" if args.apply else "DRY-RUN (use --apply)"
     print(f"{mode}: trash={total['stale-temp']} across {len(stores)} store(s)")
     return 0
