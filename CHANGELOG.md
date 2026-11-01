@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **braid**: hosted-Windows junction/symlink identity checks no longer report false drift when `os.readlink` returns the reparse target in extended-length (`\\?\`) form.
 - **purge-devtmp**: candidate paths containing a tab or line break are refused and reported as `refused-unsafe-path` instead of writing an unrestorable manifest row; emptying a trash batch now also removes its manifest rows (from either tool), preserving retained-batch and unparseable historical rows.
 - **purge-devtmp**: restoration instructions now create the original parent directory before moving a trashed file or directory unit back, so restoring a unit whose parent was pruned no longer fails with `mv` exit 1.
 - **brush**: the manifest's fourth column is now store-relative (`.trash/<date>/<rel>`, resolve from `docs/dev/tmp`), matching purge-devtmp, so one base restores rows from either tool.
