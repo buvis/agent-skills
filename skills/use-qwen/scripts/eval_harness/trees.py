@@ -286,28 +286,45 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
 
     The commit handed in is the one sealed, never the repo's current head: work
     that landed after the task must not reach the tree the task is measured on.
+
+    Raises TreeError, and leaves `dest` exactly as it was, if anything - a file,
+    a directory (empty or not), or a dangling symlink - already sits at `dest`
+    before extraction starts.
     """
     bundle = _git_bytes(repo, "archive", "--format=tar", "%s^" % first)
     dest = Path(dest)
-    dest.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
-        # Read off the archive rather than off an extracted tree: a host that
-        # cannot create a symlink at all still has to refuse one that escapes,
-        # and refusing here leaves no half-built template behind.
-        _refuse_duplicate_or_crossing_members(archive.getmembers())
-        if hasattr(tarfile, "data_filter"):
-            try:
-                archive.extractall(dest, filter="data")
-            except (tarfile.FilterError, OSError) as cause:
-                raise TreeError("extraction failed: %s" % cause) from cause
-        else:
-            _extract_without_filter(archive, dest, archive.getmembers())
-    _git(dest, *IDENTITY, "init")
-    _git(dest, "add", "-A")
-    # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the
-    # same tree sealed a second later has to carry the same one.
-    dated = {**os.environ, "GIT_AUTHOR_DATE": SEAL_DATE, "GIT_COMMITTER_DATE": SEAL_DATE}
-    _git(dest, *IDENTITY, "commit", "-m", "sealed pre-task tree", env=dated)
+    if os.path.lexists(dest):
+        raise TreeError(f"{dest} already exists")
+    # Built and sealed beside `dest`, then renamed into place: a failure at any
+    # step leaves no half-built template where the caller looks for one.
+    staging = dest.parent / (dest.name + ".staging-" + os.urandom(4).hex())
+    staging.mkdir(parents=True)
+    try:
+        with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
+            # Read off the archive rather than off an extracted tree: a host that
+            # cannot create a symlink at all still has to refuse one that escapes,
+            # and refusing here leaves no half-built template behind.
+            _refuse_duplicate_or_crossing_members(archive.getmembers())
+            if hasattr(tarfile, "data_filter"):
+                try:
+                    archive.extractall(staging, filter="data")
+                except (tarfile.FilterError, OSError) as cause:
+                    raise TreeError("extraction failed: %s" % cause) from cause
+            else:
+                _extract_without_filter(archive, staging, archive.getmembers())
+        _git(staging, *IDENTITY, "init")
+        _git(staging, "add", "-A")
+        # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the
+        # same tree sealed a second later has to carry the same one.
+        dated = {**os.environ, "GIT_AUTHOR_DATE": SEAL_DATE, "GIT_COMMITTER_DATE": SEAL_DATE}
+        _git(staging, *IDENTITY, "commit", "-m", "sealed pre-task tree", env=dated)
+        try:
+            staging.rename(dest)
+        except OSError as cause:
+            raise TreeError("%s could not be published: %s" % (dest, cause)) from cause
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
     return head_sha(dest)
 
 
