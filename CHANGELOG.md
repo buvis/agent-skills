@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **sweep-fix**: `sweep.py` terminates every search process tree (and its descendants) still running when the `--deadline` expires, instead of merely stopping to wait for it; the deadline now also bounds the final control-verification check, so an expired zero-hit sweep refuses as unverified (`sweep unverified: ...` on stderr, exit 1, no report written) instead of running an unbounded fresh verification.
 - **review-deps-prs**: the discovery script now reports each repo whose PR lookup failed on stderr and exits 2, so a partial or empty scan is not mistaken for a clean one.
 - **create-prd**: `ground_prd.py` exits 2 with a clear message for an invalid `--root` or unreadable input; relative PRD paths are excluded relative to cwd.
+- **publish-confluence-docs**: `confluence_attach.py`'s `upload()` now requires both a zero curl exit and a 2xx HTTP status before reporting success (a nonzero curl exit with a faked 2xx response no longer reads as success); a missing `curl` binary is reported as a failure line instead of a traceback; the response sink uses `os.devnull` instead of a hardcoded `/dev/null` path.
 
 ### Changed
 

@@ -49,16 +49,23 @@ def upload(page_id, filepath, token, existing):
         url = f"{BASE_URL}/rest/api/content/{page_id}/child/attachment"
         action = "Uploaded"
 
-    r = subprocess.run([
-        "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
-        "-H", f"Authorization: Bearer {token}",
-        "-H", "X-Atlassian-Token: nocheck",
-        "-X", "POST", "-F", f"file=@{filepath}", url
-    ], capture_output=True, text=True)
+    try:
+        r = subprocess.run([
+            "curl", "-s", "-o", os.devnull, "-w", "%{http_code}",
+            "-H", f"Authorization: Bearer {token}",
+            "-H", "X-Atlassian-Token: nocheck",
+            "-X", "POST", "-F", f"file=@{filepath}", url
+        ], capture_output=True, text=True)
+    except FileNotFoundError as exc:
+        print(f"FAIL: {action} {filename} (curl not found: {exc})")
+        return False
 
     code = r.stdout.strip()
-    ok = code.startswith("2")
-    print(f"{'OK' if ok else 'FAIL'}: {action} {filename} (HTTP {code})")
+    ok = r.returncode == 0 and code.startswith("2")
+    if ok:
+        print(f"OK: {action} {filename} (HTTP {code})")
+    else:
+        print(f"FAIL: {action} {filename} (HTTP {code}, exit {r.returncode})")
     return ok
 
 def main(argv=None):
