@@ -10,6 +10,23 @@ Bidirectional document conversion between downloaded SharePoint/Word files,
 Markdown, and Confluence. Outputs use neutral document styling. Markdown is the
 intermediate format. SharePoint retrieval requires a separately configured reader.
 
+## Dependencies
+
+No other skill is required. Confluence page create/read/update needs a
+caller-supplied provider or credentials; this skill ships none and only
+converts documents and uploads attachments.
+
+```bash
+uv sync --project ~/.agents/skills/publish-confluence-docs --python 3.12
+npm install --prefix ~/.agents/skills/publish-confluence-docs
+```
+
+The included `pyproject.toml` declares python-docx, PyMuPDF, and PyYAML.
+The included `package.json` declares Mermaid CLI. Legacy `.doc` conversion also
+needs LibreOffice (`soffice` on PATH). Mermaid needs a supported Node version and
+its Chromium/browser prerequisites. Uploads need `curl`. Report a missing
+dependency before starting its conversion; never report an uncreated output.
+
 ## Conversion Pipelines
 
 ```
@@ -36,23 +53,6 @@ for both `--project` and the script, not a hardcoded agent configuration directo
 | `mermaid_to_png.py` | Mermaid → PNG | `uv run --project . python scripts/mermaid_to_png.py input.md [--output-dir DIR]` |
 | `confluence_attach.py` | Upload attachments | `uv run --project . python scripts/confluence_attach.py PAGE_ID file1.png [file2.png]` |
 | `confluence_embed_images.py` | Embed images in page | `uv run --project . python scripts/confluence_embed_images.py PAGE_ID img1.png [--width 900]` |
-
-## Dependencies
-
-No other skill is required. Confluence page create/read/update needs a
-caller-supplied provider or credentials; this skill ships none and only
-converts documents and uploads attachments.
-
-```bash
-uv sync --project ~/.agents/skills/publish-confluence-docs --python 3.12
-npm install --prefix ~/.agents/skills/publish-confluence-docs
-```
-
-The included `pyproject.toml` declares python-docx, PyMuPDF, and PyYAML.
-The included `package.json` declares Mermaid CLI. Legacy `.doc` conversion also
-needs LibreOffice (`soffice` on PATH). Mermaid needs a supported Node version and
-its Chromium/browser prerequisites. Uploads need `curl`. Report a missing
-dependency before starting its conversion; never report an uncreated output.
 
 ## Neutral document style
 
