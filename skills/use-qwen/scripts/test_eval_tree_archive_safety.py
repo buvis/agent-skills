@@ -9,7 +9,8 @@ sentinel directory beside the template and proves its bytes and modes are what
 they were, so an escape is caught by what it did, not only by what was raised.
 
 The archive builders and the sentinel come from test_eval_tree_links.py, so
-there is one spelling of each.
+there is one spelling of each. Row A7, modes and owners, lives in
+test_eval_tree_archive_safety_modes.py.
 """
 import io
 import os
@@ -164,6 +165,22 @@ ANCESTOR_ESCAPES = [
          ("a/b/alias/escape", ("sym", "../../outside"))],
         id="file-first-then-link-whose-real-landing-leaves",
     ),
+    # The escaping link's parent is reached through two links, `x/y/a -> b`
+    # and `x/y/b -> ../../pkg`. By its own text `x/y/a/escape` reads as
+    # `x/outside`, and one hop of its parent still leaves it at `x/outside`;
+    # only the whole chain puts it at `pkg/escape`, where it climbs out.
+    pytest.param(
+        [("x", DIRECTORY), ("x/y", DIRECTORY), ("pkg", DIRECTORY),
+         ("x/y/a", ("sym", "b")), ("x/y/b", ("sym", "../../pkg")),
+         ("x/y/a/escape", ("sym", "../../outside")), ("pkg/escape/secret.txt", PAYLOAD)],
+        id="escaping-link-under-a-two-link-chain-then-file",
+    ),
+    pytest.param(
+        [("x", DIRECTORY), ("x/y", DIRECTORY), ("pkg", DIRECTORY),
+         ("x/y/a", ("sym", "b")), ("x/y/b", ("sym", "../../pkg")),
+         ("pkg/escape/secret.txt", PAYLOAD), ("x/y/a/escape", ("sym", "../../outside"))],
+        id="file-then-escaping-link-under-a-two-link-chain",
+    ),
 ]
 
 
@@ -197,6 +214,10 @@ ABSOLUTE_SPELLINGS = [
     pytest.param("\\\\?\\D:\\x", id="extended-prefix-other-drive"),
     pytest.param("secret.txt:hidden", id="ntfs-named-stream"),
     pytest.param("pkg/secret.txt::$DATA", id="ntfs-default-stream"),
+    # A stream colon in a directory component, not the last one.
+    pytest.param("pkg:s/a.txt", id="ntfs-stream-in-a-directory-component"),
+    # No drive, no leading separator: only `\` marks this climb as one.
+    pytest.param("..\\..\\outside\\secret.txt", id="backslash-relative-climb"),
 ]
 
 
@@ -239,6 +260,20 @@ COLLISIONS = [
     pytest.param([("x", DIRECTORY), ("x", PAYLOAD)], id="directory-then-file"),
     pytest.param([("x", PAYLOAD), ("x/y.txt", OTHER)], id="file-then-file-under-it"),
     pytest.param([("x/y.txt", OTHER), ("x", PAYLOAD)], id="file-under-it-then-file"),
+    # The file sits at a grandparent, not the direct parent, of the other.
+    pytest.param([("x", PAYLOAD), ("x/y/z.txt", OTHER)], id="file-then-file-two-levels-under-it"),
+    pytest.param([("x/y/z.txt", OTHER), ("x", PAYLOAD)], id="file-two-levels-under-it-then-file"),
+    # A link and a file at one landing: links are members that land too.
+    pytest.param(
+        [("pkg", DIRECTORY), ("alias", ("sym", "pkg")),
+         ("pkg/a.txt", PAYLOAD), ("alias/a.txt", ("sym", "b.txt"))],
+        id="file-then-link-at-one-landing",
+    ),
+    pytest.param(
+        [("pkg", DIRECTORY), ("alias", ("sym", "pkg")),
+         ("alias/a.txt", ("sym", "b.txt")), ("pkg/a.txt", PAYLOAD)],
+        id="link-then-file-at-one-landing",
+    ),
     pytest.param(
         [("pkg", DIRECTORY), ("alias", ("sym", "pkg")),
          ("alias/a.txt", PAYLOAD), ("pkg/a.txt", OTHER)],
@@ -318,135 +353,6 @@ def test_build_template_refuses_a_hardlink_fifo_or_device_member(
         [("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD)], [(_special(kind, linkname), None)]
     )
     _assert_refused_on_seam(tmp_path, built_repo, monkeypatch, filter_support, bundle)
-
-
-# -- A7: modes and owners the archive asks for ---------------------------------
-
-
-def _owned_file(mode: int, uid: int, owner: str) -> tarfile.TarInfo:
-    info = tarfile.TarInfo("pkg/tool")
-    info.mode, info.uid, info.gid, info.uname, info.gname = mode, uid, uid, owner, owner
-    return info
-
-
-TOOL = b"#!/bin/sh\necho tool\n"
-SPECIAL_BITS = stat.S_ISUID | stat.S_ISGID
-
-
-def _record_mode_and_owner_requests(monkeypatch) -> list:
-    """Every chmod and chown asked of the OS, as (call, target, positional args).
-
-    Read at the OS boundary as well as off the disk: some hosts (a sandboxed
-    macOS among them) silently drop a setuid or setgid bit on chmod, so the
-    disk alone cannot show that extraction asked for one.
-    """
-    requested = []
-    for name in ("chmod", "fchmod", "lchmod", "chown", "fchown", "lchown"):
-        real = getattr(os, name, None)
-        if real is None:
-            continue
-
-        def spy(target, *args, _name=name, _real=real, **kwargs):
-            requested.append((_name, target, args))
-            return _real(target, *args, **kwargs)
-
-        monkeypatch.setattr(os, name, spy)
-    return requested
-
-
-def _chowns_to_another_owner(requested: list) -> list:
-    """The chown requests that name an owner other than the user running this."""
-    return [(call, target, args) for call, target, args in requested
-            if call.endswith("chown") and args[0] not in (-1, os.getuid())]
-
-
-@SEAMS
-@pytest.mark.parametrize(
-    "mode",
-    [
-        pytest.param(0o4755, id="setuid"),
-        pytest.param(0o2755, id="setgid"),
-        pytest.param(0o6755, id="setuid-and-setgid"),
-        # No special bit at all: the foreign owner has to be refused on its own.
-        pytest.param(0o644, id="foreign-owner-alone"),
-    ],
-)
-def test_build_template_never_applies_setuid_setgid_or_a_foreign_owner_from_the_archive(
-    tmp_path, built_repo, monkeypatch, filter_support, mode
-):
-    _select_seam(monkeypatch, filter_support)
-    repo = Path(built_repo["repo"])
-    first = _task_start_commit(repo)
-    outside = _outside_sentinel(tmp_path)
-    before = _snapshot(outside)
-    bundle = _appended([("pkg", DIRECTORY)], [(_owned_file(mode, 4242, "mallory"), TOOL)])
-    _serve_archive(monkeypatch, bundle)
-    dest = tmp_path / "template"
-    requested = _record_mode_and_owner_requests(monkeypatch)
-
-    try:
-        trees.build_template(repo, first, dest)
-    except trees.TreeError:
-        # Refusing the archive is one way never to apply the bits: then nothing
-        # of it was extracted.
-        assert list(dest.glob("*")) == []
-    else:
-        status = (dest / "pkg" / "tool").lstat()
-        assert not status.st_mode & SPECIAL_BITS, oct(status.st_mode)
-        assert status.st_uid == os.getuid()
-        assert status.st_gid == dest.stat().st_gid
-        assert (dest / "pkg" / "tool").read_bytes() == TOOL
-    asked_bits = [
-        (call, target, oct(args[0]))
-        for call, target, args in requested
-        if call.endswith("chmod") and args[0] & SPECIAL_BITS
-    ]
-    assert asked_bits == [], "extraction asked the OS for setuid/setgid"
-    foreign = [(call, target, args) for call, target, args in requested
-               if call.endswith("chown") and 4242 in args[:2]]
-    assert foreign == [], "extraction asked the OS for the archive's owner"
-    assert _snapshot(outside) == before
-
-
-@SEAMS
-@pytest.mark.parametrize(
-    "mode, kept",
-    [
-        pytest.param(0o755, 0o755, id="executable"),
-        pytest.param(0o644, 0o644, id="plain"),
-        pytest.param(0o777, 0o755, id="world-writable-executable"),
-        pytest.param(0o666, 0o644, id="world-writable-plain"),
-        pytest.param(0o1755, 0o755, id="sticky"),
-    ],
-)
-def test_build_template_seals_a_file_with_git_archive_s_root_owner_and_keeps_its_safe_mode_bits(
-    tmp_path, built_repo, monkeypatch, filter_support, mode, kept
-):
-    # The accept twin of the case above: `git archive` itself writes uid 0 and
-    # owner `root` on every member, so ownership metadata alone cannot be a
-    # reason to refuse. An ordinary mode survives sealing as written; the
-    # sticky bit and group/other write are stripped, never applied.
-    _select_seam(monkeypatch, filter_support)
-    repo = Path(built_repo["repo"])
-    first = _task_start_commit(repo)
-    outside = _outside_sentinel(tmp_path)
-    before = _snapshot(outside)
-    bundle = _appended([("pkg", DIRECTORY)], [(_owned_file(mode, 0, "root"), TOOL)])
-    _serve_archive(monkeypatch, bundle)
-    dest = tmp_path / "template"
-    requested = _record_mode_and_owner_requests(monkeypatch)
-
-    sha = trees.build_template(repo, first, dest)
-
-    assert sha == trees.head_sha(dest)
-    assert trees._git(dest, "status", "--porcelain") == ""
-    assert trees._git(dest, "ls-files").splitlines() == ["pkg/tool"]
-    status = (dest / "pkg" / "tool").lstat()
-    assert stat.S_IMODE(status.st_mode) == kept, oct(status.st_mode)
-    assert status.st_uid == os.getuid()
-    assert (dest / "pkg" / "tool").read_bytes() == TOOL
-    assert _chowns_to_another_owner(requested) == [], "extraction asked for the archive's owner"
-    assert _snapshot(outside) == before
 
 
 # -- the accept twin of every refusal above ----------------------------------
