@@ -2,8 +2,6 @@
 import shutil
 import subprocess
 
-import pytest
-
 import sweep
 from sweep_test_helpers import _make_repo, _write_registry
 
