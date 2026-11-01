@@ -15,6 +15,7 @@ import io
 import os
 import stat
 import tarfile
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -552,7 +553,8 @@ def _file(name: str, data: bytes, mode: int = 0o644) -> tuple:
 def _sealed_modes(dest: Path) -> dict:
     """Each path the sealed commit holds, with the git mode it was recorded under."""
     modes = {}
-    for line in trees._git(dest, "ls-files", "-s").splitlines():
+    # Unquoted, so a non-ASCII path reads back as the name it was given.
+    for line in trees._git(dest, "-c", "core.quotePath=false", "ls-files", "-s").splitlines():
         meta, path = line.split("\t", 1)
         modes[path] = meta.split()[0]
     return modes
@@ -588,6 +590,8 @@ def test_control_build_template_keeps_binary_and_crlf_blobs_byte_for_byte(
     blobs = {
         "data/blob.bin": BINARY,
         "data/other.bin": OTHER_BINARY,
+        # Past 64 KiB: a copy through a fixed small buffer comes up short.
+        "data/large.bin": BINARY * 257,
         "text/crlf.txt": CRLF,
         "text/mixed.txt": MIXED_ENDINGS,
         "text/lf.txt": LF,
@@ -606,24 +610,61 @@ def test_control_build_template_keeps_binary_and_crlf_blobs_byte_for_byte(
 
 
 @SEAMS
+def test_control_build_template_seals_every_file_whatever_its_name_depth_or_size(
+    tmp_path, built_repo, monkeypatch, filter_support
+):
+    # Each one is a file a filter could single out: hidden, deep, empty, a
+    # non-ASCII name, a space in the name. None may be left out of the seal.
+    files = {
+        ".hidden": b"hidden\n",
+        "pkg/.gitignore": b"*.log\n",
+        "a/b/c/d.txt": b"deep\n",
+        "pkg/empty.txt": b"",
+        "naïve.txt": b"accented\n",
+        "with space.txt": b"spaced\n",
+    }
+    bundle = _crafted_tar(
+        [(name, DIRECTORY) for name in ("pkg", "a", "a/b", "a/b/c")]
+        + [(path, ("file", data)) for path, data in files.items()]
+    )
+
+    dest = _seal_control(tmp_path, built_repo, monkeypatch, filter_support, bundle)
+
+    assert _sealed_modes(dest) == dict.fromkeys(files, "100644")
+    for path, data in files.items():
+        assert (dest / path).read_bytes() == data, path
+        assert _sealed_blob(dest, path) == data, path
+
+
+@SEAMS
 def test_control_build_template_keeps_the_executable_bit_and_only_where_it_was_set(
     tmp_path, built_repo, monkeypatch, filter_support
 ):
     # Two files of one shape, one executable and one not: a builder that sets
     # or drops the bit on every file gets one of the pair wrong.
+    # A second pair sets the bit against the name: a guess from a dot in the
+    # name, rather than from the archive's mode, gets this pair wrong.
+    files = {
+        "bin/run": (b"#!/bin/sh\necho run\n", 0o755),
+        "bin/run.txt": (b"#!/bin/sh\necho text\n", 0o644),
+        "bin/tool.sh": (b"#!/bin/sh\necho tool\n", 0o755),
+        "bin/README": (b"read me\n", 0o644),
+    }
     bundle = _appended(
         [("bin", DIRECTORY)],
-        [_file("bin/run", b"#!/bin/sh\necho run\n", 0o755),
-         _file("bin/run.txt", b"#!/bin/sh\necho text\n", 0o644)],
+        [_file(path, data, mode) for path, (data, mode) in files.items()],
     )
 
     dest = _seal_control(tmp_path, built_repo, monkeypatch, filter_support, bundle)
 
-    assert (dest / "bin" / "run").lstat().st_mode & stat.S_IXUSR
-    assert not (dest / "bin" / "run.txt").lstat().st_mode & stat.S_IXUSR
-    assert _sealed_modes(dest) == {"bin/run": "100755", "bin/run.txt": "100644"}
-    assert (dest / "bin" / "run").read_bytes() == b"#!/bin/sh\necho run\n"
-    assert (dest / "bin" / "run.txt").read_bytes() == b"#!/bin/sh\necho text\n"
+    assert _sealed_modes(dest) == {
+        "bin/run": "100755", "bin/run.txt": "100644",
+        "bin/tool.sh": "100755", "bin/README": "100644",
+    }
+    for path, (data, mode) in files.items():
+        executable = bool((dest / path).lstat().st_mode & stat.S_IXUSR)
+        assert executable == bool(mode & stat.S_IXUSR), path
+        assert (dest / path).read_bytes() == data, path
 
 
 # Links that stay inside the tree, by kind. A dangling link names a path the
@@ -737,4 +778,11 @@ def test_control_build_template_seals_identical_input_to_one_sha_and_changed_inp
 
     assert shas[0] == shas[1]
     assert shas[2] != shas[0]
+    # Dated by the fixed constant itself: a seal dated by the wall clock can
+    # still answer one sha twice within a run, but never this date.
+    # Compared as instants: git spells UTC `Z` where SEAL_DATE spells `+00:00`.
+    sealed = int(datetime.fromisoformat(trees.SEAL_DATE).timestamp())
+    for name, _, _ in runs:
+        dates = trees._git(tmp_path / name, "log", "-1", "--format=%at%n%ct")
+        assert dates == "%d\n%d" % (sealed, sealed), name
     assert _snapshot(outside) == before
