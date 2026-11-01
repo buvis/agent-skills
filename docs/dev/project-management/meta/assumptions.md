@@ -57,3 +57,10 @@
 - A symlink member's parent directories are created before `os.symlink`, the same as for a file member (Ivan).
 - **Flagged, not acted on:** directories are chmod'ed to their safe mode immediately in archive order (not deferred to the end, unlike `tarfile`'s own extraction). If an archived directory's mode lacks the owner-write bit, a later member written inside it would fail with `TreeError` instead of extracting. No test in this matrix covers that case; `git archive` directories are ordinarily `0755` so this has not been observed to bite in practice (Ivan).
 - **Infra, recurring:** Pat's per-task review (`sonnet-run.sh`) failed identically to task 3 (OAuth token revoked, then session-id collision on retry) - confirmed deterministic, not transient, across two tasks. Stopped re-attempting the retry for subsequent tasks in this batch to avoid spending a doomed dispatch each time; `review: failed:...` recorded and the mandatory PRD-level review phase covers the gap. This is an environment/session issue (coordinator `CLAUDE_CODE_OAUTH_TOKEN` not reaching the `claude -p` child), not a finding about the code.
+
+## 5: Stage extraction and seal, then rename into dest atomically
+
+- The cleanup handler catches `BaseException`, not `Exception` (so an interrupt mid-build still removes the staging directory), and always re-raises - never swallows a signal, only runs cleanup before propagating it (Ivan).
+- `git archive` is still fetched before the `os.path.lexists(dest)` guard; the contract only requires the guard before extraction, not before the archive read (Ivan).
+- The final-rename failure message ("... could not be published: ...") was authored freely; the contract gave no wording for it (Ivan).
+- No `lexists` re-check runs immediately before the final `staging.rename(dest)` - the design accepts the TOCTOU race as out of scope; a `dest` that appears mid-build still gets refused because `rename` onto an existing non-empty directory/file raises `OSError`, translated to `TreeError` the same as any other failure on this path (Ivan).
