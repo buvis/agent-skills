@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **glean**: directory scan report ids now use slash-form separators on every host instead of the native one.
 - **distil-memory**: `write.py`'s atomic writes no longer translate newlines on a `str` payload, so an authored CRLF sequence reaches disk unchanged instead of doubling its CR on Windows.
 - **distil-memory**: `docket decide --file` naming a directory now refuses with an explicit, host-independent "is a directory" message instead of relying on the OS's own error text; a malformed queue entry's diagnostic shows the raw id characters (backslashes included) instead of an escaped `repr()` form.
 - **create-prd**: `ground_prd` now parses drive-letter, UNC, and mixed-slash citation paths, and excludes a PRD's own path from symbol self-confirmation using a slash-form ripgrep glob that also works on Windows.

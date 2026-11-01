@@ -100,6 +100,31 @@ def test_dir_prescreen_counts_soft_hits_and_lists_hard_ones(home):
     assert [h["file"] for h in c["secret_hits"]] == [".config/newtool/key"]
 
 
+def test_dir_prescreen_hit_id_uses_slash_form_not_backslash_form(home, monkeypatch):
+    # The bug is Windows-only: str(f.relative_to(HOME)) is backslash-form
+    # there, but identical to .as_posix() on this host, so a real multi-
+    # segment path cannot observe it here. Pin the mechanism directly by
+    # injecting a Windows-flavored relative_to() result for this one call.
+    from pathlib import PureWindowsPath
+
+    d = home / ".config" / "newtool"
+    d.mkdir()
+    (d / "key").write_text("-----BEGIN OPENSSH PRIVATE KEY-----\n")
+    real_relative_to = Path.relative_to
+
+    def fake_relative_to(self, other):
+        result = real_relative_to(self, other)
+        if self.name == "key":
+            return PureWindowsPath(*result.parts)
+        return result
+
+    monkeypatch.setattr(Path, "relative_to", fake_relative_to)
+
+    c = run(home, "scan", [])["candidates"][0]
+
+    assert [h["file"] for h in c["secret_hits"]] == [".config/newtool/key"]
+
+
 def test_skip_stays_quiet_while_content_unchanged(home):
     f = home / ".toolrc"
     f.write_text("a\n")
