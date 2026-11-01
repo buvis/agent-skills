@@ -374,3 +374,32 @@ def test_historical_malformed_row_is_preserved_byte_for_byte(tmp_path):
     manifest_lines = (store / gc.TRASH_DIR / "manifest.tsv").read_text().splitlines()
     assert malformed_line in manifest_lines
     assert well_formed_line not in manifest_lines
+
+
+def test_trash_file_manifest_append_never_introduces_crlf(tmp_path, monkeypatch):
+    # trash_file appends via manifest.open("a", encoding="utf-8"). POSIX's
+    # own os.linesep is already "\n", so this host cannot observe Windows
+    # text-mode \n -> \r\n translation directly. Patch Path.open so any
+    # append missing newline="" (the old, buggy call) gets that translation
+    # simulated on its write() - matching what text mode does on Windows -
+    # while an append that already passes newline="" (the fix) is untouched.
+    _repo, store = repo_store(tmp_path)
+    rel = Path("junk.txt")
+    (store / rel).write_text("x")
+    batch = "2020-01-01"
+
+    real_open = Path.open
+
+    def spy_open(self, *args, **kwargs):
+        handle = real_open(self, *args, **kwargs)
+        if self.name == "manifest.tsv" and "newline" not in kwargs:
+            real_write = handle.write
+            handle.write = lambda data: real_write(data.replace("\n", "\r\n"))
+        return handle
+
+    monkeypatch.setattr(Path, "open", spy_open)
+
+    gc.trash_file(store, rel, batch)
+
+    manifest_bytes = (store / gc.TRASH_DIR / "manifest.tsv").read_bytes()
+    assert b"\r\n" not in manifest_bytes
