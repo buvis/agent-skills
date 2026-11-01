@@ -528,3 +528,213 @@ def test_build_template_seals_a_real_git_archive_as_the_tree_before_the_task(
     )
     assert trees._git(dest, "ls-files") != ""
     assert _snapshot(outside) == before
+
+
+# -- valid-input controls: what a sound archive must still seal as written ----
+
+# Every byte value once: NUL, a lone 0xff and broken UTF-8 sequences included,
+# so a builder that decodes or re-encodes a blob anywhere cannot keep it.
+BINARY = bytes(range(256))
+OTHER_BINARY = b"\x00\xff\xfe\xc3\x28\r\n\x80"
+CRLF = b"one\r\ntwo\r\n"
+# CRLF, a bare LF and a lone CR side by side: normalizing any one of them shows.
+MIXED_ENDINGS = b"crlf\r\nlf\nlone\rend"
+LF = b"one\ntwo\n"
+
+
+def _file(name: str, data: bytes, mode: int = 0o644) -> tuple:
+    """A (TarInfo, bytes) regular file for `_appended`, with the mode given."""
+    info = tarfile.TarInfo(name)
+    info.mode = mode
+    return info, data
+
+
+def _sealed_modes(dest: Path) -> dict:
+    """Each path the sealed commit holds, with the git mode it was recorded under."""
+    modes = {}
+    for line in trees._git(dest, "ls-files", "-s").splitlines():
+        meta, path = line.split("\t", 1)
+        modes[path] = meta.split()[0]
+    return modes
+
+
+def _sealed_blob(dest: Path, path: str) -> bytes:
+    """The bytes the sealed commit recorded at `path`, read from git, not the disk."""
+    return trees._git_bytes(dest, "cat-file", "blob", "HEAD:%s" % path)
+
+
+def _seal_control(tmp_path, built_repo, monkeypatch, filter_support, bundle) -> Path:
+    """Seal `bundle` on the seam asked for; answer the template, proven sealed."""
+    _select_seam(monkeypatch, filter_support)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    outside = _outside_sentinel(tmp_path)
+    before = _snapshot(outside)
+    _serve_archive(monkeypatch, bundle)
+    dest = tmp_path / "template"
+
+    sha = trees.build_template(repo, first, dest)
+
+    assert sha == trees.head_sha(dest)
+    assert trees._git(dest, "status", "--porcelain") == ""
+    assert _snapshot(outside) == before
+    return dest
+
+
+@SEAMS
+def test_control_build_template_keeps_binary_and_crlf_blobs_byte_for_byte(
+    tmp_path, built_repo, monkeypatch, filter_support
+):
+    blobs = {
+        "data/blob.bin": BINARY,
+        "data/other.bin": OTHER_BINARY,
+        "text/crlf.txt": CRLF,
+        "text/mixed.txt": MIXED_ENDINGS,
+        "text/lf.txt": LF,
+    }
+    bundle = _crafted_tar(
+        [("data", DIRECTORY), ("text", DIRECTORY)]
+        + [(path, ("file", data)) for path, data in blobs.items()]
+    )
+
+    dest = _seal_control(tmp_path, built_repo, monkeypatch, filter_support, bundle)
+
+    assert sorted(_sealed_modes(dest)) == sorted(blobs)
+    for path, data in blobs.items():
+        assert (dest / path).read_bytes() == data, path
+        assert _sealed_blob(dest, path) == data, path
+
+
+@SEAMS
+def test_control_build_template_keeps_the_executable_bit_and_only_where_it_was_set(
+    tmp_path, built_repo, monkeypatch, filter_support
+):
+    # Two files of one shape, one executable and one not: a builder that sets
+    # or drops the bit on every file gets one of the pair wrong.
+    bundle = _appended(
+        [("bin", DIRECTORY)],
+        [_file("bin/run", b"#!/bin/sh\necho run\n", 0o755),
+         _file("bin/run.txt", b"#!/bin/sh\necho text\n", 0o644)],
+    )
+
+    dest = _seal_control(tmp_path, built_repo, monkeypatch, filter_support, bundle)
+
+    assert (dest / "bin" / "run").lstat().st_mode & stat.S_IXUSR
+    assert not (dest / "bin" / "run.txt").lstat().st_mode & stat.S_IXUSR
+    assert _sealed_modes(dest) == {"bin/run": "100755", "bin/run.txt": "100644"}
+    assert (dest / "bin" / "run").read_bytes() == b"#!/bin/sh\necho run\n"
+    assert (dest / "bin" / "run.txt").read_bytes() == b"#!/bin/sh\necho text\n"
+
+
+# Links that stay inside the tree, by kind. A dangling link names a path the
+# tree does not hold; it is still inside, so it is sealed as written.
+SAFE_LINKS = [
+    ("pkg", DIRECTORY),
+    ("pkg/a.txt", PAYLOAD),
+    ("pkg/b.txt", OTHER),
+    ("file-link", ("sym", "pkg/a.txt")),
+    ("dir-link", ("sym", "pkg")),
+    ("dangling-link", ("sym", "pkg/missing.txt")),
+    ("pkg/up-link", ("sym", "../pkg/b.txt")),
+]
+
+
+@NEEDS_SYMLINKS
+@SEAMS
+def test_control_build_template_seals_file_directory_and_dangling_links_inside_the_tree(
+    tmp_path, built_repo, monkeypatch, filter_support
+):
+    dest = _seal_control(
+        tmp_path, built_repo, monkeypatch, filter_support, _crafted_tar(SAFE_LINKS)
+    )
+
+    assert _sealed_modes(dest) == {
+        "pkg/a.txt": "100644", "pkg/b.txt": "100644", "file-link": "120000",
+        "dir-link": "120000", "dangling-link": "120000", "pkg/up-link": "120000",
+    }
+    # The link text is what is sealed, never the bytes it reaches.
+    assert _sealed_blob(dest, "file-link") == b"pkg/a.txt"
+    assert _sealed_blob(dest, "dangling-link") == b"pkg/missing.txt"
+    assert Path(os.readlink(dest / "dir-link")).as_posix() == "pkg"
+    assert (dest / "file-link").read_bytes() == b"pwned\n"
+    assert (dest / "pkg" / "up-link").read_bytes() == b"other\n"
+    assert (dest / "dir-link" / "a.txt").read_bytes() == b"pwned\n"
+    assert (dest / "dir-link" / "b.txt").read_bytes() == b"other\n"
+    assert (dest / "dangling-link").is_symlink()
+    assert not (dest / "dangling-link").exists()
+
+
+# Chains of links that end inside the tree: at the root, and below it. Each
+# case lists what must read through the chain and the text each link keeps.
+LINK_CHAINS = [
+    pytest.param(
+        [("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD), ("pkg/b.txt", OTHER),
+         ("a", ("sym", "b")), ("b", ("sym", "pkg")),
+         ("c", ("sym", "d")), ("d", ("sym", "pkg/b.txt"))],
+        {"a/a.txt": b"pwned\n", "a/b.txt": b"other\n", "c": b"other\n"},
+        {"a": "b", "b": "pkg", "c": "d", "d": "pkg/b.txt"},
+        id="root-chain",
+    ),
+    pytest.param(
+        [("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD), ("pkg/b.txt", OTHER),
+         ("sub", DIRECTORY), ("sub/x", ("sym", "y")), ("sub/y", ("sym", "../pkg")),
+         ("sub/f", ("sym", "x/a.txt"))],
+        {"sub/x/a.txt": b"pwned\n", "sub/x/b.txt": b"other\n", "sub/f": b"pwned\n"},
+        {"sub/x": "y", "sub/y": "../pkg", "sub/f": "x/a.txt"},
+        id="subdirectory-chain",
+    ),
+]
+
+
+@NEEDS_SYMLINKS
+@SEAMS
+@pytest.mark.parametrize("members, reads, texts", LINK_CHAINS)
+def test_control_build_template_seals_a_link_chain_that_ends_inside_the_tree(
+    tmp_path, built_repo, monkeypatch, filter_support, members, reads, texts
+):
+    dest = _seal_control(
+        tmp_path, built_repo, monkeypatch, filter_support, _crafted_tar(members)
+    )
+
+    for path, data in reads.items():
+        assert (dest / path).read_bytes() == data, path
+    for path, text in texts.items():
+        assert Path(os.readlink(dest / path)).as_posix() == text, path
+        assert _sealed_blob(dest, path) == text.encode(), path
+    assert sorted(_sealed_modes(dest)) == sorted(["pkg/a.txt", "pkg/b.txt", *texts])
+
+
+def _determinism_bundle(blob: bytes) -> bytes:
+    return _appended(
+        [("pkg", DIRECTORY), ("pkg/crlf.txt", ("file", CRLF))],
+        [_file("pkg/blob.bin", blob), _file("pkg/run", b"#!/bin/sh\n", 0o755)],
+    )
+
+
+@SEAMS
+def test_control_build_template_seals_identical_input_to_one_sha_and_changed_input_to_another(
+    tmp_path, built_repo, monkeypatch, filter_support
+):
+    _select_seam(monkeypatch, filter_support)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    outside = _outside_sentinel(tmp_path)
+    before = _snapshot(outside)
+    shas = []
+    # Each run sees a different clock in the environment: a seal dated by it,
+    # rather than by the tree alone, answers a different sha each time.
+    runs = [("one", BINARY, "2011-01-01T00:00:00+00:00"),
+            ("two", BINARY, "2022-02-02T00:00:00+00:00"),
+            ("changed", OTHER_BINARY, "2011-01-01T00:00:00+00:00")]
+    for name, blob, date in runs:
+        monkeypatch.setenv("GIT_AUTHOR_DATE", date)
+        monkeypatch.setenv("GIT_COMMITTER_DATE", date)
+        _serve_archive(monkeypatch, _determinism_bundle(blob))
+        dest = tmp_path / name
+        sha = trees.build_template(repo, first, dest)
+        assert sha == trees.head_sha(dest)
+        shas.append(sha)
+
+    assert shas[0] == shas[1]
+    assert shas[2] != shas[0]
+    assert _snapshot(outside) == before
