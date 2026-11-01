@@ -47,7 +47,7 @@ def seed_batch(store: Path, batch: str, name: str) -> Path:
 def write_manifest(store: Path, lines: list[str]) -> Path:
     manifest = store / gc.TRASH_DIR / "manifest.tsv"
     manifest.parent.mkdir(parents=True, exist_ok=True)
-    manifest.write_text("\n".join(lines) + "\n" if lines else "")
+    manifest.write_text("\n".join(lines) + "\n" if lines else "", newline="")
     return manifest
 
 

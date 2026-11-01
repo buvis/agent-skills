@@ -171,7 +171,7 @@ def trash_file(store: Path, rel: Path, batch: str) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(store / rel), str(destination))
     manifest = store / TRASH_DIR / "manifest.tsv"
-    with manifest.open("a", encoding="utf-8") as handle:
+    with manifest.open("a", encoding="utf-8", newline="") as handle:
         handle.write(
             f"{batch}\tstale-temp\t{rel.as_posix()}\t"
             f"{destination.relative_to(store).as_posix()}\n"
