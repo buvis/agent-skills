@@ -154,6 +154,7 @@ branch with its addendum
 ```text
 .github/workflows/ci.yml                                   # Windows runner (unchanged; coordinator dispatches)
 README.md                                                  # Phase 2 coverage wording only
+CHANGELOG.md                                               # per-task fix entries, rules/changelog.md
 src/agent_skills_braid/cli.py                              # W1: B1 link identity
 tests/test_braid.py                                        # W1: B1, B2 regressions
 tests/test_braid_check.py                                  # W1: B1 regressions
@@ -186,6 +187,7 @@ skills/use-qwen/scripts/test_run_eval_harness_outcomes.py  # W5: Q3
 skills/use-qwen/scripts/test_run_eval_vet.py               # W5: Q2; W7: Q8
 docs/dev/project-management/audit-results/repository-closeout-preparation.md
 docs/dev/project-management/audit-results/repository-closeout-preparation-session-123534.md
+docs/dev/project-management/audit-results/repository-closeout-execution.md  # Phase 2 evidence log
 ```
 Out of bounds: `skills/use-qwen/scripts/eval_harness/trees.py`,
 `skills/use-qwen/scripts/test_eval_tree_links.py`,

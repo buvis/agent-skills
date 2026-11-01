@@ -54,6 +54,14 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
 
 ## Active Work
 
+- 2026-11-01: new batch `202611011950` (this worktree) resumes PRD 00044 after
+  its PRD doc was refreshed (commit `218ace3`) to replace the stale
+  greenfield Repository Structure with the 16 real hosted-Windows cause rows
+  (B1-B2, P1-P2, D1-D3, G1, U1-U2, S1, Q1-Q3, Q7, Q8) from
+  `docs/dev/project-management/audit-results/repository-closeout-preparation.md`,
+  now tracked on this branch. The prior batch `202611011930`'s
+  `module_drift` plan-expansion stall was caused by that stale section; the
+  refresh should resolve it.
 - `plans/repository-closeout-plan.md` defines three execution sessions and a
   fourth independent verification session. It covers archive safety, Windows
   CI, and PRs #17/#15/#16; PRD 00133 implementation remains outside its scope.
