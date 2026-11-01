@@ -79,13 +79,13 @@ def _nested_oracle_repo(root: Path) -> dict:
     fixes it and adds `tests/test_new.py`: no `tests/__init__.py`, no root test file.
     """
     _git(root, *IDENTITY, "init")
-    (root / "calc.py").write_text(BROKEN_IMPL, encoding="utf-8")
+    (root / "calc.py").write_bytes(BROKEN_IMPL.encode("utf-8"))
     _git(root, "add", "calc.py")
     _git(root, *IDENTITY, "commit", "-m", "base: add() subtracts and nothing tests it")
     first = _git(root, "rev-parse", "HEAD")
-    (root / "calc.py").write_text(FIXED_IMPL, encoding="utf-8")
+    (root / "calc.py").write_bytes(FIXED_IMPL.encode("utf-8"))
     (root / NESTED_ORACLE_PATH).parent.mkdir(parents=True)
-    (root / NESTED_ORACLE_PATH).write_text(NESTED_ORACLE, encoding="utf-8")
+    (root / NESTED_ORACLE_PATH).write_bytes(NESTED_ORACLE.encode("utf-8"))
     _git(root, "add", "calc.py", NESTED_ORACLE_PATH)
     _git(root, *IDENTITY, "commit", "-m", "task: make add() sum its arguments, tested under tests/")
     last = _git(root, "rev-parse", "HEAD")
