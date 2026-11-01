@@ -18,3 +18,26 @@
 
 - Fixing the pre-existing `test_build_template_seals_a_safe_tree_with_or_without_tar_data_filter[without-data-filter]` failure (same root-cause `delattr` bug, not explicitly named in either finding) was treated as in scope, since the task's own verification command runs the whole file and both findings are framed as "fix the unsafe `data_filter`-hiding approach" (Ivan).
 - Dropped the `warnings.catch_warnings`/`filterwarnings("error")` instrumentation in the renamed compatibility-path test entirely, rather than keeping it and expecting no exception, because keeping `filterwarnings("error")` would turn the real (on Python 3.13) `DeprecationWarning` into a hard test failure there — incompatible with this project's 3.10/3.13 CI matrix (Ivan).
+
+# Assumptions ledger — PRD 00160-template-archive-extraction-fails-closed-v1
+
+## 1: Add failing A1-A7+A12 security matrix for archive extraction
+
+- Either refusing the archive (`TreeError`, empty `dest`) or extracting with the special bits and the foreign owner stripped counts as passing A7; the brief says only "not applied" (Tess).
+- Ownership metadata alone must not cause a refusal, because `git archive` writes uid 0 / `root` on every member; the accept case pins this (Tess).
+- A12 "normalized names" means path-normalized and then compared case-insensitively (Tess).
+- "File then a file under it", in both orders, counts as an A5 file/dir swap (Tess).
+- `C:outside`, `\outside`, `\\?\...`, `name:stream` and `::$DATA` must be refused both as member names and as symlink targets, on every host OS (Tess).
+- The no-filter seam extends `_hide_data_filter` with an `extractall` double that rejects `filter`, following the brief's contract; the existing helper alone does not reject the keyword (Tess).
+- The empty-archive case is not tested: its behavior is unspecified, and the current code fails it with a git "nothing to commit" error (Tess).
+- Combining several wrong behaviours in one passing implementation counts as proof for each of them, since every one is present at the same time (Devon).
+- For world-writable/sticky modes (A7 strengthening), group/other write and sticky bits should be cleared or refused; the tests and module do not say (Tess, strengthen round).
+
+## 2: Add valid-input controls to the archive safety matrix
+
+- Controls were run on both seams, not limited to filter-present, since both pass and that matches the file's convention (Tess).
+- "Round-trips byte-for-byte" means both the extracted file and the blob in the sealed commit (Tess).
+- For the determinism test, the `GIT_*_DATE` env vars are environment, not input, so a correct seal must ignore them (Tess).
+- Dangling links point inside the tree, as the task says (Tess).
+- Comparing the sealed commit's author/committer date as epoch seconds (not the ISO string `trees.SEAL_DATE` carries) satisfies the "assert the seal date" strengthening, since git's `%aI` renders a `Z` suffix for the same instant `SEAL_DATE` writes as `+00:00` (Tess, strengthen round).
+- **Flagged, not acted on:** on this runtime, `tarfile.data_filter` itself rewrites symlink target text on extraction (`./pkg/a.txt` -> `pkg/a.txt`, `../pkg/.` -> `../pkg`) rather than preserving it verbatim. The design doc's claim that `_extract_without_filter` "mirrors `data_filter`, which also preserves symlink text" (task 4's contract) does not hold for this stdlib version. A verbatim-link-text test was written, found to fail against the current (pre-fix) code on the filter-present seam, and was reverted rather than landed, since task 2's acceptance criterion requires controls to pass against unmodified `trees.py`. This is a product-decision flag for whoever implements/reviews task 4, not a task-1/2 defect (Tess, strengthen round).
