@@ -227,6 +227,9 @@ def test_citation_absolute_and_home_paths_ignore_root(tmp_path, monkeypatch):
     other_root = tmp_path / "elsewhere"
     other_root.mkdir()
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    monkeypatch.delenv("HOMEDRIVE", raising=False)
+    monkeypatch.delenv("HOMEPATH", raising=False)
     text = f"abs {tmp_path}/src/app.py:4 `beta`\nhome ~/src/app.py:1 `alpha`\nrel src/app.py:1\n"
     assert citation_status(text, other_root) == {
         f"{tmp_path}/src/app.py:4": "ok",
