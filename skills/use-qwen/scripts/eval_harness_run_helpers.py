@@ -110,12 +110,11 @@ def _spec(info: dict, *, segments=(), **over) -> dict:
 def _cwd_log_segment(log: Path) -> str:
     """A segment that appends `<physical cwd> <ns stamp>` to `log` (P15)."""
     script = (
-        'import sys, time; open(sys.argv[1], "a").write('
-        'sys.argv[2] + " " + str(time.time_ns()) + "\\n")'
+        'import os, sys, time; open(sys.argv[1], "a").write('
+        'os.path.realpath(os.getcwd()) + " " + str(time.time_ns()) + "\\n")'
     )
     return " ".join(
-        [shlex.quote(sys.executable), "-c", shlex.quote(script), shlex.quote(str(log)),
-         '"$(pwd -P)"']
+        [shlex.quote(sys.executable), "-c", shlex.quote(script), shlex.quote(str(log))]
     )
 
 
@@ -320,12 +319,19 @@ def _cwds(lines: list) -> list:
 
 def _logged_cwds(round_, log: Path) -> list:
     """The cwd of every line the round's own test commands appended to `log` (P15)."""
-    prefix = str(round_.run.resolve()) + os.sep
-    msys_prefix = _to_msys(prefix) if os.name == "nt" else None
+    run_dir = str(round_.run.resolve())
+    run_dir_norm = os.path.normcase(os.path.realpath(run_dir))
+    prefix = run_dir_norm + os.sep
+    raw_lines = log.read_text(encoding="utf-8").splitlines()
     lines = [
-        line for line in log.read_text(encoding="utf-8").splitlines()
-        if line.startswith(prefix) or (msys_prefix and line.startswith(msys_prefix))
+        line for line in raw_lines
+        if os.path.normcase(os.path.realpath(line.rsplit(" ", 1)[0])) == run_dir_norm
+        or os.path.normcase(os.path.realpath(line.rsplit(" ", 1)[0])).startswith(prefix)
     ]
+    if not lines:
+        raise Exception(
+            f"no logged cwd matched run dir {run_dir}; raw lines: {raw_lines}"
+        )
     assert len(lines) == len(set(lines)), "two runs of the test command share a stamp"
     return _cwds(lines)
 
