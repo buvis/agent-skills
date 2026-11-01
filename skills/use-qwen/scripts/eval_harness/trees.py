@@ -103,12 +103,71 @@ def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()
         if landing in active:
             raise TreeError("%s is a link cycle" % landing)
         target = links[landing]
-        if os.path.isabs(target):
+        if os.path.isabs(target) or _archive_name_escapes(target):
             raise TreeError("%s leaves the tree: %s" % (landing, target))
         landing = _land(
             links, posixpath.join(posixpath.dirname(landing), target), active | {landing}
         )
     return landing
+
+
+def _archive_name_escapes(text: str) -> bool:
+    """True iff `text` (a member name or a symlink target, archive-domain
+    text - never a host path) names or reaches outside a tree root under
+    either the POSIX or the Windows path-reading rules.
+
+    Refuses, independent of the host OS:
+      - POSIX-absolute: starts with "/".
+      - Drive-absolute: matches `^[A-Za-z]:[/\\]`  (e.g. "C:\\x", "C:/x").
+      - Drive-relative: matches `^[A-Za-z]:[^/\\]` (e.g. "C:x") - no
+        leading separator after the drive letter.
+      - Rooted backslash: starts with "\\" but is not a UNC/extended prefix
+        below.
+      - UNC: starts with "\\\\" followed by a non-"?"/"." component
+        (`\\\\host\\share`).
+      - Extended-length prefixes: starts with "\\\\?\\" or "\\\\.\\".
+      - NTFS stream-like: a path component containing ":" after position 0
+        that is not the drive-letter colon already matched above (catches
+        `name:stream`) - checked on EVERY path component, not only the last.
+      - Any backslash at all, anywhere in the text: `"\\" in text`. `_land`
+        splits only on `/`, so a name like `sub\\..\\..\\outside\\file` is
+        one opaque component to it - no `/` means no `..`-climb is ever
+        seen - yet on an actual Windows filesystem `\\` IS a separator, so
+        the OS-level write this member eventually causes would climb for
+        real. Refusing any embedded backslash outright closes this.
+    Does not itself walk `..` segments - that stays `_land`'s job.
+    """
+    # Any backslash covers the rooted, UNC and extended-length forms; a colon
+    # past the first character of a component covers both drive forms (`C:`
+    # and `C:x` are components holding one) as well as an NTFS stream.
+    if text.startswith("/") or "\\" in text:
+        return True
+    return any(":" in component[1:] for component in text.split("/"))
+
+
+def _ancestor_crossing(members: Sequence[tarfile.TarInfo], links: dict[str, str]) -> None:
+    """Refuse any member whose path has an archive symlink as a proper
+    ancestor, judged on where that symlink itself *lands* - not on whether
+    its raw name textually prefixes the member's name.
+
+    `links` is the `{normalized member name: linkname}` map. Each symlink's own
+    location is its raw name with every segment but the last resolved through
+    `_land`, so a chain of links earlier in its path redirects it in full. Every
+    proper prefix of every member's raw name is then landed the same way; one
+    that lands where a symlink sits writes through that symlink.
+    """
+    symlink_landings: set[str] = set()
+    for member in members:
+        if member.issym():
+            segments = member.name.split("/")
+            symlink_landings.add(
+                posixpath.join(_land(links, "/".join(segments[:-1])), segments[-1])
+            )
+    for member in members:
+        segments = member.name.split("/")
+        for end in range(1, len(segments)):
+            if _land(links, "/".join(segments[:end])) in symlink_landings:
+                raise TreeError("%s is beneath an archive symlink" % member.name)
 
 
 def _refuse_escaping_links(root: Path) -> None:
@@ -138,8 +197,13 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
     which one wins.
     """
     names = set()
+    folded = set()
     originals: list[str] = []
     for member in members:
+        if _archive_name_escapes(member.name) or (
+            member.issym() and _archive_name_escapes(member.linkname)
+        ):
+            raise TreeError("%s names a place outside the tree" % member.name)
         if os.path.isabs(member.name):
             raise TreeError("%s is absolute" % member.name)
         if not (member.isfile() or member.isdir() or member.issym()):
@@ -147,20 +211,36 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
         name = posixpath.normpath(member.name)
         if name in names:
             raise TreeError("%s is a duplicate member" % name)
+        # A case-insensitive filesystem lands these two names on one file.
+        if name.lower() in folded:
+            raise TreeError("%s differs from another member only in case" % name)
         names.add(name)
+        folded.add(name.lower())
         originals.append(member.name)
     links = {posixpath.normpath(m.name): m.linkname for m in members if m.issym()}
     landings: set[str] = set()
+    files: set[str] = set()
     for member, original in zip(members, originals):
         landing = _land(links, original)
-        # A symlink's own landing is wherever it points, by construction - not a
-        # second write to that place. Only content members (files, dirs) can
-        # collide over who writes last.
+        # Walked whole, a symlink lands wherever it points; the place it takes
+        # up itself is its own name, with only its parent walked.
         if member.issym():
-            continue
+            parent, _, last = original.rpartition("/")
+            landing = posixpath.join(_land(links, parent), last)
         if landing in landings:
             raise TreeError("%s is a duplicate member" % original)
         landings.add(landing)
+        if member.isfile():
+            files.add(landing)
+    # A file at any ancestor of a landing: one of the two writes has to fail
+    # or replace the other, whichever comes first in the archive.
+    for landing in landings:
+        ancestor = posixpath.dirname(landing)
+        while ancestor:
+            if ancestor in files:
+                raise TreeError("%s is beneath a file member" % landing)
+            ancestor = posixpath.dirname(ancestor)
+    _ancestor_crossing(members, links)
 
 
 def build_template(repo: Path, first: str, dest: Path) -> str:
