@@ -23,7 +23,8 @@ from eval_harness import trees
 
 # `bare_ci` and `built_repo` are fixtures: pytest resolves them from this
 # module's own namespace, so they have to be imported even though nothing here
-# calls them.
+# calls them. `built_repo` itself depends on `bare_ci` by name, so removing
+# the latter breaks fixture resolution even though no test parameter names it.
 from test_eval_tree_links import (
     DIRECTORY,
     NEEDS_SYMLINKS,
