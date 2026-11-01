@@ -140,105 +140,128 @@ Keep trash protection and memory publication semantics across filesystem impleme
 
 ## Structural Decomposition
 
+Refreshed 2026-11-01 after the build stalled at the plan-expansion gate
+(module drift): the Windows job, `.gitattributes`, testpaths, root
+`conftest.py`, brush path identity and proposal publication have all shipped
+(the 2026-10-17 parking note). The remaining work is the cause rows below.
+Evidence for each row is in
+`docs/dev/project-management/audit-results/repository-closeout-preparation.md`
+("Windows diagnosis and ownership" and the Windows appendix), committed on this
+branch with its addendum
+`docs/dev/project-management/audit-results/repository-closeout-preparation-session-123534.md`.
+
 ### Repository Structure
 ```text
-.github/workflows/ci.yml               # Windows runner and full-suite command
-.gitattributes                        # New: LF for Bash files
-pyproject.toml                        # Complete Python collection
-README.md                             # Command and measured coverage
-tests/test_braid.py                    # Validation; edit only for a verified portability issue
-skills/
-├── sweep-fix/scripts/
-│   ├── conftest.py
-│   ├── test_sweep_resolvers.py
-│   └── test_sweep_scan.py
-├── explain-interactively/scripts/test_build.py
-├── review-prd-backlog/scripts/test_check_links.py
-├── survey/scripts/test_survey.py
-├── purge-devlocal/scripts/test_purge_devlocal.py  # Validation surface
-├── brush/scripts/{trash_untracked.py,test_brush_scripts.py}
-└── distil-memory/scripts/
-    ├── proposal.py
-    ├── test_proposal_publication.py
-    ├── test_funnel_distil_publication.py
-    ├── test_dedup.py
-    ├── test_dedup_classify.py
-    └── test_funnel_main.py
+.github/workflows/ci.yml                                   # Windows runner (unchanged; coordinator dispatches)
+README.md                                                  # Phase 2 coverage wording only
+src/agent_skills_braid/cli.py                              # W1: B1 link identity
+tests/test_braid.py                                        # W1: B1, B2 regressions
+tests/test_braid_check.py                                  # W1: B1 regressions
+skills/create-prd/scripts/ground_prd.py                    # W2: P1 citation parsing, P2 exclusion globs
+skills/create-prd/scripts/test_ground_prd.py               # W2
+skills/distil-memory/scripts/docket.py                     # W3: D1 directory diagnosis, D2 entry id rendering
+skills/distil-memory/scripts/write.py                      # W3: D3 untranslated atomic writes
+skills/distil-memory/scripts/test_docket_refusals.py       # W3
+skills/distil-memory/scripts/test_docket_unpublished.py    # W3
+skills/distil-memory/scripts/test_write_atomicity.py       # W3
+skills/distil-memory/scripts/test_write_crash_safety.py    # W3
+skills/glean/scripts/glean.py                              # W4: G1 portable report ids
+skills/glean/scripts/test_glean.py                         # W4
+skills/purge-devtmp/scripts/purge_devtmp.py                # W4: U2 LF record delimiters
+skills/purge-devtmp/scripts/test_purge_devtmp_manifest.py  # W4: U1 seam, U2 regressions
+skills/sweep-fix/scripts/test_sweep_enumerate.py           # W4: S1 denied-read seam
+skills/sweep-fix/scripts/test_sweep_main_setup_errors.py   # W4: S1
+skills/use-qwen/scripts/eval_harness_fixtures.py           # W5: Q2 authored bytes, Q3 native cwd
+skills/use-qwen/scripts/eval_harness_run_helpers.py        # W5: Q3 pwd logging
+skills/use-qwen/scripts/eval_harness/events.py             # W5: Q1 (production only if demonstrated)
+skills/use-qwen/scripts/eval_harness/report.py             # W5: Q7 (production only if demonstrated)
+skills/use-qwen/scripts/eval_harness/vetting.py            # W7: Q8 (accounting only if reproduced)
+skills/use-qwen/scripts/test_eval_events.py                # W5: Q1
+skills/use-qwen/scripts/test_eval_evidence.py              # W5: Q2
+skills/use-qwen/scripts/test_eval_gates.py                 # W5: Q3
+skills/use-qwen/scripts/test_report.py                     # W5: Q7
+skills/use-qwen/scripts/test_run_eval_cli.py               # W5: Q3
+skills/use-qwen/scripts/test_run_eval_harness.py           # W5: Q3
+skills/use-qwen/scripts/test_run_eval_harness_outcomes.py  # W5: Q3
+skills/use-qwen/scripts/test_run_eval_vet.py               # W5: Q2; W7: Q8
+docs/dev/project-management/audit-results/repository-closeout-preparation.md
+docs/dev/project-management/audit-results/repository-closeout-preparation-session-123534.md
 ```
-Additional collected files are changed only for a reproduced Windows failure or its regression;
-record the failure and file in the implementation plan rather than perform a general refactor.
+Out of bounds: `skills/use-qwen/scripts/eval_harness/trees.py`,
+`skills/use-qwen/scripts/test_eval_tree_links.py`,
+`skills/use-qwen/scripts/test_eval_tree_state.py` (PRD 00160, causes Q4-Q6) and
+`skills/distil-memory/scripts/funnel.py` (PRD 00133).
 
-### Module: Runner
+### Module: Braid portability (W1)
 - **Maps to capability**: Complete Windows verification
-- **Responsibility**: Own workflow, .gitattributes and pyproject collection; prove prerequisites.
-- **Exports**: jobs.windows and the full pytest command on both hosts.
+- **Location**: `src/agent_skills_braid/cli.py`, `tests/test_braid.py`, `tests/test_braid_check.py`
+- **Responsibility**: B1: compare equivalent Windows link targets in one spelling without following away the ownership hop. B2: assert observable mode preservation on Windows and keep the exact POSIX 0640 assertion on POSIX.
+- **Exports**: Unchanged CLI and drift semantics.
 
-### Module: Fixture portability
+### Module: PRD grounding portability (W2)
 - **Maps to capability**: Complete Windows verification
-- **Responsibility**: Own the listed sweep, assembly, link-checker, survey, purge, Braid and distil read/path fixtures.
-- **Exports**: Existing test behavior under controlled, portable environments.
+- **Location**: `skills/create-prd/scripts/ground_prd.py`, `skills/create-prd/scripts/test_ground_prd.py`
+- **Responsibility**: P1: parse drive, UNC and mixed-slash citations without confusing the line-number colon; the fixture controls native home lookup. P2: pass slash-form exclusion globs to ripgrep.
+- **Exports**: Unchanged table/JSON output.
 
-### Module: Brush protection
+### Module: Memory store portability (W3)
 - **Maps to capability**: Portable data safety
-- **Responsibility**: Own trash_untracked.py and test_brush_scripts.py path/protection fixes.
-- **Exports**: Existing CLI and report/manifest schema, with host-correct path identity.
+- **Location**: `skills/distil-memory/scripts/docket.py`, `skills/distil-memory/scripts/write.py` and the four named tests
+- **Responsibility**: D1: name a directory input explicitly. D2: render the malformed entry id deliberately and assert that exact rendering. D3: write the intended bytes with no newline translation, keeping every rename-instant, rollback and retry byte assertion.
+- **Exports**: Unchanged CLI exits and store bytes.
 
-### Module: Proposal publication
-- **Maps to capability**: Portable data safety
-- **Responsibility**: Own proposal.py and its two publication test files; retain ownership and failure guarantees.
-- **Exports**: Existing publish interface and artifact schema.
+### Module: Small-skill portability (W4)
+- **Maps to capability**: Complete Windows verification
+- **Location**: glean, purge-devtmp and sweep-fix files listed above
+- **Responsibility**: G1: `as_posix()` report ids. U1: exercise the invalid-name refusal through the enumeration seam before any mutation. U2: LF record delimiters that preserve embedded CR. S1: the existing denied-read seam in place of `os.geteuid`.
+- **Exports**: Unchanged reports and exit codes.
+
+### Module: Qwen harness fixtures (W5, W7)
+- **Maps to capability**: Complete Windows verification
+- **Location**: use-qwen files listed above
+- **Responsibility**: Q1/Q2: authored bytes, with explicit LF and CRLF controls. Q3: native cwd logging, or explicit MSYS conversion. Q7: Path-joined expectations. Q8: a deterministic clock-seam regression for the cumulative warm-up deadline, plus a real bounded-process test.
+- **Exports**: Unchanged harness behavior unless a defect is demonstrated.
 
 ### Module: Windows documentation
 - **Maps to capability**: Accurate Windows documentation
+- **Location**: `README.md`
 - **Responsibility**: Own README's install/Windows wording and validation evidence references.
 - **Exports**: Copyable command and claims limited to observed coverage.
 
 ## Dependency Graph
 
 ### Foundation Layer (Phase 0)
-- **Runner**: Uses existing workflow and lower-numbered 00020/00022 outputs.
-- **Fixture portability**: Reproduces known failures; no new product behavior.
+No dependencies - built first.
+
+- **Braid portability (W1)**, **PRD grounding portability (W2)**, **Memory store portability (W3)**, **Small-skill portability (W4)**: independent of each other.
 
 ### Core Layer (Phase 1)
-- **Brush protection**: Depends on [Fixture portability].
-- **Proposal publication**: Depends on [Fixture portability].
+- **Qwen harness fixtures (W5, W7)**: Depends on [] (independent; sequenced after Phase 0 because it shares `skills/use-qwen/scripts/eval_harness_fixtures.py` across Q2 and Q3).
 
 ### Integration Layer (Phase 2)
-- **Windows documentation**: Depends on [Runner, Fixture portability, Brush protection, Proposal publication].
+- **Windows documentation**: Depends on [all modules, and the coordinator's native Windows run].
 
 ## Implementation Phases
 
 ### Phase 0: Foundation
-**Goal**: Establish the complete collection, executable runner and reproducible portability cases.
+**Goal**: Repair the non-Qwen Windows causes with regressions that would catch the old behavior.
 
 **Tasks**:
-- [ ] Re-check the workflow/collection and provision the Windows job, toolchain, UTF-8, LF and symlink
-  capability checks (no deps) - Acceptance: `uv run python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/ci.yml')); assert d['jobs']['windows']['runs-on'] == 'windows-latest'; assert {'test','shell','lint','node'} <= d['jobs'].keys()"`
-  exits 0; `uv run pytest --collect-only -q` includes tests, skills and earlier repo-level scripts tests;
-  the Windows job runs the same unfiltered command, with no failure suppression.
-- [ ] Port the named fixtures after reproducing their assumptions (no deps) - Acceptance: each
-  affected test retains its observed behavior; the real resolver/search and Bash subprocess cases
-  pass, denied-read cases distinguish unreadable from missing, and actual symlink tests run.
-  `uv run pytest --collect-only -q` records the collection for comparison with the Windows run;
-  no existing regression is removed and no new Windows skip/xfail/deselection is introduced.
+- [ ] W1: repair B1 and B2 in `src/agent_skills_braid/cli.py`, `tests/test_braid.py` and `tests/test_braid_check.py` (no deps) - Acceptance: `uv run pytest tests/test_braid.py tests/test_braid_check.py` passes, and a new test that simulates Windows extended-path readlink spelling fails against the old comparison.
+- [ ] W2: repair P1 and P2 in `skills/create-prd/scripts/ground_prd.py` (no deps) - Acceptance: `uv run pytest skills/create-prd/scripts/test_ground_prd.py` passes, with new drive/UNC/mixed-slash and backslash-exclusion cases that fail against the old code.
+- [ ] W3: repair D1, D2 and D3 in `skills/distil-memory/scripts/docket.py` and `skills/distil-memory/scripts/write.py` (no deps) - Acceptance: `uv run pytest skills/distil-memory/scripts/test_docket_refusals.py skills/distil-memory/scripts/test_docket_unpublished.py skills/distil-memory/scripts/test_write_atomicity.py skills/distil-memory/scripts/test_write_crash_safety.py` passes, with a translated-newline simulation that fails against the old write.
+- [ ] W4: repair G1, U1, U2 and S1 in the glean, purge-devtmp and sweep-fix files above (no deps) - Acceptance: `uv run pytest skills/glean skills/purge-devtmp skills/sweep-fix` passes; the U2 test feeds CRLF records through two rewrites and asserts no growth.
 
-**Exit Criteria**: A complete Windows job exists and the fixture changes preserve coverage.
+**Exit Criteria**: The four focused commands pass. No assertion was weakened, and no Windows skip, xfail or deselection was added.
 
 ### Phase 1: Core
-**Goal**: Correct filesystem behavior without weakening data protection.
+**Goal**: Repair the Qwen harness fixture causes.
 
 **Tasks**:
-- [ ] Fix brush relative-path identity (depends on: Phase 0) - Acceptance: `uv run pytest
-  skills/brush/scripts/test_brush_scripts.py -q` passes regressions for tracked files, protected
-  prefixes, dotdot aliases, spaces and Windows separators, with a permitted-path positive control;
-  refusal and manifest paths identify the same file before and after normalization.
-- [ ] Make proposal publication portable (depends on: Phase 0) - Acceptance: `uv run pytest
-  skills/distil-memory/scripts/test_proposal_publication.py
-  skills/distil-memory/scripts/test_funnel_distil_publication.py -q` passes on both hosts;
-  competing writers have one winner, pre-existing destinations survive, failures expose no
-  partially published proposal set, and cleanup/retry preserve the documented output schema.
+- [ ] W5: repair Q1, Q2, Q3 and Q7 in the use-qwen fixture and test files above (depends on: Phase 0) - Acceptance: `uv run pytest skills/use-qwen/scripts/test_eval_events.py skills/use-qwen/scripts/test_eval_evidence.py skills/use-qwen/scripts/test_eval_gates.py skills/use-qwen/scripts/test_report.py skills/use-qwen/scripts/test_run_eval_cli.py skills/use-qwen/scripts/test_run_eval_harness.py skills/use-qwen/scripts/test_run_eval_harness_outcomes.py skills/use-qwen/scripts/test_run_eval_vet.py` passes. The explicit CRLF controls fail if the fixture translates newlines.
+- [ ] W7: add the Q8 deterministic cumulative-deadline regression in `skills/use-qwen/scripts/test_run_eval_vet.py`, changing `skills/use-qwen/scripts/eval_harness/vetting.py` only if that regression reproduces a defect (depends on: Phase 0) - Acceptance: `uv run pytest skills/use-qwen/scripts/test_run_eval_vet.py -k warmup` passes. The real bounded-process timeout test is retained.
 
-**Exit Criteria**: Both product regressions pass without changes to their intended safety guarantees.
+**Exit Criteria**: `uv run pytest skills/use-qwen` passes. Q4-Q6 files are untouched.
 
 ### Phase 2: Integration
 **Goal**: Prove full-suite closure on native Windows and document only that evidence.
