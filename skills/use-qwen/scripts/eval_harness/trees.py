@@ -247,6 +247,40 @@ def _refuse_colliding_landings(members: Sequence[tarfile.TarInfo], links: dict[s
             ancestor = posixpath.dirname(ancestor)
 
 
+def _safe_mode(mode: int) -> int:
+    """`mode` without setuid, setgid, sticky, or group/other write, for files and
+    directories alike: the bits `filter="data"` would never apply either."""
+    return mode & ~(stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX | stat.S_IWGRP | stat.S_IWOTH)
+
+
+def _extract_without_filter(
+    archive: tarfile.TarFile, dest: Path, members: Sequence[tarfile.TarInfo]
+) -> None:
+    """Extract `members` into `dest` with the policy `filter="data"` applies,
+    for a tarfile build with no `data_filter` at all.
+
+    The archive's uid, gid and owner names are never read: nothing here chowns,
+    whoever runs it. A symlink's text is written as the archive gives it; the
+    members were already refused earlier if it could escape.
+    """
+    for member in members:
+        path = dest.joinpath(member.name)
+        try:
+            if member.isdir():
+                path.mkdir(parents=True, exist_ok=True)
+                os.chmod(path, _safe_mode(member.mode))
+            elif member.isfile():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with archive.extractfile(member) as source, open(path, "wb") as target:
+                    shutil.copyfileobj(source, target)
+                os.chmod(path, _safe_mode(member.mode))
+            elif member.issym():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                os.symlink(member.linkname, path)
+        except OSError as cause:
+            raise TreeError(f"{member.name}: {cause}") from cause
+
+
 def build_template(repo: Path, first: str, dest: Path) -> str:
     """Seal the tree before `first` at `dest` as one commit, and answer its sha.
 
@@ -262,9 +296,12 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
         # and refusing here leaves no half-built template behind.
         _refuse_duplicate_or_crossing_members(archive.getmembers())
         if hasattr(tarfile, "data_filter"):
-            archive.extractall(dest, filter="data")
+            try:
+                archive.extractall(dest, filter="data")
+            except (tarfile.FilterError, OSError) as cause:
+                raise TreeError("extraction failed: %s" % cause) from cause
         else:
-            archive.extractall(dest)
+            _extract_without_filter(archive, dest, archive.getmembers())
     _git(dest, *IDENTITY, "init")
     _git(dest, "add", "-A")
     # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the
