@@ -15,6 +15,7 @@ import re
 import shutil
 import stat
 import subprocess
+import tarfile
 import tempfile
 from pathlib import Path
 
@@ -240,6 +241,52 @@ def test_build_template_refuses_a_source_tree_whose_symlink_leaves_it(
 
     # Refused outright: no half-built template that a later clone would take for
     # a sealed one.
+    assert not (dest / ".git").exists()
+
+
+class _TarfileWithoutDataFilter:
+    """Local twin of test_eval_tree_links.py's class of the same name.
+
+    Not imported from there: that module imports names from this one
+    (`from test_eval_tree_state import ...`), so the reverse import would be
+    circular. The duplication is this one small class, not the fixture plumbing
+    around it.
+    """
+
+    def __getattr__(self, name):
+        if name == "data_filter":
+            raise AttributeError(name)
+        return getattr(tarfile, name)
+
+
+@pytest.mark.parametrize("filter_support", ["with-data-filter", "without-data-filter"])
+@pytest.mark.parametrize(
+    "target",
+    [
+        "/etc/passwd",
+        r"\etc\passwd",
+        "C:\\Windows\\System32",
+        r"\\host\share\file",
+    ],
+    ids=["posix-rooted", "windows-rooted", "drive-absolute", "unc"],
+)
+def test_build_template_refuses_every_absolute_target_shape_as_a_tree_error(
+    tmp_path, built_repo, monkeypatch, target, filter_support
+):
+    if filter_support == "without-data-filter":
+        monkeypatch.setattr(trees, "tarfile", _TarfileWithoutDataFilter())
+    repo = Path(built_repo["repo"])
+    _commit_symlink(repo, "escape", target)
+    first = _task_start_commit(repo)
+    dest = tmp_path / "template"
+
+    # Specifically trees.TreeError - never a bare Exception, and never
+    # tarfile's own LinkOutsideDestinationError leaking through unfiltered
+    # when the data-filter branch is unavailable.
+    with pytest.raises(trees.TreeError) as excinfo:
+        trees.build_template(repo, first, dest)
+    assert not isinstance(excinfo.value, tarfile.LinkOutsideDestinationError)
+
     assert not (dest / ".git").exists()
 
 
