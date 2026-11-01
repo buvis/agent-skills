@@ -307,11 +307,6 @@ def native_cwd(raw: str) -> str:
     return raw
 
 
-def _to_msys(native: str) -> str:
-    """`native_cwd`'s inverse (`C:\\a\\b` -> `/c/a/b`)."""
-    return f"/{native[0].lower()}/" + native[3:].replace("\\", "/")
-
-
 def _cwds(lines: list) -> list:
     """The cwd of every `<cwd> <ns>` line a `_cwd_log_segment` wrote."""
     return [native_cwd(line.rsplit(" ", 1)[0]) for line in lines]
