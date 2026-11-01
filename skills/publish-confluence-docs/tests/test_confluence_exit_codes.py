@@ -37,6 +37,17 @@ def curl(code):
     return subprocess.CompletedProcess([], 0, stdout=code, stderr="")
 
 
+def curl_result(returncode, stdout):
+    return subprocess.CompletedProcess([], returncode, stdout=stdout, stderr="")
+
+
+def capture(fn, *args):
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        result = fn(*args)
+    return result, out.getvalue() + err.getvalue()
+
+
 class AttachTests(unittest.TestCase):
     def setUp(self):
         self.mod = load("confluence_attach.py")
@@ -68,6 +79,59 @@ class AttachTests(unittest.TestCase):
         urls = [c.args[0].full_url for c in opened.call_args_list]
         self.assertIn("start=0", urls[0])
         self.assertIn("start=1", urls[1])
+
+    def test_upload_fails_on_nonzero_curl_exit_even_with_2xx_stdout(self):
+        upload = self.mod["upload"]
+        with patch("subprocess.run", return_value=curl_result(23, "200")):
+            ok, out = capture(upload, "1", "a.png", "secret-token-xyz", {})
+        self.assertFalse(ok)
+        self.assertIn("FAIL", out)
+        self.assertIn("23", out)
+
+    def test_upload_fails_when_curl_binary_is_missing(self):
+        upload = self.mod["upload"]
+        with patch("subprocess.run", side_effect=FileNotFoundError("no curl")):
+            ok, out = capture(upload, "1", "a.png", "secret-token-xyz", {})
+        self.assertFalse(ok)
+        self.assertIn("curl", out)
+
+    def test_upload_fails_on_non_2xx_http_status_with_zero_exit(self):
+        upload = self.mod["upload"]
+        with patch("subprocess.run", return_value=curl_result(0, "500")):
+            ok, out = capture(upload, "1", "a.png", "secret-token-xyz", {})
+        self.assertFalse(ok)
+        self.assertIn("FAIL", out)
+
+    def test_upload_succeeds_on_zero_exit_with_2xx_status(self):
+        upload = self.mod["upload"]
+        with patch("subprocess.run", return_value=curl_result(0, "201")):
+            ok, out = capture(upload, "1", "a.png", "secret-token-xyz", {})
+        self.assertTrue(ok)
+        self.assertIn("OK", out)
+        self.assertIn("Uploaded", out)
+
+    def test_upload_reports_updated_when_filename_has_existing_attachment(self):
+        upload = self.mod["upload"]
+        with patch("subprocess.run", return_value=curl_result(0, "201")):
+            ok, out = capture(upload, "1", "a.png", "secret-token-xyz", {"a.png": "99"})
+        self.assertTrue(ok)
+        self.assertIn("Updated", out)
+
+    def test_upload_never_prints_token(self):
+        upload = self.mod["upload"]
+        token = "secret-token-xyz"
+        scenarios = [
+            curl_result(23, "200"),
+            curl_result(0, "500"),
+            curl_result(0, "201"),
+        ]
+        for result in scenarios:
+            with patch("subprocess.run", return_value=result):
+                _, out = capture(upload, "1", "a.png", token, {})
+            self.assertNotIn(token, out)
+        with patch("subprocess.run", side_effect=FileNotFoundError("no curl")):
+            _, out = capture(upload, "1", "a.png", token, {})
+        self.assertNotIn(token, out)
 
 
 class MermaidTests(unittest.TestCase):
