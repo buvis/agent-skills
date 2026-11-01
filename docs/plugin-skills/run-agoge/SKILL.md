@@ -1,11 +1,11 @@
 ---
 name: run-agoge
 description: Use when running the agoge product-QA pack at a repo - recon, armed specialist dispatch, dedup, and one findings report about the product rather than the diff. Triggers on "run agoge", "/run-agoge", "product QA", "QA this project".
-compatibility: "Documentation copy of the agoge plugin skill; the seven specialist agents and the PRD-number claimer ship only in that plugin, and Claude Code uses the namespaced plugin skill."
+compatibility: "Documentation copy of the agoge plugin skill; the seven specialist agents, snapshot checker and PRD-number claimer ship only in that plugin, and Claude Code uses the namespaced plugin skill."
 ---
 
 > **This copy carries the doctrine, not the pack.** The seven agent files and
-> the PRD-number claimer ship in the agoge plugin; paths written as
+> the snapshot checker and PRD-number claimer ship in the agoge plugin; paths written as
 > `<agoge-plugin-root>/...` point there. Without that plugin the playbooks below
 > still read as QA doctrine, but no lane can be dispatched.
 
@@ -24,20 +24,22 @@ never a pass.** Every result carries `verified`, `unverified`, `mocked` or
 ## Dependencies
 
 - Agent registry: `olivia`, `walter`, `heidi`, `judy`, `wendy`, `peggy`,
-  `trudy` — each dispatched as `subagent_type: agoge:<name>`. They ship in the
-  agoge plugin and exist on Claude Code only. Missing = this skill cannot run. The frontmatter `name` is the file stem; the dispatch name
+  `trudy` — each dispatched as `subagent_type: agoge:<name>`. Missing = this
+  skill cannot run. The frontmatter `name` is the file stem; the dispatch name
   is that stem namespaced, because a plugin's agents register under its
   namespace only. Naming a persona bare fails outright with
   `Agent type 'olivia' not found`.
 - Path: `references/finding-contract.md` in this skill's directory — the
-  finding, report and profile contracts. Read it before step 2.
+  finding, scratch, report and profile contracts. Read it before step 2.
+- Path: `<agoge-plugin-root>/skills/run-agoge/scripts/target_snapshot.py` — the snapshot
+  and comparison that prove a run left the target as it found it. Steps 1
+  and 3.
 - Path: `references/{browser,data,perf,security}-playbook.md` in this skill's
   directory — per-lane execution doctrine, pasted into the dispatch that needs
   it. `references/authoring-playbook.md` is the master's own, never dispatched.
-- Path: `references/prd-emission.md` in this skill's directory, and
-  `<agoge-plugin-root>/skills/run-agoge/scripts/allocate_prd_number.py` — how an
-  accepted finding becomes a backlog PRD, and the claim that keeps two writers
-  off one number. Step 9 only.
+- Path: `references/prd-emission.md` and
+  `<agoge-plugin-root>/skills/run-agoge/scripts/allocate_prd_number.py` — how an accepted finding becomes a backlog
+  PRD, and the claim that keeps two writers off one number. Step 9 only.
 - Optional: an unattended runner may fire one run per batch of completed work,
   passing `--authorized <its own name>`. Nothing here needs one; running this
   skill by hand is the ordinary case.
@@ -80,6 +82,17 @@ its HEAD:
 git -C /absolute/target/repo rev-parse HEAD
 ```
 
+Then make the master's own scratch root and snapshot the target:
+
+```bash
+mktemp -d "${TMPDIR:-/tmp}/agoge-master.XXXXXX"
+python3 "<agoge-plugin-root>/skills/run-agoge/scripts/target_snapshot.py" snapshot /absolute/target/repo <master scratch root>/start.json
+```
+
+Resolve `<agoge-plugin-root>` to the installed agoge plugin root; the snapshot
+script ships only in that plugin. If the snapshot exits 2, stop before recon
+and report why: a run that cannot check the target dispatches nobody.
+
 Everything downstream uses absolute paths. Never `cd`.
 
 Read `references/finding-contract.md` from this skill's directory now. You will
@@ -102,7 +115,7 @@ the other one.
 After a refresh, before anything else, prove the human-owned section survived.
 **Do not rely only on `git diff`** — the audit target may include uncommitted or ignored temporary files, so
 that diff comes back empty whatever recon did, and a check that cannot fail is
-worse than none. Copy `## Pins and vetoes` to a scratch file *before* the
+worse than none. Copy `## Pins and vetoes` to a file in the master's scratch root *before* the
 dispatch, extract it again afterwards, and compare the bytes (`cksum` on both).
 
 **If the section changed, stop the run and report it.** Recon rewriting a
@@ -137,6 +150,26 @@ tacticsless row anyway and trudy probes blind while the report claims the lane
 ran armed. If the row's tactics are empty, do not dispatch her: report the lane
 `skipped` for the same reason given above.
 
+**Check the target, then snapshot it, before the first dispatch.** Run the
+compare as its own Bash call and read its exit code before running the
+snapshot — a shared bash block reports only the last command's status, which
+would mask the compare's exit 1 or 2 behind the snapshot's exit 0:
+
+```bash
+python3 "<agoge-plugin-root>/skills/run-agoge/scripts/target_snapshot.py" compare /absolute/target/repo <master scratch root>/start.json \
+  --allow docs/dev/project-management/meta/agoge-profile.md \
+  --allow docs/dev/project-management/agoge-profile.md
+```
+
+Only on exit 0, run the snapshot as a separate Bash call:
+
+```bash
+python3 "<agoge-plugin-root>/skills/run-agoge/scripts/target_snapshot.py" snapshot /absolute/target/repo <master scratch root>/lanes.json
+```
+
+The comparison allows the profile, which recon may write, and nothing else. If
+it exits 1 or 2, dispatch nobody and go to step 7.
+
 Dispatch every armed specialist **in one message**, one Agent call each naming
 `subagent_type: agoge:<persona>`, so they run concurrently. One that fails
 returns its error and the others are unaffected; record that lane `unverified`
@@ -162,7 +195,7 @@ Each prompt is assembled from five parts, in this order:
    A lane never authors. If the profile assigns authoring, that is the master's
    job in step 6 — say so in the prompt so the specialist puts its test in the
    finding's `fix` field instead of on disk.
-4. The `## Finding contract` section, pasted verbatim.
+4. The `## Finding contract` and `## Scratch contract` sections, pasted verbatim.
 5. For **trudy** only: the authorization, and the human act it came from. A
    vetoed trudy never reaches this resolution at all: step 3 already refused
    her before part 5 runs, so every row below resolves only for a lane that
@@ -190,6 +223,19 @@ Each prompt is assembled from five parts, in this order:
 
 Keep each prompt under 50 000 bytes — measure it, do not estimate. Recon output
 and one playbook are small; this only binds if you paste files in, so do not.
+
+**When every lane has returned, compare again**, allowing nothing:
+
+```bash
+python3 "<agoge-plugin-root>/skills/run-agoge/scripts/target_snapshot.py" compare /absolute/target/repo <master scratch root>/lanes.json
+```
+
+Exit 1 or 2 fails the run. Keep going through steps 4, 5 and 7 so the findings
+are not lost, skip step 6, and carry both comparisons into the report. The
+lanes ran at once, so a comparison cannot say which one made a change: the
+report lists every dispatched lane, and the identities the comparison quotes
+are the evidence. **Never run a `restore` command the comparison prints.** It
+changes the operator's repository, and only the operator decides.
 
 ### 4. Audit the statuses
 
@@ -219,7 +265,8 @@ tree stays byte-identical while the lanes work. Read
 tests only, return to the branch you started on.
 
 Skip the step, and say so in the report, when the profile assigns no authoring,
-no finding survived step 4 as `verified`, or the target's tree is dirty.
+no finding survived step 4 as `verified`, the target's tree is dirty,
+or a target comparison in step 3 did not exit 0.
 
 ### 7. Report
 
@@ -227,7 +274,7 @@ Write both files into the target repo's `docs/dev/project-management/audit-resul
 
 - `agoge-<YYYY-MM-DD>.md` — the human report, in the report contract's shape:
   summary header with per-lane verified / unverified / mocked / skipped counts
-  and who was armed, unarmed or vetoed; then one walkthrough packet per finding;
+  who was armed, unarmed or vetoed, and the target's integrity; then one walkthrough packet per finding;
   then the how-to-proceed block.
 - `agoge-<YYYY-MM-DD>.json` — the sidecar, in the contract's shape. `fixture` is
   the target directory's basename. Every finding needs a non-empty `paths`; a
@@ -235,6 +282,7 @@ Write both files into the target repo's `docs/dev/project-management/audit-resul
   finding also needs a `title` that names the defect as a user meets it, and
   `lanes`: every contributing lane's name kept in step 5, so a scorer can tell
   a lane's own catch from another lane's by-catch.
+  It also carries `target_integrity`, step 3's result, in the contract's shape.
 
 **Never overwrite a report.** If that date is taken, suffix yours (`-2`, `-3`).
 Two drained batches land on one day often enough, and the report you would
@@ -340,6 +388,9 @@ Dispatch `subagent_type: agoge:olivia` with:
    arm her and stage her tactics like any other lane; if it is not, mark her
    `unarmed` with the surface reason. Recon deciding her on authorization writes
    a row with no tactics in it, which is how an armed lane gets dispatched blind.
+
+7. The `## Scratch contract` section from `references/finding-contract.md`,
+   pasted verbatim.
 
 She writes the profile and returns a summary. She writes nothing else.
 

@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **run-agoge** (documentation copy): mirror agoge 0.3.0’s external scratch contract, target snapshots, integrity reporting and authoring suppression. Executable scripts remain in the plugin.
 - **run-agoge** (documentation copy): every finding in the JSON sidecar carries `lanes`, the lanes merged into it, and the contract says `agoge-gym`'s scorer matches the finding's `title`. The gym notes point at the arm `bin/arm` prints, outside the gym, and say to copy a run's report out before re-arming. Mirrors the agoge plugin.
 - **sweep-fix**: `sweep.py` scans every gita-registered repo in parallel instead of one at a time, bounded by the `--deadline` above (default 300s).
 - **debrief-meeting**: `assets/template.html` is rebuilt with svelte 5.57.3, vite 8.3.5, @sveltejs/vite-plugin-svelte 7.3.1, vite-plugin-singlefile 2.3.4 and jsdom 30.1.3; CI moves to actions/setup-node v7 and astral-sh/setup-uv v10.3.2.

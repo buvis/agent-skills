@@ -1,11 +1,12 @@
 # Agoge Contracts
 
-Three contracts every agoge run obeys: what a specialist returns, what the run
-writes, and what the strategy profile holds.
+Four contracts every agoge run obeys: what a specialist returns, where it may
+write and how it may use git, what the run writes, and what the strategy
+profile holds.
 
-The seven agent bodies carry none of this. They receive the finding contract in
-their dispatch prompt, so the personas stay portable and the skill owns every
-path — an agent file names no path at all.
+The seven agent bodies carry none of this. They receive the finding and scratch
+contracts in their prompts, so the personas stay portable and the skill owns
+every path — an agent file names no path at all.
 
 ## Finding contract
 
@@ -62,6 +63,60 @@ summary header counts post-downgrade statuses, so a lane that argued its way to
 This is the master's job precisely because it cannot be delegated to the lane
 that made the claim.
 
+## Scratch contract
+
+Every specialist, recon included, works under these rules. A lane once
+committed, tagged and moved a remote-tracking ref in the product itself: its
+scratch `git init` failed inside the product's checkout, the script carried on,
+and git found the product's repository instead of the scratch one.
+
+**One scratch root, outside the target.** Make it once, first:
+
+```bash
+mktemp -d "${TMPDIR:-/tmp}/agoge-<lane>.XXXXXX"
+```
+
+Everything you create goes under the path it prints: scripts, data, databases,
+clones and scratch repositories. Nothing goes inside the target, not even into
+a directory the target ignores, except the one file your dispatch prompt
+names you to write (recon's strategy profile). If the printed path is inside
+the target, stop and report the lane `unverified`.
+
+**Open every Bash call that writes with this preamble**, with the path written
+out in full. Do not rely on a variable set by an earlier call:
+
+```bash
+set -eu
+SCRATCH=<the path mktemp printed>
+export GIT_CEILING_DIRECTORIES="$SCRATCH"
+```
+
+`set -eu` stops the call at the first failed step. The ceiling stops git from
+looking above the root for a repository, so a scratch repository that failed to
+initialize is an error instead of whichever repository sits above it. When a
+probe expects a command to fail, capture it: `cmd || rc=$?`.
+
+**Name the scratch repository in every git command that writes**:
+`git --git-dir="$SCRATCH/<repo>/.git" --work-tree="$SCRATCH/<repo>" <command>`,
+never `git -C <dir> <command>`. Give each such command your lane's identity,
+`-c user.name=agoge-<lane> -c user.email=agoge-<lane>@example.invalid`, and
+never `export` one: a commit or ref move that escapes then names your lane.
+
+**The target is read-only, git included.** Read it with `git log`,
+`git show`, `git diff`, `git status`, `git tag --list`, `git for-each-ref` and
+`git rev-parse`. To run another version, `git clone <target> "$SCRATCH/<name>"`
+and check it out there, or
+`mkdir -p "$SCRATCH/<dir>" && git -C <target> archive <rev> | tar -x -C "$SCRATCH/<dir>"`.
+Never run `git commit`, `git tag <name>`, `git checkout`, `git switch`,
+`git reset`, `git stash`, `git worktree`, `git remote`, `git config` or
+`git update-ref` against the target.
+
+**The master checks.** It snapshots the target's HEAD, refs, index, tracked
+files, worktrees and local git config before recon and again before the lanes,
+and compares after each. Any change fails the whole run, and the report names
+it. Files the product itself writes into its checkout when you run it are
+listed, not failed.
+
 ## Report contract
 
 One run writes two files into the target repo's `docs/dev/project-management/audit-results/`:
@@ -78,6 +133,13 @@ One run writes two files into the target repo's `docs/dev/project-management/aud
    two was overruled (the invocation names its token; the profile line does
    not). A reader must be able to tell those apart without opening the
    profile, so state the route, never just "authorized".
+   It also states the **target's integrity** from step 3 of the skill:
+   `Target integrity: unchanged`, or `Target integrity: changed` (`unknown`
+   when a comparison could not run) followed by each violation with its
+   `restore` command, the lanes that were dispatched, and the line
+   **Do not push this repository until you have run or rejected the restore
+   commands above.** Then it lists the comparisons' `touched` paths: the files
+   this run left in the target.
 2. **Findings**, each as a walkthrough packet in the shape below.
 3. **How-to-proceed block**, verbatim, at the end.
 
@@ -164,6 +226,32 @@ line instead. A veto only overrules an assertion that was actually made:
 with no assertion at all there is nothing to overrule, so that run reads
 `none`, not `vetoed`, and `source` stays absent there too. The scorer
 ignores it.
+
+The sidecar also carries the target's integrity, the result of step 3's two
+comparisons:
+
+```json
+{"target_integrity": {
+  "status": "changed",
+  "violations": [
+    {"phase": "lanes", "kind": "ref", "ref": "refs/tags/v1.0.0",
+     "before": null, "after": "<new oid>",
+     "commit": {"author": "agoge-heidi <agoge-heidi@example.invalid>",
+                "committer": "agoge-heidi <agoge-heidi@example.invalid>",
+                "date": "2026-10-25T12:09:20+01:00",
+                "subject": "chore(probe): seed scratch dotfiles"},
+     "reflog": null,
+     "restore": "git -C /absolute/target/repo update-ref -d refs/tags/v1.0.0 <new oid>"}
+  ],
+  "touched": []
+}}
+```
+
+`status` is `"unchanged"` when both comparisons exited 0, `"changed"` when either
+exited 1, and `"unknown"` when one could not run and neither exited 1.
+`violations` and `touched` are the comparisons' own, each violation tagged with
+the `phase` it was found in, `recon` or `lanes`. The scorer ignores this key,
+and only the operator runs a `restore` command.
 
 `fixture` names the target the run was pointed at. The scorer requires it: two
 targets can share a relative path (both gym fixtures ship a root `CHANGELOG.md`)
