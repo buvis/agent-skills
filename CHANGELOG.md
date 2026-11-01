@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **distil-memory**: `docket decide --file` naming a directory now refuses with an explicit, host-independent "is a directory" message instead of relying on the OS's own error text; a malformed queue entry's diagnostic shows the raw id characters (backslashes included) instead of an escaped `repr()` form.
 - **create-prd**: `ground_prd` now parses drive-letter, UNC, and mixed-slash citation paths, and excludes a PRD's own path from symbol self-confirmation using a slash-form ripgrep glob that also works on Windows.
 - **braid**: hosted-Windows junction/symlink identity checks no longer report false drift when `os.readlink` returns the reparse target in extended-length (`\\?\`) form.
 - **purge-devtmp**: candidate paths containing a tab or line break are refused and reported as `refused-unsafe-path` instead of writing an unrestorable manifest row; emptying a trash batch now also removes its manifest rows (from either tool), preserving retained-batch and unparseable historical rows.
