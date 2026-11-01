@@ -13,6 +13,7 @@ Set CONFLUENCE_BASE_URL and CONFLUENCE_SPACE_KEY explicitly.
 Token resolution: --token arg > CONFLUENCE_TOKEN environment variable.
 """
 import argparse, json, os, re, sys, urllib.request
+from xml.sax.saxutils import quoteattr
 
 BASE_URL = os.environ.get("CONFLUENCE_BASE_URL", "").rstrip("/")
 SPACE_KEY = os.environ.get("CONFLUENCE_SPACE_KEY", "")
@@ -46,7 +47,8 @@ def update_page(page_id, title, content, version, token):
         return json.load(resp)
 
 def image_tag(filename, width):
-    return f'<p><ac:image ac:width="{width}"><ri:attachment ri:filename="{filename}" /></ac:image></p>'
+    escaped = quoteattr(filename)
+    return f'<p><ac:image ac:width="{width}"><ri:attachment ri:filename={escaped} /></ac:image></p>'
 
 def main(argv=None):
     """Return 0 only when the page was read and updated."""
@@ -81,7 +83,7 @@ def main(argv=None):
         # Try to replace a note macro mentioning this image
         pattern = rf'<ac:structured-macro ac:name="note"[^>]*>.*?{re.escape(stem)}.*?</ac:structured-macro>'
         if re.search(pattern, content, re.DOTALL):
-            content = re.sub(pattern, tag, content, count=1, flags=re.DOTALL)
+            content = re.sub(pattern, lambda m: tag, content, count=1, flags=re.DOTALL)
             print(f"Replaced placeholder for {img}")
         else:
             content += f"\n{tag}"

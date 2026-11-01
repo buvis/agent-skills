@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **review-deps-prs**: the discovery script now reports each repo whose PR lookup failed on stderr and exits 2, so a partial or empty scan is not mistaken for a clean one.
 - **create-prd**: `ground_prd.py` exits 2 with a clear message for an invalid `--root` or unreadable input; relative PRD paths are excluded relative to cwd.
 - **publish-confluence-docs**: `confluence_attach.py`'s `upload()` now requires both a zero curl exit and a 2xx HTTP status before reporting success (a nonzero curl exit with a faked 2xx response no longer reads as success); a missing `curl` binary is reported as a failure line instead of a traceback; the response sink uses `os.devnull` instead of a hardcoded `/dev/null` path.
+- **publish-confluence-docs**: `confluence_embed_images.py`'s `image_tag()` escapes the filename with `xml.sax.saxutils.quoteattr` so `&`, `<`, `>` and `"` all produce valid storage XML; the note-macro replacement in `main()` now uses a function replacement instead of a string template, so a backslash in a filename is no longer reinterpreted by `re.sub`.
 
 ### Changed
 
