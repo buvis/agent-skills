@@ -299,16 +299,32 @@ def _epoch(stamp: str) -> float:
     return datetime.strptime(stamp, STAMP_FORMAT).replace(tzinfo=timezone.utc).timestamp()
 
 
+def native_cwd(raw: str) -> str:
+    """`raw`, a `pwd -P` capture (native on POSIX, MSYS/Git-Bash form
+    `/c/...` under Git Bash on Windows), normalised to the native form
+    (`C:\\...` on Windows, unchanged on POSIX)."""
+    if os.name == "nt" and len(raw) > 2 and raw[0] == "/" and raw[2] == "/":
+        return f"{raw[1].upper()}:\\" + raw[3:].replace("/", "\\")
+    return raw
+
+
+def _to_msys(native: str) -> str:
+    """`native_cwd`'s inverse (`C:\\a\\b` -> `/c/a/b`)."""
+    return f"/{native[0].lower()}/" + native[3:].replace("\\", "/")
+
+
 def _cwds(lines: list) -> list:
     """The cwd of every `<cwd> <ns>` line a `_cwd_log_segment` wrote."""
-    return [line.rsplit(" ", 1)[0] for line in lines]
+    return [native_cwd(line.rsplit(" ", 1)[0]) for line in lines]
 
 
 def _logged_cwds(round_, log: Path) -> list:
     """The cwd of every line the round's own test commands appended to `log` (P15)."""
     prefix = str(round_.run.resolve()) + os.sep
+    msys_prefix = _to_msys(prefix) if os.name == "nt" else None
     lines = [
-        line for line in log.read_text(encoding="utf-8").splitlines() if line.startswith(prefix)
+        line for line in log.read_text(encoding="utf-8").splitlines()
+        if line.startswith(prefix) or (msys_prefix and line.startswith(msys_prefix))
     ]
     assert len(lines) == len(set(lines)), "two runs of the test command share a stamp"
     return _cwds(lines)
