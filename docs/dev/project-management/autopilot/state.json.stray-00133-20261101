@@ -1,0 +1,43 @@
+{
+  "phase": "build",
+  "next_phase": "build",
+  "schema_version": 1,
+  "batch": {
+    "id": "202611011950",
+    "mode": "autopilot",
+    "completed_prds": [],
+    "plugin_versions": {
+      "aegis@buvis-plugins": "0.4.1",
+      "warden@buvis-plugins": "0.14.1"
+    },
+    "parks_consecutive": 0
+  },
+  "prd": "00133-transcript-judge-inherits-tools-v1.md",
+  "catchup_mode": "run",
+  "doubt_reviewer": "codex",
+  "consensus_engine": "legacy",
+  "session_model": "sonnet",
+  "rework_cap": 2,
+  "lane": "fast-track",
+  "lane_reason": "card_sized",
+  "lane_effective": "fast-track",
+  "tasks_total": 1,
+  "tasks_completed": 0,
+  "phases_completed": [],
+  "cycle": 1,
+  "replan_count": 0,
+  "prd_budget_since": "2026-11-01T20:29:55Z",
+  "design_mode": "skip",
+  "work_start_sha": "6e4761ab78e647013f6f927a6a6935f44405d3b1",
+  "repo_root": "/Users/bob/git/src/worktrees/agent-skills/closeout-windows",
+  "tasks": [
+    {
+      "name": "00133-transcript-judge-inherits-tools-v1-c1",
+      "id": "1",
+      "status": "in_progress",
+      "usage_at_start": 122656,
+      "calls_at_start": 32,
+      "started_at": 1793565041
+    }
+  ]
+}

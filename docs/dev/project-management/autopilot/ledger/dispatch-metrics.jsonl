@@ -3134,3 +3134,27 @@
 {"kind":"handoff","site":"build","edge":"resume","at":1793559034,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
 {"kind":"handoff","site":"build","edge":"resume","at":1793562194,"phase":"build","prd":"00044-windows-ci-junction-claim-v1.md"}
 {"id":"9bd18cdc","kind":"pat","task":"6","queued_at":1793562401,"prompt_bytes":27592}
+{"id":"9bd18cdc","ended_at":1793574033,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793574033,"phase":"build","prd":"00133-transcript-judge-inherits-tools-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793574054,"phase":"build","prd":"00163-windows-suite-residual-failures-v1.md"}
+{"id":"ae6e44b6","kind":"ivan","task":"1","queued_at":1793574251,"prompt_bytes":4075}
+{"id":"39c36ae8","kind":"ivan","task":"1","queued_at":1793574309,"prompt_bytes":5571}
+{"id":"f1b49746","kind":"tess","task":"2","queued_at":1793574434,"prompt_bytes":34968}
+{"id":"7c93266a","kind":"ivan","task":"2","queued_at":1793574565,"prompt_bytes":21279}
+{"id":"d038bb0e","kind":"pat","task":"2","queued_at":1793574683,"prompt_bytes":7336}
+{"id":"5b310e77","kind":"tess","task":"3","queued_at":1793574789,"prompt_bytes":50117}
+{"id":"590bfa9e","kind":"tess","task":"3","queued_at":1793574806,"prompt_bytes":26977}
+{"id":"1fd54dd0","kind":"ivan","task":"3","queued_at":1793574926,"prompt_bytes":25516}
+{"id":"25995730","kind":"pat","task":"3","queued_at":1793575746,"prompt_bytes":8374}
+{"id":"5bdf02d3","kind":"ivan","task":"4","queued_at":1793575796,"prompt_bytes":4905}
+{"id":"ae6e44b6","ended_at":1793576535,"elapsed_s":102,"outcome":"ok","detail":"closed-by: commit 80a77d4af6bf433b2781ed6efe151ec9ec4616b3"}
+{"id":"39c36ae8","ended_at":1793576535,"elapsed_s":44,"outcome":"ok","detail":"closed-by: commit 80a77d4af6bf433b2781ed6efe151ec9ec4616b3"}
+{"id":"f1b49746","ended_at":1793576535,"elapsed_s":112,"outcome":"ok","detail":"closed-by: commit 99bb0b67ebdeedacb5edc25b04ee1ed263a3ba8b"}
+{"id":"7c93266a","ended_at":1793576535,"elapsed_s":57,"outcome":"ok","detail":"closed-by: commit 7b45abc61a324031e2651fda980833ebffdb18f8"}
+{"id":"d038bb0e","ended_at":1793576535,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"id":"5b310e77","ended_at":1793576535,"elapsed_s":112,"outcome":"ok","detail":"closed-by: commit 5b9d111c8b3fc27fe0582024c2ed635fc7d1730a"}
+{"id":"590bfa9e","ended_at":1793576535,"elapsed_s":95,"outcome":"ok","detail":"closed-by: commit 5b9d111c8b3fc27fe0582024c2ed635fc7d1730a"}
+{"id":"1fd54dd0","ended_at":1793576535,"elapsed_s":757,"outcome":"ok","detail":"closed-by: commit 284cff337ebc8a305145d69b651d6a9f50ebeedc"}
+{"id":"25995730","ended_at":1793576535,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"id":"5bdf02d3","ended_at":1793576535,"elapsed_s":27,"outcome":"ok","detail":"closed-by: commit 4166c97bf86fdf89a249baa6d1f8d67631e08b1e"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793576535,"phase":"review","prd":"00163-windows-suite-residual-failures-v1.md"}
