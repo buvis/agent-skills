@@ -1,7 +1,7 @@
 """Tests for ground_prd.py: claim extraction, citation lens, symbol lens (PRD 00075)."""
 import json
 import shutil
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import pytest
 
@@ -233,6 +233,44 @@ def test_citation_absolute_and_home_paths_ignore_root(tmp_path, monkeypatch):
         "~/src/app.py:1": "ok",
         "src/app.py:1": "missing",
     }
+
+
+def test_citation_regex_matches_a_drive_qualified_windows_path():
+    claims = kinds("see C:\\repo\\skills\\x.py:12 here\n")
+    assert [c for c in claims if c[0] == "citation"] == [
+        ("citation", "C:\\repo\\skills\\x.py:12", 1),
+    ]
+
+
+def test_citation_regex_matches_a_unc_path():
+    claims = kinds("see \\\\server\\share\\x.py:4 here\n")
+    assert [c for c in claims if c[0] == "citation"] == [
+        ("citation", "\\\\server\\share\\x.py:4", 1),
+    ]
+
+
+def test_citation_regex_matches_a_mixed_slash_path():
+    claims = kinds("see src\\nested/x.py:7 here\n")
+    assert [c for c in claims if c[0] == "citation"] == [
+        ("citation", "src\\nested/x.py:7", 1),
+    ]
+
+
+def test_citation_regex_still_rejects_a_bare_colon_number():
+    # unchanged POSIX/regex-level behavior: the drive/UNC/mixed-slash prefix
+    # addition must not loosen what counts as a citation at all.
+    claims = kinds("ratio 3:4, meet at 10:30, step :12, see README:5\n")
+    assert [c for c in claims if c[0] == "citation"] == []
+
+
+@pytest.mark.skipif(
+    __import__("os").name != "nt",
+    reason="drive-letter expanduser/check_citations resolution is Windows-only",
+)
+def test_check_citations_resolves_a_drive_qualified_citation_on_windows(tmp_path):
+    make_repo(tmp_path)
+    drive_path = f"{tmp_path}\\src\\app.py:1"
+    assert citation_status(f"see {drive_path}\n", tmp_path) == {drive_path: "ok"}
 
 
 # --- resolve_symbols --------------------------------------------------------
@@ -833,6 +871,34 @@ def test_cli_excludes_own_prd_given_relative_to_cwd_not_root(tmp_path, monkeypat
     assert excinfo.value.code == 1
     out = capsys.readouterr().out
     assert any("unresolved" in line and "onlyInPrdSymbol" in line for line in out.splitlines())
+
+
+def test_resolve_symbols_exclusion_glob_uses_slash_form_not_backslash_form(tmp_path, monkeypatch):
+    # rg's --glob always matches slash-form paths; a backslash-spelled
+    # exclusion (what str() produces on Windows) would silently exclude
+    # nothing there, letting a PRD confirm its own symbol by quoting it.
+    make_repo(tmp_path)
+    windows_rel = PureWindowsPath("sub", "prd.md")
+    monkeypatch.setattr(Path, "relative_to", lambda self, other: windows_rel)
+    captured_cmds = []
+
+    class FakeCompleted:
+        returncode = 1
+
+    def fake_run(cmd, **kwargs):
+        captured_cmds.append(cmd)
+        return FakeCompleted()
+
+    monkeypatch.setattr(ground_prd.subprocess, "run", fake_run)
+    ground_prd._rg_hit.cache_clear()
+    claims = [Claim("symbol", "ghostSymbolForGlobTest", 1)]
+
+    ground_prd.resolve_symbols(claims, tmp_path, set(), exclude=frozenset({tmp_path / "prd.md"}))
+
+    assert captured_cmds, "subprocess.run was never called"
+    cmd = captured_cmds[0]
+    glob_values = [arg for i, arg in enumerate(cmd) if cmd[i - 1] == "--glob"]
+    assert "!sub/prd.md" in glob_values
 
 
 def test_missing_citation_detail_differentiates_absent_file_overflow_and_no_symbol_match(
