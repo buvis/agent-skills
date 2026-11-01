@@ -6,7 +6,6 @@ import time
 from pathlib import Path
 
 import purge_devtmp as gc
-import pytest
 
 
 def args(**overrides):
