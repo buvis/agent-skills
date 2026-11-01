@@ -231,7 +231,10 @@ Write both files into the target repo's `docs/dev/project-management/audit-resul
   then the how-to-proceed block.
 - `agoge-<YYYY-MM-DD>.json` — the sidecar, in the contract's shape. `fixture` is
   the target directory's basename. Every finding needs a non-empty `paths`; a
-  finding you cannot anchor to a file belongs in the markdown only.
+  finding you cannot anchor to a file belongs in the markdown only. Every
+  finding also needs a `title` that names the defect as a user meets it, and
+  `lanes`: every contributing lane's name kept in step 5, so a scorer can tell
+  a lane's own catch from another lane's by-catch.
 
 **Never overwrite a report.** If that date is taken, suffix yours (`-2`, `-3`).
 Two drained batches land on one day often enough, and the report you would
@@ -352,14 +355,15 @@ She writes the profile and returns a summary. She writes nothing else.
   cannot reach it however the prompt is worded. Use it only in an interactive
   session, label those findings interactive-run, and never in an unattended run.
 - The pack scores itself against `buvis/agoge-gym`: arm a fixture, run this
-  skill at `armed/<fixture>`, then `bin/score` the JSON sidecar against the
-  manifest. The gym's manifests are the answer key and are never inside an armed
-  repo.
+  skill at the path `bin/arm <fixture>` prints, then `bin/score` the JSON
+  sidecar against the manifest. The arm lives outside the gym, and the gym's
+  manifests are the answer key: they are never inside an armed repo.
 - **Scoring vocabulary never enters the target.** Seed ids belong to the gym.
-  Keep the scorecard in the gym's own `docs/dev/project-management/audit-results/`; the report in
-  the target says only that scoring happened elsewhere. `bin/verify-seeds`
-  enforces this and will refuse a tree that names a seed.
-- **Re-arm between scored runs.** The report you just wrote sits in the target's
-  `docs/dev/project-management/` and describes every defect found. `bin/arm` removes the whole
-  armed tree, so a fresh arm clears it — but a second run against the same arm
-  lets its specialists read the first run's answers.
+  Keep the scorecard in the gym's own `docs/dev/project-management/audit-results/`;
+  the report in the target says only that scoring happened elsewhere.
+  `bin/verify-seeds` enforces this and will refuse a tree that names a seed.
+- **Re-arm between scored runs.** The report you just wrote sits in the target
+  and describes every defect found, so a second run against the same arm would
+  let its specialists read the first run's answers. Copy the report and its
+  sidecar into the gym's audit results first: the arm holds the only copy, and
+  `bin/arm` refuses to re-arm over them until it is given `--discard`.
