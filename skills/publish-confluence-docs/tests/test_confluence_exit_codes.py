@@ -1,6 +1,7 @@
 """Failure exit codes and attachment pagination. All HTTP and renderer calls are faked."""
 
 import contextlib
+import inspect
 import io
 import json
 import os
@@ -11,6 +12,7 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 import urllib.error
+import xml.etree.ElementTree as ET
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 ENV = {"CONFLUENCE_BASE_URL": "https://example.invalid", "CONFLUENCE_SPACE_KEY": "EX",
@@ -174,6 +176,68 @@ class EmbedTests(unittest.TestCase):
         def boom(*a):
             raise urllib.error.URLError("down")
         self.assertEqual(self.run_main(boom), 1)
+
+    def filename_from_image_tag(self, tag):
+        wrapped = f'<r xmlns:ac="ac-ns" xmlns:ri="ri-ns">{tag}</r>'
+        root = ET.fromstring(wrapped)
+        attachment = root.find(".//{ri-ns}attachment")
+        return attachment.attrib["{ri-ns}filename"]
+
+    def test_image_tag_escapes_ampersand_so_attribute_round_trips(self):
+        image_tag = self.mod["image_tag"]
+        tag = image_tag("a&b.png", 900)
+        self.assertEqual(self.filename_from_image_tag(tag), "a&b.png")
+
+    def test_image_tag_escapes_double_quote_so_attribute_round_trips(self):
+        image_tag = self.mod["image_tag"]
+        tag = image_tag('q"x.png', 900)
+        self.assertEqual(self.filename_from_image_tag(tag), 'q"x.png')
+
+    def test_image_tag_keeps_literal_backslash_in_filename(self):
+        image_tag = self.mod["image_tag"]
+        tag = image_tag("a\\b.png", 900)
+        self.assertEqual(self.filename_from_image_tag(tag), "a\\b.png")
+
+    def test_image_tag_ordinary_filename_is_byte_identical_to_before(self):
+        image_tag = self.mod["image_tag"]
+        tag = image_tag("ordinary.png", 900)
+        self.assertEqual(
+            tag,
+            '<p><ac:image ac:width="900">'
+            '<ri:attachment ri:filename="ordinary.png" /></ac:image></p>',
+        )
+
+    def test_image_tag_signature_stays_two_positional_args_returning_str(self):
+        image_tag = self.mod["image_tag"]
+        params = list(inspect.signature(image_tag).parameters)
+        self.assertEqual(params, ["filename", "width"])
+        self.assertIsInstance(image_tag("plain.png", 42), str)
+
+    def test_main_replaces_note_with_image_tag_keeping_backslash_literal(self):
+        page = {
+            "title": "T",
+            "body": {
+                "storage": {
+                    "value": (
+                        '<ac:structured-macro ac:name="note">'
+                        "<ac:rich-text-body>See a\\b</ac:rich-text-body>"
+                        "</ac:structured-macro>"
+                    )
+                }
+            },
+            "version": {"number": 1},
+        }
+        captured = {}
+
+        def capture_update(page_id, title, content, version, token):
+            captured["content"] = content
+            return {"version": {"number": version}}
+
+        g = self.mod["main"].__globals__
+        with patch.dict(g, {"get_page": lambda *a: page, "update_page": capture_update}):
+            quiet(self.mod["main"], ["1", "a\\b.png", "--token", "t"])
+
+        self.assertIn('ri:filename="a\\b.png"', captured["content"])
 
 
 if __name__ == "__main__":
