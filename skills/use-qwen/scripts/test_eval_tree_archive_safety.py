@@ -47,42 +47,57 @@ OTHER = ("file", b"other\n")
 SEAMS = pytest.mark.parametrize("filter_support", ["with-data-filter", "without-data-filter"])
 
 
-class _TarFileBeforeDataFilter(tarfile.TarFile):
-    """A TarFile as Python shipped it before 3.12: `extractall` has no `filter`.
+# Taken once, at import, so the stand-ins below reach the real methods even
+# while `TarFile` itself carries them.
+_REAL_EXTRACTALL = tarfile.TarFile.extractall
+_REAL_EXTRACT = tarfile.TarFile.extract
 
-    Asked for one, it fails the way such a runtime fails. Asked without one, it
-    applies the archive as written - modes, links and all - which is what a
-    builder that leans on the runtime's own filter gets there.
+
+def _before_data_filter(asked_filter: list):
+    """`TarFile.extractall` and `extract` as Python shipped them before 3.12.
+
+    Asked for a `filter`, each fails the way such a runtime fails, and the ask
+    is recorded. Asked without one, it applies the archive as written - modes,
+    links, owners and all - which is what a builder that leans on the
+    runtime's own filter gets there. They replace the methods on the real
+    `TarFile` class, so no subclass or unbound base method sidesteps them.
     """
 
-    def extractall(self, path=".", members=None, *, numeric_owner=False, **kwargs):
+    def refuse(call: str, kwargs: dict) -> None:
         if kwargs:
-            raise TypeError(
-                "extractall() got an unexpected keyword argument %r" % next(iter(kwargs))
-            )
-        super().extractall(
-            path, members, numeric_owner=numeric_owner, filter=tarfile.fully_trusted_filter
+            asked_filter.append((call, sorted(kwargs)))
+            raise TypeError("%s() got an unexpected keyword argument %r" % (call, next(iter(kwargs))))
+
+    def extractall(self, path=".", members=None, *, numeric_owner=False, **kwargs):
+        refuse("extractall", kwargs)
+        _REAL_EXTRACTALL(
+            self, path, members, numeric_owner=numeric_owner, filter=tarfile.fully_trusted_filter
         )
 
+    def extract(self, member, path="", set_attrs=True, *, numeric_owner=False, **kwargs):
+        refuse("extract", kwargs)
+        _REAL_EXTRACT(
+            self, member, path, set_attrs,
+            numeric_owner=numeric_owner, filter=tarfile.fully_trusted_filter,
+        )
 
-class _TarfileModuleBeforeDataFilter:
-    """The `tarfile` module `_hide_data_filter` leaves, opening the double above."""
-
-    def __init__(self, hidden):
-        self._hidden = hidden
-
-    def __getattr__(self, name):
-        if name == "open":
-            return _TarFileBeforeDataFilter.open
-        return getattr(self._hidden, name)
+    return extractall, extract
 
 
-def _select_seam(monkeypatch, filter_support: str) -> None:
-    """Leave the runtime's tarfile alone, or take `data_filter` and `filter=` away."""
+def _select_seam(monkeypatch, filter_support: str) -> list:
+    """Leave the runtime's tarfile alone, or take `data_filter` and `filter=` away.
+
+    Returns the list of every `filter=` ask the no-filter seam refused; it
+    stays empty on the filter-present seam.
+    """
+    asked_filter = []
     if filter_support == "with-data-filter":
-        return
+        return asked_filter
     _hide_data_filter(monkeypatch)
-    monkeypatch.setattr(trees, "tarfile", _TarfileModuleBeforeDataFilter(trees.tarfile))
+    extractall, extract = _before_data_filter(asked_filter)
+    monkeypatch.setattr(tarfile.TarFile, "extractall", extractall)
+    monkeypatch.setattr(tarfile.TarFile, "extract", extract)
+    return asked_filter
 
 
 def _snapshot(outside: Path) -> dict:
