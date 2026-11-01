@@ -34,7 +34,7 @@ def _atomic_write(path: Path, data: str | bytes) -> None:
         if isinstance(data, bytes):
             tmp.write_bytes(data)
         else:
-            tmp.write_text(data)
+            tmp.write_text(data, newline="")
         tmp.replace(path)
     except OSError:
         tmp.unlink(missing_ok=True)
