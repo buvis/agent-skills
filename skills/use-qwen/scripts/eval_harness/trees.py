@@ -198,7 +198,6 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
     """
     names = set()
     folded = set()
-    originals: list[str] = []
     for member in members:
         if _archive_name_escapes(member.name) or (
             member.issym() and _archive_name_escapes(member.linkname)
@@ -216,11 +215,17 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
             raise TreeError("%s differs from another member only in case" % name)
         names.add(name)
         folded.add(name.lower())
-        originals.append(member.name)
     links = {posixpath.normpath(m.name): m.linkname for m in members if m.issym()}
+    _refuse_colliding_landings(members, links)
+    _ancestor_crossing(members, links)
+
+
+def _refuse_colliding_landings(members: Sequence[tarfile.TarInfo], links: dict[str, str]) -> None:
+    """Refuse two members that land in one place, or one beneath a file member."""
     landings: set[str] = set()
     files: set[str] = set()
-    for member, original in zip(members, originals):
+    for member in members:
+        original = member.name
         landing = _land(links, original)
         # Walked whole, a symlink lands wherever it points; the place it takes
         # up itself is its own name, with only its parent walked.
@@ -240,7 +245,6 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
             if ancestor in files:
                 raise TreeError("%s is beneath a file member" % landing)
             ancestor = posixpath.dirname(ancestor)
-    _ancestor_crossing(members, links)
 
 
 def build_template(repo: Path, first: str, dest: Path) -> str:
