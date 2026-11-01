@@ -147,6 +147,21 @@ ANCESTOR_ESCAPES = [
          ("pkg/escape/secret.txt", PAYLOAD), ("alias/escape", ("sym", "../../outside"))],
         id="file-under-the-real-path-then-escaping-link",
     ),
+    # Judged by its own text, every link here stays inside: `a/b/alias` reads
+    # as `pkg`, `a/b/alias/escape` as `a/outside`. Only once `a/b/alias` is
+    # followed to `pkg` does `escape` sit in `pkg` and climb out of the tree.
+    pytest.param(
+        [("a", DIRECTORY), ("a/b", DIRECTORY), ("pkg", DIRECTORY),
+         ("a/b/alias", ("sym", "../../pkg")), ("a/b/alias/escape", ("sym", "../../outside")),
+         ("a/b/alias/escape/secret.txt", PAYLOAD)],
+        id="link-text-stays-inside-but-its-real-landing-leaves",
+    ),
+    pytest.param(
+        [("a", DIRECTORY), ("a/b", DIRECTORY), ("pkg", DIRECTORY),
+         ("a/b/alias", ("sym", "../../pkg")), ("a/b/alias/escape/secret.txt", PAYLOAD),
+         ("a/b/alias/escape", ("sym", "../../outside"))],
+        id="file-first-then-link-whose-real-landing-leaves",
+    ),
 ]
 
 
@@ -174,6 +189,10 @@ ABSOLUTE_SPELLINGS = [
     pytest.param("\\outside\\secret.txt", id="rooted-backslash"),
     pytest.param("\\\\server\\share\\secret.txt", id="unc"),
     pytest.param("\\\\?\\C:\\outside\\secret.txt", id="extended-prefix"),
+    # Not only `C:`: any letter, either case, is a drive.
+    pytest.param("D:/x", id="other-drive-absolute"),
+    pytest.param("z:x", id="lowercase-drive-relative"),
+    pytest.param("\\\\?\\D:\\x", id="extended-prefix-other-drive"),
     pytest.param("secret.txt:hidden", id="ntfs-named-stream"),
     pytest.param("pkg/secret.txt::$DATA", id="ntfs-default-stream"),
 ]
@@ -206,8 +225,9 @@ def test_build_template_refuses_a_link_whose_target_is_absolute_in_any_domain(
 # case-insensitive filesystem.
 COLLISIONS = [
     pytest.param(
-        [("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD), ("pkg/./a.txt", OTHER)],
-        id="same-file-under-a-dot-spelling",
+        [("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD), ("pkg/other.txt", OTHER),
+         ("pkg/./a.txt", OTHER)],
+        id="same-file-under-a-dot-spelling-not-adjacent",
     ),
     pytest.param(
         [("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD), ("pkg/../pkg/a.txt", OTHER)],
@@ -227,7 +247,22 @@ COLLISIONS = [
          ("pkg/a.txt", OTHER), ("alias/a.txt", PAYLOAD)],
         id="two-files-at-one-landing-real-path-first",
     ),
-    pytest.param([("Readme.md", PAYLOAD), ("README.md", OTHER)], id="case-only-file-names"),
+    # The link sits below the root, then two links chain: a check that follows
+    # only a first path segment, or only one hop, misses where these land.
+    pytest.param(
+        [("sub", DIRECTORY), ("pkg", DIRECTORY), ("sub/alias", ("sym", "../pkg")),
+         ("sub/alias/a.txt", PAYLOAD), ("pkg/a.txt", OTHER)],
+        id="two-files-at-one-landing-through-a-nested-link",
+    ),
+    pytest.param(
+        [("pkg", DIRECTORY), ("a", ("sym", "b")), ("b", ("sym", "pkg")),
+         ("a/a.txt", PAYLOAD), ("pkg/a.txt", OTHER)],
+        id="two-files-at-one-landing-through-a-two-link-chain",
+    ),
+    pytest.param(
+        [("Readme.md", PAYLOAD), ("other.txt", OTHER), ("README.md", OTHER)],
+        id="case-only-file-names-not-adjacent",
+    ),
     pytest.param(
         [("Pkg/a.txt", PAYLOAD), ("pkg/a.txt", OTHER)], id="case-only-directory-names"
     ),
@@ -317,6 +352,12 @@ def _record_mode_and_owner_requests(monkeypatch) -> list:
     return requested
 
 
+def _chowns_to_another_owner(requested: list) -> list:
+    """The chown requests that name an owner other than the user running this."""
+    return [(call, target, args) for call, target, args in requested
+            if call.endswith("chown") and args[0] not in (-1, os.getuid())]
+
+
 @SEAMS
 @pytest.mark.parametrize(
     "mode",
@@ -324,6 +365,8 @@ def _record_mode_and_owner_requests(monkeypatch) -> list:
         pytest.param(0o4755, id="setuid"),
         pytest.param(0o2755, id="setgid"),
         pytest.param(0o6755, id="setuid-and-setgid"),
+        # No special bit at all: the foreign owner has to be refused on its own.
+        pytest.param(0o644, id="foreign-owner-alone"),
     ],
 )
 def test_build_template_never_applies_setuid_setgid_or_a_foreign_owner_from_the_archive(
@@ -365,14 +408,22 @@ def test_build_template_never_applies_setuid_setgid_or_a_foreign_owner_from_the_
 
 @SEAMS
 @pytest.mark.parametrize(
-    "mode", [pytest.param(0o755, id="executable"), pytest.param(0o644, id="plain")]
+    "mode, kept",
+    [
+        pytest.param(0o755, 0o755, id="executable"),
+        pytest.param(0o644, 0o644, id="plain"),
+        pytest.param(0o777, 0o755, id="world-writable-executable"),
+        pytest.param(0o666, 0o644, id="world-writable-plain"),
+        pytest.param(0o1755, 0o755, id="sticky"),
+    ],
 )
-def test_build_template_seals_a_file_with_git_archive_s_root_owner_and_keeps_its_mode(
-    tmp_path, built_repo, monkeypatch, filter_support, mode
+def test_build_template_seals_a_file_with_git_archive_s_root_owner_and_keeps_its_safe_mode_bits(
+    tmp_path, built_repo, monkeypatch, filter_support, mode, kept
 ):
     # The accept twin of the case above: `git archive` itself writes uid 0 and
     # owner `root` on every member, so ownership metadata alone cannot be a
-    # reason to refuse, and an ordinary mode survives sealing as written.
+    # reason to refuse. An ordinary mode survives sealing as written; the
+    # sticky bit and group/other write are stripped, never applied.
     _select_seam(monkeypatch, filter_support)
     repo = Path(built_repo["repo"])
     first = _task_start_commit(repo)
@@ -381,14 +432,18 @@ def test_build_template_seals_a_file_with_git_archive_s_root_owner_and_keeps_its
     bundle = _appended([("pkg", DIRECTORY)], [(_owned_file(mode, 0, "root"), TOOL)])
     _serve_archive(monkeypatch, bundle)
     dest = tmp_path / "template"
+    requested = _record_mode_and_owner_requests(monkeypatch)
 
     sha = trees.build_template(repo, first, dest)
 
     assert sha == trees.head_sha(dest)
+    assert trees._git(dest, "status", "--porcelain") == ""
+    assert trees._git(dest, "ls-files").splitlines() == ["pkg/tool"]
     status = (dest / "pkg" / "tool").lstat()
-    assert stat.S_IMODE(status.st_mode) == mode
+    assert stat.S_IMODE(status.st_mode) == kept, oct(status.st_mode)
     assert status.st_uid == os.getuid()
     assert (dest / "pkg" / "tool").read_bytes() == TOOL
+    assert _chowns_to_another_owner(requested) == [], "extraction asked for the archive's owner"
     assert _snapshot(outside) == before
 
 
@@ -433,6 +488,11 @@ def test_build_template_seals_members_that_only_resemble_the_refused_ones(
     sha = trees.build_template(repo, first, dest)
 
     assert sha == trees.head_sha(dest)
+    assert trees._git(dest, "status", "--porcelain") == ""
+    assert sorted(trees._git(dest, "ls-files").splitlines()) == sorted([
+        "pkg/a.txt", "pkg/b.txt", "Readme.md", "Readme.txt", "C/outside/secret.txt",
+        "server/share.txt", "link", "alias", "pkg/escape/secret.txt",
+    ])
     assert (dest / "pkg" / "a.txt").read_bytes() == b"pwned\n"
     assert (dest / "pkg" / "b.txt").read_bytes() == b"other\n"
     assert (dest / "Readme.md").read_bytes() == b"pwned\n"
@@ -441,4 +501,29 @@ def test_build_template_seals_members_that_only_resemble_the_refused_ones(
     assert Path(os.readlink(dest / "link")).as_posix() == "C/outside/secret.txt"
     assert (dest / "link").read_bytes() == b"pwned\n"
     assert (dest / "alias" / "escape" / "secret.txt").read_bytes() == b"other\n"
+    assert _snapshot(outside) == before
+
+
+@SEAMS
+def test_build_template_seals_a_real_git_archive_as_the_tree_before_the_task(
+    tmp_path, built_repo, monkeypatch, filter_support
+):
+    # No crafted archive: what `git archive` really writes for a real repo. A
+    # builder that refuses every archive it was not shown in a test fails here.
+    _select_seam(monkeypatch, filter_support)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    outside = _outside_sentinel(tmp_path)
+    before = _snapshot(outside)
+    dest = tmp_path / "template"
+
+    sha = trees.build_template(repo, first, dest)
+
+    assert sha == trees.head_sha(dest)
+    assert trees._git(dest, "status", "--porcelain") == ""
+    # One tree id: the same paths, bytes and modes as the commit before `first`.
+    assert trees._git(dest, "rev-parse", "HEAD^{tree}") == trees._git(
+        repo, "rev-parse", "%s^^{tree}" % first
+    )
+    assert trees._git(dest, "ls-files") != ""
     assert _snapshot(outside) == before
