@@ -1,41 +1,49 @@
 # Split note: 00044-windows-ci-junction-claim-v1.md
-planned=6 prd_tasks=6 expansion=1.00 reasons=module_drift
+planned=9 prd_tasks=6 expansion=1.50 reasons=module_drift
 
 ## . (UNLISTED)
 
-- 1 Provision the Windows CI job and complete Python collection: .gitattributes, pyproject.toml
-- 2 Port host-assumption fixtures to a rootdir conftest.py: conftest.py
-- 6 Correct the Windows command and coverage paragraph in README: README.md, CHANGELOG.md
+- 8 Correct README's Windows coverage paragraph: README.md
+- 9 Add CHANGELOG entries for the Windows failure-cause fixes: CHANGELOG.md
 
-## skills/brush/scripts (UNLISTED)
+## docs/dev/project-management/audit-results (UNLISTED)
 
-- 3 Fix brush relative-path identity for Windows: skills/brush/scripts/trash_untracked.py, skills/brush/scripts/test_brush_scripts.py
+- 7 Record Windows closeout evidence from the full local suite run: docs/dev/project-management/audit-results/repository-closeout-execution.md
 
-## .github/workflows (listed)
+## skills/create-prd/scripts (UNLISTED)
 
-- 1 Provision the Windows CI job and complete Python collection: .github/workflows/ci.yml
+- 2 W2: Fix ground_prd citation regex and exclusion glob for Windows paths (P1, P2): skills/create-prd/scripts/ground_prd.py, skills/create-prd/scripts/test_ground_prd.py
+
+## skills/glean/scripts (UNLISTED)
+
+- 4 W4: Fix glean report path separators, purge-devtmp TAB/CR handling, and sweep-fix os.geteuid collection errors (G1, U1, U2, S1): skills/glean/scripts/glean.py, skills/glean/scripts/test_glean.py
+
+## skills/purge-devtmp/scripts (UNLISTED)
+
+- 4 W4: Fix glean report path separators, purge-devtmp TAB/CR handling, and sweep-fix os.geteuid collection errors (G1, U1, U2, S1): skills/purge-devtmp/scripts/purge_devtmp.py, skills/purge-devtmp/scripts/test_purge_devtmp_manifest.py
+
+## skills/use-qwen/scripts (UNLISTED)
+
+- 5 W5: Fix use-qwen eval_harness byte-count, fixture-text, cwd-form, and report-path failures (Q1, Q2, Q3, Q7): skills/use-qwen/scripts/eval_harness_fixtures.py, skills/use-qwen/scripts/test_eval_events.py, skills/use-qwen/scripts/test_eval_evidence.py, skills/use-qwen/scripts/test_eval_gates.py, skills/use-qwen/scripts/test_report.py
+- 6 W7: Fix use-qwen vetting cumulative-deadline accounting across segments on Windows (Q8): skills/use-qwen/scripts/test_run_eval_vet.py
+
+## skills/use-qwen/scripts/eval_harness (UNLISTED)
+
+- 5 W5: Fix use-qwen eval_harness byte-count, fixture-text, cwd-form, and report-path failures (Q1, Q2, Q3, Q7): skills/use-qwen/scripts/eval_harness/events.py, skills/use-qwen/scripts/eval_harness/report.py
+- 6 W7: Fix use-qwen vetting cumulative-deadline accounting across segments on Windows (Q8): skills/use-qwen/scripts/eval_harness/vetting.py
+
+## src/agent_skills_braid (UNLISTED)
+
+- 1 W1: Fix braid Windows link-identity and chmod-semantics failures (B1, B2): src/agent_skills_braid/cli.py
+
+## tests (UNLISTED)
+
+- 1 W1: Fix braid Windows link-identity and chmod-semantics failures (B1, B2): tests/test_braid.py, tests/test_braid_check.py
 
 ## skills/distil-memory/scripts (listed)
 
-- 2 Port host-assumption fixtures to a rootdir conftest.py: skills/distil-memory/scripts/test_dedup.py, skills/distil-memory/scripts/test_dedup_classify.py, skills/distil-memory/scripts/test_docket_refusals.py, skills/distil-memory/scripts/test_write_refusals.py, skills/distil-memory/scripts/test_funnel_main.py, skills/distil-memory/scripts/test_funnel_distil_publication.py
-- 4 Make memory publication portable without replacing an existing directory: skills/distil-memory/scripts/proposal.py, skills/distil-memory/scripts/test_proposal_publication.py, skills/distil-memory/scripts/test_funnel_distil_publication.py
-
-## skills/explain-interactively/scripts (listed)
-
-- 2 Port host-assumption fixtures to a rootdir conftest.py: skills/explain-interactively/scripts/test_build.py
-
-## skills/review-prd-backlog/scripts (listed)
-
-- 2 Port host-assumption fixtures to a rootdir conftest.py: skills/review-prd-backlog/scripts/test_check_links.py
-
-## skills/survey/scripts (listed)
-
-- 2 Port host-assumption fixtures to a rootdir conftest.py: skills/survey/scripts/test_survey.py
+- 3 W3: Fix distil-memory docket diagnosis and atomic-write newline translation on Windows (D1, D2, D3): skills/distil-memory/scripts/docket.py, skills/distil-memory/scripts/write.py, skills/distil-memory/scripts/test_docket_refusals.py, skills/distil-memory/scripts/test_docket_unpublished.py, skills/distil-memory/scripts/test_write_atomicity.py, skills/distil-memory/scripts/test_write_crash_safety.py
 
 ## skills/sweep-fix/scripts (listed)
 
-- 2 Port host-assumption fixtures to a rootdir conftest.py: skills/sweep-fix/scripts/test_sweep_resolvers.py, skills/sweep-fix/scripts/test_sweep_scan.py
-
-## (no files declared)
-
-- 5 Prove the full Python suite passes on native Windows and Ubuntu at the changed commit
+- 4 W4: Fix glean report path separators, purge-devtmp TAB/CR handling, and sweep-fix os.geteuid collection errors (G1, U1, U2, S1): skills/sweep-fix/scripts/test_sweep_enumerate.py, skills/sweep-fix/scripts/test_sweep_main_setup_errors.py

@@ -57,6 +57,41 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
 - `plans/repository-closeout-plan.md` defines three execution sessions and a
   fourth independent verification session. It covers archive safety, Windows
   CI, and PRs #17/#15/#16; PRD 00133 implementation remains outside its scope.
+- 2026-11-01: this worktree (`agent-skills-closeout/windows`, branch
+  `closeout/windows`) ran Stage 1 lane B — PRD 00044 (Windows CI junction
+  claim) under autopilot batch `202611011930`. **Stalled at the plan-expansion
+  gate (`module_drift`) and moved to `hold/`**: the PRD's own module list
+  (`## Repository Structure`) describes the ORIGINAL greenfield design
+  (new `conftest.py`, new Windows CI job, new testpaths) — all of which are
+  ALREADY SHIPPED on this branch (verified: `conftest.py` exists with all four
+  fixtures, `.github/workflows/ci.yml` has a `windows-latest` job,
+  `pyproject.toml` already sets `testpaths = ["tests","skills","scripts"]`).
+  The real remaining work is 16 specific hosted-Windows test failures
+  (causes B1-B2, P1-P2, D1-D3, G1, U1-U2, S1, Q1-Q3, Q7, Q8 — excluding Q4-Q6,
+  which PRD 00160/archive-lane owns, and excluding `funnel.py`, which PRD
+  00133 owns), documented in detail (exact files/lines/node IDs/proposed
+  repairs) ONLY in an **UNTRACKED** file:
+  `~/git/src/github.com/buvis/agent-skills/docs/dev/project-management/audit-results/repository-closeout-preparation.md`
+  (plus a session addendum, `...-preparation-session-123534.md`, and an
+  untracked `...-preparation-plan.md`) in the MAIN checkout — none of this
+  exists on `closeout/windows` or any other closeout worktree's branch
+  history. A future session resuming PRD 00044 (from `hold/`) MUST refresh
+  the PRD's scope/Repository-Structure section against that evidence (or the
+  coordinator must commit it somewhere every lane can reach) before
+  replanning, or the plan-expansion gate will stall again. The 6 real
+  implementation tasks planned and then discarded this session were, for the
+  record: W1 braid link-identity/chmod (B1,B2), W2 ground_prd citation
+  parsing (P1,P2), W3 distil-memory docket/write (D1,D2,D3), W4
+  glean/purge-devtmp/sweep-fix (G1,U1,U2,S1), W5 use-qwen eval_harness
+  (Q1,Q2,Q3,Q7), W7 use-qwen vetting deadline (Q8) — each with exact failing
+  node IDs and proposed repairs already drafted; a resuming session can likely
+  reuse this breakdown nearly verbatim once the PRD doc itself is updated.
+  **Batch `202611011930` marked drained (not relaunched)** specifically so the
+  loop driver's next default PRD selection cannot pick up PRD 00133, which
+  remains alone in `wip/` in this worktree and is explicitly off-limits to
+  default selection per the repository closeout plan's shared rule 9
+  (`plans/repository-closeout-plan.md`): "Preserve the existing PRD 00133
+  state; never select it through a default autopilot invocation."
 - Batch 202610271200 is stopped after 33 completed PRDs. PRD 00133 remains in
   `wip/`, build phase, zero completed tasks. The interrupted run's telemetry
   and unchanged backlog-to-wip move are committed.
