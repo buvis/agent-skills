@@ -129,11 +129,20 @@ def _spelled(links: dict, impl: str) -> dict:
 
 
 def _lay_links(root: Path, links: dict) -> None:
-    """Write each `name -> target` link under `root`, target text as given."""
+    """Write each `name -> target` link under `root`, target text as given.
+
+    `target_is_directory=True` is passed whenever the target resolves to a
+    directory: on Windows a symlink's reparse-point type is fixed at creation
+    and wrong for a directory target unless told so, so a fixture built
+    without this would exercise file-typed reparse points only - never the
+    directory-link shape the production walk also has to refuse or follow.
+    `os.symlink` ignores the flag on POSIX, so this changes nothing there.
+    """
     for name, target in links.items():
         where = root / name
         where.parent.mkdir(parents=True, exist_ok=True)
-        os.symlink(target, where)
+        target_path = target if os.path.isabs(target) else where.parent / target
+        os.symlink(target, where, target_is_directory=Path(target_path).is_dir())
 
 
 def _link_text(where: Path) -> str:
@@ -634,6 +643,27 @@ def test_hash_paths_refuses_a_link_with_an_absolute_target_before_reading_it(
             trees.hash_paths(root, [listed])
     finally:
         (outside / "secret.txt").chmod(0o644)
+
+
+@NEEDS_SYMLINKS
+@pytest.mark.parametrize(
+    "target",
+    [r"\etc\passwd", "C:\\Windows\\System32\\x", r"\\host\share\x"],
+    ids=["windows-rooted", "drive-absolute", "unc"],
+)
+def test_hash_paths_refuses_a_link_with_a_windows_shaped_absolute_target(
+    tree_and_outside, target
+):
+    root, _ = tree_and_outside
+    _lay_links(root, {"escape": target})
+
+    # The fixture's own link text, read back whole: the escape under test is
+    # the Windows-shaped target itself, not a slip in how the fixture wrote
+    # it.
+    assert os.readlink(root / "escape") == target
+
+    with pytest.raises(trees.TreeError):
+        trees.hash_paths(root, ["escape"])
 
 
 @NEEDS_SYMLINKS

@@ -510,6 +510,29 @@ def test_contained_refuses_a_path_that_crosses_a_symlink_out_of_the_tree(
         trees.contained(root, "escape/secret.txt")
 
 
+@NEEDS_SYMLINKS
+@pytest.mark.parametrize(
+    "target",
+    [r"\etc\passwd", "C:\\Windows\\System32\\x", r"\\host\share\x"],
+    ids=["windows-rooted", "drive-absolute", "unc"],
+)
+def test_contained_refuses_a_path_that_crosses_a_windows_shaped_absolute_link(
+    tree_and_outside, target
+):
+    root, _ = tree_and_outside
+    os.symlink(target, root / "escape")
+
+    # The fixture link's own text, read back whole: what is under test is the
+    # Windows-shaped target itself, never a slip in how the fixture wrote it.
+    # `Path.resolve()` would treat this text as one opaque component and walk
+    # straight past it on a POSIX host - the shared `_land` walk the rewrite
+    # switches to must not.
+    assert os.readlink(root / "escape") == target
+
+    with pytest.raises(trees.TreeError):
+        trees.contained(root, "escape/secret.txt")
+
+
 # -- overlay_oracle --------------------------------------------------------
 
 

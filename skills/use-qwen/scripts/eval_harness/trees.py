@@ -408,14 +408,19 @@ def contained(root: Path, relpath: str) -> Path:
     This guards where a write lands, so a path the tree does not hold yet is
     legal and comes back to be written. What is refused is leaving the tree:
     an absolute path, a climb out of it, or a walk through a link that points
-    outside - never a name that merely reads like one.
+    outside - never a name that merely reads like one. Judged the same way
+    the write-side ancestor walk is: by landing `relpath` through `root`'s own
+    links map via `_land`, never by resolving the path through the OS and
+    comparing prefixes, which a Windows-shaped link target (an absolute drive
+    or UNC path `Path.resolve()` would leave untouched on a POSIX host) can
+    walk straight past.
     """
     if os.path.isabs(relpath):
         raise TreeError("%s is absolute" % relpath)
-    destination = Path(root) / relpath
-    if not destination.resolve().is_relative_to(Path(root).resolve()):
-        raise TreeError("%s lands outside the tree" % relpath)
-    return destination
+    root = Path(root)
+    links = {name: os.readlink(path) for name, path in _walk(root) if path.is_symlink()}
+    landing = _land(links, relpath)
+    return root / landing
 
 
 def overlay_oracle(evidence_dir: Path, clone: Path, oracle: Sequence[str]) -> None:
