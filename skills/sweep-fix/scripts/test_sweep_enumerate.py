@@ -1,5 +1,4 @@
 """Tests for sweep.py: enumerate_repos."""
-import os
 from pathlib import Path
 
 import pytest
@@ -580,16 +579,14 @@ def test_enumerate_repos_reports_missing_and_non_repo_registered_rows_as_distinc
 
 
 def test_enumerate_repos_raises_runtimeerror_naming_an_unreadable_registry(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, deny_access
 ):
-    if os.geteuid() == 0:
-        pytest.skip("root can read a chmod 0o000 file")
     empty_portfolio_root = tmp_path / "empty_portfolio_root"
     empty_portfolio_root.mkdir()
     monkeypatch.setattr(sweep, "PORTFOLIO_ROOT", empty_portfolio_root)
     registry = tmp_path / "repos.csv"
     _write_registry(registry, [str(tmp_path / "org" / "repo-a")])
-    registry.chmod(0o000)
+    allow = deny_access(registry)
     cwd = tmp_path / "cwd_dir"
     cwd.mkdir()
 
@@ -597,7 +594,7 @@ def test_enumerate_repos_raises_runtimeerror_naming_an_unreadable_registry(
         with pytest.raises(RuntimeError) as exc_info:
             sweep.enumerate_repos(registry, cwd)
     finally:
-        registry.chmod(0o600)
+        allow()
 
     assert str(registry) in str(exc_info.value)
 

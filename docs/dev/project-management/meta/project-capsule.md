@@ -1,6 +1,6 @@
 # Project Capsule: agent-skills
 
-Generated: 2026-11-02 (closeout/archive-windows worktree — PRD 00162 catchup)
+Generated: 2026-11-02 (closeout/integration: lanes 00160+00162, 00044+00163, PR #17 with 00161, PR #15, PR #16)
 
 ## Key Invariants
 
@@ -54,37 +54,19 @@ Generated: 2026-11-02 (closeout/archive-windows worktree — PRD 00162 catchup)
 
 ## Active Work
 
-- This worktree (`agent-skills/closeout-archive-windows`, branch
-  `closeout/archive-windows`) is Stage 1 Lane B of
-  `plans/repository-closeout-plan.md`: native-Windows repair for PRD 00160's
-  archive modules only. Lane A (archive containment, `closeout/archive`) and
-  Lane C (migration/dependency PRs) run in separate worktrees; never touch
-  their files from here.
-- Autopilot batch `202611020612` was minted here for PRD 00162
-  (`template-archive-breaks-on-windows`): fixes 72 Windows CI failures in the
-  five 00160 archive test modules (owner/mode checks, lost executable bit,
-  two-pass link typing, read-only staging cleanup, extended-prefix link
-  text) without changing any 00160 acceptance row. `wip/` also holds 00160
-  itself (built, awaiting review on `closeout/archive`) — informational only,
-  not this worktree's to advance. `default_model: opus` per frontmatter
-  (security-containment module, native-Windows semantics).
-- A fresh autopilot batch (`202611011931`) was minted in this worktree for
-  PRD 00160 (`template-archive-extraction-fails-closed`), which promotes held
-  triage stubs 00155-00158 against done PRD 00131's `build_template`/
-  `fresh_clone`/`hash_paths` in `skills/use-qwen/scripts/eval_harness/trees.py`.
-  00131 already landed partial containment (commit `147d146`); open gaps are
-  the symlink-ancestor bypass (00158), the unfiltered `extractall` fallback's
-  setuid/ownership leak and `DeprecationWarning` (00156/00157), and missing
-  refusal-path regression coverage (00155). `default_model: opus` per the PRD
-  frontmatter (security containment predicate, filter-parity equivalence).
+- 2026-11-02: `closeout/integration` combines the Stage 1 lanes of
+  `plans/repository-closeout-plan.md` in order: PRDs 00160 and 00162 (archive
+  extraction fails closed, plus its native-Windows repairs; both built,
+  review pending), PRDs 00044 and 00163 (hosted Windows fixes; 00044 at
+  13/14 until the native `windows-latest` run is recorded, 00163 built,
+  review pending), then PR #17 with PRD 00161, PR #15 and PR #16. Each lane
+  ran its own autopilot batch in its own worktree.
 - `plans/repository-closeout-plan.md` defines three execution sessions and a
   fourth independent verification session. It covers archive safety, Windows
   CI, and PRs #17/#15/#16; PRD 00133 implementation remains outside its scope.
 - Batch 202610271200 (main checkout) is stopped after 33 completed PRDs. PRD
-  00133 remains in `wip/` there, build phase, zero completed tasks — unrelated
-  to this worktree's batch and must not be touched from here.
-- The store contains 18 backlog, 2 wip (00133, 00160), 20 hold, and 100 done
-  PRDs, as seen from this worktree.
+  00133 remains in `wip/` there, build phase, zero completed tasks. Never
+  select it through a default autopilot invocation.
 - PRD 00111's four code/test commits were manually reverted. Custody is closed;
   the later state-decoding fix remains. Its original persistence defect remains
   unresolved, and its custody branch is retained for follow-up.

@@ -1,20 +1,21 @@
-# Assumptions ledger — PRD 00131-crafted-template-archive-escapes-directory-v1
+# Assumptions ledger — PRD 00163-windows-suite-residual-failures-v1
 
-## 1: Fix build_template's duplicate-member/symlink-ancestor containment preflight
+## 2: Append manifest records with newline="" in purge_devtmp.py and its fixture
 
-- `./escape` and `escape` count as "normalize to the same path" (Tess).
-- On refusal, `dest` may exist but must be empty, as in the existing tests (Tess).
-- The safe-seal test with a crafted archive is fine to keep, as the accept case that matches the refusal tests (Tess).
-- The helper returns `None`, not the link map the design docstring mentions, because nothing uses that map (Ivan; the design review log raised this too — not acted on further since it does not affect correctness).
-- Hardlink members are not handled separately; no test covers them (Ivan — matches the design's own "Likely next change 1" scoping note).
+- `batch` only needs to be a plausible YYYY-MM-DD-shaped string for `trash_file`'s destination path construction; it does not need to match any particular "now" since this test doesn't exercise `empty_old_trash`'s age filtering (Tess).
+- Monkeypatching `Path.open` (rather than `builtins.open`) is the correct seam, since `trash_file`'s manifest append calls `manifest.open(...)` (a `Path` method), not the `open` builtin directly (Tess).
+- Simulating translation by literal `str.replace("\n", "\r\n")` on `write()` is an acceptable stand-in for "the platform's text-mode translation" (Tess).
 
-## 2: Cover finding 42: explicit safe extraction removes the omitted-filter deprecation warning
+## 3: Log native realpath cwd and filter by resolved path in eval_harness_run_helpers.py
 
-- Interpreted "the specific omitted-filter deprecation warning" as the message tarfile actually raises on this repo's pinned Python (3.12.16): "Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior." Matched on a literal prefix substring (Ivan).
-- Interpreted "treats ... as an error" as scoped per-branch: the `filter="data"` branch must never raise it (regression detector), while the compatibility branch is expected to raise it (explicit documentation of known, currently-accepted behavior) — rather than expecting zero warnings on both branches, since direct experimentation showed the compatibility branch genuinely triggers the warning under the current, correct implementation (Ivan).
-- Reused the existing safe-link crafted-archive fixture shape (`pkg` dir + file + an internal symlink `escape -> pkg`) from `test_build_template_seals_a_crafted_archive_with_unique_safe_members` to satisfy "confirm safe-link controls still pass, including the compatibility path," rather than inventing a new archive shape (Ivan).
+- The task did not pin an exception type for the future raise, so the test asserts only `pytest.raises(Exception)` and checks message content, not a specific exception class (Tess).
+- Built a minimal `round_` via `SimpleNamespace(run=<tmp_path dir>)` rather than the module's `rounds`/`vetted` fixtures, since `_logged_cwds` only reads `round_.run` (Tess).
+- Used two distinct unrelated raw lines so the message-containment assertions can't be satisfied by a stub that only echoes a single hardcoded line (Tess).
+- The contract allows either an equality check or a commonpath/prefix check depending on what the fixtures need; used equality-or-prefix because the real round fixtures log cwd from inside per-attempt clone subdirectories under the run dir, not the run dir itself (Ivan).
+- The raised exception's message embeds the raw lines via Python's default list repr, which satisfies the test's "message contains each raw line as a substring" check (Ivan).
+- Used plain `Exception` (not a custom exception class) since the test only asserts `pytest.raises(Exception)` and the task names no specific type (Ivan).
 
-## 3/4 (rework, cycle 1): [D1] skills/use-qwen/scripts/test_eval_tree_links.py
+## 4: Add -ra to the Windows suite step in ci.yml
 
 - Fixing the pre-existing `test_build_template_seals_a_safe_tree_with_or_without_tar_data_filter[without-data-filter]` failure (same root-cause `delattr` bug, not explicitly named in either finding) was treated as in scope, since the task's own verification command runs the whole file and both findings are framed as "fix the unsafe `data_filter`-hiding approach" (Ivan).
 - Dropped the `warnings.catch_warnings`/`filterwarnings("error")` instrumentation in the renamed compatibility-path test entirely, rather than keeping it and expecting no exception, because keeping `filterwarnings("error")` would turn the real (on Python 3.13) `DeprecationWarning` into a hard test failure there — incompatible with this project's 3.10/3.13 CI matrix (Ivan).
@@ -125,3 +126,4 @@
 
 - The brief's top-of-file import for `test_eval_tree_state.py` is circular: `test_eval_tree_links.py` already imports from `test_eval_tree_state` at load time, so importing `_extended_prefix_stripped` back at the top of `test_eval_tree_state.py` fails in either module-load order (`ImportError: cannot import name ... from partially initialized module`, confirmed by running it). Moved the import inside the one test function that needs it instead, with a comment explaining why; the helper still lives only in `test_eval_tree_links.py` (Ivan).
 - Chose the parametrize ids (`extended-drive`, `extended-unc`, `short-drive`, `posix`) and the new unit test's name myself, since the brief did not specify them (Ivan).
+- The "Run the suite" step under the windows job is the only `uv run --python 3.13 pytest` line in the file, so the edit matched that line only (Ivan).

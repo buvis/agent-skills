@@ -267,3 +267,38 @@ Not started. No reviewed candidate or remote-action batch exists.
 ## Verification
 
 Not started. Production integration and independent review remain outstanding.
+
+## PRD 00044 local evidence, 2026-11-01
+
+`uv run pytest` exits 0 on this branch: 4,273 passed, 10 skipped, 388.97 seconds.
+Each row below is `local-pass` except Q8, which stays `pending-native` — this
+batch's own Q8 task added a deterministic regression only; it did not
+demonstrate or fix a production defect, so the native Windows run must still
+confirm the warmup-budget behavior under real process-startup cost.
+
+| Row | Repair commit | Regression (pytest node id) | Status |
+|---|---|---|---|
+| B1 | `f8630cde09e79918a9085c0df0110e9d3c58c746` | `tests/test_braid.py::test_identity_check_tolerates_a_windows_extended_length_readlink_spelling` | local-pass |
+| B2 | `f8630cde09e79918a9085c0df0110e9d3c58c746` | `tests/test_braid.py::test_configured_sources_support_comments_home_and_relative_paths` | local-pass |
+| P1 | `0718ddd98d6b4150ee2ea66c2c5da9f6cb5a578e` | `skills/create-prd/scripts/test_ground_prd.py::test_citation_regex_matches_a_drive_qualified_windows_path` | local-pass |
+| P2 | `0718ddd98d6b4150ee2ea66c2c5da9f6cb5a578e` | `skills/create-prd/scripts/test_ground_prd.py::test_resolve_symbols_exclusion_glob_uses_slash_form_not_backslash_form` | local-pass |
+| D1 | `3a3cc1bbefd3fa955d7d9b4a19ae56fcc702262b` | `skills/distil-memory/scripts/test_docket_refusals.py::test_main_decide_refuses_a_file_flag_that_exists_but_cannot_be_read_as_a_file` | local-pass |
+| D2 | `3a3cc1bbefd3fa955d7d9b4a19ae56fcc702262b` | `skills/distil-memory/scripts/test_docket_refusals.py::test_malformed_entry_diagnostic_shows_the_raw_id_characters_unescaped` | local-pass |
+| D3 | `7914050429ecb7ef8482ec8ca32b1487b19b0e6f` | `skills/distil-memory/scripts/test_write_atomicity.py::test_atomic_write_disables_newline_translation_for_str_payloads` | local-pass |
+| G1 | `3a7743bbffd0ab9346a553dd8966004c288604a4` | `skills/glean/scripts/test_glean.py::test_dir_prescreen_hit_id_uses_slash_form_not_backslash_form` | local-pass |
+| U1 | `a7d5af8f3ce49ffb6ac9eda5a4b9a9a1d162c2ca` | `skills/purge-devtmp/scripts/test_purge_devtmp_manifest.py::test_process_store_refuses_tab_path_and_still_trashes_ordinary_file` | local-pass |
+| U2 | `a7d5af8f3ce49ffb6ac9eda5a4b9a9a1d162c2ca` | `skills/purge-devtmp/scripts/test_purge_devtmp_manifest.py::test_manifest_rewrite_does_not_double_an_existing_crlf_across_two_rewrites` | local-pass |
+| S1 | `96cb8549356e00a6cbb8c80cb376be43fd3c601c` | `skills/sweep-fix/scripts/test_sweep_enumerate.py::test_enumerate_repos_raises_runtimeerror_naming_an_unreadable_registry`, `skills/sweep-fix/scripts/test_sweep_main_setup_errors.py::test_an_unreadable_registry_exits_one_naming_the_path_and_writes_no_report` | local-pass |
+| Q1 | `639e0ba43dadf23b352cb2c0ad5d5627bed57b7d` | `skills/use-qwen/scripts/test_eval_events.py::test_reads_a_missing_transcript_as_unknown_however_noisy_the_capture_is` | local-pass |
+| Q2 | `6d98bdfbaa8ff3fac10a991bb688bae6c51c130a` | `skills/use-qwen/scripts/test_run_eval_vet.py::test_a_tdd_oracle_in_a_directory_the_template_lacks_dispatches_and_passes` | local-pass |
+| Q3 | `88fa3df2c8afa275ce2d75110eba6514df3f8ad9` | `skills/use-qwen/scripts/test_eval_gates.py::test_baseline_runs_the_vetted_oracle_in_each_attempt_s_own_clone` | local-pass |
+| Q7 | `e2033a88186e68ac95402b6dd7410b4588e59f26` | `skills/use-qwen/scripts/test_report.py::test_captured_output_line_reports_real_byte_sizes_for_out_and_wrapper`, `skills/use-qwen/scripts/test_report.py::test_captured_output_line_reports_wrapper_unavailable_when_the_file_is_absent` | local-pass |
+| Q8 | `4b37e5bfecdf62c448099d2744853f2b5017998b` | `skills/use-qwen/scripts/test_run_eval_vet.py::test_cumulative_deadline_is_measured_against_the_run_start_not_the_segment_start` | pending-native |
+
+All rows above pass under the macOS/CPython 3.12.16 `uv run` environment used
+for this batch. None of these local runs exercises real Windows path
+separators, `os.geteuid`-free privilege semantics, or MSYS/Git-Bash cwd forms
+natively — the regressions assert the fixed logic deterministically (fixture
+construction, monkeypatched clocks, portable `deny_access`), but only a native
+Windows CI run closes out the PRD's own Windows-hosted requirement. This note
+prepares that evidence; it does not claim the native run is complete.

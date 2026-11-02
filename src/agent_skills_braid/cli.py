@@ -110,8 +110,24 @@ def _expand_user(path: str | Path) -> Path:
     return Path(value).expanduser()
 
 
+def _strip_extended_prefix(text: str) -> str:
+    """Drop a Windows extended-length prefix ("\\\\?\\" or "\\\\?\\UNC\\") so two
+    paths that differ only by that prefix compare equal.
+
+    os.readlink() on a Windows junction/symlink can return the reparse
+    target in extended-length form while the configured `target` path never
+    carries one; without this normalisation two spellings of the same path
+    compare unequal and every create -> check cycle reports drift.
+    """
+    if text.startswith("\\\\?\\UNC\\"):
+        return "\\\\" + text[8:]
+    if text.startswith("\\\\?\\"):
+        return text[4:]
+    return text
+
+
 def _resolved(path: Path) -> Path:
-    return _expand_user(path).resolve(strict=False)
+    return Path(_strip_extended_prefix(str(_expand_user(path).resolve(strict=False))))
 
 
 def _absolute(path: Path) -> Path:

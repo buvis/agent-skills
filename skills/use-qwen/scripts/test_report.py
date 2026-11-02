@@ -498,8 +498,8 @@ def test_captured_output_line_reports_real_byte_sizes_for_out_and_wrapper(rounds
     evidence, _, _ = _render(round_)
 
     block = _block(evidence, list(attempts), attempt_id)
-    expected = "Captured output: %s/out.txt (%d bytes), %s/wrapper.txt (%d bytes)" % (
-        attempt_dir, out_size, attempt_dir, wrapper_size,
+    expected = "Captured output: %s (%d bytes), %s (%d bytes)" % (
+        attempt_dir / "out.txt", out_size, attempt_dir / "wrapper.txt", wrapper_size,
     )
     assert expected in block.splitlines()
 
@@ -516,7 +516,7 @@ def test_captured_output_line_reports_wrapper_unavailable_when_the_file_is_absen
     try:
         evidence, _, _ = _render(round_)
         block = _block(evidence, list(attempts), attempt_id)
-        assert ("%s/wrapper.txt (unavailable bytes)" % attempt_dir) in block
+        assert ("%s (unavailable bytes)" % (attempt_dir / "wrapper.txt")) in block
     finally:
         renamed.rename(wrapper_path)
 

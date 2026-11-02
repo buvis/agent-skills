@@ -1,0 +1,26 @@
+{
+  "batch_id": "202611011950",
+  "items": [
+    {
+      "type": "stall",
+      "site": "blocking_escalation",
+      "detail": "task 14 (README Windows coverage note) requires a passing native windows-latest workflow_dispatch run for this commit, which only the closeout coordinator may trigger; 13/14 tasks completed locally",
+      "op_id": "d3550050d546",
+      "prd": "00044-windows-ci-junction-claim-v1.md"
+    },
+    {
+      "type": "stall",
+      "site": "blocking_escalation",
+      "detail": "task 14 (README Windows coverage note) requires a passing native windows-latest workflow_dispatch run for this commit, which only the closeout coordinator may trigger; 13/14 tasks completed locally",
+      "op_id": "1d8d28a1aa90",
+      "prd": "00044-windows-ci-junction-claim-v1.md"
+    },
+    {
+      "type": "stall",
+      "site": "blocking_escalation",
+      "detail": "task 14 (README Windows coverage note) requires a passing native windows-latest workflow_dispatch run for this commit, which only the closeout coordinator may trigger; 13/14 tasks completed locally",
+      "op_id": "407184d2b856",
+      "prd": "00044-windows-ci-junction-claim-v1.md"
+    }
+  ]
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import stat
 from dataclasses import replace
 from pathlib import Path
 
@@ -229,6 +230,57 @@ def test_windows_symlink_privilege_failure_falls_back_to_junction(
     assert calls == [["cmd", "/c", "mklink", "/J", str(destination), str(target)]]
 
 
+def test_extended_length_prefix_is_stripped_so_two_spellings_compare_equal() -> None:
+    plain = "C:\\Users\\dev\\agents"
+    assert cli._strip_extended_prefix("\\\\?\\" + plain) == plain
+    assert cli._strip_extended_prefix(plain) == plain
+
+
+def test_extended_length_unc_prefix_is_stripped_to_a_plain_unc_spelling() -> None:
+    assert cli._strip_extended_prefix("\\\\?\\UNC\\server\\share\\agents") == (
+        "\\\\server\\share\\agents"
+    )
+
+
+def _fake_resolved_stripping_extended_prefix(path: object) -> Path:
+    """Simulate `_resolved` on a host whose own `Path.resolve()` cannot parse
+    a Windows-spelled string: strip everything up to and including a
+    `\\\\?\\` marker, which is exactly what the production fix does."""
+    text = str(path)
+    marker = "\\\\?\\"
+    return Path(text.rsplit(marker, 1)[-1]) if marker in text else Path(text)
+
+
+def test_identity_check_tolerates_a_windows_extended_length_readlink_spelling(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "target"
+    destination = tmp_path / "destination"
+    target.mkdir()
+
+    monkeypatch.setattr(Path, "is_symlink", lambda self: True)
+    monkeypatch.setattr(os, "readlink", lambda path: "\\\\?\\" + str(target))
+    monkeypatch.setattr(cli, "_resolved", _fake_resolved_stripping_extended_prefix)
+
+    assert cli._points_to(destination, target, "nt") is True
+
+
+def test_identity_check_still_reports_a_genuinely_different_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "target"
+    other = tmp_path / "other"
+    destination = tmp_path / "destination"
+    target.mkdir()
+    other.mkdir()
+
+    monkeypatch.setattr(Path, "is_symlink", lambda self: True)
+    monkeypatch.setattr(os, "readlink", lambda path: "\\\\?\\" + str(other))
+    monkeypatch.setattr(cli, "_resolved", _fake_resolved_stripping_extended_prefix)
+
+    assert cli._points_to(destination, target, "nt") is False
+
+
 def test_configured_sources_support_comments_home_and_relative_paths(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -403,6 +455,7 @@ def test_selected_agent_gains_the_skill_resource_and_keeps_everything_else(
     )
     agent.chmod(0o640)
     original = agent.read_bytes()
+    before_attrs = agent.stat().st_file_attributes if os.name == "nt" else 0
 
     result = run(enroll(plain, "dev"))
 
@@ -411,7 +464,12 @@ def test_selected_agent_gains_the_skill_resource_and_keeps_everything_else(
         "resources": ["file://README.md", "skill://~/.kiro/skills/*/SKILL.md"],
         "tools": ["read"],
     }
-    assert agent.stat().st_mode & 0o777 == 0o640
+    if os.name == "nt":
+        assert agent.stat().st_file_attributes & stat.FILE_ATTRIBUTE_READONLY == (
+            before_attrs & stat.FILE_ATTRIBUTE_READONLY
+        )
+    else:
+        assert stat.S_IMODE(agent.stat().st_mode) == 0o640
     assert result.configured == 1
     backups = list((kiro_root(plain) / "agent-backup").glob("*/agents/dev.json"))
     assert [backup.read_bytes() for backup in backups] == [original]

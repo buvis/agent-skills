@@ -1,770 +1,739 @@
-# Design: 00044 — Run the entire Python suite on Windows
+# Design: 00044 — Close the remaining hosted-Windows Python test failures
 
-PRD: `dev/local/prds/wip/00044-windows-ci-junction-claim-v1.md`
+PRD: `docs/dev/project-management/prds/wip/00044-windows-ci-junction-claim-v1.md`
+
+This design replaces the PRD's original pre-closeout design doc, which covered
+the greenfield Windows job / `conftest.py` / brush / publication work. That
+work has already shipped on this branch (the `windows` CI job, root
+`conftest.py` with its four portability fixtures, `testpaths`, brush path
+identity, proposal publication). The PRD's own `## Structural Decomposition`
+was refreshed 2026-11-01 to the 16 remaining hosted-Windows causes
+(B1-B2, P1-P2, D1-D3, G1, U1-U2, S1, Q1-Q3, Q7, Q8), sourced from
+`docs/dev/project-management/audit-results/repository-closeout-preparation.md`
+("Windows diagnosis and ownership" table). This design covers only that
+remaining scope.
 
 ## Architecture fit
 
-Five surfaces, in the PRD's own module order:
+Five independent surfaces, matching the PRD's Phase 0/Phase 1 split:
 
-1. **Runner** — `.github/workflows/ci.yml`, `.gitattributes` (new), `pyproject.toml`.
-   The workflow already has four jobs (`test`, `shell`, `lint`, `node`). A fifth,
-   `windows`, joins them as a peer. No matrix is added to `test`: the Windows job
-   needs a different toolchain-provisioning block, and folding it into the
-   existing matrix would force `if: runner.os == ...` on every step.
-2. **Fixture portability** — a NEW repo-root `conftest.py` supplying four
-   host-branching fixtures, plus the call-site swaps in the seven test files that
-   currently encode POSIX assumptions. The repo has exactly one conftest today
-   (`skills/sweep-fix/scripts/conftest.py`, resolver-cache clearing) and no shared
-   test-helper module that skill tests can import: each skill ships its own
-   `*_test_helpers.py`, and `skills/*/scripts/` are added to `sys.path` by pytest
-   one directory at a time. A rootdir `conftest.py` is the only mechanism that
-   reaches every collected test with no import plumbing, because pytest injects
-   conftest fixtures by name down the whole tree below rootdir.
-3. **Brush protection** — `skills/brush/scripts/trash_untracked.py` and
-   `test_brush_scripts.py`. Real product defect.
-4. **Proposal publication** — `skills/distil-memory/scripts/proposal.py` and its
-   two publication test files. Real product defect.
-5. **Windows documentation** — `README.md` only.
+1. **Braid link identity (W1)** — `src/agent_skills_braid/cli.py`'s symlink/
+   junction comparison helpers. Shared by every `_points_to` call site.
+2. **PRD grounding (W2)** — `skills/create-prd/scripts/ground_prd.py`'s
+   citation regex and ripgrep exclusion globs.
+3. **Memory store (W3)** — `skills/distil-memory/scripts/docket.py` and
+   `write.py`: directory-open diagnosis, malformed-id rendering, newline-safe
+   atomic writes.
+4. **Small-skill portability (W4)** — `glean.py` (report ids), `purge_devtmp.py`
+   (manifest TAB/CR handling), sweep-fix tests (root-privilege escape hatch
+   already superseded by the repo-root `deny_access` fixture).
+5. **Qwen harness fixtures (W5, W7)** — byte-accounting and cwd-form fixture
+   bugs in `eval_harness_fixtures.py` and its dependent test files; one
+   conditional vetting-deadline regression.
 
-Layering per the PRD's dependency graph: Runner and Fixture portability are
-Phase 0 and independent of each other; Brush and Publication are Phase 1 and
-depend on Phase 0 only for the ability to observe their failures on Windows;
-Documentation is Phase 2 and depends on a real green run.
+W1-W4 are independent of each other (Phase 0 in the PRD). W5/W7 are sequenced
+after W1-W4 only because the PRD groups them in its own Phase 1 — there is no
+real code dependency; they are sequenced last here because they share
+`eval_harness_fixtures.py` across Q1/Q2/Q3/Q7, so one owner avoids a double
+edit. Q4-Q6 (archive extraction) and `funnel.py` (PRD 00133) are out of bounds
+per the PRD's explicit exclusion.
 
 ## Module placement
 
-| Path | New/Edit | What lands |
+| Path | Edit | What lands |
 |---|---|---|
-| `.github/workflows/ci.yml` | edit | `jobs.windows` on `windows-latest`; existing four jobs untouched |
-| `.gitattributes` | **new** | `*.sh text eol=lf` (and `*.bash`), so Git Bash-run fixtures keep LF on a CRLF checkout |
-| `pyproject.toml` | edit | `testpaths = ["tests", "skills", "scripts"]` |
-| `conftest.py` (repo root) | **new** | the four portability fixtures below |
-| `skills/sweep-fix/scripts/test_sweep_resolvers.py` | edit | stub creation, PATH roots, HOME isolation, resolved-tool invocation |
-| `skills/sweep-fix/scripts/test_sweep_scan.py` | edit | hung-search fixture |
-| `skills/explain-interactively/scripts/test_build.py` | edit | Git Bash path form |
-| `skills/review-prd-backlog/scripts/test_check_links.py` | edit | denied read |
-| `skills/distil-memory/scripts/test_dedup.py`, `test_dedup_classify.py`, `test_docket_refusals.py`, `test_write_refusals.py` | edit | denied read/write; **delete the three module-scope `os.geteuid()` guards**; host-correct backslash decoy |
-| `skills/brush/scripts/trash_untracked.py` | edit | slash-form path identity |
-| `skills/brush/scripts/test_brush_scripts.py` | edit | add host-correct separator + positive-control regressions |
-| `skills/distil-memory/scripts/proposal.py` | edit | portable publication step in `write_proposals` |
-| `skills/distil-memory/scripts/test_proposal_publication.py`, `test_funnel_distil_publication.py` | edit | ownership assertions replacing POSIX-only reservation mechanics; `_proposals_paths_named`'s token filter |
-| `skills/distil-memory/scripts/test_funnel_main.py` | edit | native-form expectation for the printed report path |
-| `skills/survey/scripts/test_survey.py` | edit | native-form expectation in three `<dir>/<file>:<line>` assertions (lines 900-901 parametrized ×2, 942-943) |
-| `README.md` | edit | single-backslash command, coverage paragraph |
-| `CHANGELOG.md` | edit | `fix`/`feat` entries (standing repo rule) |
-
-`tests/test_braid.py` is **validation surface only**: `_link_dir` already takes an
-injected `platform: str = os.name`, so the junction-fallback test
-(`test_windows_symlink_privilege_failure_falls_back_to_junction`, line 171) is
-already host-independent and must not be touched.
+| `src/agent_skills_braid/cli.py` | edit | B1: a single extended-length-prefix-stripping helper used by every readlink/resolve comparison. B2: no production change identified (see Interfaces). |
+| `tests/test_braid.py`, `tests/test_braid_check.py` | edit | B1/B2 regressions: simulated Windows extended-path readlink spelling; host-appropriate mode/backup assertion. |
+| `skills/create-prd/scripts/ground_prd.py` | edit | P1: citation regex accepts drive/UNC/mixed-slash paths without swallowing the line-number colon. P2: `_rg_hit`'s glob exclusion uses slash form. |
+| `skills/create-prd/scripts/test_ground_prd.py` | edit | P1/P2 regressions: drive, UNC, mixed-slash citations; backslash-spelled exclusion path. |
+| `skills/distil-memory/scripts/docket.py` | edit | D1: `unpublished()`'s directory-open path names the directory explicitly instead of letting a bare `OSError` surface. D2: `_check_entry`'s id rendering uses a representation that doesn't hide a native-separator id. |
+| `skills/distil-memory/scripts/write.py` | edit | D3: `_atomic_write` writes the exact bytes handed to it with no newline translation. |
+| `skills/distil-memory/scripts/test_docket_refusals.py`, `test_docket_unpublished.py`, `test_write_atomicity.py`, `test_write_crash_safety.py` | edit | D1-D3 regressions: directory-as-queue-path, backslash-bearing id, CRLF-preserving write/rollback/retry. |
+| `skills/glean/scripts/glean.py` | edit | G1: `describe()`'s per-file id uses `as_posix()`. |
+| `skills/glean/scripts/test_glean.py` | edit | G1 regression: nested file under a directory report asserts the slash-form id on both hosts. |
+| `skills/purge-devtmp/scripts/purge_devtmp.py` | edit | U2: the manifest rewrite in `empty_old_trash` writes with `newline=""`, matching the read side, so CRLF rows don't double their CR. U1: no production change — `path_has_unsafe_characters` already runs before any mutation; the gap is in the test's own candidate construction. |
+| `skills/purge-devtmp/scripts/test_purge_devtmp_manifest.py` | edit | U1: inject the tab/newline-bearing candidate through a monkeypatched enumeration seam instead of trying to create such a file on disk. U2: CRLF manifest round-trip regression. |
+| `skills/sweep-fix/scripts/test_sweep_enumerate.py`, `test_sweep_main_setup_errors.py` | edit | S1: replace the `os.geteuid() == 0` skip + `chmod(0o000)`/`chmod(0o600)` pair with the repo-root `deny_access` fixture, which already denies reads portably. |
+| `skills/use-qwen/scripts/test_eval_events.py` | edit | Q1: `_out()`'s fixture write uses `newline=""` (or writes bytes) so the file's byte count matches `len(capture.encode("utf-8"))` on every host. |
+| `skills/use-qwen/scripts/eval_harness_fixtures.py` | edit | Q2 only: stub/fixture authored bytes get an explicit LF/CRLF control instead of relying on the host's text-mode translation. (Q3 does NOT touch this file — see Interfaces.) |
+| `skills/use-qwen/scripts/eval_harness_run_helpers.py` | edit | Q3: new `native_cwd()` helper; applied inside `_cwds()` so every `_logged_cwds` caller gets it for free. |
+| `skills/use-qwen/scripts/test_eval_evidence.py`, `test_run_eval_vet.py` (Q2 cases only) | edit | Q2 regressions: explicit byte/newline controls. |
+| `skills/use-qwen/scripts/test_eval_gates.py` | edit | Q3: `_resolved`'s line reads import and apply `native_cwd()` before the `:338` comparison. |
+| `skills/use-qwen/scripts/test_run_eval_cli.py`, `test_run_eval_harness.py`, `test_run_eval_harness_outcomes.py` | no change | Q3: these import `_logged_cwds` from `eval_harness_run_helpers.py`, which now returns native-form strings; no per-file edit needed. |
+| `skills/use-qwen/scripts/eval_harness/report.py` | no change | Q7: production already Path-joins (`out_path = attempt_dir / _OUT_FILE`); nothing to fix here. |
+| `skills/use-qwen/scripts/test_report.py` | edit | Q7: build the expected string with a `Path` join (`attempt_dir / "out.txt"`) instead of string-concatenating `"/out.txt"`. |
+| `skills/use-qwen/scripts/eval_harness/vetting.py` | edit only if the native run reproduces Q8 | Q8: cumulative-deadline accounting across warmup segments. |
+| `skills/use-qwen/scripts/test_run_eval_vet.py` | edit | Q8: add a deterministic `time.monotonic` seam regression for the cumulative deadline; keep the existing real bounded-process timeout test (`test_the_warmup_budget_runs_down_across_every_earlier_segment`) unchanged unless it is itself the demonstrated defect. |
 
 ## Interfaces & contracts
 
-### `conftest.py` (repo root) — new
+### `src/agent_skills_braid/cli.py` — B1
 
 ```python
-"""Host-portability fixtures for the whole suite.
+def _strip_extended_prefix(text: str) -> str:
+    """Drop a Windows extended-length prefix ("\\\\?\\" or "\\\\?\\UNC\\") so two
+    paths that differ only by that prefix compare equal.
 
-Lives at the repository root so pytest injects it into every collected test
-under `testpaths`, including each `skills/*/scripts/` tree, without any
-sys.path or import plumbing.
-"""
-
-IS_WINDOWS: bool = os.name == "nt"
-```
-
-Four fixtures, each yielding a callable. Signatures are exact:
-
-```python
-@pytest.fixture
-def write_executable_stub(): ...
-    # returns: Callable[[Path, str, str], Path]
-    # call as: write_executable_stub(directory, name, body) -> Path
-    #   `body` is the shell-agnostic thing the stub must print, e.g. "fake-rg".
-    #   POSIX: writes `<directory>/<name>` containing "#!/bin/sh\necho <body>\n",
-    #          chmod 0o755.
-    #   Windows: writes `<directory>/<name>.cmd` containing
-    #          "@echo off\r\necho <body>\r\n".
-    #   BOTH: returns `Path(shutil.which(name, path=str(directory)))`, and
-    #   raises AssertionError naming `directory` and `name` when that is None.
-    # CONTRACT: the returned path is byte-equal to what the resolver's own
-    # `shutil.which(name)` will return once `directory` is on PATH - derived
-    # from `which`, never hand-spelled. Hand-spelling is wrong on Windows:
-    # `shutil.which` appends the extension verbatim from %PATHEXT%, which is
-    # uppercase by default (".COM;.EXE;.BAT;.CMD;..."), so the resolver returns
-    # `<directory>\rg.CMD` while the fixture wrote `rg.cmd`, and NTFS
-    # case-insensitivity hides the mismatch until the `==` assertion fails.
-```
-
-```python
-@pytest.fixture
-def isolate_home(monkeypatch): ...
-    # returns: Callable[[Path], None]
-    # call as: isolate_home(tmp_path)
-    #   POSIX: monkeypatch.setenv("HOME", str(path))
-    #   Windows: sets USERPROFILE, HOMEDRIVE, HOMEPATH; HOME too, harmlessly.
-    # WHY: ntpath.expanduser ignores HOME entirely (it reads USERPROFILE, then
-    # HOMEDRIVE+HOMEPATH), so `monkeypatch.setenv("HOME", ...)` is a silent
-    # no-op on Windows and `Path.home()` / `os.path.expanduser("~")` still
-    # point at the real profile.
-```
-
-```python
-@pytest.fixture
-def deny_access(monkeypatch): ...
-    # returns: Callable[[Path], Callable[[], None]]
-    # call as: allow = deny_access(path)   # file or directory
-    #          ...                          # the denial is in force
-    #          allow()                      # lifted, same test, same body
-    #   POSIX: path.chmod(0o000); `allow()` restores 0o644 for a file, 0o755
-    #          for a directory. A teardown finalizer restores unconditionally
-    #          so tmp_path cleanup can still unlink the tree.
-    #   Windows: chmod cannot deny a read, so denial is applied at the
-    #          filesystem boundary instead. `path` and everything under it goes
-    #          into a denied set; `allow()` removes it. FOUR call vectors are
-    #          wrapped, each delegating to the captured real function for any
-    #          path outside the set:
-    #            io.open        - the one `pathlib.Path.open` and therefore
-    #                             `Path.read_text` / `Path.read_bytes` /
-    #                             `Path.write_text` resolve at call time
-    #            builtins.open  - plain `open(...)` call sites; a SEPARATE
-    #                             binding, so patching one does not patch the
-    #                             other (test_proposal_publication.py's
-    #                             `_patch_write_vectors` already treats them as
-    #                             two vectors, for exactly this reason)
-    #            os.listdir     - directory listing on 3.10
-    #            os.scandir     - directory listing on 3.13, and `os.walk`
-    #            os.stat        - and os.lstat: WITHOUT these, denying a
-    #                             DIRECTORY does not deny `Path.is_file()` on a
-    #                             child, and write.py:172-175's probe-refusal
-    #                             branch is never entered on Windows. Deny stat
-    #                             for paths strictly INSIDE a denied directory
-    #                             and leave stat on the denied path itself
-    #                             intact, so `p.exists()` stays True.
-    #          `os.mkdir` is wrapped too, so denying a directory also denies
-    #          creating anything inside it. Both listdir and scandir are wrapped
-    #          because which one `Path.iterdir` uses changed in 3.13 and both
-    #          3.10 and 3.13 are in the matrix.
-    # SELF-CHECK the fixture performs on Windows after arming a directory:
-    # `(denied_dir / "child").is_file()` must raise, or the fixture fails loudly
-    # rather than letting a test go green on the wrong branch.
-    # CONTRACT: after `allow = deny_access(p)`, reads of p raise PermissionError
-    # while `p.exists()` stays True - the "unreadable, not missing" distinction
-    # the affected tests assert - and after `allow()` the same read succeeds and
-    # returns the original bytes. Both halves hold on both hosts, so tests like
-    # test_write_refusals.py's byte-identity check (deny -> act -> lift -> read
-    # back) keep their bodies unchanged.
-    # ROOT: this fixture replaces the three module-scope
-    # `@pytest.mark.skipif(os.geteuid() == 0, ...)` guards (see Module
-    # placement); when denial cannot be established on this host it says so at
-    # call time instead of at import time.
-```
-
-```python
-@pytest.fixture
-def run_resolved_tool(): ...
-    # returns: Callable[[str, list[str]], subprocess.CompletedProcess]
-    # call as: run_resolved_tool(resolved_path, ["rg", "--version"])
-    #   POSIX: subprocess.run(argv, executable=resolved_path,
-    #                         capture_output=True, text=True)
-    #   Windows: subprocess.run([resolved_path, *argv[1:]],
-    #                         capture_output=True, text=True)
-    # WHY the branch: `executable=` sets lpApplicationName, and CreateProcess
-    # refuses a .cmd/.bat there ("%1 is not a valid Win32 application").
-    # Windows has no argv[0]-based dispatch to test in the first place; the
-    # argv[0]+executable= call SHAPE stays pinned portably by the AST test
-    # test_run_rg_never_invokes_a_bare_rg_binary_by_name. This fixture keeps
-    # the *executability* assertion real on both hosts.
-```
-
-### Fifth portability decision: a path asserted against printed output
-
-No fixture; a **rule**, because it is applied inside assertions rather than
-around them. Several tests assert a slash-containing path string against text a
-product module produced by interpolating a `Path`. On Windows the product prints
-`dev\local\audit-results` and the assertion looks for `dev/local/audit-results`.
-
-**Rule: normalise the EXPECTATION to the host's native form; never rewrite the
-actual output.** This is the PRD's "compare platform-native diagnostics" branch,
-and it is the safe half: a genuinely wrong path still fails the assertion,
-whereas normalising the actual output could launder a real defect.
-
-**The discriminator is whether the PRODUCT interpolated a `Path`.** A hardcoded
-slash literal in the product prints identically on both hosts and must NOT be
-converted - doing so breaks it on Windows only. See the verified-safe list below.
-
-Confirmed sites, five across two skills:
-
-- `skills/distil-memory/scripts/test_funnel_main.py:379` —
-  `assert "dev/local/audit-results" in captured.err` against `funnel.py:483`'s
-  `print(f"failed to write report to {report_dir}: ...")`. Becomes
-  `assert str(Path("dev/local/audit-results")) in captured.err`
-  (`str(PureWindowsPath("dev/local/audit-results"))` is `dev\local\audit-results`,
-  a substring of the absolute `report_dir`).
-- `skills/distil-memory/scripts/test_funnel_distil_publication.py:50` —
-  `_proposals_paths_named` keeps only tokens where `"/" in token`, so on Windows
-  it finds ZERO path tokens and `_named_proposals_directory`'s
-  `assert len(named) == 1` (line 64) fails in three tests. The token filter
-  becomes `os.sep in token`, byte-identical to today on POSIX (`os.sep == "/"`)
-  and correct on Windows. The file imports no `os` today; the edit is not one
-  character.
-- `skills/survey/scripts/test_survey.py:900-901` — `full_path_ref =
-  f"{subdir}/{filename}:{class_line}"` then `assert full_path_ref in section`,
-  against `run.py:380`'s `rel_path = str(f.relative_to(repo_path))` rendered at
-  `run.py:311,325`. Parametrized over `ports/payment` and `adapters/email`, so
-  TWO failures. Becomes `f"{Path(subdir) / filename}:{class_line}"`.
-- `skills/survey/scripts/test_survey.py:942-943` — the same shape for
-  `core/domain/aggregate_root.py`. Neither test carries
-  `@requires_tree_sitter`, so the regex fallback keeps both running on Windows.
-
-**Verified safe, do NOT convert:** `test_funnel_report.py:128`
-(`assert "dev/local/audit-results/" in last_line`) and `test_funnel_report.py:243-263`
-(a second, independent copy of the `"/" in token` filter). Both assert against
-`funnel.py:257-258`, which is a hardcoded slash literal with no `Path`
-interpolation and no `"proposal"` token. Converting either introduces a
-Windows-only failure.
-
-`funnel.py` and `run.py` themselves are NOT edited: changing what a report prints
-is a third product surface and is outside this PRD. Only the assertions move.
-
-### Two collection-time hazards the fixtures do not reach
-
-**`os.geteuid()` at module scope aborts Windows collection.** Three decorators
-evaluate it at import time and `os.geteuid` does not exist on Windows:
-`test_write_refusals.py:134`, `test_write_refusals.py:183`,
-`test_docket_refusals.py:351`. Importing either module raises
-`AttributeError: module 'os' has no attribute 'geteuid'`, which is a collection
-ERROR: `uv run --python 3.13 pytest` exits non-zero before running a test in
-those files, and ~30 tests silently leave the Windows collection. **Delete all
-three decorators.** Do not translate them into
-`os.name != "nt" and os.geteuid() == 0` - that is a new platform skip, which the
-PRD forbids. The root case they guard is now `deny_access`'s job: it establishes
-denial by a mechanism that works for root too (the boundary wrapper), so there is
-no host on which the refusal disappears.
-
-**A literal `..\outside\secret.md` filename cannot exist on Windows.**
-`test_dedup_classify.py:367` (`test_read_candidates_skips_a_name_carrying_a_
-windows_style_separator`) writes `memory_dir / "..\\outside\\secret.md"`. On
-POSIX that is one filename with backslashes in it, sitting inside the plane -
-the decoy that a slash-only separator check would wrongly let through. On
-Windows the same expression is a traversal: it resolves to
-`<tmp_path>/outside/secret.md`, `write_text` raises FileNotFoundError, and the
-test errors. Creating the parent directory "to fix it" is worse: the decoy then
-sits OUTSIDE the plane, `assert candidates == [("mullion-01", ...)]` passes with
-nothing to reject, and the rejection check is silently gutted.
-**Rule: the decoy must be planted, on every host, at a real readable file INSIDE
-`memory_dir` whose name a backslash-blind reader would accept**, and the fixture
-asserts that placement before calling `read_candidates`, so a host where the
-spelling is a traversal fails loudly instead of testing nothing. The invariant is
-**containment, not parenthood** — `planted.is_file()` and
-`planted.resolve().is_relative_to(memory_dir.resolve())` — because the POSIX
-decoy is a single filename directly in the plane while the Windows one is nested;
-`planted.parent == memory_dir` would fire on every Windows run, on the host the
-rule exists for. On Windows the name is spelled with the
-separator that is ordinary there for the same purpose (a nested
-`outside/secret.md` created inside the plane, addressed as
-`"outside\\secret"`); the assertion, not the spelling, is what keeps the
-positive control honest.
-
-### `skills/brush/scripts/trash_untracked.py`
-
-One new module-level function, one changed call site, two changed returns:
-
-```python
-def as_git_rel(root: Path, path: Path) -> str:
-    """`path` relative to `root` in Git's slash-form representation.
-
-    On Windows a native separator becomes "/", matching `git ls-files` and the
-    "docs/", "dev/local/", ".git/" prefixes. On POSIX the components are
-    returned untouched, so a backslash that is an ordinary filename character
-    stays one.
+    os.readlink() on a Windows junction/symlink can return the reparse
+    target in extended-length form while the configured `target` path never
+    carries one; without this normalisation two spellings of the same path
+    compare unequal and every create -> check cycle reports drift.
     """
-    return path.relative_to(root).as_posix()
-
-
-def normalise_rel(rel: str) -> str:
-    """`rel` collapsed to slash form with "." and ".." segments resolved."""
-    text = rel.replace("\\", "/") if os.name == "nt" else rel
-    return posixpath.normpath(text)
+    if text.startswith("\\\\?\\UNC\\"):
+        return "\\\\" + text[8:]
+    if text.startswith("\\\\?\\"):
+        return text[4:]
+    return text
 ```
 
-- `veto_reason(...)` line 54: `rel = os.path.normpath(rel)` → `rel = normalise_rel(rel)`.
-  `os.path.normpath` on Windows rewrites "/" to "\\", which is what makes every
-  `PROTECT_PREFIXES` check ("docs/", "dev/local/", ".git/") and every `tracked`
-  set-membership test fail there. The dotdot-collapsing behaviour it provided is
-  preserved by `posixpath.normpath`, and the two dotdot regressions
-  (`test_veto_devlocal_protected_through_a_dotdot_segment`,
-  `test_main_refuses_a_protected_path_spelled_through_dotdot`) keep passing.
-- `veto_reason(...)` line 61: `Path(rel).suffix` → `PurePosixPath(rel).suffix`,
-  and line 63 `Path(rel).name` → `PurePosixPath(rel).name`, so a slash-form `rel`
-  is parsed as slash-form on every host.
-- `main()` line 102: `raw.strip("/")` → `raw.strip("/\\" if os.name == "nt" else "/")`.
-- `main()` line 97: `root = repo_root(Path(args.repo).resolve()).resolve()`.
-  `p` is already `.resolve()`d at line 103 while `root` is not; on Windows the
-  two can differ by 8.3 short name (`C:\Users\RUNNER~1` vs the long form) and
-  `p.is_relative_to(root)` then refuses every legal path.
-- `main()` line 107: `rel = os.path.relpath(p, root)` → `rel = as_git_rel(root, p)`.
-- `relocate(...)` line 78: `return str(dest.relative_to(root))` →
-  `return dest.relative_to(root).as_posix()`.
-
-Unchanged and load-bearing: the escape refusal (`is_relative_to` → `"outside repo"`),
-`PROTECT_SUFFIXES`/`PROTECT_PREFIXES`/`PROTECT_GLOBS` contents, `--min-age-days`,
-the `{"moved": [...], "refused": [...]}` JSON shape, and the four-column
-`date\trule\trel\ttrash_rel` manifest row. The deletion scope does not change.
-
-### `skills/distil-memory/scripts/proposal.py`
-
-`write_proposals(proposals, discards, out_dir) -> Path` keeps its signature,
-its docstring guarantees and its output bytes. Only the publication step changes:
+Applied inside `_resolved()` (`cli.py:113-114`), the single choke point every
+comparison in `_points_to`, `_report_orphan_links`, and `_remove_owned_link`
+already calls through:
 
 ```python
-    out_dir.mkdir(parents=True)          # UNCHANGED: atomic reservation, EEXIST
-    staging = out_dir.parent / f"{out_dir.name}.partial-{os.getpid()}"
-    try:
-        staging.mkdir()
-    except OSError:
-        out_dir.rmdir()
-        raise
+def _resolved(path: Path) -> Path:
+    return Path(_strip_extended_prefix(str(_expand_user(path).resolve(strict=False))))
+```
 
-    reserved = True                      # NEW: do we still own out_dir?
+`_points_to(path, target, platform)` (`cli.py:240`), `_report_orphan_links`
+(`cli.py:442-466`) and `create_directory_link`/`_remove_owned_link` keep their
+existing signatures and call sites; only `_resolved`'s body changes, so every
+identity comparison in the module gets the fix for free.
+
+### `tests/test_braid.py`, `tests/test_braid_check.py` — B1 regression
+
+A new test simulates the Windows extended-path spelling without a real
+Windows host: monkeypatch `os.readlink` to return
+`"\\\\?\\" + str(target)` for a path `create_directory_link` already linked,
+then call `_points_to(path, target, platform="nt")` directly and assert it
+returns `True`. A second case keeps a genuinely different target unequal.
+Existing POSIX-path and real-symlink tests are unchanged.
+
+### `tests/test_braid.py:414` — B2 (test-only; no `cli.py` change)
+
+The actual assertion at line 414 is `assert agent.stat().st_mode & 0o777 == 0o640`
+— it checks the **live `agent` file** (the one `sync_kiro_agent` just replaced
+via `os.replace(temporary, edit.path)`, `cli.py:394`), verifying that
+`shutil.copymode(edit.path, temporary)` (`cli.py:391`) carried the original
+mode onto the *new* file before the replace — not the separate backup copy
+`shutil.copy2` makes at `cli.py:383`, which the test already checks for byte
+identity two lines later (`:417`, unrelated to mode). `shutil.copymode` on
+Windows carries over only the read-only attribute, so the exact `0o777`-masked
+`0o640` comparison is POSIX-only. Fix is entirely in the test, on `agent`, not
+on `backup`:
+
+```python
+if os.name == "nt":
+    assert agent.stat().st_file_attributes & stat.FILE_ATTRIBUTE_READONLY == (
+        before_attrs & stat.FILE_ATTRIBUTE_READONLY)
+else:
+    assert stat.S_IMODE(agent.stat().st_mode) == 0o640
+```
+
+where `before_attrs = agent.stat().st_file_attributes` is captured at the same
+point the test already captures `original = agent.read_bytes()` (`:405`),
+before `enroll()` runs. The existing `backups = ...` / byte-identity block
+(`:416-417`) is untouched — it already covers the backup correctly on both
+hosts.
+
+### `skills/create-prd/scripts/ground_prd.py` — P1, P2
+
+`CITATION_RE` (`ground_prd.py:37-39`) today requires the path segment to be
+`[\w.-]+` repeated, which excludes `:` (drive letters), `\` (Windows
+separators), and a leading `\\` (UNC). A drive-qualified or backslash citation
+like `C:\repo\skills\x.py:12` either fails to match at all, or (worse) a
+mixed-slash citation matches but the regex's own trailing `:\d+` group
+confuses the drive colon with the line-number colon.
+
+```python
+CITATION_RE = re.compile(
+    r"(?<![\w./~-])"
+    r"(?:[A-Za-z]:[\\/]|\\\\[\w.-]+\\[\w.-]+\\|~[\\/]|\\|/)?"   # drive, UNC, ~, or a leading separator
+    r"[\w.-]+(?:[\\/][\w.-]+)*\.[A-Za-z]\w*:\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*"
+)
+```
+
+`check_citations` (`ground_prd.py:91-133`)'s `path, spans = c.token.rsplit(":", 1)`
+stays correct under this regex because the final `:\d+` group is still the
+rightmost colon; a drive colon only ever appears at position 1, never last.
+`Path(path).expanduser()` (`ground_prd.py:103`) already resolves a drive or
+UNC path correctly via `pathlib`; no change needed there. The fixture that
+controls "native home lookup" is the repo-root `isolate_home` fixture, already
+shipped — `test_ground_prd.py`'s new cases use it instead of
+`monkeypatch.setenv("HOME", ...)` alone.
+
+`_rg_hit` (`ground_prd.py:137-146`) builds `--glob` arguments directly from
+`exclude_globs`, which `resolve_symbols` (`ground_prd.py:149-161`) constructs
+with `f"!{rel}"` where `rel` is a plain `Path` — on Windows `str(rel)` is
+backslash-form, and ripgrep's `--glob` always expects slash form. Fix:
+
+```python
+exclude_globs += ["--glob", f"!{rel.as_posix()}"]
+```
+
+### `skills/distil-memory/scripts/docket.py` — D1, D2
+
+D1 — `unpublished()` (`docket.py:203-220`) calls `write._readable_bytes(store / "MEMORY.md")`
+guarded by `.exists()`, but the directory-ness of `store` itself is never
+checked before later code treats it as a file target; on Windows, opening a
+directory for read raises `PermissionError` (errno 13) rather than POSIX's
+`IsADirectoryError` (errno 21), which existing error-message matching doesn't
+recognize. Fix: before the store is used, explicitly classify it:
+
+```python
+if store.is_dir() and not (store / "MEMORY.md").is_file():
+    raise QueueError(f"{store}: directory has no MEMORY.md to publish against")
+```
+
+D2 — `_check_entry` (`docket.py:195-200`)'s `label = repr(entry["id"]) if "id" in entry else ...`
+uses `repr()`, which on a string containing a backslash doubles it
+(`'a\\b'` prints as `"a\\\\b"` in the message), so the message a human or a
+test reads does not show the raw id. Fix: use the id's literal text in the
+diagnostic instead of `repr()`:
+
+```python
+label = f"id {entry['id']!s}" if "id" in entry else f"at position {index}"
+```
+
+(`!s`, not `!r` — the deliberate choice: the id's exact characters appear in
+the message, backslashes included, matching what a Windows-spelled id
+actually contains.)
+
+### `skills/distil-memory/scripts/write.py` — D3
+
+`_atomic_write` (`write.py:31-41`) does `tmp.write_text(data)` for the `str`
+branch with no `newline=` argument, so Python's default universal-newline
+write translates every `\n` to `os.linesep` (`\r\n` on Windows) before the
+atomic rename. The caller's exact bytes are never what lands on disk.
+
+```python
+def _atomic_write(path: Path, data: str | bytes) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
     try:
-        records = _write_proposal_files(proposals, staging)
-        (staging / "proposals.json").write_text(...)   # unchanged
-        (staging / "discards.json").write_text(...)    # unchanged
-        if os.name == "nt":
-            # MoveFileEx(REPLACE_EXISTING) does not accept a directory
-            # destination, so os.replace onto the reservation fails on Windows.
-            # Release the reservation, then rename: a competitor that claims the
-            # name in between makes THIS rename fail, which is the correct
-            # outcome - one winner, and the loser touches nothing it lost.
-            out_dir.rmdir()
-            reserved = False
-            os.rename(staging, out_dir)
+        if isinstance(data, bytes):
+            tmp.write_bytes(data)
         else:
-            os.replace(staging, out_dir)
-            reserved = False
-    except Exception:
-        shutil.rmtree(staging)
-        if reserved:
-            out_dir.rmdir()
+            tmp.write_text(data, newline="")
+        tmp.replace(path)
+    except OSError:
+        tmp.unlink(missing_ok=True)
         raise
-
-    return out_dir
 ```
 
-Guarantees this preserves, each already pinned by a test:
+`newline=""` disables all translation on both read and write, which is what
+every existing CRLF-preservation test already assumes was happening.
 
-| Guarantee | Mechanism after the change |
-|---|---|
-| pre-existing empty OR non-empty destination is refused, `errno == EEXIST`, raised by the syscall (not a `.exists()` probe) | untouched `out_dir.mkdir(parents=True)` |
-| exclusive reservation between competing writers | same mkdir; a second writer never reaches staging |
-| a reader never sees a half-filled `out_dir` | files are only ever written under `staging`; `out_dir` gains content in one rename |
-| failure leaves no directory and no staged sibling | the `except` branch, now ownership-aware |
-| **a failed writer must not remove another writer's directory** | `reserved` is cleared before the Windows rename can fail, so the loser never rmdirs a name it no longer owns |
-| output bytes and JSON schema | `_write_proposal_files` and both `json.dumps(..., indent=2)` calls untouched |
+### `skills/glean/scripts/glean.py` — G1
 
-### `.github/workflows/ci.yml` — `jobs.windows`
+`describe()` (`glean.py:146-165`), line 159:
 
-```yaml
-  windows:
-    runs-on: windows-latest
-    env:
-      PYTHONUTF8: "1"
-    steps:
-      - uses: actions/checkout@v7          # same version as the other jobs
-      - uses: astral-sh/setup-uv@v10.0.1   # same version as the other jobs
-      - name: Install the sweep-fix tool chain   # mise, native Windows build
-      - name: Verify runner capabilities         # named diagnostics, exit 1
-      - name: Run the suite
-        run: uv run --python 3.13 pytest         # unfiltered, no -k, no --deselect
+```python
+for hit in prescreen(f, str(f.relative_to(HOME))):
 ```
 
-The toolchain step must reproduce the Linux job's two OPPOSITE placement rules,
-which are each pinned by a test:
+becomes
 
-- **`rg` ON PATH, and not a mise shim**: copy `mise which rg` to a directory
-  added to `GITHUB_PATH` (the Linux job symlinks; Windows copies).
-- **`ast-grep` OFF PATH, resolvable only through `mise which ast-grep`**: install
-  it with `mise use -g` but never add mise's shim directory to PATH, or
-  `shutil.which("ast-grep")` returns the shim and
-  `test_resolve_ast_grep_matches_mise_which_output` fails on a path mismatch.
-- `mise` itself must be on PATH: two tests assert `shutil.which("mise") is not None`.
-
-The capability step fails loudly, naming what is missing, rather than letting a
-module skip:
-
-```
-python -c "<check>"   # file symlink, directory symlink, bash on PATH,
-                      # mise on PATH, rg on PATH, ast-grep NOT on PATH,
-                      # `mise which ast-grep` resolving
+```python
+for hit in prescreen(f, f.relative_to(HOME).as_posix()):
 ```
 
-Job-presence acceptance stays a set containment, never a count:
-`{'test','shell','lint','node'} <= d['jobs'].keys()` plus
-`d['jobs']['windows']['runs-on'] == 'windows-latest'`.
+`prescreen`'s own `rel: str` parameter (`glean.py:137`) is unchanged; it only
+ever threads `rel` through into the hit dict's `"file"` key, so this is the
+single site that needs the conversion.
+
+### `skills/purge-devtmp/scripts/purge_devtmp.py` — U1, U2
+
+U1 — `path_has_unsafe_characters` (`purge_devtmp.py:137-147`) is unchanged;
+it already runs ahead of any mutation. The failure is in
+`test_purge_devtmp_manifest.py`'s fixture, which tries to materialize a file
+whose name contains an actual tab character — Windows `CreateFile` refuses
+that name outright, so the test errors before the guard is ever exercised.
+Fix: construct the candidate as a `Path` object directly (never touching the
+filesystem with that literal name) and feed it to `path_has_unsafe_characters`
+or to a monkeypatched enumeration function that yields it, so the guard is
+exercised on every host regardless of what the local filesystem will create.
+
+U2 — `empty_old_trash` (`purge_devtmp.py:199-248`)'s manifest rewrite:
+
+```python
+manifest = trash / "manifest.tsv"
+if manifest.is_file():
+    with manifest.open("r", encoding="utf-8", newline="") as handle:
+        text = handle.read()
+    ...
+    text = "".join(f"{line}\n" for line in kept_lines)
+    tmp = manifest.with_name(manifest.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, manifest)
+```
+
+reads with `newline=""` (no translation, so an embedded CR inside a field
+survives as a literal `\r`) but writes with `tmp.write_text(text, encoding="utf-8")`
+(default `newline=None`), which translates every `\n` the read preserved back
+to `os.linesep`. On Windows, a line that already carried a literal `"\r\n"`
+(an untranslated CRLF read from a line this function previously rewrote with
+LF-only logic, or a hand-edited manifest) gets its `\n` turned into `\r\n`
+again, producing `"\r\r\n"` — the duplicated-CR defect. Fix:
+
+```python
+tmp.write_text(text, encoding="utf-8", newline="")
+```
+
+matching the read side exactly; `kept_lines` already join on an explicit
+`"\n"`, so this makes the file's on-disk line ending LF-only and stable under
+repeated rewrites, which is what the regression (below) proves.
+
+### `skills/sweep-fix/scripts/test_sweep_enumerate.py`, `test_sweep_main_setup_errors.py` — S1
+
+No production change: `sweep.py`'s resolver/enumeration code is already
+host-neutral at this point (no `os.geteuid` in production). Both tests
+currently do:
+
+```python
+if os.geteuid() == 0:
+    pytest.skip("root can read a chmod 0o000 file")
+...
+registry.chmod(0o000)
+try:
+    ...
+finally:
+    registry.chmod(0o600)
+```
+
+`os.geteuid` does not exist on Windows, and `chmod(0o000)` denies nothing
+there. Both tests already take `monkeypatch`; add `deny_access` (the
+repo-root `conftest.py` fixture, already shipping) as a fixture parameter and
+replace the block:
+
+```python
+allow = deny_access(registry)
+try:
+    ...
+finally:
+    allow()
+```
+
+`deny_access` establishes denial by the correct per-host mechanism (chmod on
+POSIX, a boundary wrapper on Windows) and raises loudly if it cannot, so the
+`os.geteuid() == 0` root-skip becomes unnecessary — root-as-caller is exactly
+the case `deny_access` is documented to still deny (its POSIX branch is a real
+`chmod`, which root bypasses; this is a pre-existing property of the fixture,
+not something this PRD changes).
+
+### `skills/use-qwen/scripts/test_eval_events.py` — Q1
+
+`_out()` (`test_eval_events.py:84-87`):
+
+```python
+def _out(tmp_path, text=DIAGNOSTICS):
+    path = tmp_path / "out.txt"
+    path.write_text(text, encoding="utf-8")
+    return path
+```
+
+writes with default newline translation. `test_reads_a_missing_transcript_as_unknown_however_noisy_the_capture_is`
+(`:431-442`) asserts `result["final_message_bytes"] == len(capture.encode("utf-8"))`,
+but `events.read_events` (`eval_harness/events.py:28`) measures the real file
+size on disk (`out_path.stat().st_size` or an equivalent read), which on
+Windows is larger than `len(capture.encode("utf-8"))` whenever `capture`
+contains a bare `\n` that got turned into `\r\n` on write. Fix the fixture
+only:
+
+```python
+def _out(tmp_path, text=DIAGNOSTICS):
+    path = tmp_path / "out.txt"
+    path.write_bytes(text.encode("utf-8"))
+    return path
+```
+
+Writing bytes directly makes the file's on-disk size exactly
+`len(text.encode("utf-8"))` on every host, matching the assertion as written.
+No change to `eval_harness/events.py` — it already measures real bytes, which
+is correct; the fixture was lying about what it wrote.
+
+### `skills/use-qwen/scripts/eval_harness_fixtures.py` — Q2, Q3
+
+Q2 — `build_fixture_repo` (`eval_harness_fixtures.py:75-104`) writes
+`impl.write_text(BROKEN_IMPL, encoding="utf-8")` etc. with default newline
+translation, then commits through `_git`. Git's own `core.autocrlf`/
+`.gitattributes` behavior on checkout can re-translate those bytes again, so
+a test that later reads the committed blob and compares it to the in-memory
+constant (`BROKEN_IMPL`, `FIXED_IMPL`, `ORACLE`, `WIDENED_ORACLE`) sees a
+mismatch that is really two independent translations compounding. Fix: write
+every authored fixture file explicitly as bytes with a pinned line ending,
+and when Git conversion specifically needs to be exercised, do so through an
+explicit `.gitattributes`/`core.autocrlf` override scoped to the fixture repo
+rather than relying on whatever the runner's global Git config happens to be:
+
+```python
+impl.write_bytes(BROKEN_IMPL.replace("\n", "\r\n" if change_test is ... else "\n").encode("utf-8"))
+```
+
+(exact LF/CRLF selection is a test-author decision per case — the contract is
+that the fixture **never delegates line-ending choice to text-mode write**.)
+
+Q3 — **correction after review: the `cwd_file`/`_cmd_stub_lines`/`_sh_stub_lines`
+mechanism in `eval_harness_fixtures.py` (`:119-171`) is irrelevant to this
+cause.** Its `cwd_file` parameter is consumed by exactly one caller in the
+whole repo, `test_eval_tree_state.py` (`write_argv_recording_stub(..., cwd_file=cwd_file)`),
+which is an out-of-bounds file this PRD never edits (PRD 00160/archive). None
+of the four files the report names for Q3 (`test_eval_gates.py`,
+`test_run_eval_cli.py`, `test_run_eval_harness.py`,
+`test_run_eval_harness_outcomes.py`) call `write_argv_recording_stub` with a
+`cwd_file` at all.
+
+The real Q3 site is a `pwd -P` test-command segment compared against a
+resolved native `Path`, in two shapes that both need the same fix:
+
+- `test_eval_gates.py`'s own local helpers (`:55-61`): `_append_to(log)`
+  returns the shell segment `f"pwd -P >> {shlex.quote(str(log))}"`, run as
+  part of `raw_test_cmd` inside the attempt's clone; `_resolved(path)` returns
+  `str(path.resolve())`. The cited assertion (`:338`)
+  `assert lines == [_resolved(site.attempt_dir / "baseline-clone") for site in (first, second)]`
+  compares the `pwd -P` capture (MSYS/Git-Bash form, `/c/Users/...`, when the
+  segment runs under Git Bash on Windows) against the native-resolved form
+  (`C:\Users\...`).
+- `eval_harness_run_helpers.py`'s `_cwd_log_segment` (`:110-119`, the same
+  `pwd -P` shape, captured via a small Python one-liner instead of shell
+  redirection) and `_cwds`/`_logged_cwds` (`:302-314`), which `test_run_eval_cli.py:159`,
+  `test_run_eval_harness.py:331`, and `test_run_eval_harness_outcomes.py:186`
+  all import and compare against `str((...).resolve())` the same way.
+
+One conversion point, added to `eval_harness_run_helpers.py` since three of
+the four files already import from it:
+
+```python
+def native_cwd(raw: str) -> str:
+    """`raw`, a `pwd -P` capture (native on POSIX, MSYS/Git-Bash form
+    `/c/...` under Git Bash on Windows), normalised to the native form
+    (`C:\\...` on Windows, unchanged on POSIX)."""
+    if os.name == "nt" and len(raw) > 2 and raw[0] == "/" and raw[2] == "/":
+        return f"{raw[1].upper()}:\\" + raw[3:].replace("/", "\\")
+    return raw
+```
+
+**`_cwds` alone is not enough — `_logged_cwds`'s own prefix filter runs
+first and on the unconverted line.** `_logged_cwds` (`:307-314`) filters
+`log`'s raw lines with `prefix = str(round_.run.resolve()) + os.sep` (native
+form) via `line.startswith(prefix)` *before* handing the survivors to
+`_cwds`; under Git Bash on Windows every genuine line is still in MSYS form
+at that point, so none start with the native prefix and the filter discards
+them all — `_cwds`'s `native_cwd()` call never sees a line to convert. The
+fix has to reach the filter itself, not just `_cwds`:
+
+```python
+def _logged_cwds(round_, log: Path) -> list:
+    prefix = str(round_.run.resolve()) + os.sep
+    msys_prefix = _to_msys(prefix) if os.name == "nt" else None
+    lines = [
+        line for line in log.read_text(encoding="utf-8").splitlines()
+        if line.startswith(prefix) or (msys_prefix and line.startswith(msys_prefix))
+    ]
+    assert len(lines) == len(set(lines)), "two runs of the test command share a stamp"
+    return _cwds(lines)
+```
+
+`_to_msys` is `native_cwd`'s inverse (`C:\a\b` → `/c/a/b`), added alongside
+it in `eval_harness_run_helpers.py` for exactly this filter; `_cwds` keeps
+calling `native_cwd()` on each surviving line so its return value is
+native-form either way. `test_eval_gates.py` has no such prefix filter (its
+`:338` comparison reads every line in `log` directly) — its own `_resolved`
+(`:60-61`) imports `native_cwd` from `eval_harness_run_helpers` and applies it
+to each line before the comparison, as already described above.
+
+### `skills/use-qwen/scripts/eval_harness/report.py`, `test_report.py` — Q7
+
+No production change. `_attempt_block` (`report.py:238-282`) already builds
+`out_path = attempt_dir / _OUT_FILE` (a real `Path` join) and prints
+`"%s"%(out_path)`, which is native-separator-correct by construction.
+`test_captured_output_line_reports_real_byte_sizes_for_out_and_wrapper`
+(`test_report.py:490-504`) builds its expected string by hand:
+
+```python
+expected = "Captured output: %s/out.txt (%d bytes), %s/wrapper.txt (%d bytes)" % (
+    attempt_dir, out_size, attempt_dir, wrapper_size,
+)
+```
+
+concatenating a literal `/out.txt` onto `attempt_dir` (whose `str()` is
+backslash-form on Windows), producing a mixed-separator string that never
+equals what production printed. Fix:
+
+```python
+expected = "Captured output: %s (%d bytes), %s (%d bytes)" % (
+    attempt_dir / "out.txt", out_size, attempt_dir / "wrapper.txt", wrapper_size,
+)
+```
+
+Same fix shape in `test_captured_output_line_reports_wrapper_unavailable_when_the_file_is_absent`
+(`:507-521`): replace `"%s/wrapper.txt (unavailable bytes)" % attempt_dir`
+with `"%s (unavailable bytes)" % (attempt_dir / "wrapper.txt")`.
+
+### `skills/use-qwen/scripts/eval_harness/vetting.py`, `test_run_eval_vet.py` — Q8 (conditional)
+
+`run_checks`'s `measure` closure (`vetting.py:25-39`) derives each warmup
+segment's remaining budget as `left = bound_s - (time.monotonic() - started)`
+(`vetting.py:42-46`), which is correct bookkeeping *if* the elapsed wall time
+the closure measures already includes every cost the segment pays —
+including process/clone startup. The report's hypothesis is that Windows
+process startup (clone creation, `trees.fresh_clone`, subprocess spawn) is
+slow enough that the real test (`test_the_warmup_budget_runs_down_across_every_earlier_segment`,
+`test_run_eval_vet.py:367-383`, a real 2-segment-then-timeout scenario) expires
+during segment two's *setup* rather than its *execution*, which would make the
+accounting look broken when the budget itself is being spent correctly on
+real overhead. **No change to `vetting.py` unless the native Windows run
+demonstrates the deadline arithmetic itself (not process-startup cost) is
+wrong.**
+
+Add a new, host-independent regression that isolates the arithmetic from real
+process cost:
+
+```python
+def test_cumulative_deadline_is_measured_against_the_run_start_not_the_segment_start(monkeypatch):
+    """A deterministic clock seam: each warmup call advances a fake clock by a
+    known amount: the deadline `measure` computes for segment N must equal
+    bound_s minus the sum of every earlier segment's advance, not bound_s
+    minus only the immediately preceding segment."""
+    ...
+```
+
+implemented by monkeypatching `time.monotonic` with a counter the test
+controls, and a `runner.run_segments`/`trees.fresh_clone` stub that returns
+immediately — so the test asserts the `deadline_s` value `measure` computes
+for each call, not real wall-clock behavior. This keeps
+`test_the_warmup_budget_runs_down_across_every_earlier_segment` as the real
+bounded-process check (unchanged), and adds the seam that can actually prove
+or disprove the hypothesis without a hosted run.
 
 ## Data flow
 
-**Brush refusal path.** `--repo` → `repo_root()` (git, resolved) → user path
-`raw` → `(root / raw).resolve()` → escape check against `root` → `as_git_rel()`
-produces the ONE slash-form representation → `normalise_rel()` collapses dotdot
-→ compared against `load_tracked()`'s `git ls-files -z` output (always slash
-form) and against the slash-form protect prefixes → refusal JSON and manifest
-row both carry that same slash-form string. Today the representation forks at
-`os.path.relpath`: the comparison sees `dev\local\x` while git said
-`dev/local/x`, so on Windows a tracked or protected file passes the veto.
+**Braid identity path.** `discover_inventory` → `create_directory_link`
+(symlink or junction) → on a later `check`/`sync` call, `_points_to` re-reads
+the link (`os.readlink`) or, on Windows, the directory's own identity, resolves
+both sides through `_resolved` (now prefix-normalising), and compares. A
+single normalisation point means every caller (`_report_orphan_links`,
+`_remove_owned_link`, the main `_sync_links` loop) gets consistent identity
+for free.
 
-**Publication path.** `funnel.run` builds proposals + discards → `write_proposals`
-reserves `out_dir` by mkdir → writes every file into the `.partial-<pid>` sibling
-→ one rename publishes the whole set → the reservation is released exactly once,
-by whichever branch ran. A reader either sees no directory or sees the complete
-set; it can additionally see an empty reservation, which is unchanged POSIX
-behaviour and, on Windows, briefly sees the name absent between rmdir and rename.
+**Memory store path (D-series).** `funnel.run` (unaffected; PRD 00133's
+boundary) produces proposals → `write.write_proposals` stages then publishes
+(unaffected by this PRD) → `docket.unpublished` cross-checks the published
+store against the kept-decision queue, now classifying a directory-shaped
+store input explicitly (D1) and rendering a malformed id's exact characters
+(D2) → `write._atomic_write` is the single choke point for every byte written
+to the store or the queue file (D3).
 
-**Fixture path.** A test asks `conftest.py` for a capability (`a stub binary`,
-`an isolated home`, `a denied path`, `a resolved-tool run`); the fixture decides
-the host mechanism; the test keeps asserting the same product behaviour on both
-hosts. No test branches on the platform itself.
+**Small-skill reporting path (G1, U1, U2, S1).** Each skill's own CLI builds a
+report or manifest row from a `Path`; G1 and U2 are "the representation a
+report prints" bugs with no behavior change; U1 and S1 are "the test's own
+fixture construction doesn't reach the already-correct guard on this host"
+bugs, fixed entirely in the test.
+
+**Qwen fixture path (Q1-Q3, Q7).** A test asks `eval_harness_fixtures.py` for
+a capability (a git fixture repo, an argv-recording stub, a captured cwd); the
+fixture decides how to represent bytes/paths so the captured artifact is
+byte-and-form-identical to what the production harness (`eval_harness/events.py`,
+`report.py`) will measure or print. No test branches on the platform inside
+the *assertion* — only inside the fixture that produces the input.
 
 ## Reuse inventory
 
-Greps run (`rg` over `skills/`, `tests/`, `scripts/`, `--type py`):
-`chmod\(0`, `symlink_to|os\.symlink`, `os\.pathsep|":".join|os\.sep`,
-`Path\.home|setenv\(.HOME`, `#!/bin|"bash"|/bin/sh`, `write_proposals`,
-`junction|sys\.platform|os\.name`, and - added after dispatch 2 found the class
-the first set could not surface - `assert "[^"]*/[^"]*" in (captured|out|err|report)`
-for path strings asserted against printed output. Each returning grep was
-confirmed by a hit;
-the `rationalizations.md` synonym file is absent on this host, so verb/noun
-synonyms were supplied by hand (`stub`/`fake`/`fixture`, `deny`/`refuse`/`lock`,
-`home`/`profile`, `sep`/`pathsep`/`separator`).
+Greps run (`rg --type py` over `src/`, `skills/`, `tests/`):
+`os\.readlink|_resolved|_points_to` (found the one choke point for B1);
+`chmod\(0|shutil\.copy2` (confirmed B2 is test-only); `rsplit\(":"|CITATION_RE`
+(found P1's regex and its colon-split, confirmed no double-use conflict);
+`--glob|as_posix` (found P2's missing conversion and G1's missing one, by the
+same grep); `repr\(.*id.*\)|os\.strerror|IsADirectoryError` (found D1/D2);
+`write_text\(|newline=` (found D3 and U2 together — both are the same class of
+bug, "text-mode write without `newline=\"\"`"); `os\.geteuid` (found exactly
+the two S1 sites named in the report, confirmed no third site exists:
+`rg -n "os\.geteuid" skills/` returns only those two lines); `f"{.*}/.*"|%s/.*%` in
+`test_*.py` (found Q7's hand-built string).
 
 **Reused, no new code:**
 
-- `src/agent_skills_braid/cli.py:186` `_link_dir(..., platform: str = os.name)` —
-  the injected-platform idiom is already the repo's answer to "test a Windows
-  branch from any host". `tests/test_braid.py:171` uses it. Nothing to add; the
-  junction fallback needs no runner.
-- `skills/sweep-fix/scripts/conftest.py` — the existing conftest proves the
-  fixture-injection route into `skills/*/scripts/` works.
-- `os.pathsep` is ALREADY used correctly at `test_sweep_resolvers.py:51,63,136,148`.
-  Only the three hardcoded `"/usr/bin:/bin"` literals (lines 105, 153, 162) need
-  replacing with a controlled empty directory.
-- `functools.lru_cache` cache-clearing (`sweep.resolve_rg.cache_clear`) already
-  isolates resolver state per test.
-- `PurePath.as_posix()` / `posixpath.normpath` / `ntpath.expanduser` — stdlib
-  covers every path-form conversion; no helper module and no dependency.
-- `PROTECT_*` tuples, `veto_reason`, `relocate`, `note_manifest` — the whole
-  protection ladder is reused as is; only the string form flowing into it changes.
-- `_write_proposal_files`, both `json.dumps` calls, the `.partial-<pid>` staging
-  convention — reused untouched, which is what keeps the output bytes identical.
+- `conftest.py` (repo root) `deny_access`, `isolate_home`, `write_executable_stub`,
+  `run_resolved_tool` — all four fixtures from the already-shipped greenfield
+  work are reused as-is. S1 is a direct `deny_access` consumer; P1's test
+  additions reuse `isolate_home`.
+- `PureWindowsPath`/`PurePosixPath`/`as_posix()` — stdlib covers every
+  path-form conversion needed here (G1, P2); no helper module added.
+- `_resolved()` in `cli.py` is the existing single choke point for identity
+  comparison; B1 extends it rather than touching each of its five call sites.
 
-**Nothing found, greps tried:** a shared cross-skill test-helper package
-(`rg --files -g 'conftest.py'` → one file; `rg -l "import test_helpers"` → none;
-each skill has its own `*_test_helpers.py` and none is imported across skills),
-and any existing Windows CI job (`rg -n "windows" .github/` → none). Both are
-genuinely new.
+**Nothing found, greps tried:** a shared newline-safety helper across skills
+(`rg -l "newline=" skills/` returns scattered individual call sites, no
+shared module — D3 and U2 each get their own one-line fix rather than a new
+shared utility, since the sites are two lines total and a new module would be
+the kind of premature abstraction this closeout should avoid); any existing
+Windows-cwd-normalisation helper for the qwen harness (`rg -n "MSYS|pwd -P"
+skills/use-qwen` finds only the fixture's own stub-generation code) — Q3's
+`native_cwd()` is genuinely new.
 
 ## Alternatives considered
 
-**A. Per-test platform branches, no shared conftest (smallest diff).** Each of
-the seven test files grows its own `if os.name == "nt"`. Smallest structural
-change and nothing new to learn. Rejected: the same four decisions (stub
-extension, home variables, denial mechanism, invocation shape) would be
-re-derived in seven places, and the extension decision in particular has to
-agree with `shutil.which` byte-for-byte or the resolver tests fail confusingly.
-One conftest is ~60 lines against ~7 scattered branches, and it is the only
-option that keeps the *tests* free of platform conditionals.
+**A. Fix B1 by hand-spelling the `\\?\` strip at each of the five call sites
+instead of inside `_resolved()`.** Rejected: `_resolved()` is already the
+single function every comparison goes through; duplicating the strip five
+times is the same mistake the PRD's own fixture design (conftest.py) was built
+to avoid for test code, applied to production code this time.
 
-**B. Chosen: rootdir `conftest.py` + targeted product fixes + a fifth CI job.**
-The extra size over A buys one definition per portability decision, and a
-`grep`-able answer to "how does this suite fake an executable / deny a read".
-It also keeps the two product fixes (`trash_untracked.py`, `proposal.py`)
-strictly separate from the test-portability work, so a reviewer can see that the
-data-protection changes are three lines and a branch, not a refactor.
+**B. Fix Q1/Q2 in production (`events.py`, fixture authoring) by having
+`eval_harness/events.py` normalise `\r\n` to `\n` before counting bytes,
+instead of fixing the test fixtures.** Rejected: the PRD and the prep report
+are explicit that production changes land "only if demonstrated" — Q1 is
+fully explained by a lying test fixture (`_out` claims to write `text` but
+performs translation), so normalising in production would hide a reporting
+discrepancy that is real (translated bytes on disk reported as translated
+bytes) rather than fix anything broken.
 
-**C. Windows job inside the existing `test` matrix (`os: [ubuntu, windows]`).**
-Fewer job definitions. Rejected: the toolchain step differs completely (symlink
-vs copy for `rg`, different mise installer, `GITHUB_PATH` mechanics), so every
-step would carry an `if: runner.os ==` guard, and the Python-version matrix
-(3.10 and 3.13) would silently double into four jobs. The PRD asks for the full
-suite on `windows-latest`, once, at 3.13.
-
-**D. Make publication portable by dropping the mkdir reservation and probing
-`out_dir.exists()` before staging.** Would let a single `os.rename` work on both
-hosts with no branch. Rejected outright: `test_write_proposals_refuses_to_publish_
-over_a_directory_that_already_exists` asserts `excinfo.value.errno == errno.EEXIST`
-and its comment names the check-then-write race as the thing the contract
-forbids. The chosen design keeps the reservation and changes only the release.
+**C. Chosen: minimal, owner-scoped repairs per cause row, test-only where
+the prep report's own diagnosis already proves "fixture lies to itself" and
+production-plus-test where it proves a real portability gap (B1, P1, P2, D1-D3,
+G1, U2).** This keeps every repair inside the file(s) the implementation
+ownership packet assigns, with no shared-module refactor and no behavior
+change to any already-correct code path.
 
 ## Risks & edge cases
 
-- **The hung-search test has no free real-executable stub on Windows.**
-  `test_scan_reports_a_hung_search_as_a_failed_repo_without_blocking`
-  (`test_sweep_scan.py:178`) needs a binary that sleeps regardless of argv, and
-  `sweep._run_rg` reaches it through `executable=`, which CreateProcess refuses
-  for `.cmd`/`.bat`. Copying `python.exe` does not work either: `_run_rg` always
-  passes `--json` first, so the interpreter exits on an unknown option before it
-  can sleep. Producing a real `.exe` needs a compiler. **Decision:** on Windows
-  this ONE test denies at the boundary instead — a wrapped `subprocess.run` that
-  really sleeps and really raises `subprocess.TimeoutExpired` — so the test still
-  runs and still asserts on both hosts (no skip, no xfail), while POSIX keeps the
-  real child process. This is the only place the Windows leg is a simulation, and
-  the implementation must say so in a comment at the call site.
-- **`scripts/test_check_changelog_skills.py` joins `testpaths` and has never run
-  on Windows.** It is the one file the PRD adds to collection without having
-  audited. Reproduce it on the runner before assuming it is portable.
-- **`shutil.which` on Windows prepends the current directory.** The three
-  "nothing resolves" resolver tests must point PATH at a controlled empty
-  directory AND not rely on cwd being clean.
-- **Symlink privileges.** GitHub's `windows-latest` runners execute as
-  administrator, so `os.symlink` succeeds and the real-symlink tests
-  (`test_braid.py:341`, `test_survey.py:336`, `test_purge_devlocal.py:124`,
-  `test_dedup_classify.py:140,425,464`) run for real. That is also exactly why
-  braid's junction fallback will NOT be exercised: the fallback triggers on
-  WinError 5/1314, which an admin never sees. README must keep saying the
-  junction path is stub-tested. If the runner image ever drops admin, the
-  capability step fails loudly instead of the tests quietly skipping.
-- **`deny_access` patches `builtins.open` on Windows.** Filtered delegation keeps
-  every unrelated read working, but a test that denies a path and then triggers
-  pytest internals reading that same path would see the fake. Scope each call to
-  the narrowest possible path.
-- **Likely next changes, and what this boxes in.** (1) More skills adding Python
-  tests: they inherit the Windows gate automatically and must use the conftest
-  fixtures rather than `chmod(0)` — worth an `AGENTS.md` line, though this PRD
-  does not require one. (2) A second Python version on Windows: the job is
-  written for one, and adding a matrix later is a local edit. (3) Someone
-  "simplifying" `normalise_rel` back to `os.path.normpath`: the brush
-  separator regression test is what stops that, so it must assert the slash form
-  explicitly, not just the verdict.
-- **Remote evidence.** Local `master` is 76 commits ahead of `origin/master`.
-  Phase 2's acceptance needs a real Actions run at the changed commit, which
-  requires those commits to reach GitHub. If push or `gh` auth is unavailable,
-  Phase 2 records an execution blocker; it does not weaken the pytest command
-  and does not mark the validation complete.
+- **Q8 is explicitly conditional.** The deterministic-seam regression (new)
+  ships unconditionally; the `vetting.py` production edit ships only if a
+  native Windows run demonstrates the deadline arithmetic itself is wrong,
+  not process-startup cost. A task that "fixes" Q8 without that evidence is
+  out of scope.
+- **B1's fix is a string-prefix strip, not a semantic path resolution.** If a
+  future Windows path form introduces a different extended-prefix spelling
+  (e.g. a long-UNC variant this PRD didn't see in the report), `_strip_extended_prefix`
+  needs a new branch; it does not fail closed, it falls through unchanged.
+- **S1's fix changes test fixtures, not sweep-fix's production resolver.**
+  Nothing here revisits whether sweep-fix itself needs Windows-specific
+  resolver logic; that is out of this PRD's scope per the prep report (S1 is
+  "a denied-read fixture reaches an already-correct code path").
+- **Q2/Q3 depend on this branch's actual `.gitattributes` / Git config at CI
+  time**, which this PRD does not change — only the fixture's own authored
+  bytes and the comparison helper are touched. If the CI runner's global
+  `core.autocrlf` setting changes independently, Q2's fix could need
+  revisiting; the design deliberately avoids depending on that setting by
+  writing bytes explicitly rather than trusting Git to not re-translate.
+- **These are the closeout's last changes before a native Windows run.** Every
+  task's acceptance criterion is a local `uv run pytest <files>` pass; the
+  PRD's Phase 2 is explicit that native Windows evidence is a separate,
+  coordinator-owned step this design does not perform.
 
 ## Test strategy outline
 
-- **Runner**: a YAML assertion that `jobs.windows.runs-on == 'windows-latest'`
-  and that `{'test','shell','lint','node'}` is a subset of `jobs` (set
-  containment, never a job count); a check that the Windows run step is the
-  unfiltered `uv run --python 3.13 pytest` with no `-k`, no `--deselect`, no
-  `continue-on-error`; `uv run pytest --collect-only -q` recorded before and
-  after so the Windows collection can be compared against POSIX rather than
-  against a hardcoded number.
-- **Fixture portability**: no new behaviour to test, so the bar is
-  *collection parity plus preserved assertions* — the same test ids collect on
-  both hosts, no test gains a skip/xfail/deselect marker, and the real resolver,
-  real Bash subprocess, real symlink and denied-read cases keep asserting what
-  they assert today. Existing strict-xfail markers for defects outside this PRD
-  stay; the optional tree-sitter and local-corpus skips stay optional on both.
-- **Brush**: regressions for a tracked nested file, a protected prefix, a dotdot
-  alias, a path with spaces, and a path spelled with the host's native separator,
-  each with a permitted-path positive control so the test cannot pass by refusing
-  everything; plus an assertion that the refusal path string and the manifest
-  path string identify the same file.
-- **Publication**: keep every existing scenario — refuses an existing empty
-  destination, refuses a non-empty one, both with `errno == EEXIST`; competing
-  writers produce exactly one winner and the loser removes nothing of the
-  winner's; an injected write failure leaves neither `out_dir` nor a staged
-  sibling; the reservation is released when staging cannot be built; output bytes
-  and JSON schema unchanged. Tests that assert the POSIX `os.replace`-onto-a-
-  reservation mechanic are re-pointed at the ownership guarantee instead.
-- **Documentation**: a file assertion that README contains `py bin\braid.py` and
-  no doubled-backslash spelling, names full Python coverage on `windows-latest`,
-  keeps the Braid-needs-no-Bash / Bash-backed-tests-need-Git-Bash distinction,
-  and makes no real-junction claim.
-- **Evidence**: the Phase 2 run URL, tested commit, collected test count and every
-  skip/xfail reason recorded in the review evidence.
+- **B1/B2**: a monkeypatched-readlink regression proving extended-prefix
+  identity; a host-appropriate mode/backup-byte assertion. No whole-test skip.
+- **P1/P2**: drive, UNC, and mixed-slash citation parsing; a backslash-spelled
+  exclusion path proving the glob still excludes it. Existing absolute/missing
+  citation behavior unchanged.
+- **D1/D2/D3**: directory-as-store-path refusal naming the path; a
+  backslash/newline-bearing id surviving in the diagnostic message verbatim;
+  CRLF byte-identity across write/rollback/retry, matching the existing
+  atomicity and crash-safety test shapes exactly.
+- **G1**: a nested-file report id compares equal to its slash-form expectation
+  on both hosts.
+- **U1/U2**: the unsafe-character guard fires before any mutation, exercised
+  without requiring the OS to create the hazardous name; a CRLF manifest row
+  survives two rewrites with no byte growth.
+- **S1**: the existing refusal-exit-code assertions pass unchanged, now backed
+  by `deny_access` instead of `chmod`/`geteuid`.
+- **Q1/Q2/Q3**: byte-count assertions hold on both hosts because the fixture
+  now writes exactly what it claims to; cwd comparisons go through one
+  canonical-form conversion.
+- **Q7**: the captured-output line's expected string is Path-joined, matching
+  production's own construction, on both hosts.
+- **Q8**: a new deterministic-clock-seam test proves the deadline arithmetic
+  independent of real process cost; the existing real-timeout test is
+  retained unchanged.
+- **Regression discipline**: every new test fails against the pre-fix code
+  (verified by running it before applying each file's edit) and passes after.
 
 ## Review log
 
-dispatch 1 (claude): cardinal-sin 0, blocker 5, non-blocker 6, question 2
-
-Blockers fixed in the doc: `deny_access` patched `builtins.open` only, which does
-not cover `Path.read_text` (it goes through `io.open`, a separate binding);
-`write_executable_stub`'s hand-spelled return path is not byte-equal to
-`shutil.which` on Windows (%PATHEXT% supplies uppercase extensions);
-`os.geteuid()` at module scope in three files aborts Windows collection;
-`deny_access` had no release affordance, but four tests lift the denial mid-body
-and read back; the literal `..\outside\secret.md` decoy cannot be created on
-Windows and "fixing" it moves the decoy out of the plane.
-
 Recorded, not fixed:
 
-- non-blocker: the publication guarantee table says the competing-writer and
-  "must not remove another writer's directory" rows are "already pinned by a
-  test"; no publication concurrency test exists in the repo. Those two rows need
-  NEW tests, and the table contradicts the Test strategy outline, which already
-  asks for one.
-- non-blocker: on Windows the reservation is exclusive only up to the release -
-  a competitor can `mkdir` in the window between `rmdir` and `rename`. No data
-  is lost (the loser's rename fails and `reserved` is already False), but the
-  design presents the property as preserved rather than genuinely weaker, and
-  `write_proposals`'s docstring still names `os.replace` as the mechanism.
-- non-blocker: the hung-search Windows wrapper must derive its behaviour from
-  the `timeout` kwarg it receives (sleep the full 5s and raise nothing when it
-  is absent). `sweep.scan` catches bare `Exception`, so an unconditional
-  `TimeoutExpired` would keep the Windows leg green after `timeout=` was deleted
-  from `_run_rg`.
-- non-blocker: a fourth hardcoded `"/usr/bin:/bin"` PATH literal lives at
-  `test_sweep_scan.py:163`, outside the three the reuse inventory names. On
-  Windows it is one nonexistent entry, so the test passes for the wrong reason.
-- non-blocker: the Git Bash path conversion is listed as an edit but has no
-  contract in Interfaces, which is the fifth portability decision and the exact
-  thing Alternative A was rejected for scattering. Either give it a fixture or
-  say why it stays local to `test_build.py`.
-- non-blocker: the `windows` job's toolchain and capability steps are comments
-  with no `run:`. `https://mise.run` is a `sh` installer with no Windows
-  equivalent named, and whether the chosen installer puts mise's shims on PATH
-  decides `test_resolve_ast_grep_matches_mise_which_output`.
-- question: the design cites `_link_dir` at `cli.py:186`; the symbol is
-  `create_directory_link` at `cli.py:182`. There is a second
-  `platform: str = os.name` at `cli.py:41` the design does not place.
-- question: `.gitattributes` covers `*.bash`, which matches no file in the repo,
-  and the design says nothing about `git add --renormalize` or about whether the
-  newly collected `scripts/test_check_changelog_skills.py` (which reads the real
-  `CHANGELOG.md`) is line-ending sensitive.
+- non-blocker: D1's stated bug mechanism doesn't line up with the code it
+  cites. `write._readable_bytes` (`write.py:44-58`) already catches `OSError`
+  (which `PermissionError` subclasses) and re-raises as `WriteError` naming
+  the path on every platform; nothing in the cited path does POSIX-specific
+  error-message matching that would fail to recognize a Windows
+  `PermissionError`. D1's real gap is more likely "no regression test yet
+  pins a directory-shaped `MEMORY.md`, and any such test must not hardcode
+  errno/message text" rather than "existing matching doesn't recognize it."
+- question: D1's fix placement relative to the existing
+  `(store / "MEMORY.md").exists()` + `_readable_bytes` call
+  (`docket.py:213-214`) is unstated — does the new directory check replace
+  that block or run ahead of it? If both run, the `exists()`-gated call
+  becomes dead code for the directory case (harmless but redundant).
+
+dispatch 1 (claude): cardinal-sin 0, blocker 0, non-blocker 2, question 1
 
 dispatch 2: codex unavailable, Claude fallback
 
-dispatch 2 (claude-fallback): cardinal-sin 0, blocker 2, non-blocker 5, question 2
-
-`codex-run.sh` exited 0 but wrote only the echoed prompt to its `-o` file: no
-findings, no assistant turn (codex v0.153.4, gpt-5.6-sol, read-only sandbox,
-session `01a079e3`). Unparseable as findings, so the skill's codex-outage rule
-applies and dispatch 2 ran as a fresh Claude reviewer with the identical prompt.
-
-Blockers fixed in the doc: the design dropped the PRD's "compare platform-native
-diagnostics" line entirely, and with it a whole confirmed failure class - tests
-asserting a slash-containing path string against text a product module printed by
-interpolating a `Path` (`test_funnel_main.py:379` against `funnel.py:483`;
-`test_funnel_distil_publication.py:_proposals_paths_named`'s `"/" in token`
-filter, which finds zero tokens on Windows and fails three tests). The reuse
-inventory's grep set could not surface that class at all. Second: the backslash-
-decoy guard `planted.parent == memory_dir` contradicted its own Windows spelling
-(a nested decoy's parent is `memory_dir/outside`), so the mandated guard would
-have fired on every Windows run.
+Blockers fixed in the doc: B2's proposed fix compared the wrong file —
+`backup.stat()` (the `shutil.copy2` copy, already covered by the existing
+byte-identity assertion two lines later) instead of `agent.stat()` (the live
+file `os.replace` just installed, which is what the cited assertion at
+`test_braid.py:414` actually checks, and what `shutil.copymode` carries the
+mode onto). Second: Q3's entire proposed fix targeted
+`eval_harness_fixtures.py`'s `cwd_file`/stub mechanism, whose only consumer
+in the repo is an out-of-bounds file (`test_eval_tree_state.py`, PRD
+00160/archive); none of the four files the prep report names for Q3 use that
+mechanism. The real site is the `pwd -P`-vs-`Path.resolve()` mismatch in
+`test_eval_gates.py`'s local `_append_to`/`_resolved` pair and in
+`eval_harness_run_helpers.py`'s `_cwd_log_segment`/`_cwds`/`_logged_cwds`,
+which three of the four files import.
 
 Recorded, not fixed:
 
-- non-blocker: `deny_access`'s contract is too weak for the two tests that
-  compare the OS's own refusal text (`test_write_refusals.py:155-174` asserts
-  `str(exc)` string identity between two independently raised errors), and
-  "keep their bodies unchanged" is wrong: four in-body `chmod` lifts
-  (`test_write_refusals.py:168,210`, `test_check_links.py:104`,
-  `test_dedup_classify.py:325`) each become an `allow()` call. The wrapper should
-  raise `PermissionError(EACCES, os.strerror(EACCES), os.fspath(path))` so
-  `str(exc)` is identical whichever call site raised it.
-- non-blocker: five root/permission escape hatches exist, not three. Beyond the
-  module-scope `os.geteuid()` decorators there are two in-body
-  `pytest.skip("this user reads a 0o000 file anyway...")` guards
-  (`test_dedup_classify.py:318`, `test_dedup.py:446`) that fire on 100% of
-  Windows runs. They self-heal only if `deny_access` is established BEFORE each
-  guard's probe read; state that ordering.
-- non-blocker: the `deny_access` vector table maps `os.listdir` to
-  `Path.iterdir`, which is true on 3.10 but not on 3.13 (`pathlib/_local.py`
-  uses `os.scandir`). Both versions are in the matrix, so wrap both - but stop
-  attributing one vector to one call.
-- non-blocker: the `testpaths` change has three unstated consequences - the lint
-  job's dedicated `uv run pytest scripts/... -q` step becomes redundant;
-  `scripts/test_check_changelog_skills.py` starts running under 3.10 too; and the
-  new root `conftest.py` is the first portability file inside ruff's scope
-  (`pyproject.toml:32` excludes `skills` and `docs`, not the root).
-- non-blocker: the reuse inventory misses the repo's own precedent -
-  `purge_devlocal.py` already applies `rel.as_posix()` throughout its reporting
-  and manifest surface (lines 199, 268, 367, 422-429), which is why
-  `test_purge_devlocal.py:541` is already Windows-safe. `trash_untracked.py` is
-  the outlier, and `as_git_rel` should be cited as following that convention.
-- question: `shutil.which(name, path=...)` still searches `os.curdir` first on
-  Windows (the insertion is in the `else:` branch), so
-  `write_executable_stub`'s return value could come from the cwd rather than the
-  directory it wrote to; asserting the returned parent would make the contract
-  self-checking.
-- question: `main()`'s added `root = ....resolve()` is a product change with no
-  regression naming it. Either pin it with a short-name/symlinked `--repo`
-  spelling or say plainly it is untested belt-and-braces.
+- non-blocker: B1's Module placement / Interfaces sections name only three of
+  `_resolved()`'s call sites (`_points_to`, `_report_orphan_links`,
+  `create_directory_link`/`_remove_owned_link`); six more exist
+  (`_skills_directory`, `discover_inventory`'s dedup, `select_kiro`'s root
+  comparison, `prepare_kiro_agents`' glob-equivalence set, and two more in
+  settings normalisation). None break under the added prefix strip — it's a
+  no-op on any path without the prefix — but the design's "gets the fix for
+  free" claim would be easier to verify with the complete list.
+- question: P1's "no change needed" claim for `Path(path).expanduser()`
+  (`ground_prd.py:103`) assumes Windows path semantics. A `check_citations`
+  end-to-end regression for a drive/UNC citation, run on a non-Windows dev
+  box where `Path` is `PosixPath`, would flake by host rather than fail
+  cleanly; the design should state that such end-to-end cases are
+  Windows-only (or regex-level-only via `extract_claims`, which is host-safe).
+- question: Q2's illustrative code (`BROKEN_IMPL.replace("\n", "\r\n" if
+  change_test is ... else "\n")`) is a placeholder, not a real rule; the
+  design concedes "exact LF/CRLF selection is a test-author decision per
+  case" without naming what decides it.
 
-Verified sound by dispatch 2 and not re-litigated: the rootdir-`conftest.py`
-premise, checked EMPIRICALLY (a throwaway repo mirroring this layout collected
-`3 passed`: the root conftest reaches `skills/*/scripts/` tests, two same-named
-`conftest` modules coexist with no `ImportPathMismatchError`, bare `import sweep`
-still resolves, `scripts/` collects); `_patch_write_vectors` already patching
-`os.rename` as well as `os.replace`, so the Windows rmdir->rename branch survives
-`_assert_never_built_in_place` unchanged; every existing strict xfail being safe
-from XPASSing on Windows; `create_directory_link`'s junction branch being
-unreachable when `os.symlink` succeeds.
+dispatch 2 (claude-fallback): cardinal-sin 0, blocker 2, non-blocker 1, question 2
 
 dispatch 3: codex unavailable, Claude fallback
 
-dispatch 3 (claude-fallback): cardinal-sin 0, blocker 2, non-blocker 2, question 1
+Verification pass, required because dispatch 2 found blockers. Codex was
+already established as out at dispatch 2 (sandbox denied both its file-reading
+runtimes), so the outage rule applied again rather than burning a second
+silent run.
 
-Verification pass, required because dispatch 2 found blockers. Codex was already
-established as out at dispatch 2 (exit 0, prompt echoed, no assistant turn), so
-the outage rule applied again rather than burning a second silent run.
+Verdicts on dispatch 2's blockers: **B2 FIXED** — confirmed the proposed fix
+now asserts on `agent.stat()` (the file `os.replace` just installed, the one
+`test_braid.py:414`'s existing assertion actually checks), not `backup.stat()`;
+`before_attrs` is captured at the same point the test already captures
+`original = agent.read_bytes()` (`:405`). **Q3 PARTIALLY FIXED** — the
+`test_eval_gates.py` site is correct (no intervening filter between the raw
+`pwd -P` lines and the `:338` comparison), but the first fix missed that
+`_logged_cwds`'s own `startswith(prefix)` filter (`eval_harness_run_helpers.py:307-314`)
+runs on the raw MSYS-form line against a native-form `prefix` *before*
+`_cwds()` gets a chance to call `native_cwd()` — on Windows every genuine
+line fails that filter and `_cwds()` never sees one to convert, so the three
+files that import `_logged_cwds` (`test_run_eval_cli.py`,
+`test_run_eval_harness.py`, `test_run_eval_harness_outcomes.py`) were still
+broken. Fixed in the doc: the filter itself now also matches the MSYS-form
+prefix via a new `_to_msys()` inverse helper, before handing survivors to
+`_cwds()`.
 
-Verdicts on dispatch 2's blockers: **(b) FIXED** - confirmed empirically on 3.10
-and 3.13 that `planted.is_file()` and
-`planted.resolve().is_relative_to(memory_dir.resolve())` both hold for the POSIX
-backslash-named decoy, and that the proposed Windows spelling still trips a
-`/`-only reader (`dedup.py:_MEMORY_NAME` is the only gate that rejects
-`outside\secret`; the containment gate at `dedup.py:115` does not, so the
-positive control survives). **(a) PARTIALLY FIXED** - the rule and both named
-sites verified mechanically (`str(PureWindowsPath("dev/local/audit-results"))`
-is a substring of the interpolated `report_dir`; `os.sep in token` is
-byte-identical on POSIX and correct on Windows), but the site list was
-incomplete.
+No new cardinal sins or blockers introduced by either fix.
 
-Blockers fixed in the doc: `skills/survey/scripts/test_survey.py` carries three
-more instances of the printed-path class (lines 900-901, parametrized over
-`ports/payment` and `adapters/email`, and 942-943), asserting against
-`run.py:380`'s `str(f.relative_to(repo_path))`; the file was absent from Module
-placement entirely, and the doc's own new grep structurally cannot find them
-because the expectation is an f-string bound to a variable and the haystack is
-`section`. Second: `deny_access`'s vectors could not reproduce a denied
-DIRECTORY's probe refusal - `Path.is_file()` goes through `os.stat`, which was
-unwrapped, so on Windows `write.py:172-175`'s probe branch is never entered and
-`test_main_write_refuses_an_update_whose_target_cannot_even_be_probed...` goes
-green while exercising the read-refusal path its sibling already covers. Silent
-coverage loss; `os.stat`/`os.lstat` are now wrapped with a fixture self-check.
+dispatch 3 (claude-fallback): cardinal-sin 0, blocker 0, non-blocker 0, question 0
 
-Also folded in while fixing (a), because both would have been introduced BY the
-fix rather than found by it: `test_funnel_report.py:128` and `:243-263` assert
-against a hardcoded slash literal in `funnel.py:257-258`, so converting them
-introduces a Windows-only failure - they are now named as verified-safe, with
-the discriminator ("the product interpolated a `Path`") stated; and
-`test_funnel_distil_publication.py` has no `import os`, so the token-filter edit
-is not one character.
-
-Recorded, not fixed:
-
-- non-blocker: the vector attributions are version-dependent and the doc had
-  them backwards in places. Measured: on 3.10, patching `io.open` does NOT reach
-  `Path.read_text` (`pathlib.py:286` binds `open = io.open` on `_NormalAccessor`
-  at class-definition time); on 3.13, patching `os.scandir` reaches
-  `Path.iterdir` but NOT `Path.glob` (glob's `_StringGlobber` captures scandir as
-  a staticmethod at class creation). **The boundary wrappers rely on 3.11+
-  call-time lookup, so the Windows job's `--python 3.13` pin is load-bearing, not
-  incidental** - which makes the Risks bullet "(2) A second Python version on
-  Windows ... adding a matrix later is a local edit" FALSE as written. Treat that
-  bullet as corrected here: adding 3.10 to the Windows job would silently no-op
-  every wrapper. `Path.glob` should come off the `os.scandir` row unless
-  `glob._StringGlobber.scandir` is wrapped too.
-- non-blocker: the reuse-inventory grep for the printed-path class should be
-  widened past `assert "..." in captured` to catch f-string expectations bound to
-  a variable, e.g. `rg -n '^\s*[a-z_]+ = f?"[^"]*/[^"]*"' -g 'test_*.py'`.
-
-Verified sound by dispatch 3 and not re-litigated: `_MEMORY_NAME` being the gate
-that makes the Windows decoy spelling still exercise the rejection;
-`write.py`'s `_readable_bytes` / probe split; the four-job `ci.yml` inventory;
-`purge_devlocal.py`'s already-portable reporting surface;
-`test_brush_scripts.py`'s existing dotdot cases.
-
-Checked and found sound by dispatch 1, so not re-litigated: every
-`trash_untracked.py` line citation and the `normalise_rel` behaviour on both
-dotdot regressions; `collect_facts.py:classify_path` already being slash-uniform,
-so scoping the brush fix to `trash_untracked.py` is right; the
-`MOVEFILE_REPLACE_EXISTING`-cannot-take-a-directory premise and the rejection of
-Alternative D against the `errno == EEXIST` assertion; the `ntpath.expanduser`
-rationale for `isolate_home`; the `executable=`/CreateProcess rationale for
-`run_resolved_tool`.
+result: ok

@@ -193,7 +193,7 @@ def advance(new_cursor=None, path=None):
 
 
 def _check_entry(index, entry, path):
-    label = repr(entry["id"]) if "id" in entry else f"at position {index}"
+    label = f"id {entry['id']!s}" if "id" in entry else f"at position {index}"
     if "id" not in entry or "decision" not in entry:
         raise QueueError(f"invalid review queue entry {label} in {path}: id and decision are required")
     if entry["decision"] == "kept" and not isinstance(entry.get("transcript"), str):
@@ -353,6 +353,9 @@ def _save_from_proposals_dir(proposals_dir: Path, path=None) -> int:
 def _decide_verb(args) -> int:
     file_text = None
     if args.file:
+        if Path(args.file).is_dir():
+            print(f"cannot read the note file {args.file}: is a directory", file=sys.stderr)
+            return 1
         try:
             file_text = Path(args.file).read_text()
         except (OSError, UnicodeDecodeError) as exc:
