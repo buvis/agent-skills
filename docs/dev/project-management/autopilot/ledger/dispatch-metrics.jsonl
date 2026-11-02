@@ -3209,3 +3209,17 @@
 {"id":"c292f3ad","ended_at":1793613050,"elapsed_s":169,"outcome":"ok","detail":"closed-by: commit 980e49134d9330680af2da801e68ae3ef2dc66a8"}
 {"id":"2ce29035","ended_at":1793613050,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793613050,"phase":"build","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793613062,"phase":"build","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"id":"db9eca95","kind":"devon","task":"6","queued_at":1793613208,"prompt_bytes":7381}
+{"id":"db9eca95","ended_at":1793613445,"elapsed_s":237,"outcome":"ok","detail":null}
+{"id":"6041ca60","kind":"tess","task":"6","queued_at":1793613512,"prompt_bytes":9906}
+{"id":"6041ca60","ended_at":1793613751,"elapsed_s":239,"outcome":"ok","detail":null}
+{"id":"38f6b908","kind":"ivan","task":"6","queued_at":1793613854,"prompt_bytes":43846}
+{"id":"38f6b908","ended_at":1793613922,"elapsed_s":68,"outcome":"ok","detail":null}
+{"id":"f234ac2f","kind":"ivan","task":"7","queued_at":1793614294,"prompt_bytes":6431}
+{"id":"f234ac2f","ended_at":1793614392,"elapsed_s":98,"outcome":"ok","detail":null}
+{"id":"623c2a9c","kind":"ivan","task":"8","queued_at":1793614567,"prompt_bytes":7694}
+{"id":"623c2a9c","ended_at":1793614655,"elapsed_s":88,"outcome":"ok","detail":null}
+{"id":"8a91e69f","kind":"ivan","task":"4","queued_at":1793615340,"prompt_bytes":28376}
+{"id":"8a91e69f","ended_at":1793615450,"elapsed_s":110,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793617329,"phase":"review","prd":"00162-template-archive-breaks-on-windows-v1.md"}
