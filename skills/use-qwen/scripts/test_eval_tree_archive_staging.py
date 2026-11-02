@@ -331,6 +331,47 @@ def test_build_template_injected_seal_failure_leaves_no_dest_and_siblings_untouc
     assert _names(tmp_path) == present, "something was left beside dest"
 
 
+def test_build_template_cleanup_leaves_no_readonly_staging_survives(tmp_path, built_repo, monkeypatch):
+    # Windows refuses to delete a read-only file (Git's own objects are written
+    # read-only); refusing it here the same way makes the check host-independent.
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    dest = tmp_path / "template"
+    siblings = _lay_siblings(tmp_path)
+    before = _states(siblings)
+    _serve_archive(monkeypatch, _crafted_tar(MEMBERS))
+    error = subprocess.CalledProcessError(128, ["git"], stderr="injected failure")
+    reached = _fail_seal_step(monkeypatch, "commit", error)
+    failing_git = trees._git
+
+    def mark_readonly_then_fail(root, *args, **kwargs):
+        if _subcommand(args) == "commit":
+            os.chmod(Path(root) / "pkg" / "a.txt", stat.S_IREAD)
+        return failing_git(root, *args, **kwargs)
+
+    monkeypatch.setattr(trees, "_git", mark_readonly_then_fail)
+    refused = []
+    real_unlink = os.unlink
+
+    def unlink(path, *args, dir_fd=None, **kwargs):
+        if not os.lstat(path, dir_fd=dir_fd).st_mode & stat.S_IWUSR:
+            refused.append(os.fsdecode(path))
+            raise PermissionError(errno.EACCES, "read-only file refused deletion", path)
+        return real_unlink(path, *args, dir_fd=dir_fd, **kwargs)
+
+    monkeypatch.setattr(os, "unlink", unlink)
+
+    with pytest.raises((type(error), trees.TreeError)):
+        trees.build_template(repo, first, dest)
+
+    assert reached == ["commit"], "the seal never reached the injected commit failure"
+    assert refused, "no read-only file inside staging was ever refused deletion"
+    left = sorted(name for name in _names(tmp_path) if name.startswith("template.staging-"))
+    assert left == [], f"staging was left behind when read-only files refused deletion: {left}"
+    assert _state(dest) == ("absent",), "a half-sealed template was left at dest"
+    assert _states(siblings) == before
+
+
 # Written by a build that then runs out of space: none of it may reach the next.
 DOOMED = [
     ("left", DIRECTORY),
