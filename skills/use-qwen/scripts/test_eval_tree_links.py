@@ -518,7 +518,91 @@ def test_build_template_s_compatibility_path_seals_a_safe_tree_regardless_of_the
     assert (dest / "escape" / "secret.txt").read_bytes() == b"pwned\n"
 
 
+# -- symlink typing ----------------------------------------------------------
+
+# On Windows a symlink's file/directory type is fixed when it is created, and
+# CPython types it as a directory only if told so or if the target already
+# exists as one. These spy on what the code asks `os.symlink` for, so they
+# catch a wrong type on every host, not only where the type is enforced.
+
+
+def _record_symlinks(monkeypatch) -> list:
+    """Spy on `os.symlink`: every call's (link name, target text, type flag)."""
+    calls = []
+    real = os.symlink
+
+    def spy(target, path, target_is_directory=False, **kwargs):
+        calls.append((Path(path).name, os.fspath(target), target_is_directory))
+        real(target, path, target_is_directory=target_is_directory, **kwargs)
+
+    monkeypatch.setattr(os, "symlink", spy)
+    return calls
+
+
+def _calls_for(calls: list, name: str) -> list:
+    return [call for call in calls if call[0] == name]
+
+
+@NEEDS_SYMLINKS
+def test_build_template_types_a_link_as_a_directory_whatever_its_symlink_order(
+    tmp_path, built_repo, monkeypatch
+):
+    # The link sorts before the directory it names: laid in member order, the
+    # target does not exist yet when the link is made.
+    _hide_data_filter(monkeypatch)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    members = [("pkg-link", ("sym", "pkg")), ("pkg", DIRECTORY), ("pkg/secret.txt", PAYLOAD)]
+    _serve_archive(monkeypatch, _crafted_tar(members))
+    calls = _record_symlinks(monkeypatch)
+    dest = tmp_path / "template"
+
+    trees.build_template(repo, first, dest)
+
+    assert _calls_for(calls, "pkg-link") == [("pkg-link", "pkg", True)]
+    assert (dest / "pkg-link" / "secret.txt").read_bytes() == b"pwned\n"
+
+
+@NEEDS_SYMLINKS
+def test_build_template_types_a_link_chain_through_directory_as_a_directory(
+    tmp_path, built_repo, monkeypatch
+):
+    # `a -> b -> c`, `c` a directory, both links ahead of it and `a` ahead of
+    # `b`: a landing worked out from `a`'s own text alone sees `b`, not a
+    # directory, and types `a` as a file.
+    _hide_data_filter(monkeypatch)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    members = [("a", ("sym", "b")), ("b", ("sym", "c")), ("c", DIRECTORY)]
+    _serve_archive(monkeypatch, _crafted_tar(members))
+    calls = _record_symlinks(monkeypatch)
+    dest = tmp_path / "template"
+
+    trees.build_template(repo, first, dest)
+
+    assert _calls_for(calls, "a") == [("a", "b", True)]
+    assert _calls_for(calls, "b") == [("b", "c", True)]
+    assert (dest / "a").is_dir()
+
+
 # -- fresh_clone -----------------------------------------------------------
+
+
+@NEEDS_SYMLINKS
+def test_fresh_clone_links_typed_as_a_directory_where_the_template_s_target_is_one(
+    tmp_path, monkeypatch
+):
+    template = _template_on_disk(tmp_path)
+    _lay_links(template, {"pkg-link": "pkg"})
+    calls = _record_symlinks(monkeypatch)
+    dest = tmp_path / "clone"
+
+    trees.fresh_clone(template, dest)
+
+    # The clone asks for the type itself, from the template's own layout,
+    # rather than leaving it to whatever exists at the moment of the copy.
+    assert _calls_for(calls, "pkg-link") == [("pkg-link", "pkg", True)]
+    assert (dest / "pkg-link" / "nested.txt").read_bytes() == b"nested\n"
 
 
 @NEEDS_SYMLINKS
