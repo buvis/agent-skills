@@ -3227,3 +3227,17 @@
 {"id":"cda7635f","kind":"ivan","task":"1","queued_at":1793655151,"prompt_bytes":43552}
 {"id":"cda7635f","ended_at":1793655260,"elapsed_s":109,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793655491,"phase":"build","prd":"00164-clone-links-and-disk-mode-check-on-windows-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793655515,"phase":"build","prd":"00164-clone-links-and-disk-mode-check-on-windows-v1.md"}
+{"id":"974f89da","kind":"ivan","task":"2","queued_at":1793655761,"prompt_bytes":45327}
+{"id":"974f89da","ended_at":1793655821,"elapsed_s":60,"outcome":"killed","detail":"redispatch: abbreviated prompt deviated from rendered file"}
+{"id":"eaf76dd2","kind":"ivan","task":"2","queued_at":1793655835,"prompt_bytes":45327}
+{"id":"eaf76dd2","ended_at":1793656022,"elapsed_s":187,"outcome":"ok","detail":null}
+{"id":"f4e27b8d","kind":"pat","task":"2","queued_at":1793656210,"prompt_bytes":9362}
+{"id":"f4e27b8d","ended_at":1793656226,"elapsed_s":16,"outcome":"ok","detail":null}
+{"id":"2edd427b","kind":"devon","task":"2","queued_at":1793656346,"prompt_bytes":5146}
+{"id":"2edd427b","ended_at":1793656477,"elapsed_s":131,"outcome":"ok","detail":null}
+{"id":"3d0d87e1","kind":"tess","task":"2","queued_at":1793656597,"prompt_bytes":11981}
+{"id":"3d0d87e1","ended_at":1793656719,"elapsed_s":122,"outcome":"ok","detail":null}
+{"id":"1dc59e2b","kind":"pat","task":"2","queued_at":1793656830,"prompt_bytes":2717}
+{"id":"1dc59e2b","ended_at":1793656845,"elapsed_s":15,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793656943,"phase":"build","prd":"00164-clone-links-and-disk-mode-check-on-windows-v1.md"}
