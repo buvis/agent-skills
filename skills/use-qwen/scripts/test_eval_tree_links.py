@@ -769,10 +769,18 @@ def test_fresh_clone_writes_chain_link_text_in_host_separator_form(
 
     trees.fresh_clone(template, dest)
 
-    assert {name: target for name, target, _ in calls} == {
-        name: _host_form(target) for name, target in links.items()
-    }
+    # Exactly one call per link, typed from the template, text in host form:
+    # no extra link planted anywhere, none typed wrong.
+    assert sorted(calls) == sorted(
+        [("alias", ".", True), ("same", _host_form("alias/calc.py"), False)]
+    )
+    for name in links:
+        assert (dest / name).is_symlink(), name
+    assert os.readlink(dest / "same") == _host_form("alias/calc.py")
     assert (dest / "same").read_bytes() == b"inside\n"
+    # The rest of the template survives the clone.
+    assert (dest / "calc.py").read_bytes() == b"inside\n"
+    assert (dest / "pkg" / "nested.txt").read_bytes() == b"nested\n"
 
 
 @NEEDS_SYMLINKS
