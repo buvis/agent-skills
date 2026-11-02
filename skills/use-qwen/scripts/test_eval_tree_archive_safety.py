@@ -588,9 +588,22 @@ def test_control_build_template_keeps_the_executable_bit_and_only_where_it_was_s
         assert (dest / path).read_bytes() == data, path
 
 
+# Executable or not by the user's bit alone, at the root and in two
+# directories: user-only (0o744), group-wide (0o775), owner-only (0o700), and
+# group or other set without the user's (0o654, 0o645), which stay 100644.
+EXEC_NAMES = [
+    "bin/run", "launch", "tools/build", "tools/private",
+    "bin/tool.sh", "bin/README", "notes", "tools/data",
+]
+EXEC_MODES = [0o755, 0o744, 0o775, 0o700, 0o644, 0o645, 0o654, 0o600]
+
+
 @SEAMS
+@pytest.mark.parametrize(
+    "modes", [EXEC_MODES, EXEC_MODES[::-1]], ids=["modes-as-listed", "modes-reversed"]
+)
 def test_executable_bit_survives_a_seal_where_git_ignores_the_filesystem_mode(
-    tmp_path, built_repo, monkeypatch, filter_support
+    tmp_path, built_repo, monkeypatch, filter_support, modes
 ):
     # Git for Windows sets core.filemode=false: `git add -A` then records every
     # new file as 100644, whatever landed on disk. The sealed mode must come
@@ -598,18 +611,34 @@ def test_executable_bit_survives_a_seal_where_git_ignores_the_filesystem_mode(
     monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
     monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.filemode")
     monkeypatch.setenv("GIT_CONFIG_VALUE_0", "false")
-    files = {
-        "bin/run": (b"#!/bin/sh\necho run\n", 0o755),
-        "bin/README": (b"read me\n", 0o644),
-    }
+    # Reversing the modes flips every name between executable and not, so a
+    # list of names known to be executable gets one of the two cases wrong.
+    files = dict(zip(EXEC_NAMES, modes))
     bundle = _appended(
-        [("bin", DIRECTORY)],
-        [_file(path, data, mode) for path, (data, mode) in files.items()],
+        [("bin", DIRECTORY), ("tools", DIRECTORY)],
+        [_file(path, b"#!/bin/sh\necho %s\n" % path.encode(), mode) for path, mode in files.items()],
     )
+    # Right before `git add`, the staging disk is made to say the opposite of
+    # the archive for every file, so a mode read off the disk is wrong both ways.
+    real_git = trees._git
+    disk_inverted = []
+
+    def git_after_inverting_the_disk(cwd, *args, **kwargs):
+        if "add" in args:
+            for path, mode in files.items():
+                os.chmod(Path(cwd) / path, 0o644 if mode & stat.S_IXUSR else 0o755)
+            disk_inverted.append(cwd)
+        return real_git(cwd, *args, **kwargs)
+
+    monkeypatch.setattr(trees, "_git", git_after_inverting_the_disk)
 
     dest = _seal_control(tmp_path, built_repo, monkeypatch, filter_support, bundle)
 
-    assert _sealed_modes(dest) == {"bin/run": "100755", "bin/README": "100644"}
+    # Only the user's exec bit decides: group or other alone is not executable.
+    assert _sealed_modes(dest) == {
+        path: "100755" if mode & stat.S_IXUSR else "100644" for path, mode in files.items()
+    }
+    assert disk_inverted, "the staging disk was never inverted before `git add`"
 
 
 # Links that stay inside the tree, by kind. A dangling link names a path the
