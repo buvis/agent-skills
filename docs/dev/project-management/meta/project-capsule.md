@@ -100,8 +100,8 @@ Generated: 2026-11-02 (closeout/archive-windows worktree — PRD 00162 catchup)
 
 ## Related context
 
-- No topic query this session: `wip/` holds two PRDs (00133, 00160), so the
-  single-PRD topic rule does not apply, and `engram` was skipped by
+- No topic query this session: `wip/` holds three PRDs (00133, 00160, 00162),
+  so the single-PRD topic rule does not apply, and `engram` was skipped by
   `catchup-probe` for this run regardless. Prior-session related context
   (below) is unchanged from the last query that ran it.
 - `prds/wip/00133-transcript-judge-inherits-tools-v1.md:7` — score 0.0328;

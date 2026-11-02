@@ -3181,3 +3181,31 @@
 {"id":"c38037e5","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793565655,"phase":"build","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793566326,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793610213,"phase":"build","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"id":"838fa72c","kind":"ivan","task":"1","queued_at":1793610581,"prompt_bytes":26609}
+{"id":"838fa72c","ended_at":1793610648,"elapsed_s":67,"outcome":"ok","detail":null}
+{"id":"139b9cea","kind":"ivan","task":"1","queued_at":1793610749,"prompt_bytes":24442}
+{"id":"139b9cea","ended_at":1793610795,"elapsed_s":46,"outcome":"ok","detail":"false positive: bare_ci is a pytest fixture, import kept"}
+{"id":"50daaa55","kind":"ivan","task":"2","queued_at":1793610902,"prompt_bytes":27755}
+{"id":"50daaa55","ended_at":1793611008,"elapsed_s":106,"outcome":"ok","detail":null}
+{"id":"cf99ecbb","kind":"ivan","task":"2","queued_at":1793611061,"prompt_bytes":24424}
+{"id":"cf99ecbb","ended_at":1793611101,"elapsed_s":40,"outcome":"ok","detail":"false positive: bare_ci is a pytest fixture, import kept"}
+{"id":"9f8e1cb3","kind":"ivan","task":"3","queued_at":1793611149,"prompt_bytes":26582}
+{"id":"9f8e1cb3","ended_at":1793611238,"elapsed_s":89,"outcome":"ok","detail":null}
+{"id":"4d69009f","kind":"devon","task":"4","queued_at":1793611405,"prompt_bytes":4982}
+{"id":"4d69009f","ended_at":1793611632,"elapsed_s":227,"outcome":"ok","detail":"found 7 exploits; wiring bug found: getmembers() must be captured inside the tarfile 'with' block"}
+{"id":"3047716c","kind":"ivan","task":"1","queued_at":1793611703,"prompt_bytes":28139}
+{"id":"3047716c","ended_at":1793611843,"elapsed_s":140,"outcome":"ok","detail":null}
+{"id":"c292f3ad","kind":"ivan","task":"4","queued_at":1793611892,"prompt_bytes":56234}
+{"id":"8d933f4d","kind":"ivan","task":"4","queued_at":1793611961,"prompt_bytes":32312}
+{"id":"8d933f4d","ended_at":1793612042,"elapsed_s":81,"outcome":"ok","detail":null}
+{"id":"2ce29035","kind":"pat","task":"4","queued_at":1793612161,"prompt_bytes":13415}
+{"id":"548a7a4e","kind":"devon","task":"5","queued_at":1793612376,"prompt_bytes":7271}
+{"id":"548a7a4e","ended_at":1793612498,"elapsed_s":122,"outcome":"ok","detail":"found 5 exploits across 3 tests"}
+{"id":"0048591a","kind":"ivan","task":"2","queued_at":1793612524,"prompt_bytes":28433}
+{"id":"0048591a","ended_at":1793612700,"elapsed_s":176,"outcome":"ok","detail":null}
+{"id":"6cdcf98a","kind":"ivan","task":"5","queued_at":1793612796,"prompt_bytes":31687}
+{"id":"6cdcf98a","ended_at":1793612896,"elapsed_s":100,"outcome":"ok","detail":null}
+{"id":"c292f3ad","ended_at":1793613050,"elapsed_s":169,"outcome":"ok","detail":"closed-by: commit 980e49134d9330680af2da801e68ae3ef2dc66a8"}
+{"id":"2ce29035","ended_at":1793613050,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793613050,"phase":"build","prd":"00162-template-archive-breaks-on-windows-v1.md"}
