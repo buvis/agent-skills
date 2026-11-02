@@ -331,16 +331,8 @@ def test_build_template_injected_seal_failure_leaves_no_dest_and_siblings_untouc
     assert _names(tmp_path) == present, "something was left beside dest"
 
 
-def test_build_template_cleanup_leaves_no_readonly_staging_survives(tmp_path, built_repo, monkeypatch):
-    # Windows refuses to delete a read-only file (Git's own objects are written
-    # read-only); refusing it here the same way makes the check host-independent.
-    repo = Path(built_repo["repo"])
-    first = _task_start_commit(repo)
-    dest = tmp_path / "template"
-    siblings = _lay_siblings(tmp_path)
-    before = _states(siblings)
-    _serve_archive(monkeypatch, _crafted_tar(MEMBERS))
-    error = subprocess.CalledProcessError(128, ["git"], stderr="injected failure")
+def _fail_commit_with_a_readonly_file(monkeypatch, error: BaseException) -> list:
+    """Mark staging's `pkg/a.txt` read-only, then fail the seal's commit with `error`."""
     reached = _fail_seal_step(monkeypatch, "commit", error)
     failing_git = trees._git
 
@@ -350,24 +342,106 @@ def test_build_template_cleanup_leaves_no_readonly_staging_survives(tmp_path, bu
         return failing_git(root, *args, **kwargs)
 
     monkeypatch.setattr(trees, "_git", mark_readonly_then_fail)
+    return reached
+
+
+def _refuse_readonly_deletion(monkeypatch, never_lifts: bool = False) -> list:
+    """Refuse to delete a read-only file, the way Windows does, on every host.
+
+    Both `os.unlink` and `os.remove` refuse (`Path.unlink` goes through
+    `os.unlink`). With `never_lifts`, a name once refused stays refused even
+    after its read-only bit is cleared. Returns each refused name.
+    """
     refused = []
     real_unlink = os.unlink
 
     def unlink(path, *args, dir_fd=None, **kwargs):
-        if not os.lstat(path, dir_fd=dir_fd).st_mode & stat.S_IWUSR:
-            refused.append(os.fsdecode(path))
+        name = os.path.basename(os.fsdecode(path))
+        readonly = not os.lstat(path, dir_fd=dir_fd).st_mode & stat.S_IWUSR
+        if readonly or (never_lifts and name in refused):
+            refused.append(name)
             raise PermissionError(errno.EACCES, "read-only file refused deletion", path)
         return real_unlink(path, *args, dir_fd=dir_fd, **kwargs)
 
     monkeypatch.setattr(os, "unlink", unlink)
+    monkeypatch.setattr(os, "remove", unlink)
+    return refused
 
-    with pytest.raises((type(error), trees.TreeError)):
+
+def _chain(exc: BaseException) -> list:
+    """`exc` and every exception it was raised from or while handling."""
+    seen = []
+    while exc is not None and exc not in seen:
+        seen.append(exc)
+        exc = exc.__cause__ or exc.__context__
+    return seen
+
+
+def _make_deletable(root: Path) -> None:
+    """Give back every staging entry a failed cleanup left unreadable or read-only."""
+    for staging in root.glob("template.staging-*"):
+        os.chmod(staging, stat.S_IRWXU)
+        for parent, directories, files in os.walk(staging):
+            for name in directories:
+                os.chmod(os.path.join(parent, name), stat.S_IRWXU)
+            for name in files:
+                os.chmod(os.path.join(parent, name), stat.S_IRUSR | stat.S_IWUSR)
+
+
+def test_build_template_cleanup_leaves_no_readonly_staging_survives(tmp_path, built_repo, monkeypatch):
+    # Windows refuses to delete a read-only file (Git's own objects are written
+    # read-only); refusing it here the same way makes the check host-independent.
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    dest = tmp_path / "template"
+    siblings = _lay_siblings(tmp_path)
+    before = _states(siblings)
+    present = _names(tmp_path)
+    _serve_archive(monkeypatch, _crafted_tar(MEMBERS))
+    error = subprocess.CalledProcessError(128, ["git"], stderr="injected failure")
+    reached = _fail_commit_with_a_readonly_file(monkeypatch, error)
+    refused = _refuse_readonly_deletion(monkeypatch)
+
+    with pytest.raises((type(error), trees.TreeError)) as excinfo:
         trees.build_template(repo, first, dest)
 
+    assert excinfo.value is error or excinfo.value.__cause__ is error, "the injected failure was replaced"
     assert reached == ["commit"], "the seal never reached the injected commit failure"
     assert refused, "no read-only file inside staging was ever refused deletion"
-    left = sorted(name for name in _names(tmp_path) if name.startswith("template.staging-"))
-    assert left == [], f"staging was left behind when read-only files refused deletion: {left}"
+    assert _names(tmp_path) == present, "staging was left behind when read-only files refused deletion"
+    assert _state(dest) == ("absent",), "a half-sealed template was left at dest"
+    assert _states(siblings) == before
+
+
+def test_build_template_cleanup_failure_that_never_lifts_readonly_staging_survives_surfaces(
+    tmp_path, built_repo, monkeypatch, request
+):
+    # The refusal outlasts clearing the read-only bit: the cleanup cannot
+    # succeed, and its own failure must reach the caller, chained to the
+    # injected one, rather than vanish.
+    request.addfinalizer(lambda: _make_deletable(tmp_path))
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    dest = tmp_path / "template"
+    siblings = _lay_siblings(tmp_path)
+    before = _states(siblings)
+    _serve_archive(monkeypatch, _crafted_tar(MEMBERS))
+    error = subprocess.CalledProcessError(128, ["git"], stderr="injected failure")
+    reached = _fail_commit_with_a_readonly_file(monkeypatch, error)
+    refused = _refuse_readonly_deletion(monkeypatch, never_lifts=True)
+
+    with pytest.raises(BaseException) as excinfo:
+        trees.build_template(repo, first, dest)
+
+    chain = _chain(excinfo.value)
+    assert reached == ["commit"], "the seal never reached the injected commit failure"
+    # Git's own objects are read-only too, so the first refusal may be one of them.
+    retried = {name for name in refused if refused.count(name) >= 2}
+    assert retried, f"no refused read-only file was ever retried: {refused}"
+    # Which path the surfacing error names is shutil's business: it rewrites it.
+    cleanup_failed = any(isinstance(exc, PermissionError) for exc in chain)
+    assert cleanup_failed, f"the cleanup's own failure vanished: {chain!r}"
+    assert any(exc is error for exc in chain), f"the injected failure was lost: {chain!r}"
     assert _state(dest) == ("absent",), "a half-sealed template was left at dest"
     assert _states(siblings) == before
 
