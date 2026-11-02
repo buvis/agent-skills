@@ -756,6 +756,26 @@ def test_fresh_clone_links_typed_as_a_directory_where_the_template_s_target_is_o
 
 
 @NEEDS_SYMLINKS
+def test_fresh_clone_writes_chain_link_text_in_host_separator_form(
+    tmp_path, monkeypatch
+):
+    # `same`'s text holds a `/`: on Windows a link written with `/` does not
+    # resolve through the chain, so the clone must spell it for the host.
+    template = _template_on_disk(tmp_path)
+    links = {"alias": ".", "same": "alias/calc.py"}
+    _lay_links(template, links)
+    calls = _record_symlinks(monkeypatch)
+    dest = tmp_path / "clone"
+
+    trees.fresh_clone(template, dest)
+
+    assert {name: target for name, target, _ in calls} == {
+        name: _host_form(target) for name, target in links.items()
+    }
+    assert (dest / "same").read_bytes() == b"inside\n"
+
+
+@NEEDS_SYMLINKS
 @pytest.mark.parametrize("links", ESCAPING_CHAINS)
 def test_fresh_clone_refuses_a_link_chain_that_resolves_outside_the_template(
     tmp_path, links
