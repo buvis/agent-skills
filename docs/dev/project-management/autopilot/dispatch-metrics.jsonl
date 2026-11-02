@@ -3223,3 +3223,7 @@
 {"id":"8a91e69f","kind":"ivan","task":"4","queued_at":1793615340,"prompt_bytes":28376}
 {"id":"8a91e69f","ended_at":1793615450,"elapsed_s":110,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793617329,"phase":"review","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793654494,"phase":"build","prd":"00164-clone-links-and-disk-mode-check-on-windows-v1.md"}
+{"id":"cda7635f","kind":"ivan","task":"1","queued_at":1793655151,"prompt_bytes":43552}
+{"id":"cda7635f","ended_at":1793655260,"elapsed_s":109,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793655491,"phase":"build","prd":"00164-clone-links-and-disk-mode-check-on-windows-v1.md"}
