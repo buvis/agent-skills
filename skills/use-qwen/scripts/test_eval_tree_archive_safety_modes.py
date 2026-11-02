@@ -24,7 +24,7 @@ from test_eval_tree_links import (
     bare_ci,
     built_repo,
 )
-from test_eval_tree_archive_safety import SEAMS, _appended, _select_seam, _snapshot
+from test_eval_tree_archive_safety import SEAMS, _appended, _sealed_modes, _select_seam, _snapshot
 
 
 def _owned_file(mode: int, uid: int, owner: str, name: str = "pkg/tool") -> tarfile.TarInfo:
@@ -83,13 +83,16 @@ ELSEWHERE = "bin/x/y"
 def _assert_no_special_bit_or_foreign_owner_landed(dest: Path) -> None:
     for name in ("pkg/tool", NESTED, ELSEWHERE):
         status = (dest / name).lstat()
-        assert not status.st_mode & SPECIAL_BITS, (name, oct(status.st_mode))
-        assert status.st_uid == os.getuid(), name
+        # POSIX only: Windows reports neither owner uids nor permission bits.
+        if hasattr(os, "getuid"):
+            assert not status.st_mode & SPECIAL_BITS, (name, oct(status.st_mode))
+            assert status.st_uid == os.getuid(), name
         assert status.st_gid == dest.stat().st_gid, name
         assert (dest / name).read_bytes() == TOOL, name
     for name in DIRECTORIES:
         folder = (dest / name).lstat().st_mode
-        assert not folder & UNSAFE_DIRECTORY_BITS, (name, oct(folder))
+        if hasattr(os, "getuid"):
+            assert not folder & UNSAFE_DIRECTORY_BITS, (name, oct(folder))
 
 
 @SEAMS
@@ -123,7 +126,7 @@ def test_build_template_never_applies_setuid_setgid_or_a_foreign_owner_from_the_
     ])
     _serve_archive(monkeypatch, bundle)
     dest = tmp_path / "template"
-    if as_root:
+    if as_root and hasattr(os, "geteuid"):
         monkeypatch.setattr(os, "geteuid", lambda: 0)
     requested = _record_mode_and_owner_requests(monkeypatch)
 
@@ -135,6 +138,10 @@ def test_build_template_never_applies_setuid_setgid_or_a_foreign_owner_from_the_
         assert list(dest.glob("*")) == []
     else:
         _assert_no_special_bit_or_foreign_owner_landed(dest)
+        # Every host: the sealed tree records the mode Git can, from the archive.
+        sealed = _sealed_modes(dest)
+        for name, asked in (("pkg/tool", mode), (ELSEWHERE, mode), (NESTED, 0o4755)):
+            assert sealed[name] == ("100755" if asked & stat.S_IXUSR else "100644"), name
     assert asked_filter == [], "the no-filter seam was asked for a filter"
     # Every chmod, whatever its target or depth.
     asked_bits = [
@@ -186,12 +193,17 @@ def test_build_template_seals_a_file_with_git_archive_s_root_owner_and_keeps_its
     assert sha == trees.head_sha(dest)
     assert trees._git(dest, "status", "--porcelain") == ""
     assert sorted(trees._git(dest, "ls-files").splitlines()) == sorted(files)
+    sealed = _sealed_modes(dest)
     for name in files:
         status = (dest / name).lstat()
-        assert stat.S_IMODE(status.st_mode) == kept, (name, oct(status.st_mode))
-        assert status.st_uid == os.getuid(), name
+        # POSIX only: Windows reports neither owner uids nor permission bits.
+        if hasattr(os, "getuid"):
+            assert stat.S_IMODE(status.st_mode) == kept, (name, oct(status.st_mode))
+            assert status.st_uid == os.getuid(), name
         assert status.st_gid == dest.stat().st_gid, name
         assert (dest / name).read_bytes() == TOOL, name
+        # Every host: the sealed tree records the mode Git can, from the archive.
+        assert sealed[name] == ("100755" if mode & stat.S_IXUSR else "100644"), name
     assert _chowns_to_another_owner(requested) == [], "extraction asked for the archive's owner"
     assert asked_filter == [], "the no-filter seam was asked for a filter"
     assert _snapshot(outside) == before
