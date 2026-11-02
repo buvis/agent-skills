@@ -260,10 +260,12 @@ def _extract_without_filter(
     for a tarfile build with no `data_filter` at all.
 
     The archive's uid, gid and owner names are never read: nothing here chowns,
-    whoever runs it. A symlink's text is written as the archive gives it; the
-    members were already refused earlier if it could escape.
+    whoever runs it. Symlinks are laid after every file and directory; the
+    members were already refused earlier if one could escape.
     """
     for member in members:
+        if member.issym():
+            continue
         path = dest.joinpath(member.name)
         try:
             if member.isdir():
@@ -274,9 +276,33 @@ def _extract_without_filter(
                 with archive.extractfile(member) as source, open(path, "wb") as target:
                     shutil.copyfileobj(source, target)
                 os.chmod(path, _safe_mode(member.mode))
-            elif member.issym():
-                path.parent.mkdir(parents=True, exist_ok=True)
-                os.symlink(member.linkname, path)
+        except OSError as cause:
+            raise TreeError(f"{member.name}: {cause}") from cause
+    _lay_links_typed(dest, members)
+
+
+def _lay_links_typed(dest: Path, members: Sequence[tarfile.TarInfo]) -> None:
+    """Create every symlink member under `dest`, in archive order, once every
+    file and directory member already exists there.
+
+    Windows types a link as a file or a directory when it is made. Each link
+    is typed by where its whole chain lands (`_land` through every archive
+    link), which is a real path on disk by now, whatever order links come in.
+    The text is written in host-separator form.
+    """
+    links = {posixpath.normpath(m.name): m.linkname for m in members if m.issym()}
+    for member in members:
+        if not member.issym():
+            continue
+        path = dest.joinpath(member.name)
+        landing = _land(links, member.name)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            os.symlink(
+                member.linkname.replace("/", os.sep),
+                path,
+                target_is_directory=(dest / landing).is_dir(),
+            )
         except OSError as cause:
             raise TreeError(f"{member.name}: {cause}") from cause
 
@@ -350,8 +376,31 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
 def fresh_clone(template: Path, dest: Path) -> Path:
     """Copy the sealed template to `dest`, bytes and symlinks alike."""
     _refuse_escaping_links(Path(template))
-    shutil.copytree(template, dest, symlinks=True)
+    _copytree_links_typed(Path(template), Path(dest))
     return Path(dest)
+
+
+def _copytree_links_typed(template: Path, dest: Path) -> None:
+    """Copy every file and directory of `template`, then lay its links, each
+    typed as a directory where the template's own link reaches one.
+
+    Typing off the template, never the half-built copy, makes the type right
+    whatever order the links are laid in.
+    """
+    links: list[str] = []
+
+    def skip_links(directory: str, names: list[str]) -> list[str]:
+        skipped = [name for name in names if os.path.islink(os.path.join(directory, name))]
+        links.extend(os.path.join(directory, name) for name in skipped)
+        return skipped
+
+    shutil.copytree(template, dest, symlinks=True, ignore=skip_links)
+    for link in links:
+        os.symlink(
+            os.readlink(link),
+            dest / os.path.relpath(link, template),
+            target_is_directory=os.path.isdir(link),
+        )
 
 
 def _digest(path: Path) -> str:
