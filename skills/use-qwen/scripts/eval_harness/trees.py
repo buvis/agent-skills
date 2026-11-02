@@ -281,6 +281,23 @@ def _extract_without_filter(
             raise TreeError(f"{member.name}: {cause}") from cause
 
 
+def _set_index_modes(staging: Path, members: Sequence[tarfile.TarInfo]) -> None:
+    """Set the index mode of every regular-file member from its archive mode.
+
+    Read off the archive, never off the disk: a host where git ignores the
+    filesystem mode (`core.filemode=false`) records whatever landed as 100644.
+    Only the user's exec bit decides. `--chmod` with no path is a usage error,
+    so an empty group is skipped.
+    """
+    files = [member for member in members if member.isfile()]
+    for flag, paths in (
+        ("+x", [m.name for m in files if m.mode & stat.S_IXUSR]),
+        ("-x", [m.name for m in files if not m.mode & stat.S_IXUSR]),
+    ):
+        if paths:
+            _git(staging, "update-index", "--chmod=%s" % flag, "--", *paths)
+
+
 def build_template(repo: Path, first: str, dest: Path) -> str:
     """Seal the tree before `first` at `dest` as one commit, and answer its sha.
 
@@ -304,7 +321,8 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
             # Read off the archive rather than off an extracted tree: a host that
             # cannot create a symlink at all still has to refuse one that escapes,
             # and refusing here leaves no half-built template behind.
-            _refuse_duplicate_or_crossing_members(archive.getmembers())
+            members = archive.getmembers()
+            _refuse_duplicate_or_crossing_members(members)
             if hasattr(tarfile, "data_filter"):
                 try:
                     archive.extractall(staging, filter="data")
@@ -314,6 +332,7 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
                 _extract_without_filter(archive, staging, archive.getmembers())
         _git(staging, *IDENTITY, "init")
         _git(staging, "add", "-A")
+        _set_index_modes(staging, members)
         # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the
         # same tree sealed a second later has to carry the same one.
         dated = {**os.environ, "GIT_AUTHOR_DATE": SEAL_DATE, "GIT_COMMITTER_DATE": SEAL_DATE}
