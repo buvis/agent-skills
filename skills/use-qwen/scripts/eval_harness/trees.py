@@ -314,9 +314,11 @@ def _set_index_modes(staging: Path, members: Sequence[tarfile.TarInfo]) -> None:
     Read off the archive, never off the disk: a host where git ignores the
     filesystem mode (`core.filemode=false`) records whatever landed as 100644.
     Only the user's exec bit decides. `--chmod` with no path is a usage error,
-    so an empty group is skipped.
+    so an empty group is skipped. A member the extracted `.gitignore` kept out
+    of the index stays out: `--chmod` refuses an untracked path.
     """
-    files = [member for member in members if member.isfile()]
+    tracked = set(_git(staging, "ls-files", "-z").split("\0"))
+    files = [member for member in members if member.isfile() and member.name in tracked]
     for flag, paths in (
         ("+x", [m.name for m in files if m.mode & stat.S_IXUSR]),
         ("-x", [m.name for m in files if not m.mode & stat.S_IXUSR]),
