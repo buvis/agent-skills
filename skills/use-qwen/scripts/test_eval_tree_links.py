@@ -129,15 +129,53 @@ def _spelled(links: dict, impl: str) -> dict:
 
 
 def _lay_links(root: Path, links: dict) -> None:
-    """Write each `name -> target` link under `root`, target text as given."""
+    """Write each `name -> target` link under `root`, target text as given.
+
+    `target_is_directory=True` is passed whenever the target resolves to a
+    directory: on Windows a symlink's reparse-point type is fixed at creation
+    and wrong for a directory target unless told so, so a fixture built
+    without this would exercise file-typed reparse points only - never the
+    directory-link shape the production walk also has to refuse or follow.
+    `os.symlink` ignores the flag on POSIX, so this changes nothing there.
+    """
     for name, target in links.items():
         where = root / name
         where.parent.mkdir(parents=True, exist_ok=True)
-        os.symlink(target, where)
+        target_path = target if os.path.isabs(target) else where.parent / target
+        os.symlink(target, where, target_is_directory=Path(target_path).is_dir())
 
 
 def _link_text(where: Path) -> str:
     return Path(os.readlink(where)).as_posix()
+
+
+def _extended_prefix_stripped(text: str) -> str:
+    """`text` with a leading Windows extended-length prefix removed: `\\\\?\\UNC\\`
+    becomes `\\\\`, a leading `\\\\?\\` is dropped, anything else is returned
+    unchanged (including every POSIX path and every already-short Windows
+    path). Pure string rewrite - never touches the filesystem.
+    """
+    if text.startswith("\\\\?\\UNC\\"):
+        return "\\\\" + text[len("\\\\?\\UNC\\"):]
+    if text.startswith("\\\\?\\"):
+        return text[len("\\\\?\\"):]
+    return text
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        (r"\\?\C:\x", r"C:\x"),
+        (r"\\?\UNC\h\s\x", r"\\h\s\x"),
+        (r"C:\x", r"C:\x"),
+        ("/a/b", "/a/b"),
+    ],
+    ids=["extended-drive", "extended-unc", "short-drive", "posix"],
+)
+def test_extended_prefix_stripped_drops_only_a_leading_extended_length_prefix(
+    text, expected
+):
+    assert _extended_prefix_stripped(text) == expected
 
 
 def _commit_file(repo: Path, relpath: str, payload: bytes) -> None:
@@ -509,7 +547,212 @@ def test_build_template_s_compatibility_path_seals_a_safe_tree_regardless_of_the
     assert (dest / "escape" / "secret.txt").read_bytes() == b"pwned\n"
 
 
+# -- symlink typing ----------------------------------------------------------
+
+# On Windows a symlink's file/directory type is fixed when it is created, and
+# CPython types it as a directory only if told so or if the target already
+# exists as one. These spy on what the code asks `os.symlink` for, so they
+# catch a wrong type on every host, not only where the type is enforced.
+
+
+def _record_symlinks(monkeypatch) -> list:
+    """Spy on `os.symlink`: every call's (link name, target text, type flag)."""
+    calls = []
+    real = os.symlink
+
+    def spy(target, path, target_is_directory=False, **kwargs):
+        calls.append((Path(path).name, os.fspath(target), target_is_directory))
+        real(target, path, target_is_directory=target_is_directory, **kwargs)
+
+    monkeypatch.setattr(os, "symlink", spy)
+    return calls
+
+
+def _host_form(text: str) -> str:
+    """Archive link text as it reaches `os.symlink`: host separators."""
+    return text.replace("/", os.sep)
+
+
+# (directory link, directory, file link, file, dangling link, dangling target).
+# The second set flips which names carry a dot (a dotted directory, a dot-free
+# file and dangling target) and shares no name with the first, so neither a
+# type guessed from the target's spelling nor a list of known names passes.
+LINKS_BESIDE_THEIR_TARGETS = [
+    pytest.param(
+        ("pkg-link", "pkg", "cfg-link", "secret.txt", "nowhere-link", "nowhere"),
+        id="dot-free-directory-dotted-file",
+    ),
+    pytest.param(
+        ("docs.link", "lib.d", "license", "LICENSE", "ghost", "gone.txt"),
+        id="dotted-directory-dot-free-file",
+    ),
+]
+
+
+@NEEDS_SYMLINKS
+@pytest.mark.parametrize("names", LINKS_BESIDE_THEIR_TARGETS)
+def test_build_template_types_a_link_as_a_directory_whatever_its_symlink_order(
+    tmp_path, built_repo, monkeypatch, names
+):
+    # Every link sorts before what it names: laid in member order, no target
+    # exists yet when its link is made. Only the link whose landing is a
+    # directory member is typed as one; a link to a file member and a link to
+    # no member at all are both file-typed.
+    dir_link, directory, file_link, file, dangling_link, dangling_target = names
+    file_path = f"{directory}/{file}"
+    _hide_data_filter(monkeypatch)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    members = [
+        (dir_link, ("sym", directory)),
+        (file_link, ("sym", file_path)),
+        (dangling_link, ("sym", dangling_target)),
+        (directory, DIRECTORY),
+        (file_path, PAYLOAD),
+    ]
+    _serve_archive(monkeypatch, _crafted_tar(members))
+    calls = _record_symlinks(monkeypatch)
+    dest = tmp_path / "template"
+
+    trees.build_template(repo, first, dest)
+
+    # One call per link, in archive order.
+    assert calls == [
+        (dir_link, directory, True),
+        (file_link, _host_form(file_path), False),
+        (dangling_link, dangling_target, False),
+    ]
+    assert (dest / dir_link / file).read_bytes() == b"pwned\n"
+    assert (dest / file_link).read_bytes() == b"pwned\n"
+    assert (dest / dangling_link).is_symlink()
+    assert not (dest / dangling_link).exists()
+
+
+# Two chains, every link ahead of where its chain lands: one ends at a
+# directory (both its links typed as one), one at a file (both file-typed).
+# The second archive lays each chain's links tail first, so a type read off
+# whatever the previous link left on disk is wrong in one order or the other;
+# the third renames the directory chain.
+LINK_CHAINS = [
+    pytest.param(
+        [
+            ("a", ("sym", "b")),
+            ("b", ("sym", "c")),
+            ("x", ("sym", "y")),
+            ("y", ("sym", "file.txt")),
+            ("c", DIRECTORY),
+            ("file.txt", PAYLOAD),
+        ],
+        {"a": True, "b": True, "x": False, "y": False},
+        id="head-before-tail",
+    ),
+    pytest.param(
+        [
+            ("b", ("sym", "c")),
+            ("a", ("sym", "b")),
+            ("y", ("sym", "file.txt")),
+            ("x", ("sym", "y")),
+            ("c", DIRECTORY),
+            ("file.txt", PAYLOAD),
+        ],
+        {"a": True, "b": True, "x": False, "y": False},
+        id="tail-before-head",
+    ),
+    pytest.param(
+        [
+            ("head", ("sym", "mid")),
+            ("mid", ("sym", "tree")),
+            ("x", ("sym", "y")),
+            ("y", ("sym", "file.txt")),
+            ("tree", DIRECTORY),
+            ("file.txt", PAYLOAD),
+        ],
+        {"head": True, "mid": True, "x": False, "y": False},
+        id="head-before-tail-other-names",
+    ),
+]
+
+
+@NEEDS_SYMLINKS
+@pytest.mark.parametrize("members, typed_as_directory", LINK_CHAINS)
+def test_build_template_types_a_link_chain_through_directory_as_a_directory(
+    tmp_path, built_repo, monkeypatch, members, typed_as_directory
+):
+    # `a -> b -> c`, `c` a directory, both links ahead of it: a landing worked
+    # out from `a`'s own text alone sees `b`, not a directory, and types `a`
+    # as a file. `x -> y -> file.txt` ends at a file, so neither is a
+    # directory link however the chain is followed.
+    _hide_data_filter(monkeypatch)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    _serve_archive(monkeypatch, _crafted_tar(members))
+    calls = _record_symlinks(monkeypatch)
+    dest = tmp_path / "template"
+
+    trees.build_template(repo, first, dest)
+
+    # One call per link, in archive order.
+    assert calls == [
+        (name, target, typed_as_directory[name])
+        for name, (kind, target) in members
+        if kind == "sym"
+    ]
+    for name, is_directory in typed_as_directory.items():
+        assert (dest / name).is_dir() == is_directory, name
+    assert (dest / "x").read_bytes() == b"pwned\n"
+
+
 # -- fresh_clone -----------------------------------------------------------
+
+
+@NEEDS_SYMLINKS
+def test_fresh_clone_links_typed_as_a_directory_where_the_template_s_target_is_one(
+    tmp_path, monkeypatch
+):
+    template = _template_on_disk(tmp_path)
+    # Each chain's tail is laid first so the template's own links are typed
+    # right on Windows too. `a -> b -> pkg` and `z -> y -> pkg` run opposite
+    # ways in name order: whichever order the clone lays links in, one chain's
+    # head comes before its tail, so a type read off the clone's half-built
+    # state (rather than the template's layout) gets that head wrong.
+    links = {
+        "pkg-link": "pkg",
+        "b": "pkg",
+        "a": "b",
+        "y": "pkg",
+        "z": "y",
+        "calc-link": "calc.py",
+        "nowhere-link": "nowhere",
+    }
+    typed_as_directory = {
+        "pkg-link": True,
+        "b": True,
+        "a": True,
+        "y": True,
+        "z": True,
+        "calc-link": False,
+        "nowhere-link": False,
+    }
+    _lay_links(template, links)
+    calls = _record_symlinks(monkeypatch)
+    dest = tmp_path / "clone"
+
+    trees.fresh_clone(template, dest)
+
+    # The clone asks for the type itself, from the template's own layout,
+    # rather than leaving it to whatever exists at the moment of the copy.
+    assert sorted(calls) == sorted(
+        (name, target, typed_as_directory[name]) for name, target in links.items()
+    )
+    # The directory the links run through is copied as a plain directory, and
+    # every link stays a link.
+    assert (dest / "pkg").is_dir() and not (dest / "pkg").is_symlink()
+    for name in links:
+        assert (dest / name).is_symlink(), name
+    for name in ("pkg-link", "a", "z"):
+        assert (dest / name / "nested.txt").read_bytes() == b"nested\n"
+    assert (dest / "calc-link").read_bytes() == b"inside\n"
+    assert not (dest / "nowhere-link").exists()
 
 
 @NEEDS_SYMLINKS
@@ -634,6 +877,27 @@ def test_hash_paths_refuses_a_link_with_an_absolute_target_before_reading_it(
             trees.hash_paths(root, [listed])
     finally:
         (outside / "secret.txt").chmod(0o644)
+
+
+@NEEDS_SYMLINKS
+@pytest.mark.parametrize(
+    "target",
+    [r"\etc\passwd", "C:\\Windows\\System32\\x", r"\\host\share\x"],
+    ids=["windows-rooted", "drive-absolute", "unc"],
+)
+def test_hash_paths_refuses_a_link_with_a_windows_shaped_absolute_target(
+    tree_and_outside, target
+):
+    root, _ = tree_and_outside
+    _lay_links(root, {"escape": target})
+
+    # The fixture's own link text, read back whole: the escape under test is
+    # the Windows-shaped target itself, not a slip in how the fixture wrote
+    # it.
+    assert _extended_prefix_stripped(os.readlink(root / "escape")) == target
+
+    with pytest.raises(trees.TreeError):
+        trees.hash_paths(root, ["escape"])
 
 
 @NEEDS_SYMLINKS

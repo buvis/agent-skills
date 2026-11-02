@@ -3128,3 +3128,98 @@
 {"kind":"handoff","site":"done","edge":"leave","at":1793344870,"phase":"build","prd":"00132-linked-temp-store-loses-prd-protection-v1.md"}
 {"kind":"handoff","site":"build","edge":"resume","at":1793344879,"phase":"build","prd":"00133-transcript-judge-inherits-tools-v1.md"}
 {"id":"054609d2","kind":"fast-track:tess","task":"00133-transcript-judge-inherits-tools-v1-c1","queued_at":1793345046,"prompt_bytes":36448}
+{"id":"054609d2","ended_at":1793557900,"elapsed_s":null,"outcome":"lost","detail":"open at build/resume handoff"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793557900,"phase":"build","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793560059,"phase":"build","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793560093,"phase":"build","prd":"00133-transcript-judge-inherits-tools-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793560229,"phase":"build","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"id":"02040c59","kind":"tess","task":"1","queued_at":1793560334,"prompt_bytes":50003}
+{"id":"16c45771","kind":"tess","task":"1","queued_at":1793560352,"prompt_bytes":49772}
+{"id":"9b964f94","kind":"devon","task":"1","queued_at":1793560858,"prompt_bytes":3715}
+{"id":"9b964f94","ended_at":1793561161,"elapsed_s":303,"outcome":"ok","detail":null}
+{"id":"39113d13","kind":"tess","task":"1","queued_at":1793561202,"prompt_bytes":12113}
+{"id":"e628b48d","kind":"ivan","task":"1","queued_at":1793561460,"prompt_bytes":30446}
+{"id":"21ef7060","kind":"tess","task":"2","queued_at":1793561775,"prompt_bytes":44792}
+{"id":"a9a99811","kind":"devon","task":"2","queued_at":1793561978,"prompt_bytes":3912}
+{"id":"a9a99811","ended_at":1793562143,"elapsed_s":165,"outcome":"ok","detail":null}
+{"id":"e13d42b3","kind":"tess","task":"2","queued_at":1793562169,"prompt_bytes":9541}
+{"id":"887b527d","kind":"devon","task":"3","queued_at":1793562461,"prompt_bytes":4119}
+{"id":"887b527d","ended_at":1793562766,"elapsed_s":305,"outcome":"ok","detail":null}
+{"id":"43e9c4fe","kind":"tess","task":"3","queued_at":1793562774,"prompt_bytes":11265}
+{"id":"a82860c4","kind":"ivan","task":"3","queued_at":1793563186,"prompt_bytes":37742}
+{"id":"6e42353d","kind":"ivan","task":"3","queued_at":1793563474,"prompt_bytes":9830}
+{"id":"1db608df","kind":"pat","task":"3","queued_at":1793563632,"prompt_bytes":28874}
+{"id":"e19c6e46","kind":"devon","task":"4","queued_at":1793563791,"prompt_bytes":3674}
+{"id":"e19c6e46","ended_at":1793563964,"elapsed_s":173,"outcome":"ok","detail":null}
+{"id":"100c7178","kind":"tess","task":"4","queued_at":1793563996,"prompt_bytes":9954}
+{"id":"29c2f8cf","kind":"ivan","task":"4","queued_at":1793564299,"prompt_bytes":15098}
+{"id":"a971b9aa","kind":"pat","task":"4","queued_at":1793564486,"prompt_bytes":19945}
+{"id":"71ff7d53","kind":"tess","task":"5","queued_at":1793564630,"prompt_bytes":59497}
+{"id":"18b806f9","kind":"tess","task":"5","queued_at":1793564641,"prompt_bytes":38381}
+{"id":"d5f716b1","kind":"tess","task":"5","queued_at":1793564659,"prompt_bytes":38455}
+{"id":"2109f41c","kind":"devon","task":"5","queued_at":1793564884,"prompt_bytes":3899}
+{"id":"2109f41c","ended_at":1793565062,"elapsed_s":178,"outcome":"ok","detail":null}
+{"id":"963cc9db","kind":"tess","task":"5","queued_at":1793565091,"prompt_bytes":10565}
+{"id":"c38037e5","kind":"ivan","task":"5","queued_at":1793565414,"prompt_bytes":21180}
+{"id":"1db608df","ended_at":1793565655,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"id":"a971b9aa","ended_at":1793565655,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"id":"02040c59","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"16c45771","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"39113d13","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"e628b48d","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"21ef7060","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"e13d42b3","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"43e9c4fe","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"a82860c4","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"6e42353d","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"100c7178","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"29c2f8cf","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"71ff7d53","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"18b806f9","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"d5f716b1","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"963cc9db","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"c38037e5","ended_at":1793565655,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793565655,"phase":"build","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793566326,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793610213,"phase":"build","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"id":"838fa72c","kind":"ivan","task":"1","queued_at":1793610581,"prompt_bytes":26609}
+{"id":"838fa72c","ended_at":1793610648,"elapsed_s":67,"outcome":"ok","detail":null}
+{"id":"139b9cea","kind":"ivan","task":"1","queued_at":1793610749,"prompt_bytes":24442}
+{"id":"139b9cea","ended_at":1793610795,"elapsed_s":46,"outcome":"ok","detail":"false positive: bare_ci is a pytest fixture, import kept"}
+{"id":"50daaa55","kind":"ivan","task":"2","queued_at":1793610902,"prompt_bytes":27755}
+{"id":"50daaa55","ended_at":1793611008,"elapsed_s":106,"outcome":"ok","detail":null}
+{"id":"cf99ecbb","kind":"ivan","task":"2","queued_at":1793611061,"prompt_bytes":24424}
+{"id":"cf99ecbb","ended_at":1793611101,"elapsed_s":40,"outcome":"ok","detail":"false positive: bare_ci is a pytest fixture, import kept"}
+{"id":"9f8e1cb3","kind":"ivan","task":"3","queued_at":1793611149,"prompt_bytes":26582}
+{"id":"9f8e1cb3","ended_at":1793611238,"elapsed_s":89,"outcome":"ok","detail":null}
+{"id":"4d69009f","kind":"devon","task":"4","queued_at":1793611405,"prompt_bytes":4982}
+{"id":"4d69009f","ended_at":1793611632,"elapsed_s":227,"outcome":"ok","detail":"found 7 exploits; wiring bug found: getmembers() must be captured inside the tarfile 'with' block"}
+{"id":"3047716c","kind":"ivan","task":"1","queued_at":1793611703,"prompt_bytes":28139}
+{"id":"3047716c","ended_at":1793611843,"elapsed_s":140,"outcome":"ok","detail":null}
+{"id":"c292f3ad","kind":"ivan","task":"4","queued_at":1793611892,"prompt_bytes":56234}
+{"id":"8d933f4d","kind":"ivan","task":"4","queued_at":1793611961,"prompt_bytes":32312}
+{"id":"8d933f4d","ended_at":1793612042,"elapsed_s":81,"outcome":"ok","detail":null}
+{"id":"2ce29035","kind":"pat","task":"4","queued_at":1793612161,"prompt_bytes":13415}
+{"id":"548a7a4e","kind":"devon","task":"5","queued_at":1793612376,"prompt_bytes":7271}
+{"id":"548a7a4e","ended_at":1793612498,"elapsed_s":122,"outcome":"ok","detail":"found 5 exploits across 3 tests"}
+{"id":"0048591a","kind":"ivan","task":"2","queued_at":1793612524,"prompt_bytes":28433}
+{"id":"0048591a","ended_at":1793612700,"elapsed_s":176,"outcome":"ok","detail":null}
+{"id":"6cdcf98a","kind":"ivan","task":"5","queued_at":1793612796,"prompt_bytes":31687}
+{"id":"6cdcf98a","ended_at":1793612896,"elapsed_s":100,"outcome":"ok","detail":null}
+{"id":"c292f3ad","ended_at":1793613050,"elapsed_s":169,"outcome":"ok","detail":"closed-by: commit 980e49134d9330680af2da801e68ae3ef2dc66a8"}
+{"id":"2ce29035","ended_at":1793613050,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793613050,"phase":"build","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793613062,"phase":"build","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"id":"db9eca95","kind":"devon","task":"6","queued_at":1793613208,"prompt_bytes":7381}
+{"id":"db9eca95","ended_at":1793613445,"elapsed_s":237,"outcome":"ok","detail":null}
+{"id":"6041ca60","kind":"tess","task":"6","queued_at":1793613512,"prompt_bytes":9906}
+{"id":"6041ca60","ended_at":1793613751,"elapsed_s":239,"outcome":"ok","detail":null}
+{"id":"38f6b908","kind":"ivan","task":"6","queued_at":1793613854,"prompt_bytes":43846}
+{"id":"38f6b908","ended_at":1793613922,"elapsed_s":68,"outcome":"ok","detail":null}
+{"id":"f234ac2f","kind":"ivan","task":"7","queued_at":1793614294,"prompt_bytes":6431}
+{"id":"f234ac2f","ended_at":1793614392,"elapsed_s":98,"outcome":"ok","detail":null}
+{"id":"623c2a9c","kind":"ivan","task":"8","queued_at":1793614567,"prompt_bytes":7694}
+{"id":"623c2a9c","ended_at":1793614655,"elapsed_s":88,"outcome":"ok","detail":null}
+{"id":"8a91e69f","kind":"ivan","task":"4","queued_at":1793615340,"prompt_bytes":28376}
+{"id":"8a91e69f","ended_at":1793615450,"elapsed_s":110,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1793617329,"phase":"review","prd":"00162-template-archive-breaks-on-windows-v1.md"}
