@@ -1,6 +1,6 @@
 # Project Capsule: agent-skills
 
-Generated: 2026-11-01 (closeout/archive worktree — PRD 00160 catchup)
+Generated: 2026-11-02 (closeout/archive-windows worktree — PRD 00162 catchup)
 
 ## Key Invariants
 
@@ -54,11 +54,20 @@ Generated: 2026-11-01 (closeout/archive worktree — PRD 00160 catchup)
 
 ## Active Work
 
-- This worktree (`agent-skills-closeout/archive`, branch `closeout/archive`)
-  is Stage 1 Lane A of `plans/repository-closeout-plan.md`: archive
-  containment only, dedicated to `eval_harness/trees.py` and its tests.
-  Lanes B (Windows CI) and C (migration/dependency PRs) run in separate
-  worktrees; never touch their files from here.
+- This worktree (`agent-skills/closeout-archive-windows`, branch
+  `closeout/archive-windows`) is Stage 1 Lane B of
+  `plans/repository-closeout-plan.md`: native-Windows repair for PRD 00160's
+  archive modules only. Lane A (archive containment, `closeout/archive`) and
+  Lane C (migration/dependency PRs) run in separate worktrees; never touch
+  their files from here.
+- Autopilot batch `202611020612` was minted here for PRD 00162
+  (`template-archive-breaks-on-windows`): fixes 72 Windows CI failures in the
+  five 00160 archive test modules (owner/mode checks, lost executable bit,
+  two-pass link typing, read-only staging cleanup, extended-prefix link
+  text) without changing any 00160 acceptance row. `wip/` also holds 00160
+  itself (built, awaiting review on `closeout/archive`) — informational only,
+  not this worktree's to advance. `default_model: opus` per frontmatter
+  (security-containment module, native-Windows semantics).
 - A fresh autopilot batch (`202611011931`) was minted in this worktree for
   PRD 00160 (`template-archive-extraction-fails-closed`), which promotes held
   triage stubs 00155-00158 against done PRD 00131's `build_template`/
