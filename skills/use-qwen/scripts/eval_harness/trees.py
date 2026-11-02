@@ -13,6 +13,7 @@ import posixpath
 import shutil
 import stat
 import subprocess
+import sys
 import tarfile
 from collections.abc import Iterator, Sequence
 from pathlib import Path
@@ -368,9 +369,28 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
         except OSError as cause:
             raise TreeError("%s could not be published: %s" % (dest, cause)) from cause
     except BaseException:
-        shutil.rmtree(staging, ignore_errors=True)
+        _remove_tree(staging)
         raise
     return head_sha(dest)
+
+
+def _remove_tree(path: Path) -> None:
+    """Remove `path` and everything under it, clearing the read-only bit of an
+    entry that refuses removal and retrying it once.
+
+    Windows refuses to delete a read-only file, and git writes its own objects
+    read-only. A retry that fails again raises its own error: a cleanup that
+    could not finish must not pass for one that did.
+    """
+
+    def clear_readonly_and_retry(func, failing, _exc) -> None:
+        os.chmod(failing, stat.S_IWRITE)
+        func(failing)
+
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=clear_readonly_and_retry)
+    else:
+        shutil.rmtree(path, onerror=clear_readonly_and_retry)
 
 
 def fresh_clone(template: Path, dest: Path) -> Path:
