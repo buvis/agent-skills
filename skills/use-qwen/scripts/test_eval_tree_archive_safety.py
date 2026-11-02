@@ -588,6 +588,30 @@ def test_control_build_template_keeps_the_executable_bit_and_only_where_it_was_s
         assert (dest / path).read_bytes() == data, path
 
 
+@SEAMS
+def test_executable_bit_survives_a_seal_where_git_ignores_the_filesystem_mode(
+    tmp_path, built_repo, monkeypatch, filter_support
+):
+    # Git for Windows sets core.filemode=false: `git add -A` then records every
+    # new file as 100644, whatever landed on disk. The sealed mode must come
+    # from the archive, not from what the staging filesystem reported.
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.filemode")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "false")
+    files = {
+        "bin/run": (b"#!/bin/sh\necho run\n", 0o755),
+        "bin/README": (b"read me\n", 0o644),
+    }
+    bundle = _appended(
+        [("bin", DIRECTORY)],
+        [_file(path, data, mode) for path, (data, mode) in files.items()],
+    )
+
+    dest = _seal_control(tmp_path, built_repo, monkeypatch, filter_support, bundle)
+
+    assert _sealed_modes(dest) == {"bin/run": "100755", "bin/README": "100644"}
+
+
 # Links that stay inside the tree, by kind. A dangling link names a path the
 # tree does not hold; it is still inside, so it is sealed as written.
 SAFE_LINKS = [
