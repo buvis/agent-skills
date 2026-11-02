@@ -407,7 +407,8 @@ def _copytree_links_typed(template: Path, dest: Path) -> None:
     typed as a directory where the template's own link reaches one.
 
     Typing off the template, never the half-built copy, makes the type right
-    whatever order the links are laid in.
+    whatever order the links are laid in. The text is written in host-separator
+    form: on Windows a link spelled with `/` does not resolve through a chain.
     """
     links: list[str] = []
 
@@ -419,7 +420,7 @@ def _copytree_links_typed(template: Path, dest: Path) -> None:
     shutil.copytree(template, dest, symlinks=True, ignore=skip_links)
     for link in links:
         os.symlink(
-            os.readlink(link),
+            os.readlink(link).replace("/", os.sep),
             dest / os.path.relpath(link, template),
             target_is_directory=os.path.isdir(link),
         )
