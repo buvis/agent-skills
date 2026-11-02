@@ -3241,3 +3241,9 @@
 {"id":"1dc59e2b","kind":"pat","task":"2","queued_at":1793656830,"prompt_bytes":2717}
 {"id":"1dc59e2b","ended_at":1793656845,"elapsed_s":15,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793656943,"phase":"build","prd":"00164-clone-links-and-disk-mode-check-on-windows-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793656952,"phase":"build","prd":"00164-clone-links-and-disk-mode-check-on-windows-v1.md"}
+{"id":"e77e18c8","kind":"ivan","task":"3","queued_at":1793657188,"prompt_bytes":72310}
+{"id":"a76174a7","kind":"ivan","task":"3","queued_at":1793657212,"prompt_bytes":9059}
+{"id":"a76174a7","ended_at":1793657305,"elapsed_s":93,"outcome":"ok","detail":null}
+{"id":"e77e18c8","ended_at":1793657931,"elapsed_s":138,"outcome":"ok","detail":"closed-by: commit f68e59b8d429d7885d0a59bf1786b6764641974b"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793657931,"phase":"review","prd":"00164-clone-links-and-disk-mode-check-on-windows-v1.md"}

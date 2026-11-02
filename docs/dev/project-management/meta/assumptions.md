@@ -10,3 +10,7 @@
 - On Windows, `os.readlink` returns a relative target with the same separators it was created with, so converting `/` to the host separator gives the expected form.
 - Call order across links is not part of the contract, so the strengthened test's comparison is `sorted(calls) == sorted(expected)`, which still counts duplicates. This matches the sibling typing test just above it.
 - `same -> alias/calc.py` should be typed as a file (`False`), because its chain resolves to the regular file `calc.py`.
+
+## 3: Guard the on-disk executable-bit loop with the host capability probe
+
+- Running the probe (`_host_carries_an_executable_bit()`) in a separate process counts as the check the spec asked for (that the `if` branch is taken on macOS), in place of a temporary print.
