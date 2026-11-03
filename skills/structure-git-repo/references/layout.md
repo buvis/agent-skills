@@ -94,6 +94,19 @@ Durable ledgers, deferred requests and final snapshots -> tracked
 unresolved work. Human reports use the existing reviews locations by scope, linked
 to records by stable run/spec identifiers. Add no project-management/runs/ category.
 
+Ignore coverage. The root .gitignore ignores `docs/dev/tmp/` and, in the target layout,
+`.agents/autopilot/runtime/`. It never ignores `docs/dev/project-management/` or any
+part of it as a whole: PRDs, specs, intake, reviews, discovery, plans, designs, meta
+and audit results are durable work records (global rule: never gitignore this tree).
+Interim rule for repositories still on the legacy `project-management/autopilot/`
+layout: ignore only runtime files, through the store's own
+`docs/dev/project-management/.gitignore` (Autopilot's `ensure-store` writes it:
+`autopilot/state.json`, `*.lock`, `state.json.bak`, `last-session.log`, `lanes/`,
+markers) plus exact paths for other tools' session dumps such as
+`autopilot/autocodex-sessions/`. A repository found ignoring the whole tree gets that
+ignore removed, then its durable subtrees tracked and only runtime files left out;
+check `git status` for runtime files before the commit and stop on any surprise.
+
 Keep docs/dev/tmp/ for disposable outputs. Preserve its recoverable trash-first
 collector and active-work protection. Before retiring PRD status buckets, update
 cleanup to recognize intake/spec/run ownership. Scratch cleanup must not follow links
