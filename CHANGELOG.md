@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **create-adr**, **build-mcp-server**, **explore-abap-solution**, **document-abap-solution**, **review-abap-solution-documentation**, **write-abap-specs**, **publish-confluence-docs**: seven new skills. Fixtures use neutral `ZEXAMPLE_*` names; SAP, Jira, and Confluence access is caller-supplied.
 - **sweep-fix**: `sweep.py` accepts `--deadline N` (default 300), a wall-clock budget in seconds for the whole sweep. A repo whose scan has not finished when the budget runs out is reported rather than waited for, and the report's `Partial: N repos not scanned (sweep deadline expired)` line means the sweep is incomplete and the pattern may still have hits in those repos.
 
 ### Fixed
@@ -38,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **create-prd**: `ground_prd.py` exits 2 with a clear message for an invalid `--root` or unreadable input; relative PRD paths are excluded relative to cwd.
 - **review-prd-backlog**: `check_links.py` no longer misreads UUID/dispatch-id fragments, quoted prior-run diagnostics, or backtick-wrapped `[[...]]` syntax examples and fenced "observed evidence" transcripts as dangling PRD or memory references.
 - **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
+- **publish-confluence-docs**: `confluence_attach.py`'s `upload()` now requires both a zero curl exit and a 2xx HTTP status before reporting success (a nonzero curl exit with a faked 2xx response no longer reads as success); a missing `curl` binary is reported as a failure line instead of a traceback; the response sink uses `os.devnull` instead of a hardcoded `/dev/null` path.
+- **publish-confluence-docs**: `confluence_embed_images.py`'s `image_tag()` escapes the filename with `xml.sax.saxutils.quoteattr` so `&`, `<`, `>` and `"` all produce valid storage XML; the note-macro replacement in `main()` now uses a function replacement instead of a string template, so a backslash in a filename is no longer reinterpreted by `re.sub`.
 
 ### Changed
 

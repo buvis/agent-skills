@@ -3277,3 +3277,24 @@
 {"id":"25995730","ended_at":1793576535,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
 {"id":"5bdf02d3","ended_at":1793576535,"elapsed_s":27,"outcome":"ok","detail":"closed-by: commit 4166c97bf86fdf89a249baa6d1f8d67631e08b1e"}
 {"kind":"handoff","site":"build","edge":"leave","at":1793576535,"phase":"review","prd":"00163-windows-suite-residual-failures-v1.md"}
+{"id":"e77e5ac3","kind":"tess","task":"1","queued_at":1793558111,"prompt_bytes":14967}
+{"id":"f495dcaa","kind":"ivan","task":"1","queued_at":1793558250,"prompt_bytes":16230}
+{"id":"ad54e906","kind":"ivan","task":"1","queued_at":1793558319,"prompt_bytes":16667}
+{"id":"ffa514ef","kind":"pat","task":"1","queued_at":1793558424,"prompt_bytes":11617}
+{"id":"c306879c","kind":"tess","task":"2","queued_at":1793558539,"prompt_bytes":18952}
+{"id":"b374f25c","kind":"ivan","task":"2","queued_at":1793558685,"prompt_bytes":18817}
+{"id":"cefb216c","kind":"ivan","task":"2","queued_at":1793558747,"prompt_bytes":19863}
+{"id":"cb950f72","kind":"ivan","task":"3","queued_at":1793558901,"prompt_bytes":9628}
+{"id":"7899c34c","kind":"ivan","task":"4","queued_at":1793559024,"prompt_bytes":11717}
+{"id":"abbb162b","kind":"ivan","task":"5","queued_at":1793559117,"prompt_bytes":10620}
+{"id":"e77e5ac3","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"f495dcaa","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"ad54e906","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"ffa514ef","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"c306879c","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"b374f25c","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"cefb216c","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"cb950f72","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"7899c34c","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"id":"abbb162b","ended_at":1793560052,"elapsed_s":null,"outcome":"lost","detail":"open at build/leave handoff"}
+{"kind":"handoff","site":"build","edge":"leave","at":1793560052,"phase":"review","prd":"00161-migration-publisher-reports-false-success-v1.md"}
