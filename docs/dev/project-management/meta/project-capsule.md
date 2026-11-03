@@ -1,6 +1,6 @@
 # Project Capsule: agent-skills
 
-Generated: 2026-10-30 (Git hygiene and unpublished-change review)
+Generated: 2026-11-02 (closeout/archive-windows-2 worktree — PRD 00164 catchup)
 
 ## Key Invariants
 
@@ -54,13 +54,46 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
 
 ## Active Work
 
+- This worktree (`agent-skills/closeout-archive-windows-2`, branch
+  `closeout/archive-windows-2`, forked from `closeout/archive-windows` at
+  `73386d6`) is a follow-on Stage 1 Lane B session: PRD 00164 repairs the
+  last 6 native-Windows failures the hosted run found against candidate
+  `5bc7cc4` (4 clone-link-text failures in `_copytree_links_typed`, 2
+  disk-executable-bit assertions that read a bit Windows does not keep).
+  `closeout/archive-windows` (sibling worktree `closeout-archive-windows`)
+  already carries 00160 and 00162 fully committed through CHANGELOG; this
+  branch builds on that tip rather than redoing it. Lane A (archive
+  containment, `closeout/archive`) and Lane C (migration/dependency PRs) run
+  in separate worktrees; never touch their files from here.
+- Autopilot batch `202611022121` was minted here for PRD 00164. `wip/` also
+  holds 00133, 00160 and 00162 — informational only, not this worktree's to
+  advance (00160/00162 await review on `closeout/archive-windows`; 00133 is
+  the unrelated main-checkout batch). `default_model: opus` per frontmatter
+  (clone path of a security-containment module, native Windows semantics
+  verifiable only on the hosted runner).
+- Remote master's latest run (41419919382, 2026-11-02) still fails Windows
+  with 61 failed / 4166 passed / 40 skipped — a different, larger failure
+  set than this PRD's 6 (clone-fixture path ordering in
+  `test_run_eval_*`/`test_eval_vet`, not the clone-link/disk-mode pair 00164
+  targets). That run is from master, not from this branch's candidate; do
+  not conflate the two when judging 00164's exit criteria.
+- A fresh autopilot batch (`202611011931`) was minted in this worktree for
+  PRD 00160 (`template-archive-extraction-fails-closed`), which promotes held
+  triage stubs 00155-00158 against done PRD 00131's `build_template`/
+  `fresh_clone`/`hash_paths` in `skills/use-qwen/scripts/eval_harness/trees.py`.
+  00131 already landed partial containment (commit `147d146`); open gaps are
+  the symlink-ancestor bypass (00158), the unfiltered `extractall` fallback's
+  setuid/ownership leak and `DeprecationWarning` (00156/00157), and missing
+  refusal-path regression coverage (00155). `default_model: opus` per the PRD
+  frontmatter (security containment predicate, filter-parity equivalence).
 - `plans/repository-closeout-plan.md` defines three execution sessions and a
   fourth independent verification session. It covers archive safety, Windows
   CI, and PRs #17/#15/#16; PRD 00133 implementation remains outside its scope.
-- Batch 202610271200 is stopped after 33 completed PRDs. PRD 00133 remains in
-  `wip/`, build phase, zero completed tasks. The interrupted run's telemetry
-  and unchanged backlog-to-wip move are committed.
-- The store contains 19 backlog, 1 wip, 20 hold, and 100 done PRDs.
+- Batch 202610271200 (main checkout) is stopped after 33 completed PRDs. PRD
+  00133 remains in `wip/` there, build phase, zero completed tasks — unrelated
+  to this worktree's batch and must not be touched from here.
+- The store contains 18 backlog, 2 wip (00133, 00160), 20 hold, and 100 done
+  PRDs, as seen from this worktree.
 - PRD 00111's four code/test commits were manually reverted. Custody is closed;
   the later state-decoding fix remains. Its original persistence defect remains
   unresolved, and its custody branch is retained for follow-up.
@@ -76,6 +109,10 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
 
 ## Related context
 
+- No topic query this session: `wip/` holds three PRDs (00133, 00160, 00162),
+  so the single-PRD topic rule does not apply, and `engram` was skipped by
+  `catchup-probe` for this run regardless. Prior-session related context
+  (below) is unchanged from the last query that ran it.
 - `prds/wip/00133-transcript-judge-inherits-tools-v1.md:7` — score 0.0328;
   the interrupted work's tool restriction boundary.
 - `prds/done/00072-distil-judge-no-persistence-v1.md:7` — score 0.0159;
@@ -88,19 +125,18 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
 
 ## GitHub State
 
-- Remote master was observed at `6b52b2a` during closeout planning, after the
-  grooming session ended. The grouped history is now published.
-- Open PRs: #17 migration skills; #16 Node 26; #15 setup-uv 10.3.3.
-  All three remote branches have live PRs and are retained.
-- Latest remote-master CI, run 41032617118 at `6b52b2a`, failed on Windows:
-  61 failed, 4166 passed, 40 skipped. Linux 3.10/3.13, lint, Node, and shell
-  passed. Use its current logs instead of the older 60-failure baseline.
-- Migration run 41030058506 at `9249695`: Linux Python 3.10/3.13, lint,
-  Node, and shell jobs passed; Windows failed with 65 failed, 4062 passed,
-  and 43 skipped.
+- Remote master is at `7dd93cf` (2026-11-02); `closeout/archive-windows-2`
+  forked from `closeout/archive-windows` at `0035e628`.
+- Open PRs: #17 migration skills (base `6091e02`, tip now `9249695` per
+  earlier session); #16 Node 26; #15 setup-uv 10.3.3. All three remain live.
+- Latest remote-master CI, run 41419919382 (2026-11-02, commit `7dd93cf`),
+  failed on Windows: 61 failed, 4166 passed, 40 skipped — fixture-path
+  ordering in `test_run_eval_cli`/`test_run_eval_harness*`/`test_run_eval_vet`
+  (clones list empty where populated clones were expected), unrelated to
+  00164's clone-link-text/disk-mode pair. Linux, lint, Node, shell passed.
 - PR #17's body still names PRD 00150; its branch now carries PRD 00159.
   Correct that description when next updating PR metadata.
-- One open issue: Dependency Dashboard. No GitHub releases were returned.
+- One open issue: Dependency Dashboard. No GitHub releases returned.
 
 ## Project Health
 
