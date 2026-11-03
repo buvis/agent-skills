@@ -21,6 +21,7 @@ from eval_harness import gates, records, runner, trees
 from eval_harness_evidence_helpers import _make_tdd, _seal_and_vet, bundle, task_repo
 from eval_harness_fixture_helpers import _git, _run_engine, bare_ci
 from eval_harness_fixtures import BROKEN_IMPL, FIXED_IMPL, ORACLE, WIDENED_ORACLE
+from eval_harness_run_helpers import native_cwd
 from test_eval_records import failing_tests
 
 # One segment, the interpreter running this suite: no login profile has to
@@ -334,7 +335,7 @@ def test_baseline_runs_the_vetted_oracle_in_each_attempt_s_own_clone(bundle):
     results = [gates.run_baseline(site) for site in (first, second)]
 
     # Two attempts, two trees: one shared baseline tree would print one line twice.
-    lines = _text(log).splitlines()
+    lines = [native_cwd(line) for line in _text(log).splitlines()]
     assert lines == [_resolved(site.attempt_dir / "baseline-clone") for site in (first, second)]
     assert lines[0] != lines[1]
     for site, result in zip((first, second), results):

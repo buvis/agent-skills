@@ -11,12 +11,14 @@ import contextlib
 import hashlib
 import shlex
 import sys
+import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 import run_eval_harness
-from eval_harness import attempt, evidence, records, runner, trees
+from eval_harness import attempt, evidence, records, runner, trees, vetting
 from eval_harness_evidence_helpers import _read_json, _snapshot, _write_json
 from eval_harness_fixtures import BROKEN_IMPL, FIXED_IMPL, IDENTITY, _git, build_fixture_repo
 
@@ -79,13 +81,13 @@ def _nested_oracle_repo(root: Path) -> dict:
     fixes it and adds `tests/test_new.py`: no `tests/__init__.py`, no root test file.
     """
     _git(root, *IDENTITY, "init")
-    (root / "calc.py").write_text(BROKEN_IMPL, encoding="utf-8")
+    (root / "calc.py").write_bytes(BROKEN_IMPL.encode("utf-8"))
     _git(root, "add", "calc.py")
     _git(root, *IDENTITY, "commit", "-m", "base: add() subtracts and nothing tests it")
     first = _git(root, "rev-parse", "HEAD")
-    (root / "calc.py").write_text(FIXED_IMPL, encoding="utf-8")
+    (root / "calc.py").write_bytes(FIXED_IMPL.encode("utf-8"))
     (root / NESTED_ORACLE_PATH).parent.mkdir(parents=True)
-    (root / NESTED_ORACLE_PATH).write_text(NESTED_ORACLE, encoding="utf-8")
+    (root / NESTED_ORACLE_PATH).write_bytes(NESTED_ORACLE.encode("utf-8"))
     _git(root, "add", "calc.py", NESTED_ORACLE_PATH)
     _git(root, *IDENTITY, "commit", "-m", "task: make add() sum its arguments, tested under tests/")
     last = _git(root, "rev-parse", "HEAD")
@@ -381,6 +383,37 @@ def test_the_warmup_budget_runs_down_across_every_earlier_segment(scratch, capsy
     assert third["timed_out"] is True
     assert third["wall_s"] < 0.8, third
     assert record["baseline"] is None
+
+
+def test_cumulative_deadline_is_measured_against_the_run_start_not_the_segment_start(
+    tmp_path, monkeypatch
+):
+    # started, then one call before each of the three warmup segments.
+    clock = iter([100.0, 103.0, 107.0, 112.0])
+    monkeypatch.setattr(time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(trees, "fresh_clone", lambda template, dest: dest)
+    deadlines = []
+
+    def fake_run_segments(segments, cwd, deadline_s, **kwargs):
+        deadlines.append(deadline_s)
+        # the third segment "fails": run_checks stops there, so this stub is
+        # never asked to stand in for the baseline/canonical checks too.
+        rc = 1 if len(deadlines) == 3 else 0
+        return SimpleNamespace(as_json=lambda: {"rc": rc, "timed_out": False, "wall_s": 0.0})
+
+    monkeypatch.setattr(runner, "run_segments", fake_run_segments)
+
+    task_spec = SimpleNamespace(warmup=["seg0", "seg1", "seg2"])
+    checks, failed = vetting.run_checks(
+        tmp_path, tmp_path / "task", task_spec, None, bound_s=20.0
+    )
+
+    assert failed == "warmup"
+    assert len(checks["warmup"]) == 3
+    # bound minus everything elapsed since the run started, not since the
+    # immediately preceding segment: a non-cumulative reset would read
+    # [17.0, 16.0, 15.0] instead.
+    assert deadlines == [17.0, 13.0, 8.0]
 
 
 # -- every check under the gate lock --------------------------------------------

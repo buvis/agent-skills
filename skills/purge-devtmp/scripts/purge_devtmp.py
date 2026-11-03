@@ -171,7 +171,7 @@ def trash_file(store: Path, rel: Path, batch: str) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(store / rel), str(destination))
     manifest = store / TRASH_DIR / "manifest.tsv"
-    with manifest.open("a", encoding="utf-8") as handle:
+    with manifest.open("a", encoding="utf-8", newline="") as handle:
         handle.write(
             f"{batch}\tstale-temp\t{rel.as_posix()}\t"
             f"{destination.relative_to(store).as_posix()}\n"
@@ -241,7 +241,7 @@ def empty_old_trash(store: Path, now: float, days: float, keep: str | None = Non
                 try:
                     text = "".join(f"{line}\n" for line in kept_lines)
                     tmp = manifest.with_name(manifest.name + ".tmp")
-                    tmp.write_text(text, encoding="utf-8")
+                    tmp.write_text(text, encoding="utf-8", newline="")
                     os.replace(tmp, manifest)
                 except OSError:
                     pass

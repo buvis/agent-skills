@@ -82,6 +82,30 @@ def _realistic_malformed_text():
     return text
 
 
+def test_atomic_write_disables_newline_translation_for_str_payloads(store_path, tmp_path, monkeypatch):
+    # A text-mode write with no newline= argument translates "\n" to
+    # os.linesep, which on Windows turns an authored "\r\n" into "\r\r\n". The
+    # bug is Windows-only (POSIX's os.linesep is already "\n", so a real
+    # write on this host cannot observe the old behavior) - so this pins the
+    # mechanism directly: _atomic_write must pass newline="" to disable
+    # translation on every host, not just happen to be correct on this one.
+    captured = {}
+    real_write_text = Path.write_text
+
+    def spy_write_text(self, data, *args, **kwargs):
+        captured["newline"] = kwargs.get("newline")
+        return real_write_text(self, data, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", spy_write_text)
+    target = tmp_path / "crlf.txt"
+    payload = "first line\r\nsecond line\r\n"
+
+    write._atomic_write(target, payload)
+
+    assert captured["newline"] == ""
+    assert target.read_bytes() == payload.encode()
+
+
 def test_a_realistic_size_malformed_memory_is_refused(store_path):
     store_path.mkdir()
     entry = _entry(name="widget-fact", kind="new", file_text=_realistic_malformed_text())

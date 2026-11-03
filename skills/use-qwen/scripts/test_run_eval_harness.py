@@ -8,6 +8,7 @@ import dataclasses
 import hashlib
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -332,6 +333,23 @@ def test_each_gate_runs_in_its_own_tree_and_the_own_gate_in_the_dispatch_clone(r
         str((round_.run / attempt_id / site).resolve())
         for attempt_id in _ids(round_) for site in DESCRIPTION_SITES
     )
+
+
+def test_logged_cwds_names_the_raw_lines_and_the_run_dir_when_none_match(tmp_path):
+    run = (tmp_path / "run").resolve()
+    run.mkdir()
+    round_ = SimpleNamespace(run=run)
+    log = tmp_path / "unrelated.log"
+    raw_lines = ["/some/unrelated/cwd 1000000000", "/another/unrelated/cwd 2000000000"]
+    log.write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
+
+    with pytest.raises(Exception) as excinfo:
+        _logged_cwds(round_, log)
+
+    message = str(excinfo.value)
+    assert str(run) in message
+    for line in raw_lines:
+        assert line in message
 
 
 # -- run: every completed round against the record contract -----------------

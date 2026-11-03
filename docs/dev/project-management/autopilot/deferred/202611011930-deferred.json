@@ -1,0 +1,12 @@
+{
+  "batch_id": "202611011930",
+  "items": [
+    {
+      "type": "stall",
+      "site": "plan_expansion",
+      "detail": "module_drift 9>1 (., audit-results, create-prd/scripts, glean/scripts, purge-devtmp/scripts, use-qwen/scripts, use-qwen/scripts/eval_harness, agent_skills_braid, tests); PRD's Repository Structure tree describes the old greenfield fixture-portability design, already shipped on this branch (conftest.py, windows CI job, testpaths all present); real remaining work is 16 specific hosted-Windows test failures (causes B1-B2,P1-P2,D1-D3,G1,U1-U2,S1,Q1-Q3,Q7-Q8) documented only in an UNTRACKED file in the main checkout: docs/dev/project-management/audit-results/repository-closeout-preparation.md; PRD needs its scope/Repository-Structure section refreshed against that evidence before replanning",
+      "op_id": "fded1501c64f",
+      "prd": "00044-windows-ci-junction-claim-v1.md"
+    }
+  ]
+}

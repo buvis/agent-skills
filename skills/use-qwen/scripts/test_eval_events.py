@@ -83,7 +83,7 @@ def _session(tmp_path, lines):
 
 def _out(tmp_path, text=DIAGNOSTICS):
     path = tmp_path / "out.txt"
-    path.write_text(text, encoding="utf-8")
+    path.write_bytes(text.encode("utf-8"))
     return path
 
 

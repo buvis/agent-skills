@@ -1,9 +1,6 @@
 """Tests for sweep.py: main exit paths for setup failures."""
-import os
 import shutil
 import subprocess
-
-import pytest
 
 import sweep
 from sweep_test_helpers import _make_repo, _write_registry
@@ -59,17 +56,15 @@ def test_a_timed_out_mise_which_exits_one_naming_ast_grep_and_writes_no_report(
 
 
 def test_an_unreadable_registry_exits_one_naming_the_path_and_writes_no_report(
-    tmp_path, monkeypatch, capsys
+    tmp_path, monkeypatch, capsys, deny_access
 ):
-    if os.geteuid() == 0:
-        pytest.skip("root can read a chmod 0o000 file")
     argv, registry, out_path = _setup_argv(tmp_path, monkeypatch)
-    registry.chmod(0o000)
+    allow = deny_access(registry)
 
     try:
         exit_code = sweep.main(argv)
     finally:
-        registry.chmod(0o600)
+        allow()
 
     assert exit_code == 1
     assert not out_path.exists()

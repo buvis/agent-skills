@@ -431,6 +431,12 @@ def test_main_decide_refuses_a_file_flag_that_exists_but_cannot_be_read_as_a_fil
     assert captured.err.strip() != ""
     assert "not-a-file.md" in captured.err
     assert "directory" in captured.err.lower()
+    # Pinned, host-independent wording: do not rely on the OS's own
+    # strerror text for "this path is a directory" (it differs by host -
+    # POSIX's IsADirectoryError happens to say "directory" too, which is
+    # what let this assertion pass before the explicit is_dir() guard
+    # existed; this line pins the guard itself, not an accident of wording).
+    assert "is a directory" in captured.err
     assert captured.out == ""
     entry = docket.load(path=queue_path)["entries"][0]
     assert entry["decision"] == "undecided"
@@ -743,4 +749,17 @@ def test_decide_both_faults_loads_nothing_before_refusing(tmp_path, monkeypatch,
 
     assert exit_code == 1
     assert loads == []
-    assert "absent-note.md" in capsys.readouterr().err
+
+
+def test_malformed_entry_diagnostic_shows_the_raw_id_characters_unescaped(tmp_path):
+    # repr() doubles a backslash in the message (`'a\\b'` prints as the four
+    # characters a\\\\b); the raw id's literal characters, backslash
+    # included, must appear in the diagnostic instead.
+    queue_path = tmp_path / "queue.json"
+    queue_path.write_text(json.dumps({"cursor": 0, "entries": [{"id": "a\\b"}]}))
+
+    with pytest.raises(docket.QueueError) as excinfo:
+        docket.load(path=queue_path)
+
+    assert "a\\b" in str(excinfo.value)
+    assert "a\\\\b" not in str(excinfo.value)

@@ -6,7 +6,6 @@ import time
 from pathlib import Path
 
 import purge_devtmp as gc
-import pytest
 
 
 def args(**overrides):
@@ -48,7 +47,7 @@ def seed_batch(store: Path, batch: str, name: str) -> Path:
 def write_manifest(store: Path, lines: list[str]) -> Path:
     manifest = store / gc.TRASH_DIR / "manifest.tsv"
     manifest.parent.mkdir(parents=True, exist_ok=True)
-    manifest.write_text("\n".join(lines) + "\n" if lines else "")
+    manifest.write_text("\n".join(lines) + "\n" if lines else "", newline="")
     return manifest
 
 
@@ -84,21 +83,36 @@ def test_path_has_unsafe_characters_does_not_flag_literal_backslash_t():
 # --- process_store refusal -------------------------------------------------------
 
 
-def test_process_store_refuses_tab_path_and_still_trashes_ordinary_file(tmp_path, capsys):
+def _inject_unsafe_candidate(monkeypatch, store, rel_name, mtime):
+    """Make `walk_store` yield an unsafe-named candidate without creating it
+    on disk - a literal tab in a filename is refused by Windows file
+    creation itself, so the guard must be exercised through the enumeration
+    seam, never by trying to materialize the hazardous name."""
+    real_walk_store = gc.walk_store
+
+    def fake_walk_store(walked_store):
+        yield from real_walk_store(walked_store)
+        yield Path(rel_name), mtime
+
+    monkeypatch.setattr(gc, "walk_store", fake_walk_store)
+
+
+def test_process_store_refuses_tab_path_and_still_trashes_ordinary_file(
+    tmp_path, capsys, monkeypatch
+):
     _repo, store = repo_store(tmp_path)
     ordinary = store / "old.txt"
     ordinary.write_text("x")
     age(ordinary, 8)
-    unsafe = store / "bad\ttab.txt"
-    unsafe.write_text("y")
-    age(unsafe, 8)
     now = time.time()
+    _inject_unsafe_candidate(monkeypatch, store, "bad\ttab.txt", now - 8 * gc.DAY)
+
     counts = gc.process_store("repo", store, args(apply=True), now)
     batch = time.strftime("%Y-%m-%d", time.localtime(now))
 
     assert not ordinary.exists()
     assert (store / gc.TRASH_DIR / batch / "old.txt").is_file()
-    assert unsafe.exists()
+    assert not (store / "bad\ttab.txt").exists()
     assert counts["stale-temp"] == 1
     assert counts["refused-unsafe-path"] == 1
     manifest_text = (store / gc.TRASH_DIR / "manifest.tsv").read_text()
@@ -110,23 +124,21 @@ def test_process_store_refuses_tab_path_and_still_trashes_ordinary_file(tmp_path
     assert "stale-temp=1" in out
 
 
-def test_process_store_verbose_reports_the_refusal_reason(tmp_path, capsys):
+def test_process_store_verbose_reports_the_refusal_reason(tmp_path, capsys, monkeypatch):
     _repo, store = repo_store(tmp_path)
-    unsafe = store / "bad\ttab.txt"
-    unsafe.write_text("y")
-    age(unsafe, 8)
-    gc.process_store("repo", store, args(apply=True, verbose=True), time.time())
+    now = time.time()
+    _inject_unsafe_candidate(monkeypatch, store, "bad\ttab.txt", now - 8 * gc.DAY)
+    gc.process_store("repo", store, args(apply=True, verbose=True), now)
     out = capsys.readouterr().out
     assert "refused-unsafe-path:" in out
 
 
-def test_dry_run_never_touches_filesystem_for_unsafe_path(tmp_path):
+def test_dry_run_never_touches_filesystem_for_unsafe_path(tmp_path, monkeypatch):
     _repo, store = repo_store(tmp_path)
-    unsafe = store / "bad\ttab.txt"
-    unsafe.write_text("y")
-    age(unsafe, 8)
-    gc.process_store("repo", store, args(apply=False), time.time())
-    assert unsafe.is_file()
+    now = time.time()
+    _inject_unsafe_candidate(monkeypatch, store, "bad\ttab.txt", now - 8 * gc.DAY)
+    gc.process_store("repo", store, args(apply=False), now)
+    assert not (store / "bad\ttab.txt").exists()
     assert not (store / gc.TRASH_DIR).exists()
 
 
@@ -251,6 +263,76 @@ def test_manifest_rewrite_preserves_an_unrelated_row_containing_a_carriage_retur
     assert not any(line.startswith(old_batch) for line in manifest_lines)
 
 
+def test_manifest_rewrite_does_not_double_an_existing_crlf_across_two_rewrites(tmp_path):
+    # A manifest whose rows are already CRLF-joined (as if written earlier
+    # with Windows line-ending translation) must not gain a second \r on
+    # every subsequent rewrite - the bug compounds: each write() with no
+    # newline="" turns \n into os.linesep, and a line already ending \r\n
+    # becomes \r\r\n.
+    _repo, store = repo_store(tmp_path)
+    now = noon_today()
+    old_batch_1 = time.strftime("%Y-%m-%d", time.localtime(now - 40 * gc.DAY))
+    old_batch_2 = time.strftime("%Y-%m-%d", time.localtime(now - 41 * gc.DAY))
+    kept_batch = time.strftime("%Y-%m-%d", time.localtime(now))
+    seed_batch(store, old_batch_1, "junk1.txt")
+    seed_batch(store, old_batch_2, "junk2.txt")
+    seed_batch(store, kept_batch, "keep.txt")
+    kept_line = f"{kept_batch}\tstale-temp\tkeep.txt\t{gc.TRASH_DIR}/{kept_batch}/keep.txt"
+    old_line_1 = f"{old_batch_1}\tstale-temp\tjunk1.txt\t{gc.TRASH_DIR}/{old_batch_1}/junk1.txt"
+    old_line_2 = f"{old_batch_2}\tstale-temp\tjunk2.txt\t{gc.TRASH_DIR}/{old_batch_2}/junk2.txt"
+    manifest = store / gc.TRASH_DIR / "manifest.tsv"
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    manifest.write_bytes(
+        ("\r\n".join([kept_line, old_line_1, old_line_2]) + "\r\n").encode("utf-8")
+    )
+
+    gc.empty_old_trash(store, now, 30, keep=kept_batch)
+    once = manifest.read_bytes()
+    assert b"\r\r" not in once
+    # the kept row's own trailing \r (from the original CRLF join) survives
+    # untouched - newline="" means nothing is added or stripped beyond it.
+    assert once == (kept_line + "\r\n").encode("utf-8")
+
+    # A second rewrite (another empty_old_trash pass over an already-clean
+    # manifest, nothing new to drop) must not grow or mangle it further.
+    gc.empty_old_trash(store, now, 30, keep=kept_batch)
+    twice = manifest.read_bytes()
+    assert twice == once
+
+
+def test_manifest_rewrite_disables_newline_translation_on_write(tmp_path, monkeypatch):
+    # The bug is Windows-only (POSIX's os.linesep is already "\n", so a real
+    # write on this host cannot observe translation) - pin the mechanism
+    # directly: the rewrite must pass newline="" to Path.write_text,
+    # matching the read side exactly, on every host.
+    _repo, store = repo_store(tmp_path)
+    now = noon_today()
+    old_batch = time.strftime("%Y-%m-%d", time.localtime(now - 40 * gc.DAY))
+    kept_batch = time.strftime("%Y-%m-%d", time.localtime(now))
+    seed_batch(store, old_batch, "junk.txt")
+    seed_batch(store, kept_batch, "keep.txt")
+    write_manifest(
+        store,
+        [
+            f"{old_batch}\tstale-temp\tjunk.txt\t{gc.TRASH_DIR}/{old_batch}/junk.txt",
+            f"{kept_batch}\tstale-temp\tkeep.txt\t{gc.TRASH_DIR}/{kept_batch}/keep.txt",
+        ],
+    )
+    captured = {}
+    real_write_text = Path.write_text
+
+    def spy_write_text(self, data, *args, **kwargs):
+        if self.name.startswith("manifest.tsv"):
+            captured["newline"] = kwargs.get("newline")
+        return real_write_text(self, data, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", spy_write_text)
+
+    gc.empty_old_trash(store, now, 30, keep=kept_batch)
+
+    assert captured.get("newline") == ""
+
+
 def test_malformed_row_sharing_a_removed_batch_name_is_preserved(tmp_path):
     _repo, store = repo_store(tmp_path)
     now = noon_today()
@@ -292,3 +374,32 @@ def test_historical_malformed_row_is_preserved_byte_for_byte(tmp_path):
     manifest_lines = (store / gc.TRASH_DIR / "manifest.tsv").read_text().splitlines()
     assert malformed_line in manifest_lines
     assert well_formed_line not in manifest_lines
+
+
+def test_trash_file_manifest_append_never_introduces_crlf(tmp_path, monkeypatch):
+    # trash_file appends via manifest.open("a", encoding="utf-8"). POSIX's
+    # own os.linesep is already "\n", so this host cannot observe Windows
+    # text-mode \n -> \r\n translation directly. Patch Path.open so any
+    # append missing newline="" (the old, buggy call) gets that translation
+    # simulated on its write() - matching what text mode does on Windows -
+    # while an append that already passes newline="" (the fix) is untouched.
+    _repo, store = repo_store(tmp_path)
+    rel = Path("junk.txt")
+    (store / rel).write_text("x")
+    batch = "2020-01-01"
+
+    real_open = Path.open
+
+    def spy_open(self, *args, **kwargs):
+        handle = real_open(self, *args, **kwargs)
+        if self.name == "manifest.tsv" and "newline" not in kwargs:
+            real_write = handle.write
+            handle.write = lambda data: real_write(data.replace("\n", "\r\n"))
+        return handle
+
+    monkeypatch.setattr(Path, "open", spy_open)
+
+    gc.trash_file(store, rel, batch)
+
+    manifest_bytes = (store / gc.TRASH_DIR / "manifest.tsv").read_bytes()
+    assert b"\r\n" not in manifest_bytes
