@@ -220,6 +220,11 @@ junctions if Developer Mode or elevated symlink privileges are unavailable.
 The same Python CLI and flags work on macOS, Linux, and Windows; no Bash runtime
 is required.
 
+CI runs the full Python suite on `windows-latest` (Python 3.13) and on Ubuntu.
+On Windows, the tests of Bash-backed skill scripts need Git Bash; Braid itself
+does not. The junction fallback is stub-tested only: its test fakes the symlink
+refusal and the junction command, so CI never creates a real junction.
+
 `.braidignore` is intentional policy, not an error list. Braid loads it from
 the tool repository, `~/.agents`, every source repository, and the machine-local
 config directory. It holds exactly one class of name: a skill Claude gets from a
