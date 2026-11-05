@@ -14,6 +14,102 @@
       ],
       "reason": "Critical severity, always: deferred record is the audit trail for the cycle it was raised. It is also entered as a fix row and carries the cycle-1 rework design, because a CRITICAL blocks until it is fixed.",
       "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "adversary-weak-point",
+      "severity": "medium",
+      "issue": "test_eval_tree_archive_safety.py absolute-spelling rows (test_build_template_refuses_a_member_named_absolute_in_any_domain and the link-target twin) pin only 14 fixed spellings, so a literal set satisfies them and every other drive letter, NTFS stream name and backslash climb is accepted. Remedy: generate drive letters and stream names over a range, plus direct property tests of _archive_name_escapes. Proven by Devon at task 8, deferred on task-8 scope pins (ANCESTOR_ESCAPES only).",
+      "reason": "out of scope for task 8: contract forbids editing any test but the one ANCESTOR_ESCAPES parametrizes",
+      "found_by": "devon-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "adversary-weak-point",
+      "severity": "high",
+      "issue": "_assert_refused_on_seam in test_eval_tree_archive_safety.py observes only tmp_path/outside and dest, so an implementation that copies the whole archive to dest.parent/leaked-bundle.tar passes every reject row unseen. Remedy: snapshot all of tmp_path before the call and assert dest is the only entry added. Proven by Devon at task 8 (exploit ran, 150 passed), deferred on task-8 scope pins (shared helper).",
+      "reason": "out of scope for task 8: contract forbids modifying _assert_refused_on_seam or any shared helper",
+      "found_by": "devon-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "adversary-weak-point",
+      "severity": "high",
+      "issue": "_assert_refused_on_seam asserts list(dest.glob(\"*\")) == [], which an empty dest created by the refusal itself satisfies while a half-built template.staging-* tree holding the archive survives on disk. Remedy: assert not os.path.lexists(dest) and that no dest.parent entry matching dest.name + \".staging-*\" survives. Proven by Devon at task 8, deferred on task-8 scope pins (shared helper).",
+      "reason": "out of scope for task 8: contract forbids modifying _assert_refused_on_seam or any shared helper",
+      "found_by": "devon-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "adversary-weak-point",
+      "severity": "low",
+      "issue": "test_control_build_template_keeps_the_executable_bit_and_only_where_it_was_set reads only S_IXUSR and git 100644/100755, so _safe_mode could add setuid and group/other write and still pass. Remedy: assert stat.S_IMODE(lstat().st_mode) exactly. Scope note from Devon: test_eval_tree_archive_safety_modes.py lines 86-191 already pin setuid/setgid/sticky/world-write, so this is a blind spot of this one file, not of the suite. Deferred on task-8 scope pins (accept-side control).",
+      "reason": "out of scope for task 8: contract forbids changing accept-side cases; suite-level coverage exists in the modes file",
+      "found_by": "devon-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "adversary-weak-point",
+      "severity": "high",
+      "issue": "No accept-side test reads the sealed template .git, and _walk skips it, git add -A ignores it and status --porcelain stays empty, so a live executable post-checkout hook can ship inside a sealed template and no test notices. Devon planted a 0o755 .git/hooks/post-checkout and all accept rows passed. Remedy: assert the sealed template .git/hooks holds no executable hook and core.hooksPath/core.fsmonitor are unset. Related unverified gap Devon raised by reading: no row feeds a crafted tar containing a .git/... member, _refuse_duplicate_or_crossing_members has no .git rule, and build_template runs git init after extraction, so an archive-supplied .git/config would be reinitialized rather than discarded. Deferred on task-8 scope pins.",
+      "reason": "out of scope for task 8: contract forbids changing accept-side cases or adding tests beyond ANCESTOR_ESCAPES",
+      "found_by": "devon-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "adversary-weak-point",
+      "severity": "high",
+      "issue": "test_build_template_seals_a_real_git_archive_as_the_tree_before_the_task and the control seals pin only HEAD tree, so an extra commit whose tree carries a payload passes every tree-id, ls-files, mode and determinism assertion, and git checkout HEAD~1 in a later attempt restores the payload. Devon proved this. Remedy: assert trees._git(dest, \"rev-list\", \"--count\", \"HEAD\") == \"1\". Deferred on task-8 scope pins.",
+      "reason": "out of scope for task 8: contract forbids changing accept-side cases",
+      "found_by": "devon-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "adversary-weak-point",
+      "severity": "low",
+      "issue": "In the accept-side tests and _seal_control, assert sha == trees.head_sha(dest) is tautological: both sides call the same function, so build_template return value is pinned to nothing. Remedy: pair it with an independent trees._git(dest, \"rev-parse\", \"HEAD\") read, or at least assert the sha is 40-hex and distinct from the source repo head. Raised by Devon at task 8; the computed mech-check does not flag it. Deferred on task-8 scope pins.",
+      "reason": "out of scope for task 8: contract forbids changing accept-side cases or shared helpers",
+      "found_by": "devon-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "message-wording-gap",
+      "severity": "low",
+      "issue": "skills/use-qwen/scripts/eval_harness/trees.py: the whole-name merge check in _refuse_duplicate_or_crossing_members now keys on _fold (NFC + lower), so it also refuses two members differing only in Unicode normalization form, but its refusal string is still \"%s differs from another member only in case\". The message understates what fired. The cycle-1 rework design pins every refusal string byte for byte (\"Every existing refusal string in the module is unchanged, byte for byte\"), so the wording was left as-is deliberately rather than corrected.",
+      "reason": "contract pins the refusal string byte for byte; changing it is a design decision for the review phase, not a task-8 fix",
+      "found_by": "coordinator-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "tool-false-positive",
+      "severity": "low",
+      "issue": "check_split_hygiene.py reports UNUSED for skills/use-qwen/scripts/test_eval_tree_archive_safety.py:31 bare_ci (module-level binding never read in this file). Adjudicated FALSE POSITIVE at task 8, not fixed, no deletion dispatched. Evidence: (1) built_repo(tmp_path, bare_ci) at skills/use-qwen/scripts/eval_harness_fixture_helpers.py:350 requests bare_ci as a fixture parameter; (2) bare_ci is a @pytest.fixture in a plain helper module, not a conftest, so pytest resolves it only through the importing test module namespace; (3) the test file carries a comment at lines 26-29 stating exactly this; (4) the binding is pre-existing and outside task 8 diff, which added only import unicodedata. Deleting it would break every test in the file that uses built_repo. The checker is syntactic and cannot see pytest fixture-name resolution, so any test module importing a fixture by name trips it.",
+      "reason": "false positive adjudicated with evidence; deletion would break the suite. Potential checker improvement: exempt names imported from a module that defines them as @pytest.fixture.",
+      "found_by": "coordinator-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "per-task-review-finding",
+      "severity": "low",
+      "issue": "skills/use-qwen/scripts/eval_harness/trees.py: _land rebuilds keyed = {_fold(key): key for key in links} on every call and on every recursive hop. _ancestor_crossing calls it once per proper prefix of every member and _refuse_colliding_landings calls it per member, so validation is now O(members x depth x links) with a Unicode normalize per key each time, where the old code did one dict lookup per hop. A tar with thousands of members and many symlinks gets slow. Fix: build the folded lookup once per validation pass, or cache it per links dict, passing it down the recursion via a private helper that takes keyed so the public _land signature stays as the contract pins it.",
+      "reason": "LOW from the task-8 per-task review; the ladder notes LOW and proceeds. Not fixed in task 8: the cycle-1 rework design pins _land signature and body, and this is a performance refactor rather than the R1 correctness fix.",
+      "found_by": "pat-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "per-task-review-finding",
+      "severity": "low",
+      "issue": "skills/use-qwen/scripts/eval_harness/trees.py: _refuse_colliding_landings resolves its landings under fold=True but still compares raw spellings in its landings and files sets, so the collision rule is not independently fold-correct. Pat raised it as a silent-overwrite defect with the example links {L: Pkg} plus members L/f and pkg/f. Coordinator reachability check: NOT currently reachable. _refuse_colliding_landings runs first and misses it, but _ancestor_crossing then refuses L/f outright (symlink_landings = {fold(L)} = {l}; landing prefix L crosses slot l, so crossed & symlink_landings is non-empty and it raises \"L/f is beneath an archive symlink\"). Any member beneath an archive symlink is refused, which is what makes two divergent landings unreachable; without a symlink, landings equal raw names and the whole-name _fold check in _refuse_duplicate_or_crossing_members already catches case and normalization merges. So this is a latent fragility, not a live escape: the collision rule is covered only incidentally by the ancestor rule, and would stop being covered if the ancestor rule were ever narrowed. The docstring claim that it judges collisions for the merging host is stronger than what the sets actually do.",
+      "reason": "LOW from the task-8 per-task review, verified unreachable today by the coordinator. Not fixed in task 8: the cycle-1 rework design pins the landings and files sets unchanged, so folding them is a contract amendment for the review phase, and it needs its own matrix entry.",
+      "found_by": "pat-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "runner-unavailable",
+      "severity": "medium",
+      "issue": "The step-5.7 per-task reviewer lane (bash skills/use-sonnet/scripts/sonnet-run.sh) exits 1 with \"Failed to authenticate: OAuth token revoked. Please log in again or contact your administrator.\" and writes that string into its -o output file. This is the known token-stripping failure: Claude Code strips CLAUDE_CODE_OAUTH_TOKEN from tool shells, so a claude -p child cannot authenticate even under run-agent, and relaunching never helps. Task 8 took the ladder one retry through the native autopilot:pat subagent at model sonnet instead, which returned a contract-valid reply (parse_review.py exit 0: 1 resolved CLOSURE, 2 LOW). ACTUAL REVIEWER BACKEND for task 8: native Claude Code subagent autopilot:pat, model sonnet - NOT the sonnet-run.sh CLI lane. Fix belongs in the spawning script: sonnet-run.sh should read the setup token from ~/.local/secret/claude-setup-token itself rather than relying on the inherited environment.",
+      "reason": "environment defect outside this PRD; recorded so the reviewer-backend substitution is on the record and the per-task review lane gets repaired rather than silently degrading to review: failed on every task",
+      "found_by": "coordinator-task-8",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
     }
   ]
 }

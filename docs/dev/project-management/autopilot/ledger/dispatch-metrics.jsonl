@@ -3194,3 +3194,20 @@
 {"id":"083774c0","ended_at":1793919867,"elapsed_s":3602,"outcome":"ok","detail":null}
 {"id":"f3aa72af","ended_at":1793919867,"elapsed_s":3602,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1793919995,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793920025,"phase":"build","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1793920069,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"id":"f6870111","kind":"tess","task":"8","queued_at":1793920296,"prompt_bytes":44179}
+{"id":"f6870111","ended_at":1793920517,"elapsed_s":221,"outcome":"ok","detail":null}
+{"id":"6564c3c7","kind":"devon","task":"8","queued_at":1793920606,"prompt_bytes":4827}
+{"id":"6564c3c7","ended_at":1793921184,"elapsed_s":578,"outcome":"ok","detail":"broke tests: 6 exploits, 8 weak points"}
+{"id":"104e5d4f","kind":"tess","task":"8","queued_at":1793921259,"prompt_bytes":15848}
+{"id":"104e5d4f","ended_at":1793921511,"elapsed_s":252,"outcome":"ok","detail":"6 entries added; weak points 2-8 deferred on scope"}
+{"id":"05e31c79","kind":"ivan","task":"8","queued_at":1793921620,"prompt_bytes":22354}
+{"id":"05e31c79","ended_at":1793921869,"elapsed_s":249,"outcome":"ok","detail":null}
+{"id":"3e655a1e","kind":"deslop","task":"8","queued_at":1793922004,"prompt_bytes":9677}
+{"id":"3e655a1e","ended_at":1793922122,"elapsed_s":118,"outcome":"ok","detail":"no slop found"}
+{"id":"56ce9119","kind":"ivan","task":"8","queued_at":1793922206,"prompt_bytes":18515}
+{"id":"56ce9119","ended_at":1793922291,"elapsed_s":85,"outcome":"ok","detail":"style fix: _land 54 -> 49 lines"}
+{"id":"13b6affd","kind":"pat","task":"8","queued_at":1793922432,"prompt_bytes":34931}
+{"id":"13b6affd","ended_at":1793922730,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
+{"kind":"handoff","site":"review","edge":"leave","at":1793922730,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
