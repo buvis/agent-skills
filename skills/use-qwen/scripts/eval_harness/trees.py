@@ -117,13 +117,11 @@ def _land(
     goes no deeper than the tree has distinct links.
 
     `links` is always raw-keyed. With `fold=True` each hop is matched under
-    `_fold`, which is how a name-merging host walks it: a link reached under a
-    case- or normalization-alias of its own name is followed, and one that
-    points at such an alias of itself is the cycle that host reports. The
-    landing returned keeps its raw spelling either way - a folded value is a
-    lookup key, never a path. `crossed`, when given, collects the folded slot of
-    every symlink the walk passes through, at any depth and inside a link
-    target's own resolution.
+    `_fold`, the way a name-merging host walks it, so a link pointing at such an
+    alias of itself is a cycle on that host. The landing returned keeps its raw
+    spelling either way - a folded value is a lookup key, never a path.
+    `crossed`, when given, collects the folded slot of every symlink the walk
+    passes through, at any depth and inside a link target's own resolution.
     """
     keyed = {(_fold(key) if fold else key): key for key in links}
     landing = ""
@@ -147,11 +145,8 @@ def _land(
         if os.path.isabs(target) or _archive_name_escapes(target):
             raise TreeError("%s leaves the tree: %s" % (landing, target))
         landing = _land(
-            links,
-            posixpath.join(posixpath.dirname(landing), target),
-            active | {probe},
-            fold=fold,
-            crossed=crossed,
+            links, posixpath.join(posixpath.dirname(landing), target),
+            active | {probe}, fold=fold, crossed=crossed,
         )
     return landing
 
