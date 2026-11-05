@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **use-qwen**: template archive extraction now fails closed: it refuses members that escape the destination, cross a link, collide by case, or use Windows-shaped paths, never runs an unfiltered `extractall`, and exposes the tree only after a staged, sealed extraction.
+- **use-qwen**: template archive extraction now fails closed: it refuses members that escape the destination, cross a link, collide by case, or use Windows-shaped paths, never runs an unfiltered `extractall`, and exposes the tree only after a staged, sealed extraction. Archive-domain names are judged as a name-merging host keys them (case and Unicode normalization form), so a member reaching a link under an alias of that link's own name is refused instead of writing outside the destination.
 - **purge-devtmp**: candidate paths containing a tab or line break are refused and reported as `refused-unsafe-path` instead of writing an unrestorable manifest row; emptying a trash batch now also removes its manifest rows (from either tool), preserving retained-batch and unparseable historical rows.
 - **purge-devtmp**: restoration instructions now create the original parent directory before moving a trashed file or directory unit back, so restoring a unit whose parent was pruned no longer fails with `mv` exit 1.
 - **brush**: the manifest's fourth column is now store-relative (`.trash/<date>/<rel>`, resolve from `docs/dev/tmp`), matching purge-devtmp, so one base restores rows from either tool.

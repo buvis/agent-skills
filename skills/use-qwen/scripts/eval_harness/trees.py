@@ -14,6 +14,7 @@ import shutil
 import stat
 import subprocess
 import tarfile
+import unicodedata
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 
@@ -79,7 +80,34 @@ def _walk(root: Path) -> Iterator[tuple[str, Path]]:
             yield path.relative_to(root).as_posix(), path
 
 
-def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()) -> str:
+def _fold(name: str) -> str:
+    """`name` as a name-merging host would key it, for comparison only.
+
+    A tar validated on one host is extracted on another, so the archive rules
+    have to judge for the host that merges names. Two mergings matter: case, so
+    that `A` and `a` are one place on macOS and Windows, and normalization form,
+    so that the composed and decomposed spellings of `é` are one place on APFS.
+
+    `str.lower`, not `str.casefold`: real filesystems do simple case folding,
+    and APFS and NTFS both keep `straße.txt` and `strasse.txt` as two files,
+    which full Unicode folding would merge. NFC rather than NFD because it is
+    the composed form most sources already emit; either direction works as long
+    as one is chosen and used on both sides of every comparison.
+
+    Comparison only: no separator handling and no `.`/`..` walking. Never write
+    or store the result.
+    """
+    return unicodedata.normalize("NFC", name).lower()
+
+
+def _land(
+    links: dict[str, str],
+    path: str,
+    active: frozenset[str] = frozenset(),
+    *,
+    fold: bool = False,
+    crossed: set[str] | None = None,
+) -> str:
     """Where `path` lands in a tree whose symlinks are `links` (relpath -> text).
 
     Followed hop by hop, each link from its own directory, the way the OS would
@@ -87,7 +115,17 @@ def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()
     `..` past the root is an escape and a link met again while it is still
     being followed is a cycle; both are refused as a TreeError, and the walk
     goes no deeper than the tree has distinct links.
+
+    `links` is always raw-keyed. With `fold=True` each hop is matched under
+    `_fold`, which is how a name-merging host walks it: a link reached under a
+    case- or normalization-alias of its own name is followed, and one that
+    points at such an alias of itself is the cycle that host reports. The
+    landing returned keeps its raw spelling either way - a folded value is a
+    lookup key, never a path. `crossed`, when given, collects the folded slot of
+    every symlink the walk passes through, at any depth and inside a link
+    target's own resolution.
     """
+    keyed = {(_fold(key) if fold else key): key for key in links}
     landing = ""
     for name in Path(path).as_posix().split("/"):
         if name == ".":
@@ -98,15 +136,22 @@ def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()
             landing = posixpath.dirname(landing)
             continue
         landing = posixpath.join(landing, name)
-        if landing not in links:
+        probe = _fold(landing) if fold else landing
+        if probe not in keyed:
             continue
-        if landing in active:
+        if crossed is not None:
+            crossed.add(probe)
+        if probe in active:
             raise TreeError("%s is a link cycle" % landing)
-        target = links[landing]
+        target = links[keyed[probe]]
         if os.path.isabs(target) or _archive_name_escapes(target):
             raise TreeError("%s leaves the tree: %s" % (landing, target))
         landing = _land(
-            links, posixpath.join(posixpath.dirname(landing), target), active | {landing}
+            links,
+            posixpath.join(posixpath.dirname(landing), target),
+            active | {probe},
+            fold=fold,
+            crossed=crossed,
         )
     return landing
 
@@ -152,21 +197,29 @@ def _ancestor_crossing(members: Sequence[tarfile.TarInfo], links: dict[str, str]
 
     `links` is the `{normalized member name: linkname}` map. Each symlink's own
     location is its raw name with every segment but the last resolved through
-    `_land`, so a chain of links earlier in its path redirects it in full. Every
-    proper prefix of every member's raw name is then landed the same way; one
-    that lands where a symlink sits writes through that symlink.
+    `_land`, folded, so a chain of links earlier in its path redirects it in
+    full. Every proper prefix of every member's raw name is then landed the same
+    way, and the question is which symlink slots that walk crossed: a prefix
+    landed under `fold=True` dereferences the link it reaches, so the landing
+    alone can no longer say that it went through one.
     """
     symlink_landings: set[str] = set()
     for member in members:
         if member.issym():
             segments = member.name.split("/")
             symlink_landings.add(
-                posixpath.join(_land(links, "/".join(segments[:-1])), segments[-1])
+                _fold(
+                    posixpath.join(
+                        _land(links, "/".join(segments[:-1]), fold=True), segments[-1]
+                    )
+                )
             )
     for member in members:
         segments = member.name.split("/")
         for end in range(1, len(segments)):
-            if _land(links, "/".join(segments[:end])) in symlink_landings:
+            crossed: set[str] = set()
+            _land(links, "/".join(segments[:end]), fold=True, crossed=crossed)
+            if crossed & symlink_landings:
                 raise TreeError("%s is beneath an archive symlink" % member.name)
 
 
@@ -210,11 +263,11 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
         name = posixpath.normpath(member.name)
         if name in names:
             raise TreeError("%s is a duplicate member" % name)
-        # A case-insensitive filesystem lands these two names on one file.
-        if name.lower() in folded:
+        # A name-merging filesystem lands these two names on one file.
+        if _fold(name) in folded:
             raise TreeError("%s differs from another member only in case" % name)
         names.add(name)
-        folded.add(name.lower())
+        folded.add(_fold(name))
     links = {posixpath.normpath(m.name): m.linkname for m in members if m.issym()}
     _refuse_colliding_landings(members, links)
     _ancestor_crossing(members, links)
@@ -226,12 +279,12 @@ def _refuse_colliding_landings(members: Sequence[tarfile.TarInfo], links: dict[s
     files: set[str] = set()
     for member in members:
         original = member.name
-        landing = _land(links, original)
+        landing = _land(links, original, fold=True)
         # Walked whole, a symlink lands wherever it points; the place it takes
         # up itself is its own name, with only its parent walked.
         if member.issym():
             parent, _, last = original.rpartition("/")
-            landing = posixpath.join(_land(links, parent), last)
+            landing = posixpath.join(_land(links, parent, fold=True), last)
         if landing in landings:
             raise TreeError("%s is a duplicate member" % original)
         landings.add(landing)
