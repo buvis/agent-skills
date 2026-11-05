@@ -16,6 +16,7 @@ import io
 import os
 import stat
 import tarfile
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
@@ -150,6 +151,12 @@ def _outside_spelled(tmp_path: Path, text: str) -> str:
 
 # -- A1: a member whose own path crosses a link that leaves the tree ---------
 
+# One character in its composed and its decomposed spelling. Normalized here
+# rather than written out, so an editor or a git filter cannot fold the source
+# file and turn the two members below into one.
+NFC_E = unicodedata.normalize("NFC", "é")
+NFD_E = unicodedata.normalize("NFD", "é")
+
 # The PRD's worked example. Every name is unique and `alias -> pkg` stays
 # inside, but `alias/escape` is really `pkg/escape`, a link out of the tree,
 # and `pkg/escape/secret.txt` writes through it. Judged name by name, nothing
@@ -195,6 +202,45 @@ ANCESTOR_ESCAPES = [
          ("x/y/a", ("sym", "b")), ("x/y/b", ("sym", "../../pkg")),
          ("pkg/escape/secret.txt", PAYLOAD), ("x/y/a/escape", ("sym", "../../outside"))],
         id="file-then-escaping-link-under-a-two-link-chain",
+    ),
+    # Every case from here on reaches a link under a name the host merges with
+    # the one the link was written under: case on this host's filesystem, or
+    # the normalization form of a character. Two names, one place, so the climb
+    # behind the merged name leaves the tree.
+    pytest.param(
+        [("A", ("sym", ".")), ("a/../outside/secret.txt", PAYLOAD)],
+        id="case-alias-self-link",
+    ),
+    pytest.param(
+        [("a", ("sym", ".")), ("A/../outside/secret.txt", PAYLOAD)],
+        id="case-alias-self-link-inverse",
+    ),
+    pytest.param(
+        [("Pkg", DIRECTORY), ("Alias", ("sym", "Pkg")),
+         ("alias/escape/secret.txt", PAYLOAD)],
+        id="case-alias-directory-link",
+    ),
+    pytest.param(
+        [("Pkg", DIRECTORY), ("alias", ("sym", "Pkg")),
+         ("Alias/escape/secret.txt", PAYLOAD)],
+        id="case-alias-directory-link-inverse",
+    ),
+    # The merged name is consumed by `B`'s own target text, not by the path of
+    # the member that writes.
+    pytest.param(
+        [("A", ("sym", ".")), ("B", ("sym", "a/../outside")), ("B/secret.txt", PAYLOAD)],
+        id="case-alias-inside-a-link-target",
+    ),
+    # One member and no climb: where the two names are one place this link
+    # points at itself, and the host answers ELOOP.
+    pytest.param(
+        [("readme", ("sym", "README"))],
+        id="case-equivalent-self-cycle",
+    ),
+    # The link carries the composed spelling, the climbing member the decomposed one.
+    pytest.param(
+        [(NFC_E, ("sym", ".")), (NFD_E + "/../outside/secret.txt", PAYLOAD)],
+        id="normalization-alias-self-link",
     ),
 ]
 
