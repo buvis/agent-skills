@@ -23,7 +23,7 @@ details are lost to compaction or a new session.
 - External `~/bim/` tree (hard anchor, no fallback): output only, into
   `~/bim/inbox/automated/capture-experiment/`. A missing `~/bim/` is a loud
   failure - stop and report it, never fall back to another directory, and
-  never write into `~/bim/zettelkasten/` directly (that's a triage-time move,
+  never write into `~/bim/notes/` directly (that's a triage-time move,
   not this skill's job).
 
 ## Triggers
@@ -122,7 +122,7 @@ Write the note to:
 ~/bim/inbox/automated/capture-experiment/<id>.md
 ```
 
-Never write directly into `~/bim/zettelkasten/` - atomizing a session note
+Never write directly into `~/bim/notes/` - atomizing a session note
 into individual zettelkasten entries is a triage-time job, not this skill's.
 
 ---
