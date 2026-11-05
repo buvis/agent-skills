@@ -242,6 +242,40 @@ ANCESTOR_ESCAPES = [
         [(NFC_E, ("sym", ".")), (NFD_E + "/../outside/secret.txt", PAYLOAD)],
         id="normalization-alias-self-link",
     ),
+    # The two spellings swapped: the link decomposed, the climbing member composed.
+    pytest.param(
+        [(NFD_E, ("sym", ".")), (NFC_E + "/../outside/secret.txt", PAYLOAD)],
+        id="normalization-alias-self-link-inverse",
+    ),
+    # One name merged twice over: by case and by normalization form at once.
+    pytest.param(
+        [(NFC_E + "Dir", ("sym", ".")), (NFD_E + "dir/../outside/secret.txt", PAYLOAD)],
+        id="case-and-normalization-alias-in-one-name",
+    ),
+    # The merged name is a segment below the root, not the first one.
+    pytest.param(
+        [("sub", DIRECTORY), ("sub/A", ("sym", "..")),
+         ("sub/a/../outside/secret.txt", PAYLOAD)],
+        id="case-alias-in-a-nested-segment",
+    ),
+    # The merged name belongs to a real directory member, not to a link, and
+    # the link reached under it stays inside; only the climb behind it leaves.
+    pytest.param(
+        [("Pkg", DIRECTORY), ("Pkg/link", ("sym", ".")),
+         ("pkg/link/../../outside/secret.txt", PAYLOAD)],
+        id="case-alias-on-a-directory-member",
+    ),
+    pytest.param(
+        [(NFC_E, DIRECTORY), (NFC_E + "/link", ("sym", ".")),
+         (NFD_E + "/link/../../outside/secret.txt", PAYLOAD)],
+        id="normalization-alias-on-a-directory-member",
+    ),
+    # Three links deep, with only the chain's head spelled under the merged name.
+    pytest.param(
+        [("A", ("sym", "B")), ("B", ("sym", "C")), ("C", ("sym", ".")),
+         ("a/../outside/secret.txt", PAYLOAD)],
+        id="case-alias-at-the-head-of-a-three-link-chain",
+    ),
 ]
 
 
