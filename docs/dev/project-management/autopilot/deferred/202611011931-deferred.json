@@ -1,0 +1,19 @@
+{
+  "batch_id": "202611011931",
+  "items": [
+    {
+      "type": "review-finding",
+      "cycle": 1,
+      "ref": "R1",
+      "issue": "Case-folding ancestor alias lets an accepted archive write outside dest: A -> . plus a member named a/../outside/secret.txt passes validation, and the manual no-filter path then mkdirs through dest/a, which case-folds onto dest/A -> ., so .. climbs out of dest and the payload lands beside it (reproduced at a8347f3 on a case-insensitive filesystem). The filter path keeps it inside, so it is also a parity break.",
+      "severity": "critical",
+      "consensus": "1/4",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:213",
+      "found_by": [
+        "BOB"
+      ],
+      "reason": "Critical severity, always: deferred record is the audit trail for the cycle it was raised. It is also entered as a fix row and carries the cycle-1 rework design, because a CRITICAL blocks until it is fixed.",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    }
+  ]
+}
