@@ -1392,3 +1392,100 @@ Lane stores at the build -> review hand-off (re-measured 2026-11-04):
 
 Stage 1 exit: PASS. Stage 2 handoff:
 `docs/dev/tmp/handoff-closeout-stage-2-20261104.md`.
+
+## Stage 2 — entry verification, 2026-11-05
+
+Fresh coordinator: Codex, separate from Stage 1. Before changing files,
+the host agent list showed only this coordinator. A fresh native Claude
+preflight then called cross-host `ListAgents` (session
+`c9145f35-89c9-41cf-a3c2-be88062e0854`): no other agent-skills session
+appeared, hence no peer lane ownership was observed. No peer was activated
+or messaged. The former agent-plugins peer was absent, but a replacement
+session was busy; its checkout remains untouched.
+
+Measured entry matches the handoff: local master `452a4e6`, the four
+pre-existing dirty paths unchanged, no stashes, all six closeout worktrees
+at their recorded tips. Remote master `7dd93cf`, CI branches `5bc7cc4`
+and `9026e02`, PR heads #15 `34a0622`, #16 `78596db`, #17 `9249695`.
+`gh run view 41788815596` independently confirms success for all six jobs
+at `9026e022844ae50e6ed38ae630b4acc9e7f837ea`.
+
+All five lane stores name their expected PRD, have every task complete,
+and hold `phase: review`, `next_phase: review`. The original 00133 store
+still names build/build, 0/1 tasks, batch `202610271200`. Preservation
+hashes for that store and the four unrelated dirty files are saved under
+ignored `docs/dev/tmp/closeout-stage-2-20261105-run/preservation-before.json`.
+No autopilot command was run in the main checkout.
+
+00160 review started through installed autopilot 0.10.0's explicit
+`enter` and native session runner, Opus coordinator at high effort, with
+silent model downgrade disabled. Each subsequent review/rework cycle gets
+a fresh session. Evidence directory:
+`docs/dev/tmp/closeout-stage-2-20261105-run/00160/`.
+
+### 00044 review route
+
+Use the review skill's standalone route in a separate disposable worktree,
+with the held 00044 PRD explicitly selected and no autopilot state/task
+context. Preserve its hold status and blocking-escalation record. Do not
+unpark, fabricate completed task state, or rebuild the 14 completed tasks.
+Run every mandated lens with isolated blind context, record the missing
+task context, and adjudicate against the actual Windows changes plus the
+native evidence. Any supported repair follows the bounded isolated rework
+process. The README-only `40efece` remains outside the CI-tested candidate;
+final native evidence must certify any rebuilt candidate before publishing.
+
+### 00160 cycle 1 — review complete, decision/rework in progress
+
+Reviewed HEAD `a8347f3c691d64e3eec1d2d124e3fa92953629bd` includes
+review bookkeeping after the original `5cf3500` tip. Full range begins at
+`3c0c9dbb46b05bda8a01470e75d7e4e088684736`. The saved cycle-1 report
+passes `check_review_file.py --require-codex-guard`: 22 findings, including
+one CRITICAL and four HIGHs. All four lenses ran; no Codex implementation
+guard was triggered. This is not a passing review or a Stage 2 exit.
+
+Two archive defects were reproduced in disposable directories:
+
+- `A -> .` plus `a/../outside/secret.txt` passes validation and writes
+  outside staging on the manual path on the case-insensitive host.
+- `alias -> pkg` plus `alias/escape -> ../../outside`, without a victim
+  member, is accepted and sealed on the manual path, while the data
+  filter rejects the escaping link.
+
+Actual reviewer identities verified from session metadata: Alice and Blake
+both requested and ran `claude-sonnet-5-5`, high effort; Bob used native
+Codex `gpt-6-astra`, medium effort; Carl used Copilot
+`gemini-3.8-flash`. The cycle report currently mislabels Alice/Blake as
+Opus; correct that reporting error after the owning session exits.
+The coordinator itself runs `claude-opus-5[1m]`, high effort.
+
+Full suite: 4495 passed, 0 failed, 9 skipped. Archive warnings-as-errors
+matrix: 326 passed on Python 3.10 and 3.12; Python 3.13 ran the full suite.
+The first 3.12 matrix attempt had transient git-spawn setup errors; the
+isolated safety subset and the complete matrix passed on rerun.
+
+The moved archive worktree had stale virtualenv launcher paths. The review
+session recreated its virtualenv. The compatibility worktree had the same
+problem; the coordinator repaired only its local environment with
+`uv sync --reinstall-package pytest --reinstall-package agent-skills-braid`.
+Neither environment repair changed tracked source.
+
+Autopilot's verification parser requires `PASS/FAIL/SKIP/EXIT`, so the first
+successful pytest run could not populate counts. A second successful run
+through a shell adapter produced the canonical `run_gate` record at
+`a8347f3`. The adapter is preserved in ignored Stage 2 evidence as
+`pytest-gate.sh`; use it for subsequent lanes to avoid that redundant run.
+The context pack was unavailable for the unregistered worktree; all review
+lenses still ran. Consolidation mistakes were corrected explicitly in the
+cycle report, with each split/merge documented.
+
+Phase 5 deferred the CRITICAL under the installed workflow's policy, then
+entered the mandatory reviewed rework-design step. The design review is
+still in progress. No source repair or fresh second-cycle pass is claimed.
+
+Coordinator documentation checks at main `452a4e6`, macOS / Python 3.12.16:
+`uv run pytest -ra` passed (4258 passed, 9 skipped, 2 known archive
+deprecation warnings, 453.01 seconds). This tests main, not the integration
+candidate. `~/.agents/bin/braid --check`: 131 current, 20 ignored, 0 drift.
+`git diff --check`: pass. No skill was edited by the coordinator, so the
+changed-skill validator does not apply to this documentation commit.
