@@ -3183,3 +3183,7 @@
 {"kind":"handoff","site":"build","edge":"leave","at":1793566326,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
 {"kind":"handoff","site":"build","edge":"resume","at":1793915524,"phase":"build","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
 {"kind":"handoff","site":"review","edge":"resume","at":1793915556,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"id":"3d772e65","kind":"bob","task":"review-00160-c1","queued_at":1793915700,"prompt_bytes":9568}
+{"id":"5187594e","kind":"carl","task":"review-00160-c1","queued_at":1793915700,"prompt_bytes":6565}
+{"id":"3d772e65","ended_at":1793915780,"elapsed_s":80,"outcome":"error","detail":"not dispatched: cycle re-staged after venv repair"}
+{"id":"5187594e","ended_at":1793915783,"elapsed_s":83,"outcome":"error","detail":"not dispatched: cycle re-staged after venv repair"}
