@@ -342,6 +342,16 @@ def _extract_without_filter(
             raise TreeError(f"{member.name}: {cause}") from cause
 
 
+def _topmost_missing_ancestor(path: Path) -> Path | None:
+    """The highest directory in `path`'s chain that does not exist yet, or `None`."""
+    missing = None
+    probe = path
+    while not probe.exists():
+        missing = probe
+        probe = probe.parent
+    return missing
+
+
 def build_template(repo: Path, first: str, dest: Path) -> str:
     """Seal the tree before `first` at `dest` as one commit, and answer its sha.
 
@@ -361,12 +371,8 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
     staging = dest.parent / (dest.name + ".staging-" + os.urandom(4).hex())
     # `staging.mkdir(parents=True)` may create `dest`'s absent ancestors too;
     # on failure those must go as well, or a refused archive leaves an empty
-    # directory chain behind. `created_ancestor` is the topmost one of them.
-    created_ancestor = None
-    probe = dest.parent
-    while not probe.exists():
-        created_ancestor = probe
-        probe = probe.parent
+    # directory chain behind.
+    created_ancestor = _topmost_missing_ancestor(dest.parent)
     staging.mkdir(parents=True)
     try:
         with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
