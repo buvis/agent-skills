@@ -8,6 +8,7 @@ test_eval_tree_archive_safety.py; the seams, the archive builders and the
 sentinel come from that module and from test_eval_tree_links.py, so there is
 one spelling of each.
 """
+import errno
 import os
 import tarfile
 from pathlib import Path
@@ -252,5 +253,35 @@ def test_build_template_leaves_no_staging_or_parent_directories_after_a_refused_
     assert not (tmp_path / "a" / "b").exists()
     assert not (tmp_path / "a" / "b" / "c").exists()
     # Nothing new sits beside the chain either: no sibling staging directory.
+    after = sorted(path.name for path in tmp_path.iterdir())
+    assert after == before
+
+
+def test_build_template_wraps_a_staging_mkdir_failure_as_treeerror_and_cleans_up_created_ancestors(
+    tmp_path, built_repo, monkeypatch
+):
+    # The failure this time is the staging mkdir itself, not a later refusal
+    # inside the try: its own OSError must still surface as TreeError, and
+    # any ancestor directories it created along the way must still be gone.
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    _serve_archive(monkeypatch, _crafted_tar([("pkg", DIRECTORY)]))
+    dest = tmp_path / "a" / "b" / "template"
+    before = sorted(path.name for path in tmp_path.iterdir())
+    assert "a" not in before
+    real_mkdir = os.mkdir
+
+    def failing_mkdir(path, *args, **kwargs):
+        if ".staging-" in os.fspath(path):
+            raise OSError(errno.EACCES, "injected staging mkdir failure")
+        return real_mkdir(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "mkdir", failing_mkdir)
+
+    with pytest.raises(trees.TreeError):
+        trees.build_template(repo, first, dest)
+
+    assert not dest.exists()
+    assert not (tmp_path / "a").exists()
     after = sorted(path.name for path in tmp_path.iterdir())
     assert after == before

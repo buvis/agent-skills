@@ -387,8 +387,11 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
     # staging.mkdir(parents=True) may create dest's absent ancestors; a
     # failed build must remove those too, or a refusal leaves them behind.
     created_ancestor = _topmost_missing_ancestor(dest.parent)
-    staging.mkdir(parents=True)
     try:
+        try:
+            staging.mkdir(parents=True)
+        except OSError as cause:
+            raise TreeError("%s could not be staged: %s" % (staging, cause)) from cause
         with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
             # Read off the archive rather than off an extracted tree: a host that
             # cannot create a symlink at all still has to refuse one that escapes,
