@@ -223,30 +223,14 @@ def test_build_template_refuses_a_dest_that_appears_while_it_extracts(
     assert _names(tmp_path) == present | {dest.name}, "staging was left behind"
 
 
-def _name_too_long_file(monkeypatch) -> tuple:
-    return MEMBERS + [("pkg/" + TOO_LONG, PAYLOAD)], None
-
-
-def _name_too_long_directory(monkeypatch) -> tuple:
-    return MEMBERS + [(TOO_LONG, DIRECTORY)], None
-
-
 def _no_space_at_the_third_member(monkeypatch) -> tuple:
     # No name gives this one away ahead of time: only a real write fails.
     return MEMBERS, _run_out_of_space_at(monkeypatch, MEMBERS[2][0])
 
 
 @SEAMS
-@pytest.mark.parametrize(
-    "inject",
-    [
-        pytest.param(_name_too_long_file, id="file-name-too-long"),
-        pytest.param(_name_too_long_directory, id="directory-name-too-long"),
-        pytest.param(_no_space_at_the_third_member, id="no-space-at-the-third-member"),
-    ],
-)
 def test_build_template_injected_extraction_failure_leaves_no_dest_and_siblings_untouched(
-    tmp_path, built_repo, monkeypatch, filter_support, inject
+    tmp_path, built_repo, monkeypatch, filter_support
 ):
     _select_seam(monkeypatch, filter_support)
     repo = Path(built_repo["repo"])
@@ -256,14 +240,54 @@ def test_build_template_injected_extraction_failure_leaves_no_dest_and_siblings_
     before = _states(siblings)
     present = _names(tmp_path)
     # The members ahead of the failing one are real work already done.
-    members, reached = inject(monkeypatch)
+    members, reached = _no_space_at_the_third_member(monkeypatch)
     _serve_archive(monkeypatch, _crafted_tar(members))
     watched = _watch_extraction(monkeypatch, dest)
 
     with pytest.raises(trees.TreeError):
         trees.build_template(repo, first, dest)
 
-    assert reached is None or reached, "the injected write failure was never reached"
+    assert reached == [MEMBERS[2][0]], "the injected write failure was never reached"
+    assert watched, "extraction never started"
+    for seen in watched:
+        assert not seen["dest_existed"], "extraction ran with dest already in place"
+        assert seen["staged_beside"], "the tree was not staged beside dest"
+    assert _state(dest) == ("absent",), "a half-built template was left at dest"
+    assert _states(siblings) == before
+    assert _names(tmp_path) == present, "something was left beside dest"
+
+
+@SEAMS
+@pytest.mark.parametrize(
+    "build_members, failing_member",
+    [
+        pytest.param(
+            MEMBERS + [("pkg/" + TOO_LONG, PAYLOAD)], "pkg/" + TOO_LONG, id="file-name-too-long"
+        ),
+        pytest.param(MEMBERS + [(TOO_LONG, DIRECTORY)], TOO_LONG, id="directory-name-too-long"),
+    ],
+)
+def test_build_template_refuses_a_member_whose_name_the_filesystem_cannot_hold(
+    tmp_path, built_repo, monkeypatch, filter_support, build_members, failing_member
+):
+    # Nothing is injected: the OS itself refuses a path component this long.
+    _select_seam(monkeypatch, filter_support)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    dest = tmp_path / "template"
+    siblings = _lay_siblings(tmp_path)
+    before = _states(siblings)
+    present = _names(tmp_path)
+    _serve_archive(monkeypatch, _crafted_tar(build_members))
+    watched = _watch_extraction(monkeypatch, dest)
+
+    with pytest.raises(trees.TreeError) as excinfo:
+        trees.build_template(repo, first, dest)
+
+    # The exact member reached, not merely that some failure occurred: a fix
+    # that blamed the wrong member, or a build that failed for an unrelated
+    # reason, must not pass this.
+    assert failing_member in str(excinfo.value), "the wrong member was blamed for the failure"
     assert watched, "extraction never started"
     for seen in watched:
         assert not seen["dest_existed"], "extraction ran with dest already in place"
