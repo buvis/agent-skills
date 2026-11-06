@@ -197,6 +197,37 @@ def test_build_template_s_manual_path_seals_a_directory_symlink_that_reads_throu
     assert os.readlink(dest / "dir-link") == "pkg"
 
 
+@NEEDS_SYMLINKS
+def test_build_template_s_manual_path_passes_target_is_directory_from_the_archive_s_own_graph(
+    tmp_path, built_repo, monkeypatch
+):
+    # `os.symlink`'s `target_is_directory` only affects Windows, so the host
+    # filesystem cannot show whether it was computed right; spy on the call
+    # itself instead. Two links of the same shape, one landing on a directory
+    # member and one on a file member, so a constant True or False fails.
+    _hide_data_filter(monkeypatch)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    members = [
+        ("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD),
+        ("dir-link", ("sym", "pkg")), ("file-link", ("sym", "pkg/a.txt")),
+    ]
+    _serve_archive(monkeypatch, _crafted_tar(members))
+    dest = tmp_path / "template"
+    calls = {}
+    real_symlink = os.symlink
+
+    def spy(src, dst, *, target_is_directory=False):
+        calls[Path(dst).name] = target_is_directory
+        return real_symlink(src, dst, target_is_directory=target_is_directory)
+
+    monkeypatch.setattr(os, "symlink", spy)
+
+    trees.build_template(repo, first, dest)
+
+    assert calls == {"dir-link": True, "file-link": False}
+
+
 # -- finding 5: a failure never leaves staging or created parent directories
 
 

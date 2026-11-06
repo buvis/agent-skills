@@ -301,6 +301,20 @@ def _safe_mode(mode: int) -> int:
     return mode & ~(stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX | stat.S_IWGRP | stat.S_IWOTH)
 
 
+def _symlink_targets_a_directory(member: tarfile.TarInfo, members: Sequence[tarfile.TarInfo]) -> bool:
+    """True iff `member` (a symlink) lands on a directory member of the archive.
+
+    `os.symlink`'s `target_is_directory` only matters on Windows, where a
+    link's reparse-point type is fixed at creation; the archive's own member
+    graph is the only sound source for it, never the link text alone.
+    """
+    links = {posixpath.normpath(m.name): m.linkname for m in members if m.issym()}
+    directories = {_fold(posixpath.normpath(m.name)) for m in members if m.isdir()}
+    parent = posixpath.dirname(member.name)
+    landing = _land(links, posixpath.join(parent, member.linkname), fold=True)
+    return _fold(landing) in directories
+
+
 def _extract_without_filter(
     archive: tarfile.TarFile, dest: Path, members: Sequence[tarfile.TarInfo]
 ) -> None:
@@ -332,7 +346,10 @@ def _extract_without_filter(
                 os.chmod(path, _safe_mode(member.mode) | stat.S_IRUSR | stat.S_IWUSR)
             elif member.issym():
                 path.parent.mkdir(parents=True, exist_ok=True)
-                os.symlink(member.linkname, path)
+                os.symlink(
+                    member.linkname, path,
+                    target_is_directory=_symlink_targets_a_directory(member, members),
+                )
         except OSError as cause:
             raise TreeError(f"{member.name}: {cause}") from cause
     for member in directories:
