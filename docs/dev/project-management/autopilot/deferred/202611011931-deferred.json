@@ -110,6 +110,163 @@
       "reason": "environment defect outside this PRD; recorded so the reviewer-backend substitution is on the record and the per-task review lane gets repaired rather than silently degrading to review: failed on every task",
       "found_by": "coordinator-task-8",
       "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "stall",
+      "site": "cap_regression",
+      "detail": "R1 e46f79a; R3 e2f032b; R4 e2f032b; R5 f39f06e",
+      "op_id": "b0744ac53b3a",
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "high",
+      "consensus": "3/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R1 (trees.py:353): cycle-1 R4 only partly resolved, and the rework lost an error-translation guarantee. The manual extraction path still applies the archive directory mode, while filter=data sets a directory mode to None so tarfile creates it at 0o777 and ~umask. Measured: directory 0o500 extracts 0o755 on the filter seam and 0o500 on the manual seam; a directory at mode 0o000 or 0o200 holding a child seals on the filter seam while the manual seam leaks a raw subprocess.CalledProcessError from the seal git commit and leaves dest.staging-hex behind. Breaks PRD A9 output contract (a sealed template or a TreeError) and its cleanup rule. Fix: do not chmod directories on the manual path, and wrap the seal. Regression introduced by commit e46f79a.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd0"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "high",
+      "consensus": "2/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R3 (test_eval_tree_archive_safety_ancestor_parity.py:75): the cycle-1 R3 regression does not pin the ancestor rule. ANCESTOR_CROSSING_THROUGH_A_SAFE_LINK holds both pkg/a.txt and alias/a.txt, which the landing-collision rule already refuses, and the computed fail-first replay confirms the test passes against the pre-change code. With _ancestor_crossing stubbed out only the four case-alias-directory-link cases fail; the cycle-1 reproducer (pkg/, alias to pkg, alias/file.txt with no colliding member) is accepted under the stub and untested. Regression introduced by commit e2f032b.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd1"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "high",
+      "consensus": "2/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R4 (test_eval_tree_archive_safety_ancestor_parity.py:50): test_build_template_falls_back_to_manual_extraction_when_data_filter_is_present_but_not_callable cannot fail, so cycle-1 R2 no-test-pins-it is still true even though the code is fixed. extractall(filter=data) resolves the named filter through the tarfile internal _NAMED_FILTERS and ignores the patched module attribute. assumptions.md records this as unavoidable on this runtime; Alice demonstrated it is avoidable by spying on tarfile.TarFile.extractall and asserting no filter kwarg. Regression introduced by commit e2f032b.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd2"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "high",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R5 (trees.py:304): cycle-1 R5 remains incomplete. _symlink_targets_a_directory recognises only explicit directory members, so a link whose target is the extraction root or an implicitly-created parent is typed as a file link. Measured: a link to dot is accepted, extracts, and is created with target_is_directory False; so is a link to pkg when the archive carries pkg/f.txt but no pkg directory member. The first shape is an ordinary committed symlink that git archive emits, so it is reachable from real input. On Windows it produces a file symlink where PRD Phase 2 requires a directory symlink. Regression introduced by commit f39f06e.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd3"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "medium",
+      "consensus": "3/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R2 (trees.py:370): build_template is 53 lines, over the project 50-line function limit, per the computed mechanical-facts block. The cycle-1 rework grew it from 45 lines, so this cycle crossed the limit. Extract the staging-and-seal sequence or the cleanup into a helper.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd4"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R6 (trees.py:304): behavior-preserving simplification. _symlink_targets_a_directory rebuilds links and directories from every member on each symlink, and _land rebuilds its folded key map on every call and hop even when fold is False. Measured about 4 s for validation alone at 21000 members with 1000 links, growing quadratically. Build the maps once per call and pass them down.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd5"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R7 (trees.py:344): _extract_without_filter does not clear group and other execute bits when the owner lacks execute, diverging from filter=data. Measured on accepted archives: file mode 0o077 extracts 0o644 filtered and 0o655 manual; 0o070 gives 0o640 against 0o650. Spec tension to resolve: the code follows PRD A7 literal mode wording while the PRD parity sentence demands the stricter data_filter rule.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd6"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R8 (trees.py:339): _extract_without_filter writes with open and os.symlink and never uses O_NOFOLLOW or lstat, so containment rests entirely on the pre-validation passes being complete. Sound only if validation has no gap, and R9 is one.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd7"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R9 (trees.py:271): the case rule folds only whole normalized member names. The landings and files sets in _refuse_colliding_landings hold the raw spelling _land returns and the ancestor-file loop compares raw, so folding the _land calls alone did not make the rule judge for a name-merging host. Measured: file pkg plus Pkg/x is ACCEPTED by validation in both member orders; on a case-sensitive host it seals a template that is broken on macOS and Windows. PRD A5 requires a file/directory swap refused independent of member order. Fix: fold the set elements and the ancestor probe, keeping raw spellings in refusal messages. This was the rework design stated intent for this function.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd8"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "medium",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R10 (test_eval_tree_links.py:145): _lay_links passes target_is_directory but does not convert the target separators to native form, which PRD Phase 2 asks for. The Q4/Q5 raw-versus-native probe is therefore not implemented in the fixture.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd9"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R11 (trees.py:360): _topmost_missing_ancestor runs outside the outer try, so an OSError from Path.exists on an unreadable ancestor would escape untranslated. Coordinator note: on CPython 3.x Path.exists catches OSError and returns False, so this is not reachable on the supported runtimes.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd10"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R12 (trees.py:83): symbols beyond the PRD New symbols list: _fold with NFC normalization, _symlink_targets_a_directory and _topmost_missing_ancestor. The NFC normalization refusal is behavior the PRD does not ask for, though the rework design adopted it deliberately to close a reproduced escape.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd11"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R13 (trees.py:419): on cleanup, created_ancestor is removed with rmtree ignore_errors. It is computed before staging.mkdir, so another process that created content there in between would lose it. Low-probability race, outside the harness single-writer model.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd12"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R14 (trees.py:392): staging creation (a write) happens before archive validation, differing from decide-from-tar-metadata-alone-before-any-write. Corrupt-tar errors (tarfile.ReadError, ExtractError) are still not translated to TreeError.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd13"
+    },
+    {
+      "type": "cap-overflow",
+      "severity": "low",
+      "consensus": "1/4",
+      "reason": "rework cap reached with this finding unresolved",
+      "issue": "R15 (test_eval_tree_archive_staging.py:232): the mechanical replay reports passing pre-change staging tests and safe-link controls. Judged expected by the doubt lens: task 10 strengthens assertions without changing production behavior and the acceptance controls should pass against both revisions. No additional production fix follows beyond R3 and R4, which the same lines also name.",
+      "cycle": 2,
+      "prd": "00160-template-archive-extraction-fails-closed-v1.md",
+      "op_id": "b0744ac53b3a-dd14"
     }
   ]
 }
