@@ -302,9 +302,7 @@ def _safe_mode(mode: int) -> int:
 
 
 def _symlink_targets_a_directory(member: tarfile.TarInfo, members: Sequence[tarfile.TarInfo]) -> bool:
-    """True iff `member` (a symlink) lands on a directory member of the archive.
-
-    `os.symlink`'s `target_is_directory` only matters on Windows, where a
+    """`os.symlink`'s `target_is_directory` only matters on Windows, where a
     link's reparse-point type is fixed at creation; the archive's own member
     graph is the only sound source for it, never the link text alone.
     """
