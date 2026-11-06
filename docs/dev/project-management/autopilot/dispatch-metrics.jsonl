@@ -3231,3 +3231,5 @@
 {"id":"6201f0d3","ended_at":1793926443,"elapsed_s":1005,"outcome":"ok","detail":"closed-by: commit f39f06e74ed0398a70b21d4d478ece42373ae0b1"}
 {"id":"3c8ff94a","ended_at":1793926443,"elapsed_s":null,"outcome":"ok","detail":"closed-by: artifact"}
 {"kind":"handoff","site":"review","edge":"leave","at":1793926443,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1793926477,"phase":"build","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1793926510,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
