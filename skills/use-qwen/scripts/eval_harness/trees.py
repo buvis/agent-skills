@@ -310,21 +310,34 @@ def _extract_without_filter(
     The archive's uid, gid and owner names are never read: nothing here chowns,
     whoever runs it. A symlink's text is written as the archive gives it; the
     members were already refused earlier if it could escape.
+
+    A directory's own mode is applied only after every member is extracted,
+    the way `tarfile.extractall` itself defers it: a restrictive mode set up
+    front would block writing the very children nested beneath it.
     """
+    directories: list[tarfile.TarInfo] = []
     for member in members:
         path = dest.joinpath(member.name)
         try:
             if member.isdir():
                 path.mkdir(parents=True, exist_ok=True)
-                os.chmod(path, _safe_mode(member.mode))
+                directories.append(member)
             elif member.isfile():
                 path.parent.mkdir(parents=True, exist_ok=True)
                 with archive.extractfile(member) as source, open(path, "wb") as target:
                     shutil.copyfileobj(source, target)
-                os.chmod(path, _safe_mode(member.mode))
+                # Owner read/write is floored on, the way `filter="data"`
+                # floors it, so a member mode of 0 still leaves the file one
+                # `git add` can read back.
+                os.chmod(path, _safe_mode(member.mode) | stat.S_IRUSR | stat.S_IWUSR)
             elif member.issym():
                 path.parent.mkdir(parents=True, exist_ok=True)
                 os.symlink(member.linkname, path)
+        except OSError as cause:
+            raise TreeError(f"{member.name}: {cause}") from cause
+    for member in directories:
+        try:
+            os.chmod(dest.joinpath(member.name), _safe_mode(member.mode))
         except OSError as cause:
             raise TreeError(f"{member.name}: {cause}") from cause
 
@@ -346,6 +359,14 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
     # Built and sealed beside `dest`, then renamed into place: a failure at any
     # step leaves no half-built template where the caller looks for one.
     staging = dest.parent / (dest.name + ".staging-" + os.urandom(4).hex())
+    # `staging.mkdir(parents=True)` may create `dest`'s absent ancestors too;
+    # on failure those must go as well, or a refused archive leaves an empty
+    # directory chain behind. `created_ancestor` is the topmost one of them.
+    created_ancestor = None
+    probe = dest.parent
+    while not probe.exists():
+        created_ancestor = probe
+        probe = probe.parent
     staging.mkdir(parents=True)
     try:
         with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
@@ -353,7 +374,7 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
             # cannot create a symlink at all still has to refuse one that escapes,
             # and refusing here leaves no half-built template behind.
             _refuse_duplicate_or_crossing_members(archive.getmembers())
-            if hasattr(tarfile, "data_filter"):
+            if callable(getattr(tarfile, "data_filter", None)):
                 try:
                     archive.extractall(staging, filter="data")
                 except (tarfile.FilterError, OSError) as cause:
@@ -372,6 +393,8 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
             raise TreeError("%s could not be published: %s" % (dest, cause)) from cause
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
+        if created_ancestor is not None:
+            shutil.rmtree(created_ancestor, ignore_errors=True)
         raise
     return head_sha(dest)
 
