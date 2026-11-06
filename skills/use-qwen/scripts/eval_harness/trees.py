@@ -369,9 +369,8 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
     # Built and sealed beside `dest`, then renamed into place: a failure at any
     # step leaves no half-built template where the caller looks for one.
     staging = dest.parent / (dest.name + ".staging-" + os.urandom(4).hex())
-    # `staging.mkdir(parents=True)` may create `dest`'s absent ancestors too;
-    # on failure those must go as well, or a refused archive leaves an empty
-    # directory chain behind.
+    # staging.mkdir(parents=True) may create dest's absent ancestors; a
+    # failed build must remove those too, or a refusal leaves them behind.
     created_ancestor = _topmost_missing_ancestor(dest.parent)
     staging.mkdir(parents=True)
     try:
