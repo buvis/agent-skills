@@ -3233,3 +3233,7 @@
 {"kind":"handoff","site":"review","edge":"leave","at":1793926443,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
 {"kind":"handoff","site":"build","edge":"resume","at":1793926477,"phase":"build","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
 {"kind":"handoff","site":"review","edge":"resume","at":1793926510,"phase":"review","prd":"00160-template-archive-extraction-fails-closed-v1.md"}
+{"id":"13c70528","kind":"bob","task":"review-00160-c2","queued_at":1793927050,"prompt_bytes":24909}
+{"id":"ba01738a","kind":"carl","task":"review-00160-c2","queued_at":1793927050,"prompt_bytes":21906}
+{"id":"13c70528","ended_at":1793927848,"elapsed_s":798,"outcome":"ok","detail":null}
+{"id":"ba01738a","ended_at":1793927852,"elapsed_s":802,"outcome":"ok","detail":null}
