@@ -1483,9 +1483,137 @@ Phase 5 deferred the CRITICAL under the installed workflow's policy, then
 entered the mandatory reviewed rework-design step. The design review is
 still in progress. No source repair or fresh second-cycle pass is claimed.
 
-Coordinator documentation checks at main `452a4e6`, macOS / Python 3.12.16:
+Coordinator documentation checks on main before `c687f6d`, macOS / Python 3.12.16
+(the exact test-start HEAD was not captured):
 `uv run pytest -ra` passed (4258 passed, 9 skipped, 2 known archive
 deprecation warnings, 453.01 seconds). This tests main, not the integration
 candidate. `~/.agents/bin/braid --check`: 131 current, 20 ignored, 0 drift.
 `git diff --check`: pass. No skill was edited by the coordinator, so the
 changed-skill validator does not apply to this documentation commit.
+
+### 00160 bounded rework and cycle 2 — 2026-11-05/06
+
+The rework design completed its three required dispatches (Claude, Codex,
+Codex) and ended `result: ok`. Verified blockers were corrected within
+those dispatches. It preserves the shared read-side walker and validates
+archive aliases using NFC normalization and case-insensitive comparisons.
+The design and its review log are retained in the archive worktree as
+`designs/00160-template-archive-extraction-fails-closed-v1-rework-1-design.md`.
+No fourth design dispatch or raised cap was used.
+
+Four fresh native sessions ran through the installed runner:
+
+| Session | Routed coordinator | Outcome |
+|---|---|---|
+| 1 | Opus, high | Cycle 1 review, reviewed design, three queued rework tasks; ended 2026-11-05 23:07 UTC |
+| 2 | Opus, high | Task 8 rework; fresh handoff with two tasks left; ended 23:52 UTC |
+| 3 | Sonnet, high | Tasks 9/10 rework; supported transition to cycle 2; ended 2026-11-06 00:54 UTC |
+| 4 | Opus, high | Complete cycle 2 review; cap-regression stall; ended 01:24 UTC |
+
+The cycle-1 critical escape is fixed (`5928960`, with regressions in
+`f54b1db` and `5900c1c`). Cycle 2 independently confirmed closure; no new
+CRITICAL was raised. Task 9 changes include `e46f79a`, `f39f06e`,
+`66ee177` and tests `e2f032b`; task 10 strengthened failure-injection
+assertions in `8b776c5`. These changes remain local to `closeout/archive`.
+
+Cycle 2 reviewed
+`bd014b9a787cbb4dd2db167aa8838843e7819d1b`, incrementally from `a8347f3`.
+All four lenses ran again, including isolated PRD-only Blake and all five
+Bob doubt verdicts. The actual backends/models match the verified cycle-1
+identities above. The owning session also corrected the cycle-1 report's
+Alice/Blake model attribution. No Codex implementation guard was triggered.
+
+The gated report is
+`reviews/00160-template-archive-extraction-fails-closed-v1-review-2.md`
+in the archive worktree, committed in `8bb9890`. It contains 15 findings,
+including four unresolved HIGHs:
+
+| Ref | Remaining repair | Regression commit |
+|---|---|---|
+| R1 | Match data-filter directory-mode behavior; translate seal failures and remove staging after failure | `e46f79a` |
+| R3 | Pin safe-symlink ancestor refusal without a colliding member masking the tested rule | `e2f032b` |
+| R4 | Make the non-callable-filter regression observe the actual extraction path; correct the contrary assumption ledger entry | `e2f032b` |
+| R5 | Classify links to the extraction root and implied parent directories as directory links | `f39f06e` |
+
+`autopilot cap-check` classified all four as rework regressions (exit 1).
+At cycle 2/2 the installed workflow therefore stalled with
+`site: cap_regression`, operation `b0744ac53b3a`. No custody was captured:
+this site uses branch repair or a v2 PRD, not `autopilot custody`.
+The original 00160 PRD is now in this lane's `prds/hold/`. Stall cleanup
+reset the lane store to build/build, cycle 1, zero tasks; that reset is
+not a reviewed or successful build and must not trigger default entry.
+The explicit-target runner stopped without selecting another PRD.
+
+The cap preserved 15 overflow findings alongside the earlier deferrals
+(29 batch rows total). All required lenses and the two-cycle limit were
+preserved. No source repair was attempted after the cap.
+
+Cycle-2 full suite at `bd014b9`, macOS / Python 3.13.18: **4532 passed,
+0 failed, 9 skipped**. Counts came from `gate-00160-c2.log`, not a valid
+canonical `last-verification.json`: the session again used plain pytest,
+whose summary the installed verifier does not parse. This deviation is
+disclosed in the review file. The saved `pytest-gate.sh` adapter remains
+the required gate command for subsequent work. Skill validation passed
+for `skills/use-qwen`; braid reported 0 drift. No POSIX assertion was
+removed and no platform skip was added.
+
+The per-task Claude CLI authentication route failed during rework; the
+session used the native `autopilot:pat` Sonnet reviewer instead and recorded
+that actual backend. This installed helper defect remains reported in the
+batch ledger; no frozen repository or installed plugin asset was patched.
+The coordinator also corrected the prompt-writing route: development-artifact
+redirect denials must use Write directly, not a script wrapper.
+
+### Stage 2 boundary — 2026-11-07
+
+**Exit: FAIL / blocked at the prescribed review cap.** The closeout plan
+requires a same-stage handoff when the cap blocks convergence. Stage 3
+was not started. No candidate was rebuilt, approved, pushed or dispatched.
+The prior native run still certifies only `9026e02`, not the archive rework
+or `40efece`.
+
+Archive stall commit: `dd1a27d`. The mint operation allocated triage IDs
+00161-00164 that collide with the existing closeout lane PRDs. After checking
+all git history (highest ID 00170), the coordinator renamed only those four
+new stubs to 00171-00174 in `373be1f` and updated the active lane store's
+`batch.minted_stubs` through `statectl.mutate`. All ten stub references
+resolve, their contents and ledger keys are unchanged, and all 29 deferred
+rows remain. Existing lane PRDs 00161-00164 were not edited. Historical logs
+retain the original minted names. Stub 00171 still records the resolved
+cycle-1 critical; triage it against cycle 2 instead of treating it as a
+new unresolved escape.
+
+Source/test/config trees are unchanged between tested `bd014b9` and current
+archive `373be1f`; the later commits contain review/store bookkeeping and
+the four 100% renames. `git diff --check` and braid passed after that cleanup.
+There are no `Co-Authored-By` trailers in the rework range.
+
+The other four lanes retain their original tips and review handoffs:
+00162 `73386d6` (8/8), 00164 `b8db11f` (3/3), 00161 `b6241bd` (6/6),
+00163 `40efece` (4/4). They have not been independently reviewed in Stage 2.
+00044 remains held; its standalone review route above has not run.
+The combined review, integration rebuild and final gates remain pending.
+
+All 83 original preservation hashes still match. Original PRD 00133 SHA-256
+remains `ad22e003c161684aee73c44559c08176b0b947a3db56a6a4f031fd71cabc7125`.
+Its original store is unchanged. The 147 published ancestors remain intact;
+no held branch, recovery asset, or unrelated dirty file was changed.
+The main checkout includes another session's documentation commit `c7a74e3`;
+it was preserved alongside coordinator record commit `c687f6d`.
+
+The boundary `ListAgents` check showed no named agent-skills or closeout peer;
+PRD ownership is not exposed by that registry, so absence is inferred rather
+than independently proven. The agent-plugins peer is waiting, not idle.
+Its clean main checkout is at `d9c2ba1`; the clean requirement worktree remains
+at `9a1165b`. The branches have diverged, so the old fast-forward instruction
+first needs an isolated rebase when that peer is idle. Neither checkout was
+changed by this coordinator.
+
+Remote master remains `7dd93cf`; CI branches remain `5bc7cc4` and `9026e02`;
+PR heads remain #15 `34a0622`, #16 `78596db`, #17 `9249695`. Stashes: none.
+No user coding or approval is required at this boundary. The next agent uses
+the installed `cap_regression` recovery for bounded repair, then resumes the
+remaining Stage 2 procedure. Keep the existing caps and fresh-session gates.
+
+Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261107-1047.md`.
+Stage 3 still owns the PR #17 NOTICE sentence and stale PRD-reference edits.
