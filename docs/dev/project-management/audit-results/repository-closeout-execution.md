@@ -1818,3 +1818,48 @@ All 83 main and 48 repair preservation hashes match. No stashes were created.
 The four unrelated dirty main-checkout paths remain intact.
 
 Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-1503.md`.
+
+### Stage 2 archive recovery review 2 — PASS, 2026-11-08
+
+Fresh session (Claude Opus 5.5). ListAgents showed no peer owning the review.
+Main was `f1aa991` (`0537eb2` plus an unrelated convert-to-icon fix),
+original archive `373be1f`, repair `1a01b3a`, worktree clean.
+
+Standalone route, explicit held 00160, no task context, baseline `39b97f3`.
+Report committed on the repair branch as **`3d65a2f`**:
+`reviews/00160-template-archive-extraction-fails-closed-v1-recovery-review-2-20261108.md`.
+Verdict **PASS**: both LOW documentation corrections are right, and
+`39b97f3..1a01b3a` changes no executable code or test. No CRITICAL, HIGH or
+MEDIUM. Five new LOW follow-ups (stale test wording, umask-dependent
+directory assertion, A11 sentinel read-through, seal-failure test cost, stale
+`hasattr` test docstring) are recorded as deferred in the report. Known rows
+keep their dispositions.
+
+Roster: Alice and Blake on native Claude Sonnet 5.5 subagents (Blake told to
+skip reviews, designs, ledger and log). Bob ran on Codex `gpt-6-astra` through
+the inlined retry after the tool-enabled attempt failed on nested
+`sandbox-exec`. Carl ran on Copilot `gemini-3.8-flash`. The Bob and Carl
+subagent personas also ran on Claude Opus 5.5 and are counted as extra voices.
+Eve ran on Claude Fable 5.1 as the Anthropic safeguard and killed four mutants.
+Unlike recovery review 1, Codex and Gemini both ran.
+
+Gate at `1a01b3a`, `UV_PYTHON=3.13.18` adapter, rootdir the repair worktree:
+**4598 passed, 0 failed, 9 skipped**, 535.90 s. Log:
+`docs/dev/tmp/closeout-cap-docs-review-20261108-gate.log`. Blake's 3.10 run
+rebuilt the shared worktree `.venv` mid-run and caused one spurious spawn
+failure; it does not reproduce in isolated runs or in the gate. A first gate
+launch landed in the main checkout by mistake and was stopped; it may have
+rebuilt main's ignored `.venv` (now 3.13.18). No tracked file changed.
+
+Recovery per installed `cap_regression`: the fix lives on
+`closeout/archive-cap-repair`. Held 00160 stays in `prds/hold/`; moving it to
+`backlog/` would rerun it, so the repair branch tip `3d65a2f` replaces
+archive `373be1f` as the archive lane input to the combined candidate.
+Original cap, reports, store, 29 deferred rows and ledger keys are unchanged.
+
+Next, each in a fresh session: lane reviews 00162 `73386d6`, 00164
+`b8db11f`, 00161 `b6241bd`, 00163 `40efece`; held 00044 standalone route;
+combined candidate. Exact-SHA CI approval, user dispatch, Stage 3 and PR #17
+edits remain pending. No remote write occurred.
+
+Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-1800.md`.
