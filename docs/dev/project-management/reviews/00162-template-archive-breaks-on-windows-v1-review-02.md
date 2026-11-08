@@ -51,21 +51,22 @@ Models, as installed and as run:
 - Carl: requested Copilot / `gemini-3.8-flash`; not run (exit 3, same guard).
 - Eve: `autopilot:eve`, Claude Fable, effort xhigh (`agents/eve.md`).
 
-Model identities were not independently verified from transcript fields in
-this session; they come from the installed agent definitions and the
-dispatch parameters.
+The parent coordinator verified transcript model fields after the session:
+Alice, Blake and Bob's fallback used `claude-sonnet-5-5`; Eve used
+`claude-fable-5-1`. Effort values above come from dispatch configuration.
 
 ## Evidence
 
 - Full adapter gate at HEAD `5b42fed`, Python 3.13.18 (the handoff's
   `pytest-gate.sh` command, run through `autopilot review-stage`):
-  **4529 passed, 0 failed, 9 skipped**, suite run this cycle, 399 seconds.
+  **4529 passed, 0 failed, 9 skipped**, suite run this cycle, 365.70 seconds
+  in pytest (399 seconds reported by the staging wrapper).
   Log: `docs/dev/tmp/gate-00162-20261108-c2.log`. Kept separate from the
   recorded gate at `b654f15`, which also read 4529 passed, 0 failed, 9 skipped.
 - Archive modules on isolated Python 3.10 and 3.12 (`uv run --isolated`, each
   its own environment), `-W error::DeprecationWarning`: the five archive
-  modules plus the extracted `test_eval_tree_links_typed.py` and the
-  `test_eval_tree_state.py` module, six files in total: **350 passed on 3.10**
+  modules (safety, safety_modes, staging, links, state) plus the extracted
+  `test_eval_tree_links_typed.py`, six files in total: **350 passed on 3.10**
   (46.06 s) and **350 passed on 3.12** (45.22 s). No platform skip, no xfail,
   no weakened POSIX assertion. These are macOS results, not native Windows.
 - Alice: seven archive and tree modules on 3.13, deprecations as errors:
