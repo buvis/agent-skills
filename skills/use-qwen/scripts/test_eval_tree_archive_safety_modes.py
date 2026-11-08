@@ -6,6 +6,7 @@ of each.
 """
 import os
 import stat
+import subprocess
 import tarfile
 from pathlib import Path
 
@@ -24,7 +25,14 @@ from test_eval_tree_links import (
     bare_ci,
     built_repo,
 )
-from test_eval_tree_archive_safety import SEAMS, _appended, _sealed_modes, _select_seam, _snapshot
+from test_eval_tree_archive_safety import (
+    SEAMS,
+    _appended,
+    _file,
+    _sealed_modes,
+    _select_seam,
+    _snapshot,
+)
 
 
 def _owned_file(mode: int, uid: int, owner: str, name: str = "pkg/tool") -> tarfile.TarInfo:
@@ -207,3 +215,224 @@ def test_build_template_seals_a_file_with_git_archive_s_root_owner_and_keeps_its
     assert _chowns_to_another_owner(requested) == [], "extraction asked for the archive's owner"
     assert asked_filter == [], "the no-filter seam was asked for a filter"
     assert _snapshot(outside) == before
+
+
+# -- index modes reach git on stdin, not on the command line ----------------
+
+# Windows caps a whole command line at this many characters.
+WINDOWS_COMMAND_LINE_LIMIT = 32767
+# Executable by the user's bit alone: 0o744 is, 0o654 (group/other only) is not.
+SEAL_MODES = (0o755, 0o644, 0o744, 0o654)
+
+
+def _record_git_argv(monkeypatch) -> list:
+    """Every argv `trees` hands `subprocess.run`, each call still run for real."""
+    calls = []
+    real = trees.subprocess.run
+
+    def spy(*args, **kwargs):
+        argv = args[0] if args else kwargs["args"]
+        calls.append([os.fspath(part) for part in argv])
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(trees.subprocess, "run", spy)
+    return calls
+
+
+def _update_index_calls(calls: list) -> list:
+    return [argv for argv in calls if "update-index" in argv]
+
+
+def _member_paths_on_the_command_line(calls: list, names) -> list:
+    """(argv part, member name) for every member name an argv part carries."""
+    return [(part, name) for argv in calls for part in argv for name in names if name in part]
+
+
+def _parents(names) -> list:
+    """Every directory the names sit under, shallowest first."""
+    folders = set()
+    for name in names:
+        parts = name.split("/")
+        folders.update("/".join(parts[:depth]) for depth in range(1, len(parts)))
+    return sorted(folders, key=lambda folder: (folder.count("/"), folder))
+
+
+def _ignore_filesystem_mode(monkeypatch) -> None:
+    """Git for Windows' default: `git add` records every new file as 100644."""
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.filemode")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "false")
+
+
+def _tree_modes(dest: Path) -> dict:
+    """Each path the sealed HEAD tree holds, with its git mode, from `git ls-tree -r`."""
+    modes = {}
+    for line in trees._git(dest, "-c", "core.quotePath=false", "ls-tree", "-r", "HEAD").splitlines():
+        meta, path = line.split("\t", 1)
+        modes[path] = meta.split()[0]
+    return modes
+
+
+def test_build_template_seals_a_thousand_paths_with_none_on_a_git_update_index_command_line(
+    tmp_path, built_repo, monkeypatch
+):
+    # Git ignores the disk's mode here, so every executable bit has to be set
+    # through the index: the seal cannot get the modes right without asking git.
+    _ignore_filesystem_mode(monkeypatch)
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    files = {
+        f"src/package_{i % 10:02d}/module_{i % 50:02d}/ordinary_source_file_{i:04d}.py":
+            SEAL_MODES[i % len(SEAL_MODES)]
+        for i in range(1200)
+    }
+    bundle = _appended(
+        [(folder, DIRECTORY) for folder in _parents(files)],
+        [_file(name, b"# %s\n" % name.encode(), mode) for name, mode in files.items()],
+    )
+    _serve_archive(monkeypatch, bundle)
+    dest = tmp_path / "template"
+    calls = _record_git_argv(monkeypatch)
+
+    trees.build_template(repo, first, dest)
+
+    asked = list(calls)
+    updates = _update_index_calls(asked)
+    assert updates, "no `git update-index` ran, yet only the index can carry these modes"
+    assert _member_paths_on_the_command_line(updates, files) == []
+    longest = max(len(subprocess.list2cmdline(argv)) for argv in asked)
+    assert longest < WINDOWS_COMMAND_LINE_LIMIT, longest
+    assert _tree_modes(dest) == {
+        name: "100755" if mode & stat.S_IXUSR else "100644" for name, mode in files.items()
+    }
+
+
+def _git_run(root: Path, *args: str) -> bytes:
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, check=True).stdout
+
+
+def _index_modes(root: Path) -> dict:
+    """Each tracked path with its index mode, read as bytes from `ls-files --stage -z`."""
+    modes = {}
+    for entry in _git_run(root, "ls-files", "--stage", "-z").split(b"\0"):
+        if entry:
+            meta, path = entry.split(b"\t", 1)
+            modes[path.decode("utf-8")] = meta.split()[0].decode("ascii")
+    return modes
+
+
+BYSTANDER = "bystander.txt"
+
+
+def _staged_with_inverted_modes(root: Path, files: dict) -> None:
+    """A repo tracking `files` plus a bystander, each index mode the opposite of its archive mode.
+
+    The bystander is tracked as 100755 and is no member at all, so it must be
+    left alone. Inverted, a mode left untouched is wrong either way.
+    """
+    root.mkdir()
+    _git_run(root, "init", "-q")
+    _git_run(root, "config", "core.filemode", "false")
+    for name in [*files, BYSTANDER]:
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_bytes(b"#!/bin/sh\necho %s\n" % name.encode())
+    _git_run(root, "add", "-A")
+    starts_executable = [name for name, mode in files.items() if not mode & stat.S_IXUSR]
+    _git_run(root, "update-index", "--chmod=+x", "--", *starts_executable, BYSTANDER)
+
+
+def _members(files: dict, directories=()) -> list:
+    members = []
+    for name in directories:
+        members.append(_directory(name, 0o755))
+    for name, mode in files.items():
+        info = tarfile.TarInfo(name)
+        info.mode = mode
+        members.append(info)
+    return members
+
+
+def _expected_index(files: dict) -> dict:
+    expected = {name: "100755" if mode & stat.S_IXUSR else "100644" for name, mode in files.items()}
+    return {**expected, BYSTANDER: "100755"}
+
+
+@pytest.mark.parametrize(
+    "files",
+    [
+        # `bin/run` and `bin/run.txt` share a prefix and sit in opposite groups.
+        pytest.param({"bin/run": 0o755, "bin/run.txt": 0o644}, id="one-of-each"),
+        pytest.param({"bin/run": 0o755, "tools/build": 0o700}, id="executable-only"),
+        pytest.param({"bin/run.txt": 0o644, "notes": 0o654}, id="plain-only"),
+        pytest.param({}, id="no-members"),
+    ],
+)
+def test_set_index_modes_asks_git_once_per_non_empty_mode_group_with_paths_on_stdin(
+    tmp_path, monkeypatch, files
+):
+    staging = tmp_path / "staging"
+    _staged_with_inverted_modes(staging, files)
+    # A directory member carrying an exec bit is not a regular file: no mode to set.
+    members = _members(files, directories=sorted({n.split("/")[0] for n in files if "/" in n}))
+    calls = _record_git_argv(monkeypatch)
+
+    trees._set_index_modes(staging, members)
+
+    updates = _update_index_calls(list(calls))
+    assert _index_modes(staging) == _expected_index(files)
+    assert _member_paths_on_the_command_line(updates, [*files, BYSTANDER]) == []
+    for flag, executable in (("--chmod=+x", True), ("--chmod=-x", False)):
+        group = [n for n, mode in files.items() if bool(mode & stat.S_IXUSR) == executable]
+        asked = [argv for argv in updates if flag in argv]
+        assert len(asked) <= (1 if group else 0), (flag, asked)
+        for argv in asked:
+            assert "--stdin" in argv and "-z" in argv, argv
+
+
+def test_set_index_modes_surfaces_a_git_failure_instead_of_swallowing_it(tmp_path):
+    staging = tmp_path / "not-a-repo"
+    staging.mkdir()
+    (staging / "run").write_bytes(b"#!/bin/sh\n")
+
+    with pytest.raises(subprocess.CalledProcessError) as raised:
+        trees._set_index_modes(staging, _members({"run": 0o755}))
+
+    assert Path(os.fsdecode(raised.value.cmd[0])).name in {"git", "git.exe"}, raised.value.cmd
+
+
+# -- non-ASCII names under a legacy Windows code page -----------------------
+
+
+def _forcing_legacy_code_page(real, seen: list):
+    """`subprocess.run` as a legacy Windows code page answers: text decoded as CP1252."""
+
+    def run(*args, **kwargs):
+        seen.append(args[0] if args else kwargs["args"])
+        if any(kwargs.get(key) for key in ("text", "universal_newlines", "encoding", "errors")):
+            kwargs["encoding"] = "cp1252"
+        return real(*args, **kwargs)
+
+    return run
+
+
+def test_set_index_modes_keeps_the_exec_bit_of_a_non_ascii_name_under_a_cp1252_codec(
+    tmp_path, monkeypatch
+):
+    files = {
+        "café.sh": 0o755,
+        "naïve/tool.sh": 0o755,
+        "run.sh": 0o755,
+        # Non-ASCII and plain, sharing `caf` and `naïve/` with an executable.
+        "café.txt": 0o644,
+        "naïve/notes.txt": 0o600,
+    }
+    root = tmp_path / "staging"
+    _staged_with_inverted_modes(root, files)
+    seen = []
+
+    with monkeypatch.context() as patched:
+        patched.setattr(trees.subprocess, "run", _forcing_legacy_code_page(subprocess.run, seen))
+        trees._set_index_modes(root, _members(files, directories=["naïve"]))
+
+    assert seen, "trees never ran git through subprocess.run"
+    assert _index_modes(root) == _expected_index(files)
