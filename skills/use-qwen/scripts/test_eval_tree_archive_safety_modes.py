@@ -298,8 +298,12 @@ def test_build_template_seals_a_thousand_paths_with_none_on_a_git_update_index_c
 
     asked = list(calls)
     updates = _update_index_calls(asked)
-    assert updates, "no `git update-index` ran, yet only the index can carry these modes"
-    assert _member_paths_on_the_command_line(updates, files) == []
+    # Both groups set through the index, from stdin; a bare `--refresh` sets nothing.
+    chmods = sorted(part for argv in updates for part in argv if part.startswith("--chmod="))
+    assert chmods == ["--chmod=+x", "--chmod=-x"], updates
+    _assert_each_sets_one_mode_from_nul_delimited_stdin(updates)
+    # Any git command: `git add --chmod -- <paths>` carries them as surely.
+    assert _member_paths_on_the_command_line(asked, files) == []
     longest = max(len(subprocess.list2cmdline(argv)) for argv in asked)
     assert longest < WINDOWS_COMMAND_LINE_LIMIT, longest
     assert _tree_modes(dest) == {
@@ -378,15 +382,27 @@ def test_set_index_modes_asks_git_once_per_non_empty_mode_group_with_paths_on_st
 
     trees._set_index_modes(staging, members)
 
-    updates = _update_index_calls(list(calls))
+    asked_all = list(calls)
+    updates = _update_index_calls(asked_all)
     assert _index_modes(staging) == _expected_index(files)
-    assert _member_paths_on_the_command_line(updates, [*files, BYSTANDER]) == []
+    # Any git command, not only update-index: `git add --chmod -- <paths>` is
+    # the same command line under another name.
+    assert _member_paths_on_the_command_line(asked_all, [*files, BYSTANDER]) == []
+    non_empty = 0
     for flag, executable in (("--chmod=+x", True), ("--chmod=-x", False)):
         group = [n for n, mode in files.items() if bool(mode & stat.S_IXUSR) == executable]
+        non_empty += bool(group)
         asked = [argv for argv in updates if flag in argv]
-        assert len(asked) <= (1 if group else 0), (flag, asked)
-        for argv in asked:
-            assert "--stdin" in argv and "-z" in argv, argv
+        assert len(asked) == (1 if group else 0), (flag, asked)
+    # One process per group, never one per file, and each one reads stdin.
+    assert len(updates) == non_empty, updates
+    _assert_each_sets_one_mode_from_nul_delimited_stdin(updates)
+
+
+def _assert_each_sets_one_mode_from_nul_delimited_stdin(updates: list) -> None:
+    for argv in updates:
+        assert "--stdin" in argv and "-z" in argv, argv
+        assert len([part for part in argv if part in ("--chmod=+x", "--chmod=-x")]) == 1, argv
 
 
 def test_set_index_modes_surfaces_a_git_failure_instead_of_swallowing_it(tmp_path):
@@ -398,6 +414,18 @@ def test_set_index_modes_surfaces_a_git_failure_instead_of_swallowing_it(tmp_pat
         trees._set_index_modes(staging, _members({"run": 0o755}))
 
     assert Path(os.fsdecode(raised.value.cmd[0])).name in {"git", "git.exe"}, raised.value.cmd
+
+    # The listing succeeds here and only the mode change fails: a held index
+    # lock leaves `ls-files` reading, but refuses every `update-index`.
+    files = {"bin/run": 0o755, "bin/run.txt": 0o644}
+    staging = tmp_path / "locked"
+    _staged_with_inverted_modes(staging, files)
+    (staging / ".git" / "index.lock").write_bytes(b"")
+
+    with pytest.raises(subprocess.CalledProcessError) as raised:
+        trees._set_index_modes(staging, _members(files, directories=["bin"]))
+
+    assert "update-index" in [os.fsdecode(part) for part in raised.value.cmd], raised.value.cmd
 
 
 # -- non-ASCII names under a legacy Windows code page -----------------------
@@ -436,3 +464,6 @@ def test_set_index_modes_keeps_the_exec_bit_of_a_non_ascii_name_under_a_cp1252_c
 
     assert seen, "trees never ran git through subprocess.run"
     assert _index_modes(root) == _expected_index(files)
+    # Any git command: names on a command line meet the same code page.
+    argvs = [[os.fsdecode(os.fspath(part)) for part in argv] for argv in seen]
+    assert _member_paths_on_the_command_line(argvs, [*files, BYSTANDER]) == []

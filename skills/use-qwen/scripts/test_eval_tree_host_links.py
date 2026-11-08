@@ -41,12 +41,24 @@ def _template_with_targets(tmp_path: Path) -> Path:
     (template / "pkg" / "a.txt").write_bytes(ALPHA)
     (template / "dir").mkdir()
     (template / "dir" / "f.txt").write_bytes(IN_DIR)
+    (template / "pkg" / "sub").mkdir()
+    (template / "pkg" / "sub" / "a.txt").write_bytes(ALPHA)
     return template
 
 
 # Tail before head, so each link is typed right on Windows too. `pkg/up` climbs
 # one level and stays inside: the near miss of the refused `..\..\outside`.
-INSIDE_LINKS = {"link": "pkg/a.txt", "b": "dir", "a": "b", "pkg/up": "../dir"}
+# `deep` and `pkg/sub/up2` hold two separators each, so every one of them has
+# to be read as the host's, not only the first.
+INSIDE_LINKS = {
+    "link": "pkg/a.txt", "b": "dir", "a": "b", "pkg/up": "../dir",
+    "deep": "pkg/sub/a.txt", "pkg/sub/up2": "../../dir",
+}
+
+
+def test_link_text_separator_defaults_to_this_host_s_own():
+    # No patch: on POSIX `/`, on Windows `\`, whatever the simulations below set.
+    assert trees._HOST_SEP == os.sep
 
 
 def test_fresh_clone_and_contained_accept_backslash_link_text_on_a_backslash_host(
@@ -61,21 +73,29 @@ def test_fresh_clone_and_contained_accept_backslash_link_text_on_a_backslash_hos
         # The fixture itself: what the call reads back is the host-native text.
         assert os.readlink(template / "link") == "pkg\\a.txt"
         assert os.readlink(template / "pkg" / "up") == "..\\dir"
+        assert os.readlink(template / "deep") == "pkg\\sub\\a.txt"
+        assert os.readlink(template / "pkg" / "sub" / "up2") == "..\\..\\dir"
         trees.fresh_clone(template, clone)
         landed = Path(trees.contained(clone, "link"))
+        deep = Path(trees.contained(clone, "deep"))
         through_chain = Path(trees.contained(clone, "a/f.txt"))
         climbed = Path(trees.contained(clone, "pkg/up/f.txt"))
+        climbed_twice = Path(trees.contained(clone, "pkg/sub/up2/f.txt"))
 
     assert landed == clone / "pkg" / "a.txt"
     assert landed.is_relative_to(clone)
-    assert through_chain.resolve() == (clone / "dir" / "f.txt").resolve()
-    assert climbed.resolve() == (clone / "dir" / "f.txt").resolve()
+    assert deep == clone / "pkg" / "sub" / "a.txt"
+    # Followed hop by hop to the real file, not left at a link's own name.
+    for followed in (through_chain, climbed, climbed_twice):
+        assert followed == clone / "dir" / "f.txt", followed
     for name in INSIDE_LINKS:
         assert (clone / name).is_symlink(), name
     # The clone's links land on the same files the template's do.
     assert (clone / "link").read_bytes() == ALPHA
+    assert (clone / "deep").read_bytes() == ALPHA
     assert (clone / "a" / "f.txt").read_bytes() == IN_DIR
     assert (clone / "pkg" / "up" / "f.txt").read_bytes() == IN_DIR
+    assert (clone / "pkg" / "sub" / "up2" / "f.txt").read_bytes() == IN_DIR
     assert (clone / "calc.py").read_bytes() == b"inside\n"
 
 
@@ -111,6 +131,28 @@ def test_fresh_clone_and_contained_refuse_hostile_backslash_link_text_on_a_backs
             trees.contained(template, "escape/secret.txt")
 
     # Refused before copying: nothing of the template reached the clone.
+    assert not (clone / "calc.py").exists()
+
+
+def test_fresh_clone_and_contained_refuse_a_backslash_chain_that_escapes_only_when_followed(
+    tmp_path, monkeypatch
+):
+    # `pkg\u\..\..` reads as `.` on paper; followed, `pkg\u` is the template
+    # itself, so the two climbs leave it. Only a hop-by-hop walk sees that.
+    template = _template_with_targets(tmp_path)
+    _lay_links(template, {"pkg/u": "..", "esc": "pkg/u/../.."})
+    clone = tmp_path / "clone"
+
+    with monkeypatch.context() as simulated:
+        _simulate_windows_link_text(simulated)
+        assert os.readlink(template / "esc") == "pkg\\u\\..\\.."
+        with pytest.raises(trees.TreeError):
+            trees.fresh_clone(template, clone)
+        with pytest.raises(trees.TreeError):
+            trees.contained(template, "esc")
+        with pytest.raises(trees.TreeError):
+            trees.contained(template, "esc/secret.txt")
+
     assert not (clone / "calc.py").exists()
 
 
