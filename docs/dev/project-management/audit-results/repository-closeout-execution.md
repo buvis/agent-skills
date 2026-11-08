@@ -1941,3 +1941,66 @@ CI approval, user dispatch, combined review, Stage 3 and PR #17 edits remain
 pending. No new user authorization is needed for the routine next steps.
 
 Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-2039.md`.
+
+### Stage 2 lane 00162 rework 1 — DONE, review cycle 2 pending, 2026-11-08
+
+Fresh session (Claude Opus 5.5, interactive). ListAgents showed no peer on
+the lane. Verified archive `373be1f`, repair `3d65a2f`, lane `4bb3552`,
+state cycle 1, cap 2, phase/next_phase review.
+
+**Decision gate.** Installed autopilot 0.10.0 `review-close --batch-id
+decision-gate` ran over all 27 rows of review 01, at default tier opus. It
+created D1 tasks 9, 10 and 11 and recorded 11 deferrals in state. R5, a HIGH
+raised by one voice, was classified `fix` inside the R3 task, not discarded.
+Other dispositions follow the review's own. The review's repair constraints
+were copied into each task body.
+
+**Rework** ran through `/autopilot:work` rework mode with isolated
+`autopilot:worker-opus` subagents (Tess, Devon, Ivan) and Pat on Sonnet via
+`sonnet-run.sh`:
+- Task 9 (R1, R2, R9, R10, R19). Tests `f4ca684` and `cb323a6` were
+  strengthened after Devon broke the first draft seven ways. Fix `918736d`,
+  style fix `7550bf7` (`_extract_bundle`). Pat resolved all five findings.
+- Task 10 (R3, R5), test-only, `9ac35b1`. The cleanup tests pin
+  original-error identity, and a new test keeps the original's own `__cause__`.
+- Task 11 (R4), test-only, `b654f15`. The link-typing tests moved to
+  `test_eval_tree_links_typed.py`. `test_eval_tree_links.py` fell from 933 to
+  728 lines. The collected count stayed at 2554.
+- Store commit `5b42fed`.
+
+R19 repair: `_read_link` normalizes host-read link text from `_HOST_SEP` to
+`/` only when `_HOST_SEP` is not `/`. `_refuse_escaping_links`, `contained`
+and the clone use it. The clone still writes `os.sep` text, so 00164's
+conversion survives. `_archive_name_escapes`, `_land` and the archive-member
+checks are unchanged. Hostile backslash forms and a backslash chain that
+escapes only when followed are still refused, and so is a literal backslash on
+a `/` host.
+
+R2 departure: `_set_index_modes` calls `subprocess.run` directly with stdin.
+Adding `input=` to `_git_bytes` broke 51 tests, because the `_serve_archive`
+fixture fake takes no keywords. Pat's LOW against this was rejected on that
+evidence.
+
+**Verification at `b654f15`:**
+- Full gate (Python 3.13.18 adapter, through `autopilot verify`): **4529
+  passed, 0 failed, 9 skipped**. Log: lane `docs/dev/tmp/gate-b654f15.log`.
+- Fail-first replay with `trees.py` from `73386d6`: 9 new regressions fail.
+- Queued 3.13 deprecation check: 180 passed.
+- The lane probe no longer reproduces cleanup masking.
+- Python 3.10/3.12 runs and a native Windows run were not made this session.
+
+**Gate stamps:**
+- Split hygiene flags the pre-existing `bare_ci` fixture import. This is the
+  known false positive, recorded as failed. No deletion was dispatched.
+- Pat's first dispatch hit an expired OAuth session (401). The lane wrapper
+  `docs/dev/tmp/sonnet-run-with-token.sh` then served every Pat run.
+- All Agent workers ran on native Claude Opus subagents. No Codex or Gemini
+  implementor rung was used.
+
+`phase-done --outcome rework` advanced the lane to cycle 2 of cap 2, the cap
+cycle. Next: run review cycle 2 in a fresh native Claude session with every
+lens and the full provider roster. Do not advance to 00164 until 00162 passes.
+Other lane tips, held branches, PRD 00133, the four unrelated main paths and
+recovery data are unchanged. No push or remote write was made.
+
+Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-2330.md`.
