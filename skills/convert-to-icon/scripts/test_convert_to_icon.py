@@ -130,6 +130,14 @@ def test_png_sizes_follow_the_platform_tables(disc_bundle):
         assert png_header(bundle / rel)[:2] == (px, px), rel
 
 
+def test_favicon_reaches_the_ico_ceiling_of_256(disc_bundle):
+    bundle, _ = disc_bundle
+    data = (bundle / "web/favicon.ico").read_bytes()
+    count = struct.unpack("<H", data[4:6])[0]
+    widths = {data[6 + 16 * i] or 256 for i in range(count)}  # a width byte of 0 means 256
+    assert widths == {16, 32, 48, 64, 128, 256}
+
+
 def test_ios_icon_carries_no_alpha_channel(disc_bundle):
     bundle, _ = disc_bundle
     assert png_header(bundle / "ios/AppIcon.appiconset/icon-1024.png")[2] == 2

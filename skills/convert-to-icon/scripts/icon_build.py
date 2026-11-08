@@ -17,7 +17,8 @@ from icon_measure import PHOTO_DETAIL, RGB, ROOM, TOLERANCE, bounds, centred, fi
 MAC_BODY = 824 / 1024  # macOS icon grid: the body inside the canvas
 MAC_ROUNDNESS = 0.2237  # its corner radius, as a share of the body
 ICONSET = "macos/AppIcon.iconset"
-ICOS = {"web/favicon.ico": (16, 32, 48), "windows/app.ico": (16, 20, 24, 32, 40, 48, 64, 256)}
+# ICO stores each size in one byte, so 256 is the largest entry the format can hold.
+ICOS = {"web/favicon.ico": (16, 32, 48, 64, 128, 256),"windows/app.ico": (16, 20, 24, 32, 40, 48, 64, 256)}
 DENSITIES = {"mdpi": 1.0, "hdpi": 1.5, "xhdpi": 2.0, "xxhdpi": 3.0, "xxxhdpi": 4.0}
 
 

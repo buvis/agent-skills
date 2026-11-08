@@ -10,7 +10,7 @@ macOS and iOS rows rest on secondary sources (listed at the end).
 |---|---|---|---|
 | `<name>.icon.svg` | vector | as drawn | the master; keep it |
 | the source raster, under its own file name | as given | as given | what the master was traced from; absent for an SVG input. The SVG names it in `data-source`, which is how the review finds it. |
-| `web/favicon.ico` | 16, 32, 48 | yes | site root |
+| `web/favicon.ico` | 16, 32, 48, 64, 128, 256 (the `.ico` limit) | yes | site root |
 | `web/icon.svg` | vector | yes | site root |
 | `web/apple-touch-icon.png` | 180 | no | site root |
 | `web/icon-192.png`, `web/icon-512.png` | 192, 512 | yes | site root, named in the manifest |
