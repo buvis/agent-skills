@@ -373,8 +373,8 @@ def _serve_archive(monkeypatch, bundle: bytes) -> None:
     """Answer `git archive` with `bundle`; every other git call runs for real."""
     real = trees._git_bytes
 
-    def fake(root, *args):
-        return bundle if args and args[0] == "archive" else real(root, *args)
+    def fake(root, *args, **kwargs):
+        return bundle if args and args[0] == "archive" else real(root, *args, **kwargs)
 
     monkeypatch.setattr(trees, "_git_bytes", fake)
 

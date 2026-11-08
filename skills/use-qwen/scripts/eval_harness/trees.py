@@ -39,7 +39,9 @@ _GIT_TIMEOUT_S = 120
 _APPLY_TIMEOUT_S = 120.0
 
 # The separator in link text this host reads back from disk. A module constant,
-# so a test can simulate another host without patching `os.sep` globally.
+# so a test can simulate another host without patching `os.sep` globally. It
+# governs reading only: `_lay_links_typed` and `_copytree_links_typed` write
+# with `os.sep`, so a simulated host needs the write side to be real too.
 _HOST_SEP = os.sep
 
 
@@ -60,10 +62,14 @@ def _git(root: Path, *args: str, env: dict[str, str] | None = None) -> str:
     return done.stdout.rstrip("\n")
 
 
-def _git_bytes(root: Path, *args: str) -> bytes:
-    """Git's stdout in `root`, byte for byte: a patch is not a re-encoded string."""
+def _git_bytes(root: Path, *args: str, input: bytes | None = None) -> bytes:
+    """Git's stdout in `root`, byte for byte: a patch is not a re-encoded string.
+
+    `input`, when given, is written to git's stdin.
+    """
     done = subprocess.run(
         ["git", "-C", str(root), *args],
+        input=input,
         capture_output=True,
         check=True,
         timeout=_GIT_TIMEOUT_S,
@@ -342,12 +348,13 @@ def _set_index_modes(staging: Path, members: Sequence[tarfile.TarInfo]) -> None:
         if paths:
             # NUL-terminated on stdin, never on the command line: Windows caps
             # a command line, and a thousand paths would pass it.
-            subprocess.run(
-                ["git", "-C", str(staging), "update-index", "--chmod=%s" % flag, "-z", "--stdin"],
+            _git_bytes(
+                staging,
+                "update-index",
+                "--chmod=%s" % flag,
+                "-z",
+                "--stdin",
                 input=b"".join(path.encode("utf-8", "surrogateescape") + b"\0" for path in paths),
-                capture_output=True,
-                check=True,
-                timeout=_GIT_TIMEOUT_S,
             )
 
 
