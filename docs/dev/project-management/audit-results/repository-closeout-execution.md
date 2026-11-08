@@ -1863,3 +1863,81 @@ combined candidate. Exact-SHA CI approval, user dispatch, Stage 3 and PR #17
 edits remain pending. No remote write occurred.
 
 Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-1800.md`.
+
+### Stage 2 lane 00162 review 1 — REWORK REQUIRED, 2026-11-08
+
+Fresh Codex session resumed the 1800 handoff. ListAgents showed no peer owning
+the lane review. Main was `441e83e`; archive remained `373be1f`, archive repair
+`3d65a2f`, and the reviewed 00162 source was
+`73386d63132c1a9f10a710e8bf9bbafe593c987a`. The explicit lane store named 00162
+with eight completed tasks. Review report and dispatch evidence were committed
+on `closeout/archive-windows` as **`4bb3552`**:
+`reviews/00162-template-archive-breaks-on-windows-v1-review-01.md`.
+
+The installed autopilot 0.10.0 review-stage runtime ran the full adapter gate
+and fail-first replay, then rendered all five requested personas. The optional
+engram pack was unavailable because the worktree is not registered with gita.
+Alice and Blake ran in isolated native Claude CLI sessions on Sonnet 5.5 at
+high effort. Eve ran on Fable 5.1 at high effort. Transcript model fields
+verified the actual identities. Blake received only the PRD and test facts,
+with instructions excluding designs, task narratives, reviews and ledgers.
+
+Bob's Codex helper and Carl's Copilot/Gemini helper both refused before
+inference with exit 3: `refusing nested dispatch (already inside a CLI agent)`.
+No guard was bypassed. Carl's requested model was `gemini-3.8-flash`; he is
+recorded unavailable. Bob's 128,732-byte inlined doubt/de-slop prompt ran via
+the prescribed native Claude Sonnet 5.5 fallback at high effort. The failed
+dispatch row retains the staging renderer's smaller prompt-byte count; no
+Codex inference consumed that staged prompt. Both failed CLI rows were closed.
+All mandatory prompt lenses ran, but independent-provider inference did not:
+this is a degraded roster, not approval to omit Codex or Gemini in the next
+review. No Codex-implemented task exists in this lane, so the guard did not
+fire; Eve was retained because the handoff required her.
+
+Three unresolved HIGH product findings remain: cleanup can replace the
+original build exception, the chmod path list can exceed Windows' process
+command-line limit, and native-separator link text is rejected by containment
+readers. A fourth product finding, MEDIUM, was reproduced under CP1252 text
+decoding: a non-ASCII executable name misses the tracked-name set and stays
+`100644`. The report retains 27 consolidated rows with explicit fix, duplicate,
+discard, deferral or verification dispositions. Every mechanical row and all
+13 Eve bucket items are accounted for. Alice's claimed 95-line function is
+refuted by AST measurement: `build_template` has 47 lines. No implementation
+or acceptance criterion was changed.
+
+R19's proposed removal of separator conversion was not accepted blindly:
+00164 records native Windows failures requiring that conversion. Its
+`b8db11f` source does not repair the containment reader. Rework must reconcile
+host-read normalization with hostile archive-input rejection, preserving both
+sets of evidence and all POSIX assertions. This review does not approve 00164.
+
+Verification at `73386d6`: full Python 3.13.18 adapter gate **4511 passed,
+0 failed, 9 skipped**, 380.84 seconds. The five archive modules passed with
+deprecations as errors on isolated Python 3.10 and 3.12: **342 passed each**.
+Eve's explicit Python 3.13 safety/staging follow-up passed **179 tests**; the
+check queue records exit 0. Review shape and doubt-constraint gates passed.
+Local defect probes remain in the lane's `docs/dev/tmp/probe-00162-review.py`;
+these simulations do not replace native Windows CI.
+
+Live braid check from main now reports **140 current, 20 ignored, zero drift**,
+superseding the older nine-mismatch observation. Checking the lane directly
+against live configuration encountered duplicate source names; an isolated
+lane-only sync/check passed with **80 current, 20 ignored, zero drift**. Its
+disposable roots were removed. No live links changed.
+
+Lane state remains `phase: review`, `next_phase: review`, cycle 1, cap 2.
+The contract card and session brief name the report and pending decision gate.
+No follow-up tasks were fabricated by review-work-completion. The next session
+must classify the report through the installed decision gate, perform bounded
+isolated rework, and end before a fresh review with the full provider roster.
+Do not advance to 00164 until 00162 passes. This session stops at the requested
+record-review boundary.
+
+All 83 preservation hashes still match. The four unrelated dirty main paths
+remain untouched. Held 00160, all original archive reports and 29 deferred
+rows, ledger keys, PRD 00133 and its store, other lane tips, held branches and
+recovery data remain unchanged. No stash or remote write was made. Exact-SHA
+CI approval, user dispatch, combined review, Stage 3 and PR #17 edits remain
+pending. No new user authorization is needed for the routine next steps.
+
+Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-2039.md`.
