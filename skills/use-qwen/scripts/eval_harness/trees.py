@@ -351,6 +351,24 @@ def _set_index_modes(staging: Path, members: Sequence[tarfile.TarInfo]) -> None:
             )
 
 
+def _extract_bundle(bundle: bytes, staging: Path) -> list[tarfile.TarInfo]:
+    """Extract the tar `bundle` into `staging`, and answer its members."""
+    with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
+        # Read off the archive rather than off an extracted tree: a host that
+        # cannot create a symlink at all still has to refuse one that escapes,
+        # and refusing here leaves no half-built template behind.
+        members = archive.getmembers()
+        _refuse_duplicate_or_crossing_members(members)
+        if hasattr(tarfile, "data_filter"):
+            try:
+                archive.extractall(staging, filter="data")
+            except (tarfile.FilterError, OSError) as cause:
+                raise TreeError("extraction failed: %s" % cause) from cause
+        else:
+            _extract_without_filter(archive, staging, members)
+    return members
+
+
 def build_template(repo: Path, first: str, dest: Path) -> str:
     """Seal the tree before `first` at `dest` as one commit, and answer its sha.
 
@@ -370,19 +388,7 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
     staging = dest.parent / (dest.name + ".staging-" + os.urandom(4).hex())
     staging.mkdir(parents=True)
     try:
-        with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
-            # Read off the archive rather than off an extracted tree: a host that
-            # cannot create a symlink at all still has to refuse one that escapes,
-            # and refusing here leaves no half-built template behind.
-            members = archive.getmembers()
-            _refuse_duplicate_or_crossing_members(members)
-            if hasattr(tarfile, "data_filter"):
-                try:
-                    archive.extractall(staging, filter="data")
-                except (tarfile.FilterError, OSError) as cause:
-                    raise TreeError("extraction failed: %s" % cause) from cause
-            else:
-                _extract_without_filter(archive, staging, members)
+        members = _extract_bundle(bundle, staging)
         _git(staging, *IDENTITY, "init")
         _git(staging, "add", "-A")
         _set_index_modes(staging, members)
