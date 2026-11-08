@@ -1700,3 +1700,121 @@ approval, approved push and user dispatch remain pending. Stage 3 and PR #17
 body edits remain pending. No approval or coding is needed from the user now.
 
 Same-stage handoff: `docs/dev/tmp/handoff-closeout-stage-2-20261108-1357.md`.
+
+### Stage 2 archive recovery review — 2026-11-08
+
+Fresh-session preflight verified main `d70a39d`, original archive `373be1f`,
+and isolated repair `39b97f3`. All 83 preservation hashes still match.
+The four unrelated dirty main-checkout paths remain untouched. ListAgents
+initially exposed only this coordinator; cross-host ownership remains
+unverified. The standalone recovery review explicitly targets held 00160,
+with no fabricated task context and no reset of the original capped cycle.
+The separate review session committed its report as `1384ddc` on the repair
+branch. Report: `reviews/00160-template-archive-extraction-fails-closed-v1-recovery-review-20261108.md`.
+It reviews exact SHA `39b97f3`, confirms closure of cycle-2 R1/R3/R4/R5 and
+the R2 helper extraction, and retains 16 consolidated findings with explicit
+dispositions. Only two new LOW documentation corrections require this repair.
+
+Alice and Blake ran in isolated native Claude Sonnet 5.5 sessions at high
+effort; Blake received only the PRD and test facts. The Codex helper refused
+nested dispatch before inference (exit 3), so Bob's exact doubt/de-slop prompt
+ran through the prescribed isolated Claude Sonnet 5.5 fallback at high effort.
+Carl's Gemini helper also refused nested dispatch (exit 3); it was recorded
+as unavailable without an unchanged retry or guard bypass. Eve ran as
+Anthropic Fable 5 at high effort, preserving the extra voice required after
+Codex implementation. Actual native model identities were verified from
+stream records. This is a degraded roster: no independent provider inference
+ran, although every mandatory lens and the Anthropic safeguard were retained.
+The report shape and codex-constraint checks pass.
+
+The recovery verifier reran the full gate at `39b97f3`: **4598 passed,
+0 failed, 9 skipped**, Python 3.13.18, 501.53 seconds. Its canonical record
+and log remain in the repair worktree. Eve independently passed 429 archive/
+tree tests on Python 3.13.18 and 114 focused tests on each of Python 3.10.22
+and 3.12.16; mutation probes failed as intended. The replay's two passing base
+cases are the existing callable predicate and the 0o755 control, not missing
+regression coverage. The review report records that adjudication.
+
+All 48 original report/store snapshot hashes and all 29 deferred rows remain
+unchanged. Stub 00171/key `6c34669148b8` was adjudicated already fixed, with
+the closure decision recorded in the recovery report; the held historical
+stub and original ledger were not rewritten. The `.git` read limitation is
+reproducible but explicitly excluded by the original reviewed design. A new
+drive-relative-path validation gap is recorded as a separate durable follow-up;
+it is not dismissed as universally prevalidated or charged to an old key.
+Other original deferrals remain open. Eve's raw "cycle 3" heading is corrected
+explicitly in the report; no original third cycle ran.
+
+After the independent review session ended, the coordinator applied only the
+two supported documentation corrections: `_safe_mode` now describes file
+modes, and the assumptions ledger retains Ivan's historical statement with
+an explicit superseding note about ignored directory modes. An AST comparison
+with docstrings removed confirms executable code is unchanged. This correction
+must cross the next fresh-session review boundary before subsequent lanes.
+
+Dependency-head reassessment found only rebases onto remote master `7dd93cf`:
+PR #15 is `205298d4b787205fe9d5721c6bb8993248a5a2a7`; PR #16 is
+`c0ca58b9e99e2882b536a1ba63751215068775b7`. Their stable patch IDs match
+the previously assessed heads `34a0622` and `78596db`, respectively:
+`a4cc86997b5e8145d1951666544f45701fc4d9b2` and
+`63460e8c249d9fa319c9dafa0f820b5eb1ed6647`. PR #15 still changes three
+setup-uv references from 10.3.2 to 10.3.3; PR #16 still changes Node 24 to
+26. Both touch only `.github/workflows/ci.yml` relative to their base.
+
+Latest dependency CI runs are not passing integration evidence. Run
+`42409822069` (#15) reports Windows 62 failed, 4165 passed, 40 skipped;
+run `42409881937` (#16) reports Windows 61 failed, 4166 passed, 40 skipped.
+The five other jobs pass in each run. The failed logs include archive/link,
+line-ending, path, and fixture cases addressed by the still-local closeout
+lanes. The extra #15 failure is the child-process containment case reporting
+WinError 32. These runs do not include the closeout repairs and do not
+certify the future combined candidate. Exact-candidate native CI remains
+required after approval.
+
+Agent-plugins main and the requirement worktree are clean at `feca0d1` and
+`9a1165b`. Peer idleness is still unverified; neither branch was changed.
+Remote master, both retained CI branches, and PR #17 remain unchanged.
+
+Coordinator documentation gate on main `d70a39d`, macOS / Python 3.12:
+`uv run pytest -q` passed: **4334 passed, 9 skipped, 30 subtests passed**
+in 574.93 seconds. The 55 warnings comprise two existing omitted-filter
+deprecations and pytest cleanup warnings for restrictive-directory leftovers
+from red/replay runs. This certifies main's source tree, not the repair or
+integration candidate. `git diff --check` passed. Live `braid --check`
+still reports the same nine unrelated links for the three newly added skills;
+no live links changed. No coordinator skill edits require validation.
+
+### Stage 2 documentation repair boundary — 2026-11-08
+
+Repair branch now ends at **`1a01b3a94c2696d75ea025bb24c5f56e0122868f`**,
+after review-only commit `1384ddc`. The narrow correction changes one
+docstring and adds one historical-ledger clarification; no executable AST,
+test, acceptance criterion, or deferred disposition changed. The repair
+worktree is clean. Original archive remains clean at `373be1f`.
+
+The corrected working tree, now committed as `1a01b3a`, passed the full
+Python 3.13.18 adapter gate: **4598 passed, 0 failed, 9 skipped**, 58 existing
+pytest cleanup warnings, 479.65 seconds. Log:
+`docs/dev/tmp/closeout-cap-docs-20261108-gate.log` in main. This direct adapter
+run did not fabricate or advance the installed verifier's earlier HEAD record.
+Changed-skill validation for `use-qwen`, repository Ruff lint/format,
+changed-file syntax lint, changelog validation, and whitespace checks pass.
+An isolated braid sync/check reports 80 current, 20 ignored, zero drift;
+the live farm retains its nine unrelated mismatches. Disposable review and
+braid workspaces were removed; active lane worktrees and evidence were retained.
+
+The coordinator ends this repair session before another review, as required
+by the prior handoff. The next fresh session reviews `1a01b3a` through the
+same explicit held-00160 standalone route, retaining all lenses and the
+implementation-diversity safeguard. Use `39b97f3` as the last reviewed source
+baseline; `1384ddc` adds only its report. Do not select a new original cycle
+or reinterpret the stalled zero-task store as completion. The recovery report
+and this correction are not a Stage 2 exit or approval to publish.
+
+Remaining lane reviews, held 00044's standalone review, combined-candidate
+review, final gates, exact-SHA CI approval and user dispatch remain pending.
+Stage 3 and PR #17 body changes remain pending. No remote write occurred.
+All 83 main and 48 repair preservation hashes match. No stashes were created.
+The four unrelated dirty main-checkout paths remain intact.
+
+Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-1503.md`.
