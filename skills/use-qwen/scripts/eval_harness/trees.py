@@ -38,6 +38,10 @@ MISE_MARKERS = (".mise.toml", "mise.toml", ".tool-versions")
 _GIT_TIMEOUT_S = 120
 _APPLY_TIMEOUT_S = 120.0
 
+# The separator in link text this host reads back from disk. A module constant,
+# so a test can simulate another host without patching `os.sep` globally.
+_HOST_SEP = os.sep
+
 
 class TreeError(RuntimeError):
     """Raised when a tree, or a path inside one, is not one the harness may use."""
@@ -171,13 +175,24 @@ def _ancestor_crossing(members: Sequence[tarfile.TarInfo], links: dict[str, str]
                 raise TreeError("%s is beneath an archive symlink" % member.name)
 
 
+def _read_link(path: Path) -> str:
+    """The link text at `path` in slash form, as `_land` reads it.
+
+    Host-read text, not archive input: only the host's own separator becomes
+    `/`. On a `/` host the text is untouched, so a literal backslash in it is
+    still refused.
+    """
+    text = os.readlink(path)
+    return text if _HOST_SEP == "/" else text.replace(_HOST_SEP, "/")
+
+
 def _refuse_escaping_links(root: Path) -> None:
     """Refuse a tree whose symlinks reach past it, before anything copies it.
 
     `copytree(symlinks=True)` reproduces such a link faithfully, and a later
     write through it would reach the operator's own repository.
     """
-    links = {relpath: os.readlink(path) for relpath, path in _walk(root) if path.is_symlink()}
+    links = {relpath: _read_link(path) for relpath, path in _walk(root) if path.is_symlink()}
     for relpath in links:
         _land(links, relpath)
 
@@ -317,14 +332,23 @@ def _set_index_modes(staging: Path, members: Sequence[tarfile.TarInfo]) -> None:
     so an empty group is skipped. A member the extracted `.gitignore` kept out
     of the index stays out: `--chmod` refuses an untracked path.
     """
-    tracked = set(_git(staging, "ls-files", "-z").split("\0"))
+    listing = _git_bytes(staging, "ls-files", "-z").split(b"\0")
+    tracked = {name.decode("utf-8", "surrogateescape") for name in listing}
     files = [member for member in members if member.isfile() and member.name in tracked]
     for flag, paths in (
         ("+x", [m.name for m in files if m.mode & stat.S_IXUSR]),
         ("-x", [m.name for m in files if not m.mode & stat.S_IXUSR]),
     ):
         if paths:
-            _git(staging, "update-index", "--chmod=%s" % flag, "--", *paths)
+            # NUL-terminated on stdin, never on the command line: Windows caps
+            # a command line, and a thousand paths would pass it.
+            subprocess.run(
+                ["git", "-C", str(staging), "update-index", "--chmod=%s" % flag, "-z", "--stdin"],
+                input=b"".join(path.encode("utf-8", "surrogateescape") + b"\0" for path in paths),
+                capture_output=True,
+                check=True,
+                timeout=_GIT_TIMEOUT_S,
+            )
 
 
 def build_template(repo: Path, first: str, dest: Path) -> str:
@@ -358,7 +382,7 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
                 except (tarfile.FilterError, OSError) as cause:
                     raise TreeError("extraction failed: %s" % cause) from cause
             else:
-                _extract_without_filter(archive, staging, archive.getmembers())
+                _extract_without_filter(archive, staging, members)
         _git(staging, *IDENTITY, "init")
         _git(staging, "add", "-A")
         _set_index_modes(staging, members)
@@ -370,8 +394,13 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
             staging.rename(dest)
         except OSError as cause:
             raise TreeError("%s could not be published: %s" % (dest, cause)) from cause
-    except BaseException:
-        _remove_tree(staging)
+    except BaseException as original:
+        # A cleanup that fails must not mask why the build failed: the original
+        # is raised, with the cleanup failure as its `__context__`.
+        try:
+            _remove_tree(staging)
+        except Exception:
+            raise original
         raise
     return head_sha(dest)
 
@@ -419,7 +448,7 @@ def _copytree_links_typed(template: Path, dest: Path) -> None:
     shutil.copytree(template, dest, symlinks=True, ignore=skip_links)
     for link in links:
         os.symlink(
-            os.readlink(link),
+            _read_link(Path(link)).replace("/", os.sep),
             dest / os.path.relpath(link, template),
             target_is_directory=os.path.isdir(link),
         )
@@ -508,7 +537,7 @@ def contained(root: Path, relpath: str) -> Path:
     if os.path.isabs(relpath):
         raise TreeError("%s is absolute" % relpath)
     root = Path(root)
-    links = {name: os.readlink(path) for name, path in _walk(root) if path.is_symlink()}
+    links = {name: _read_link(path) for name, path in _walk(root) if path.is_symlink()}
     landing = _land(links, relpath)
     return root / landing
 
