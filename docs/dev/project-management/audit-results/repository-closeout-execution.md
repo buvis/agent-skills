@@ -2151,3 +2151,38 @@ Next: a fresh native Claude session reads the lane contract card and session
 brief, then runs the installed finalize phase for 00162. Only after that,
 review 00164, 00161, 00163 and held 00044 in separate fresh sessions. Combined
 candidate review precedes exact-SHA CI approval.
+
+### Stage 2 lane 00162 — finalized, 2026-11-08
+
+A fresh native Claude Opus 5.5 session ran the installed Phase 9
+(`autopilot` 0.10.0). No peer owned the lane. The start state matched the
+handoff: `closeout/archive-windows` clean at `5c9ce11`, no stashes, phase and
+next_phase `done`, cycle 2, 12 of 12 tasks completed.
+
+- PRD moved `wip/` to `done/` and verified there. `complete-prd` recorded
+  2 cycles, 13 autonomous decisions, 12 of 12 tasks, and 13 attempt rows.
+- All 10 deferred decisions migrated to
+  `deferred/202611020612-deferred.json`, R23 among them. `mint-stubs`
+  minted nothing: no row is CRITICAL or HIGH.
+- Audit and batch report rendered. The 7a deferred-sink guard exited 0.
+  `meta/decisions.md` is absent, so 7b was skipped. Capsule Active Work and
+  PRD counts updated.
+- Step 10: `autopilot select` returned wip 00133. That is the preserved
+  PRD a 00162 session wrongly built on 2026-11-02, and 00160 is held. A
+  `more_prds` handoff would arm the same mis-selection. The batch closed
+  with `phase-done --outcome drained` instead (next_phase empty).
+- The interactive Batch-End Review did not run. Its 10 items (none above
+  Medium) wait for `/autopilot:run-autopilot review-batch` in the lane.
+- Store commit **`af483d0`**; lane clean. Both handoff rows landed in the
+  lane's metrics. Main's dispatch metrics did not change.
+
+No test rerun: Phase 9 changed no code, and the `b8f3efc` gate
+(4529/0/9) stands. All 83 preservation hashes match. Branch tips archive
+`373be1f`, repair `3d65a2f`, `archive-windows-2` `b8db11f`, compatibility
+`b6241bd`, integration `9026e02`, windows `40efece`, the two parked branches
+and `.git/recovery-20261030/` are unchanged. Main stays at `4103e99` with its
+four unrelated dirty paths. No push, remote write, Stage 3 or PR #17 edit.
+
+Next: review 00164, 00161, 00163 and held 00044, each in its own fresh
+session. Then the combined candidate review, then exact-SHA CI approval.
+R4 stays open until native Windows runs on that candidate.
