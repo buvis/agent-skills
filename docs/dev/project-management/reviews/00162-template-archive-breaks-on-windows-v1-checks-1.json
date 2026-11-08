@@ -1,0 +1,10 @@
+[
+  {
+    "cycle": 1,
+    "finding": "Phase 1 acceptance names Python 3.13 for the executable-bit and staging regressions",
+    "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py",
+    "command": "mise exec -- uv run --isolated --python 3.13 pytest skills/use-qwen/scripts/test_eval_tree_archive_safety.py skills/use-qwen/scripts/test_eval_tree_archive_staging.py -W error::DeprecationWarning",
+    "source": "eve",
+    "result": {"exit": 0, "passed": 179, "seconds": 20.26}
+  }
+]

@@ -3223,3 +3223,7 @@
 {"id":"8a91e69f","kind":"ivan","task":"4","queued_at":1793615340,"prompt_bytes":28376}
 {"id":"8a91e69f","ended_at":1793615450,"elapsed_s":110,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1793617329,"phase":"review","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"id":"2bfa16d6","kind":"bob","task":"review-00162-20261108","queued_at":1794165985,"prompt_bytes":9624}
+{"id":"f0e10492","kind":"carl","task":"review-00162-20261108","queued_at":1794165985,"prompt_bytes":6593}
+{"id":"2bfa16d6","ended_at":1794166034,"elapsed_s":49,"outcome":"error","detail":"exit 3: nested CLI dispatch refused; Anthropic doubt fallback launched"}
+{"id":"f0e10492","ended_at":1794166034,"elapsed_s":49,"outcome":"error","detail":"exit 3: nested CLI dispatch refused; unavailable"}
