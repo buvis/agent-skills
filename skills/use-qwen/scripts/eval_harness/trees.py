@@ -296,8 +296,10 @@ def _refuse_colliding_landings(members: Sequence[tarfile.TarInfo], links: dict[s
 
 
 def _safe_mode(mode: int) -> int:
-    """`mode` without setuid, setgid, sticky, or group/other write, for files and
-    directories alike: the bits `filter="data"` would never apply either."""
+    """Strip setuid, setgid, sticky, and group/other write from a file mode.
+
+    Directory archive modes are ignored by the extractor.
+    """
     return mode & ~(stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX | stat.S_IWGRP | stat.S_IWOTH)
 
 
