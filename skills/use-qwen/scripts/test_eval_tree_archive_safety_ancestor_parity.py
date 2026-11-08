@@ -10,8 +10,10 @@ one spelling of each.
 """
 import errno
 import os
+import stat
 import tarfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -50,8 +52,8 @@ from test_eval_tree_archive_safety_modes import _directory
 def test_build_template_falls_back_to_manual_extraction_when_data_filter_is_present_but_not_callable(
     tmp_path, built_repo, monkeypatch
 ):
-    # `hasattr` alone, or a bare call of whatever is there, both crash on this
-    # shape: a `data_filter` attribute that exists but is not a function.
+    # Named filters can still work through tarfile's internal registry. Observe
+    # the selected path directly, rather than relying on extraction to crash.
     monkeypatch.setattr(tarfile, "data_filter", "not-a-filter", raising=False)
     repo = Path(built_repo["repo"])
     first = _task_start_commit(repo)
@@ -61,7 +63,9 @@ def test_build_template_falls_back_to_manual_extraction_when_data_filter_is_pres
     _serve_archive(monkeypatch, bundle)
     dest = tmp_path / "template"
 
-    sha = trees.build_template(repo, first, dest)
+    with patch.object(trees, "_extract_without_filter", wraps=trees._extract_without_filter) as manual:
+        sha = trees.build_template(repo, first, dest)
+    manual.assert_called_once()
 
     assert sha == trees.head_sha(dest)
     assert (dest / "pkg" / "a.txt").read_bytes() == b"pwned\n"
@@ -72,7 +76,7 @@ def test_build_template_falls_back_to_manual_extraction_when_data_filter_is_pres
 
 
 ANCESTOR_CROSSING_THROUGH_A_SAFE_LINK = [
-    ("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD), ("alias", ("sym", "pkg")), ("alias/a.txt", OTHER),
+    ("pkg", DIRECTORY), ("alias", ("sym", "pkg")), ("alias/file.txt", OTHER),
 ]
 SAFE_LINK_WITH_NOTHING_WRITTEN_BENEATH_IT = [
     ("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD), ("alias", ("sym", "pkg")),
@@ -133,13 +137,14 @@ def _build_on_both_seams(tmp_path, built_repo, monkeypatch, bundle) -> dict:
     return outcomes
 
 
+@pytest.mark.parametrize("mode", [0o000, 0o200, 0o500, 0o755])
 def test_build_template_extracts_children_of_a_permission_restricted_directory_on_both_seams(
-    tmp_path, built_repo, monkeypatch
+    tmp_path, built_repo, monkeypatch, mode
 ):
     # The directory's own restrictive mode must not block writing the child
     # nested beneath it, on either extraction path.
     bundle = _appended(
-        [], [(_directory("restricted", 0o500), None), _file("restricted/child.txt", b"nested\n")]
+        [], [(_directory("restricted", mode), None), _file("restricted/child.txt", b"nested\n")]
     )
 
     outcomes = _build_on_both_seams(tmp_path, built_repo, monkeypatch, bundle)
@@ -147,6 +152,9 @@ def test_build_template_extracts_children_of_a_permission_restricted_directory_o
     for filter_support, (raised, dest) in outcomes.items():
         assert raised is None, (filter_support, raised)
         assert (dest / "restricted" / "child.txt").read_bytes() == b"nested\n", filter_support
+    assert stat.S_IMODE(outcomes["with-data-filter"][1].joinpath("restricted").stat().st_mode) == stat.S_IMODE(
+        outcomes["without-data-filter"][1].joinpath("restricted").stat().st_mode
+    )
 
 
 def test_build_template_handles_a_fully_restrictive_file_mode_the_same_way_on_both_seams(
@@ -212,6 +220,8 @@ def test_build_template_s_manual_path_passes_target_is_directory_from_the_archiv
     members = [
         ("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD),
         ("dir-link", ("sym", "pkg")), ("file-link", ("sym", "pkg/a.txt")),
+        ("root-link", ("sym", ".")), ("implicit-link", ("sym", "implicit")),
+        ("implicit/nested/b.txt", OTHER), ("chain-link", ("sym", "implicit-link")),
     ]
     _serve_archive(monkeypatch, _crafted_tar(members))
     dest = tmp_path / "template"
@@ -226,7 +236,10 @@ def test_build_template_s_manual_path_passes_target_is_directory_from_the_archiv
 
     trees.build_template(repo, first, dest)
 
-    assert calls == {"dir-link": True, "file-link": False}
+    assert calls == {
+        "dir-link": True, "file-link": False, "root-link": True,
+        "implicit-link": True, "chain-link": True,
+    }
 
 
 # -- finding 5: a failure never leaves staging or created parent directories

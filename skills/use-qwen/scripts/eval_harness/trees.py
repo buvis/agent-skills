@@ -308,9 +308,15 @@ def _symlink_targets_a_directory(member: tarfile.TarInfo, members: Sequence[tarf
     """
     links = {posixpath.normpath(m.name): m.linkname for m in members if m.issym()}
     directories = {_fold(posixpath.normpath(m.name)) for m in members if m.isdir()}
+    directories.add(".")
+    for candidate in members:
+        parent = posixpath.dirname(posixpath.normpath(candidate.name))
+        while parent:
+            directories.add(_fold(parent))
+            parent = posixpath.dirname(parent)
     parent = posixpath.dirname(member.name)
     landing = _land(links, posixpath.join(parent, member.linkname), fold=True)
-    return _fold(landing) in directories
+    return _fold(posixpath.normpath(landing)) in directories
 
 
 def _extract_without_filter(
@@ -323,17 +329,14 @@ def _extract_without_filter(
     whoever runs it. A symlink's text is written as the archive gives it; the
     members were already refused earlier if it could escape.
 
-    A directory's own mode is applied only after every member is extracted,
-    the way `tarfile.extractall` itself defers it: a restrictive mode set up
-    front would block writing the very children nested beneath it.
+    Directory modes are ignored, as with `data_filter`: mkdir's default mode
+    and the process umask apply, including to implicitly created parents.
     """
-    directories: list[tarfile.TarInfo] = []
     for member in members:
         path = dest.joinpath(member.name)
         try:
             if member.isdir():
                 path.mkdir(parents=True, exist_ok=True)
-                directories.append(member)
             elif member.isfile():
                 path.parent.mkdir(parents=True, exist_ok=True)
                 with archive.extractfile(member) as source, open(path, "wb") as target:
@@ -350,11 +353,6 @@ def _extract_without_filter(
                 )
         except OSError as cause:
             raise TreeError(f"{member.name}: {cause}") from cause
-    for member in directories:
-        try:
-            os.chmod(dest.joinpath(member.name), _safe_mode(member.mode))
-        except OSError as cause:
-            raise TreeError(f"{member.name}: {cause}") from cause
 
 
 def _topmost_missing_ancestor(path: Path) -> Path | None:
@@ -365,6 +363,18 @@ def _topmost_missing_ancestor(path: Path) -> Path | None:
         missing = probe
         probe = probe.parent
     return missing
+
+
+def _seal_template(staging: Path) -> str:
+    """Commit the staged tree with a stable date, translating git failures."""
+    dated = {**os.environ, "GIT_AUTHOR_DATE": SEAL_DATE, "GIT_COMMITTER_DATE": SEAL_DATE}
+    try:
+        _git(staging, *IDENTITY, "init")
+        _git(staging, "add", "-A")
+        _git(staging, *IDENTITY, "commit", "-m", "sealed pre-task tree", env=dated)
+        return head_sha(staging)
+    except (OSError, subprocess.SubprocessError) as cause:
+        raise TreeError("template seal failed: %s" % cause) from cause
 
 
 def build_template(repo: Path, first: str, dest: Path) -> str:
@@ -404,12 +414,7 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
                     raise TreeError("extraction failed: %s" % cause) from cause
             else:
                 _extract_without_filter(archive, staging, archive.getmembers())
-        _git(staging, *IDENTITY, "init")
-        _git(staging, "add", "-A")
-        # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the
-        # same tree sealed a second later has to carry the same one.
-        dated = {**os.environ, "GIT_AUTHOR_DATE": SEAL_DATE, "GIT_COMMITTER_DATE": SEAL_DATE}
-        _git(staging, *IDENTITY, "commit", "-m", "sealed pre-task tree", env=dated)
+        sealed = _seal_template(staging)
         try:
             staging.rename(dest)
         except OSError as cause:
@@ -419,7 +424,7 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
         if created_ancestor is not None:
             shutil.rmtree(created_ancestor, ignore_errors=True)
         raise
-    return head_sha(dest)
+    return sealed
 
 
 def fresh_clone(template: Path, dest: Path) -> Path:

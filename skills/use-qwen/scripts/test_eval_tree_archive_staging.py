@@ -37,7 +37,8 @@ from test_eval_tree_links import (
     bare_ci,
     built_repo,
 )
-from test_eval_tree_archive_safety import OTHER, SEAMS, _select_seam, _snapshot
+from test_eval_tree_archive_safety import OTHER, SEAMS, _appended, _file, _select_seam, _snapshot
+from test_eval_tree_archive_safety_modes import _directory
 
 MEMBERS = [("pkg", DIRECTORY), ("pkg/a.txt", PAYLOAD), ("b.txt", OTHER)]
 # Longer than any one path component a host filesystem takes, so the OS itself
@@ -320,7 +321,9 @@ def _fail_seal_step(monkeypatch, step: str, error: BaseException) -> list:
     return reached
 
 
-@pytest.mark.parametrize("step", ["init", "add", "commit"])
+@SEAMS
+@pytest.mark.parametrize("mode", [0o000, 0o200, 0o500])
+@pytest.mark.parametrize("step", ["init", "add", "commit", "rev-parse"])
 @pytest.mark.parametrize(
     "make_error",
     [
@@ -333,22 +336,26 @@ def _fail_seal_step(monkeypatch, step: str, error: BaseException) -> list:
     ],
 )
 def test_build_template_injected_seal_failure_leaves_no_dest_and_siblings_untouched(
-    tmp_path, built_repo, monkeypatch, step, make_error
+    tmp_path, built_repo, monkeypatch, step, make_error, filter_support, mode
 ):
+    _select_seam(monkeypatch, filter_support)
     repo = Path(built_repo["repo"])
     first = _task_start_commit(repo)
     dest = tmp_path / "template"
     siblings = _lay_siblings(tmp_path)
     before = _states(siblings)
     present = _names(tmp_path)
-    _serve_archive(monkeypatch, _crafted_tar(MEMBERS))
+    bundle = _appended(
+        [], [(_directory("restricted", mode), None), _file("restricted/child.txt", b"nested\n")]
+    )
+    _serve_archive(monkeypatch, bundle)
     error = make_error()
     reached = _fail_seal_step(monkeypatch, step, error)
 
-    # The failure surfaces, as the injected error itself or as a TreeError.
-    with pytest.raises((type(error), trees.TreeError)):
+    with pytest.raises(trees.TreeError) as caught:
         trees.build_template(repo, first, dest)
 
+    assert caught.value.__cause__ is error
     assert reached == [step], "the seal never reached the step the failure was injected at"
     assert _state(dest) == ("absent",), "a half-sealed template was left at dest"
     assert _states(siblings) == before
