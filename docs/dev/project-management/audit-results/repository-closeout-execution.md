@@ -1617,3 +1617,86 @@ remaining Stage 2 procedure. Keep the existing caps and fresh-session gates.
 
 Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261107-1047.md`.
 Stage 3 still owns the PR #17 NOTICE sentence and stale PRD-reference edits.
+
+### Stage 2 archive branch repair boundary — 2026-11-08
+
+**Repair implemented; independent review pending. Stage 2 remains incomplete.**
+Used installed autopilot 0.10.0 `references/recovery.md`, `cap_regression`:
+"Fix the regression on a branch, or write a v2 PRD against the stub".
+The isolated branch route preserves the original two-cycle cap; no third
+original review cycle, fabricated completed tasks, custody operation, default
+entry, or original-store reset was performed. The original held PRD stays held
+until the repair passes independent review and is ready for supported recovery.
+
+Preflight ListAgents exposed only the current Codex agent. Cross-host ownership
+remains unverified: the process listing was denied, and no cross-host registry
+tool was exposed. A new worktree and branch avoided editing any existing lane.
+Main had advanced from `8a83c64` to `95c3683` through an unrelated three-skill
+addition; that commit and the four unrelated dirty paths were preserved.
+
+Repair branch `closeout/archive-cap-repair`, worktree
+`~/git/src/worktrees/agent-skills/closeout-archive-cap-repair`, starts at
+`373be1f` and ends at **`39b97f32ac47fcfa61fe70f55c6e3348ada9a796`**.
+Implementor: Codex. No reviewer ran in this repair session.
+
+| Finding | Repair and discriminating evidence |
+|---|---|
+| R1 | Ignore archive directory modes on the manual seam. Test modes 000, 200, 500 and 755 against the filter seam. Translate seal init/add/commit/rev-parse failures into chained `TreeError`; both seams exercise process failure, timeout and OS error with restrictive directory metadata and assert staging/sibling cleanup. |
+| R3 | Remove the masking duplicate landing from the safe-link ancestor fixture. Disabling `_ancestor_crossing` now fails both seam cases. |
+| R4 | Spy on the real manual extractor while checking extracted content. Replacing the callable predicate with `hasattr` now fails. Correct the contrary assumption entry and crash comment. |
+| R5 | Classify the root and implicit parent directories, including link chains. The syscall spy distinguishes directory targets from regular-file targets. |
+| R2 | Extract the seal helper as part of R1; `build_template` is now 48 lines, down from 53. |
+
+Verification on macOS:
+
+- Initial red run on Python 3.15.2: 22 failed, 38 passed, reproducing R1/R5.
+- Python 3.13.18 mutation probe: three expected failures for R3/R4; no disk mutation.
+- Initial Python 3.13.18 focused run: 60 passed before expanding the seal matrix.
+- Final Python 3.10 focused run with deprecation warnings as errors: 114 passed.
+  Ten pytest cleanup warnings concerned restrictive directories from the red run.
+- Final full suite, Python 3.13.18: **4598 passed, 0 failed, 9 skipped** in
+  481.78 seconds. Five cleanup warnings concerned the same red-run leftovers.
+  Used `UV_PYTHON=3.13.18 bash
+  ~/git/src/github.com/buvis/agent-skills/docs/dev/tmp/closeout-stage-2-20261105-run/pytest-gate.sh`;
+  canonical output `PASS 4598 FAIL 0 SKIP 9 EXIT 0`. Log:
+  `docs/dev/tmp/closeout-cap-repair-20261108-gate.log` in the main checkout.
+  The working source/test/config tree tested is exactly the committed repair
+  tree; skills tree `40b18121b70578228582f36098901318ab1f51a1`, tests tree
+  `5668bb73258c7d50cfbe43989aedeccf883af104`.
+- Skill validator, repository Ruff check/format, explicit changed-file syntax
+  lint, changelog checker and `git diff --check`: pass.
+- Isolated braid sync/check: 80 current, 20 ignored, zero drift. Live check
+  reports nine mismatches for the three unrelated newly added skills; no live
+  links were changed. This is not reported as a passing live-farm check.
+
+All 83 preservation hashes match the recorded Stage 2 baseline. PRD 00133's
+hash remains `ad22e003c161684aee73c44559c08176b0b947a3db56a6a4f031fd71cabc7125`.
+The original archive worktree is clean at `373be1f`. All 29 deferred rows,
+ledger keys, original reviews, original PRDs and stores remain unchanged.
+Stub 00171/key `6c34669148b8` represents the cycle-1 critical already closed
+by cycle 2; it is not a fifth unresolved HIGH or a new escape. Keep its
+historical record and finish formal triage with the independent recovery review.
+Remaining deferred findings stay deferred; this repair does not adjudicate
+them away. No POSIX assertion was removed and no platform skip was added.
+
+Remaining lane tips: archive-windows `73386d6`, archive-windows-2 `b8db11f`,
+compatibility `b6241bd`, windows `40efece`, integration `9026e02`. No stashes.
+Remote master and CI branches are unchanged. Remote dependency heads advanced:
+#15 `205298d4b787205fe9d5721c6bb8993248a5a2a7`, #16
+`c0ca58b9e99e2882b536a1ba63751215068775b7`; #17 remains `9249695`.
+Reassess these new dependency heads before assembling the final candidate.
+Agent-plugins master is now `feca0d1a519c46fd2782d1cfd29f5ba4d14ac36e`;
+the explicit-PRD feature remains `9a1165b`. Peer idleness is unverified, so no
+rebase or integration was attempted there.
+
+Next: fresh-session standalone branch-repair review with explicit held 00160
+target, all mandated lenses and isolated blind context. Preserve original
+cycle reports and cap; record recovery review separately. Codex implemented
+this repair, so preserve the independent Anthropic doubt voice required by
+the implementation guard, even though standalone review lacks task telemetry.
+Only after archive recovery passes, resume the remaining lane order and the
+recorded standalone 00044 route. Combined review, new candidate, exact-SHA CI
+approval, approved push and user dispatch remain pending. Stage 3 and PR #17
+body edits remain pending. No approval or coding is needed from the user now.
+
+Same-stage handoff: `docs/dev/tmp/handoff-closeout-stage-2-20261108-1357.md`.
