@@ -2004,3 +2004,50 @@ Other lane tips, held branches, PRD 00133, the four unrelated main paths and
 recovery data are unchanged. No push or remote write was made.
 
 Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-2330.md`.
+
+### Stage 2 lane 00162 review 2 — provider completion blocked, 2026-11-08
+
+Resumed the 2330 handoff in Codex. ListAgents showed no peer. Archive
+`373be1f`, repair `3d65a2f`, lane `5b42fed`, cycle 2/cap 2 and both review
+phase fields matched. A fresh native Claude session ran the installed review
+skill through the lane's token wrapper. Review 02 and dispatch evidence were
+committed as `90b205b`; evidence corrections are `b4a4420`.
+
+Four isolated reviews completed: Alice, Blake and Bob's fallback on
+`claude-sonnet-5-5`, Eve on `claude-fable-5-1`, verified from transcript model
+fields. Blake received only the PRD and test facts. Bob's Codex helper and
+Carl's Copilot/Gemini helper returned exit 3 before inference because the
+fresh Claude child inherited the Codex parent's session marker. No marker
+was unset and no guard bypassed. A fresh child under Codex does not solve
+this environment boundary. Independent Codex and Gemini voices remain owed;
+the lane is NOT approved and later lanes remain blocked.
+
+Review 02 has 22 consolidated Low/Medium rows and no Critical/High. The prior
+repair targets were verified resolved. Two Low sweep candidates and the
+native Windows verification remain; other rows have recorded dispositions.
+Afterward the parent ran the installed structural/constraint gate and
+`cap-check` against review 01: both exited 0. Those checks do not certify the
+additional provider requirement. The decision gate, tail sweep and phase
+transition remain pending until the roster is complete. No cycle 3 started.
+
+Fresh full gate at `5b42fed`: **4529 passed, 0 failed, 9 skipped**, Python
+3.13.18, pytest 365.70 seconds. Isolated Python 3.10 and 3.12 each passed
+**350 tests**, deprecations as errors, across safety, safety_modes, staging,
+links, links_typed and state. The older `b654f15` gate remains separate.
+Native Windows was not run. Reviewers also ran the host-link coverage;
+Alice and Eve each report 360 passing tests on Python 3.13.
+
+All 83 preservation hashes still match. The four unrelated dirty main paths
+are untouched. Live `uv run braid --check`: 140 current, 20 ignored, zero
+drift. No production code changed, no remote write occurred, and no other
+lane advanced. Kept active worktrees and replay evidence for continuation.
+
+The lane's ignored `docs/dev/tmp/run-owed-voices-00162-c2.sh` runs the two
+missing voices without changing guard markers, with Carl explicitly pinned
+to Copilot `gemini-3.8-flash`. Run it from a native Claude session launched
+outside Codex/Copilot, then consolidate into the same cycle-2 report and
+apply the installed decision/cap policy. Review 00164, 00161, 00163 and held
+00044 afterward in separate fresh sessions. Exact-SHA CI approval remains
+after the combined candidate, never immediately after this lane review.
+
+Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-provider-recovery.md`.
