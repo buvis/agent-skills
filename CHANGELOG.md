@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **copy-rich-text**: new skill. Copies Markdown or HTML to the macOS clipboard as rich text (HTML plus an RTF fallback) so links, lists, images, tables, and Teams-native code blocks survive a paste into Microsoft Teams or Outlook. Set `JIRA_BASE_URL` to auto-link bare issue keys.
+- **create-note**: new skill. Creates a note in the BIM vault (`note`, `illustrated`, `meeting`, `youtube`, `article`, `prr`, `project`, `book`, `contact`) from a ported Templater template with a unique id, contact wikilinks, and a daily-note log entry; never overwrites a file.
+- **explain-bim-system**: new reference skill describing the BIM vault layout, note anatomy, links, tags, GTD tasks, and the rules agents follow when they read or write the vault.
 - **sweep-fix**: `sweep.py` accepts `--deadline N` (default 300), a wall-clock budget in seconds for the whole sweep. A repo whose scan has not finished when the budget runs out is reported rather than waited for, and the report's `Partial: N repos not scanned (sweep deadline expired)` line means the sweep is incomplete and the pattern may still have hits in those repos.
 
 ### Fixed
