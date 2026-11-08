@@ -2051,3 +2051,65 @@ apply the installed decision/cap policy. Review 00164, 00161, 00163 and held
 after the combined candidate, never immediately after this lane review.
 
 Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-provider-recovery.md`.
+
+### Stage 2 lane 00162 review 2 — roster complete, CONVERGED, tail sweep queued, 2026-11-08
+
+Native Claude session (Opus 5.5) launched outside Codex and Copilot.
+ListAgents showed no peer on the lane. Verified lane `b4a4420`, source
+`5b42fed`, cycle 2, `rework_cap` 2, phase and next_phase `review`. No
+`CODEX_SESSION_ID`, `COPILOT_CLI` or `AUTOPILOT_DISPATCH_DEPTH` was set. No
+guard marker was touched.
+
+**Owed voices.** `run-owed-voices-00162-c2.sh` exited 0 for both helpers.
+- Bob-Codex: model `gpt-6-astra`, reasoning effort medium. This is the user's
+  `~/.codex/config.toml` default, and the helper pins neither. Thread
+  `01a1bd1a-…-463cb96d4719`, confirmed from the rollout file. Two FIX, one
+  VERIFY and one KNOWN, all Medium. Rubric R1 fails; every other rule passes.
+- Carl: Copilot `gemini-3.8-flash`, confirmed from session state
+  `1a9a3697-…`. He ran the use-qwen suite with deprecations as errors, plus
+  `tests/`. `No issues found`; every rubric rule passes.
+
+**Consolidation** into review 02 uses six voices: the Claude Bob fallback,
+Alice, Blake and Eve are kept beside the two new voices. There are now 24
+rows and no CRITICAL or HIGH. Codex's native-Windows item joined R4 (3/6).
+His `or`-hedge item joined R18 (settled cycle-1 R20). Two new rows follow.
+- R23 (Medium, verified): both never-lifts cleanup tests check only
+  `isinstance(cleanup, PermissionError)`. Task 10's contract asked for the
+  exact type and the injected object or message. The PRD rule (original
+  error identity) is met. Alice's and the earlier report's "exact
+  `PermissionError` context" claim was wrong. The report now says so.
+- R24 (Medium): host-link tests use hand-built templates. Discarded as
+  single-voice. The clone and containment paths do not depend on the
+  extraction seam, and R4 carries the native write side.
+
+**Gate.** `autopilot gate --require-codex-guard --assert-constraint-met`
+exits 0, so cycle 2 converged at cap. The decision gate (`review-close
+decision-gate`) applied and closed every lens. R4 is routed to
+verification. R23 is deferred: the installed CLI refuses a single-voice
+task (`_single_voice_refusal`), so the verified gap goes to batch end, not
+to a task. Twenty discards are in the new
+`reviews/00162-…-ledger.json`. The tail sweep created **task 12** (R1
+`_git_bytes` `input=`, R2 `_HOST_SEP` comment, both Low, multi-voice, tier
+sonnet). No cycle 3 started, and there was no `phase-done`. Lane store
+commit: **`cc0663c`**.
+
+**Correction made this session.** `review-close` appended `ok` closures for
+the first-pass dispatch rows `6748cbb8` and `a2cac3fc`. Those rows were
+already closed as `error` (exit 3). I removed the duplicate closures before
+the commit. A first hand-off row ran from the main checkout's cwd, appended
+to main's dispatch metrics, and closed open row `054609d2` there as `lost`.
+I restored both main files to HEAD and re-recorded the row in the lane.
+
+All 83 preservation hashes match
+(`closeout-stage-2-20261105-run/preservation-before.json`). Archive
+`373be1f`, repair `3d65a2f`, `archive-windows-2` `b8db11f`, compatibility
+`b6241bd`, integration `9026e02` and windows `40efece` are unchanged. The four
+unrelated main paths, 00160, 00133 and recovery data are untouched. There
+was no test rerun this session: no code changed, and the `5b42fed` gate
+(4529/0/9) and the 3.10/3.12 runs (350 each) stand. No push or remote write.
+
+Next: in a fresh session, resume at Tail sweep step 3 (`/autopilot:work`
+rework mode, task 12). Then finalize with `phase-done --outcome converged`.
+Review 00164, 00161, 00163 and held 00044 in separate sessions after that.
+
+Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-tail-sweep.md`.
