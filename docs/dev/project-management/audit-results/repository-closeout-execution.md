@@ -2113,3 +2113,41 @@ rework mode, task 12). Then finalize with `phase-done --outcome converged`.
 Review 00164, 00161, 00163 and held 00044 in separate sessions after that.
 
 Same-stage continuation: `docs/dev/tmp/handoff-closeout-stage-2-20261108-tail-sweep.md`.
+
+### Stage 2 lane 00162 — tail sweep complete, finalize handoff, 2026-11-08
+
+Codex coordinated a fresh native Claude Sonnet 5.5 session through the
+use-sonnet helper (high effort). No peer owned the lane. Starting branch
+`closeout/archive-windows` was clean at `cc0663c`; cycle 2, cap 2 and task 12
+matched the handoff. Session guard markers were preserved.
+
+Task 12 used the installed work skill's micro lane. Commit `b8f3efc` adds
+`input=` to `_git_bytes`, routes `_set_index_modes` through it, forwards
+keywords in the archive fake, and clarifies the read-only `_HOST_SEP` role.
+Pat's isolated Sonnet review resolved both findings with NO FINDINGS.
+The known `bare_ci` split-hygiene false positive stays recorded and unchanged.
+
+Verification at `b8f3efc`: full adapter gate **4529 passed, 0 failed,
+9 skipped**, Python 3.13.18, 369.59 seconds; narrow eight-module run
+**373 passed** with deprecations as errors. Skill validation, Ruff lint and
+format checks, diff whitespace and braid check passed (140 current,
+20 ignored, zero drift). No new skip or xfail. Python 3.10/3.12 were not
+rerun; their earlier evidence remains tied to `5b42fed`. Native Windows
+remains R4 verification on the exact combined candidate. R23 stays deferred.
+
+`phase-done --outcome converged` completed the review-to-finalize handoff.
+Store commit **`5c9ce11`**; lane clean. State has phase and next_phase `done`,
+cycle 2, `phases_completed: ["review"]`, all 12 tasks completed. The CLI
+retains `rework_task_ids: ["12"]`; do not reopen the completed task.
+Contract card and session brief are refreshed. Phase 9 has NOT run.
+
+The parent rechecked all **83 preservation hashes**, with no mismatch.
+Other lane tips and the four unrelated main paths are unchanged. No push,
+remote write, Stage 3 or PR #17 edit occurred. Active worktrees and evidence
+remain for continuation. Native session: `bda0409c-ddc9-4a49-bdc4-a8f383d99d9d`;
+lane output: `docs/dev/tmp/tail-sweep-native-00162-output.txt`.
+
+Next: a fresh native Claude session reads the lane contract card and session
+brief, then runs the installed finalize phase for 00162. Only after that,
+review 00164, 00161, 00163 and held 00044 in separate fresh sessions. Combined
+candidate review precedes exact-SHA CI approval.
