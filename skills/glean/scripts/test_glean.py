@@ -510,6 +510,24 @@ def _vanish_after_first_stat(monkeypatch, vanished: Path) -> None:
     monkeypatch.setattr(Path, "stat", flaky_stat)
 
 
+def test_scan_reports_a_file_the_host_will_not_stat_instead_of_crashing(home, monkeypatch):
+    # agent sandboxes deny stat on some dotfiles (~/.python_history, 2026-11-08)
+    denied = home / ".python_history"
+    denied.write_text("x\n")
+    (home / ".config" / "tool.toml").write_text("a = 1\n")
+    real_stat = Path.stat
+
+    def guarded_stat(self, *a, **kw):
+        if self == denied:
+            raise PermissionError(1, "Operation not permitted", str(self))
+        return real_stat(self, *a, **kw)
+
+    monkeypatch.setattr(Path, "stat", guarded_stat)
+    by_path = {c["path"]: c for c in run(home, "scan", [])["candidates"]}
+    assert ".config/tool.toml" in by_path
+    assert any(h.startswith("unreadable") for h in by_path[".python_history"]["hints"])
+
+
 def test_describe_over_cap_dir_ignores_file_that_vanishes_during_mtime_stat(home, monkeypatch):
     # race: rglob lists the file, then it is removed before describe() stats it
     d = make_dir(home, ".config/newtool", 205, BASE_MTIME + 50)

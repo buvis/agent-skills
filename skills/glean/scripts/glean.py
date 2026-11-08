@@ -179,7 +179,13 @@ def describe(rel: str) -> dict:
                 "".join(f"{f.relative_to(p)}\0{sha256(f)}\n" for f in files).encode()
             ).hexdigest()
         return c
-    c.update(kind="file", size=p.stat().st_size)
+    try:
+        size = p.stat().st_size
+    except OSError as e:  # a host sandbox can deny stat on a dotfile: report it, keep scanning
+        c.update(kind="file")
+        c["hints"].append(f"unreadable: {e.strerror}")
+        return c
+    c.update(kind="file", size=size)
     if c["size"] <= MAX_FILE:
         c["sha256"] = sha256(p)
     c["secret_hits"] = prescreen(p, rel)

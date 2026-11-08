@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **review-deps-prs**: the discovery script now reports each repo whose PR lookup failed on stderr and exits 2, so a partial or empty scan is not mistaken for a clean one.
 - **create-prd**: `ground_prd.py` exits 2 with a clear message for an invalid `--root` or unreadable input; relative PRD paths are excluded relative to cwd.
 - **review-prd-backlog**: `check_links.py` no longer misreads UUID/dispatch-id fragments, quoted prior-run diagnostics, or backtick-wrapped `[[...]]` syntax examples and fenced "observed evidence" transcripts as dangling PRD or memory references.
+- **glean**: `scan` no longer crashes when the host denies `stat` on an untracked dotfile (seen in an agent sandbox on `~/.python_history`); the file is listed as a candidate with an `unreadable` hint.
 - **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
 
 ### Changed
