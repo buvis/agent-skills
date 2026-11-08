@@ -3227,3 +3227,28 @@
 {"id":"f0e10492","kind":"carl","task":"review-00162-20261108","queued_at":1794165985,"prompt_bytes":6593}
 {"id":"2bfa16d6","ended_at":1794166034,"elapsed_s":49,"outcome":"error","detail":"exit 3: nested CLI dispatch refused; Anthropic doubt fallback launched"}
 {"id":"f0e10492","ended_at":1794166034,"elapsed_s":49,"outcome":"error","detail":"exit 3: nested CLI dispatch refused; unavailable"}
+{"id":"2bfa16d6","ended_at":1794169417,"elapsed_s":3432,"outcome":"ok","detail":null}
+{"id":"f0e10492","ended_at":1794169417,"elapsed_s":3432,"outcome":"error","detail":null}
+{"id":"54c2c4e0","kind":"tess","task":"9","queued_at":1794169603,"prompt_bytes":20419}
+{"id":"54c2c4e0","ended_at":1794169948,"elapsed_s":345,"outcome":"ok","detail":null}
+{"id":"1fc56f6f","kind":"tess","task":"9","queued_at":1794169963,"prompt_bytes":8870}
+{"id":"1fc56f6f","ended_at":1794170004,"elapsed_s":41,"outcome":"ok","detail":null}
+{"id":"7874f0bd","kind":"devon","task":"9","queued_at":1794170043,"prompt_bytes":3679}
+{"id":"7874f0bd","ended_at":1794170423,"elapsed_s":380,"outcome":"ok","detail":null}
+{"id":"ad60039b","kind":"tess","task":"9","queued_at":1794170438,"prompt_bytes":12424}
+{"id":"ad60039b","ended_at":1794170599,"elapsed_s":161,"outcome":"ok","detail":null}
+{"id":"ac3b5b4c","kind":"ivan","task":"9","queued_at":1794170625,"prompt_bytes":35848}
+{"id":"ac3b5b4c","ended_at":1794170744,"elapsed_s":119,"outcome":"ok","detail":null}
+{"id":"254b225f","kind":"ivan","task":"9","queued_at":1794170793,"prompt_bytes":10515}
+{"id":"254b225f","ended_at":1794170848,"elapsed_s":55,"outcome":"ok","detail":null}
+{"id":"7affdb41","kind":"pat","task":"9","queued_at":1794170870,"prompt_bytes":39069}
+{"id":"7affdb41","ended_at":1794170966,"elapsed_s":96,"outcome":"ok","detail":"first run 401 OAuth expired; retried through sonnet-run-with-token.sh with a fresh session id"}
+{"id":"77df4d3d","kind":"ivan","task":"10","queued_at":1794171018,"prompt_bytes":12492}
+{"id":"77df4d3d","ended_at":1794171087,"elapsed_s":69,"outcome":"ok","detail":null}
+{"id":"6da7d3be","kind":"pat","task":"10","queued_at":1794171140,"prompt_bytes":12241}
+{"id":"6da7d3be","ended_at":1794171161,"elapsed_s":21,"outcome":"ok","detail":null}
+{"id":"1bbe5b61","kind":"ivan","task":"11","queued_at":1794171196,"prompt_bytes":12378}
+{"id":"1bbe5b61","ended_at":1794171313,"elapsed_s":117,"outcome":"ok","detail":null}
+{"id":"800f6cf3","kind":"pat","task":"11","queued_at":1794171355,"prompt_bytes":23217}
+{"id":"800f6cf3","ended_at":1794171373,"elapsed_s":18,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"review","edge":"leave","at":1794171838,"phase":"review","prd":"00162-template-archive-breaks-on-windows-v1.md"}

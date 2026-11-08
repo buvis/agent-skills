@@ -125,3 +125,25 @@
 
 - The brief's top-of-file import for `test_eval_tree_state.py` is circular: `test_eval_tree_links.py` already imports from `test_eval_tree_state` at load time, so importing `_extended_prefix_stripped` back at the top of `test_eval_tree_state.py` fails in either module-load order (`ImportError: cannot import name ... from partially initialized module`, confirmed by running it). Moved the import inside the one test function that needs it instead, with a comment explaining why; the helper still lives only in `test_eval_tree_links.py` (Ivan).
 - Chose the parametrize ids (`extended-drive`, `extended-unc`, `short-drive`, `posix`) and the new unit test's name myself, since the brief did not specify them (Ivan).
+
+## 9: [D1] Keep the original build error, bound chmod argv, decode names, read host link text (review cycle 1)
+
+- The R19 regressions live in a new `test_eval_tree_host_links.py`, not `test_eval_tree_state.py`, because the latter is already 717 lines (Tess).
+- None of the host-link tests carries a symlink-capability skip; a host that cannot create symlinks errors rather than skips (Tess).
+- How stdin reaches git is not pinned; final index modes plus argv checks stand in for the payload. A group's call is recognised by its literal `--chmod=+x`/`--chmod=-x` flag and must carry `--stdin` and `-z` (Tess).
+- A held `.git/index.lock` makes `ls-files` succeed and `update-index` fail, so it stands in for an update-index failure (Tess, strengthen round).
+- `build_template` runs no `update-index` other than the two chmod groups (Tess, strengthen round).
+- `contained` answers the followed real path inside the clone (`clone/dir/f.txt` for `a -> b -> dir`), not the link's own name (Tess, strengthen round).
+- `_set_index_modes` calls `subprocess.run` directly for the stdin call instead of adding `input=` to `_git_bytes`: the `_serve_archive` fixture replaces `trees._git_bytes` with a fake that takes no keywords, and the `input=` variant failed 51 tests with `TypeError` (Ivan; Pat's LOW to use `_git_bytes` rejected on this evidence).
+- R1 relies on CPython breaking the context cycle when the original is re-raised inside the cleanup handler; covered by task 10's tests, not task 9's (Ivan).
+- The style fix extracted the tar block into one single-caller helper `_extract_bundle` inside `trees.py` (Ivan, style fix).
+
+## 10: [D1] Pin original-error identity in the cleanup tests (review cycle 1)
+
+- "Raised `from` an OSError" is built by setting `error.__cause__ = cause` directly, which sets the same `__cause__` and `__suppress_context__` as `raise ... from` (Ivan).
+- The new cause-chain test does not re-assert the retried refusal; the never-lifts test covers it (Ivan).
+- `_chain` was removed because the change left it without callers (Ivan).
+
+## 11: [D1] Move the link-typing tests into their own module (review cycle 1)
+
+- The `# -- fresh_clone --` section header stays in `test_eval_tree_links.py` for the fresh_clone test that remains there (Ivan).

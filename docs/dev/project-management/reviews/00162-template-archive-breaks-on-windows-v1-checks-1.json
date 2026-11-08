@@ -5,6 +5,7 @@
     "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py",
     "command": "mise exec -- uv run --isolated --python 3.13 pytest skills/use-qwen/scripts/test_eval_tree_archive_safety.py skills/use-qwen/scripts/test_eval_tree_archive_staging.py -W error::DeprecationWarning",
     "source": "eve",
-    "result": {"exit": 0, "passed": 179, "seconds": 20.26}
+    "result": {"exit": 0, "passed": 179, "seconds": 20.26},
+    "rework_result": {"exit": 0, "passed": 180, "seconds": 24.97, "sha": "b654f15", "note": "re-run at the settled rework HEAD with -q --tb=line appended for output size; command otherwise verbatim"}
   }
 ]
