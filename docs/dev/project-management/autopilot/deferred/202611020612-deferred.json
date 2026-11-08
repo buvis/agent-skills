@@ -1,0 +1,105 @@
+{
+  "batch_id": "202611020612",
+  "items": [
+    {
+      "cycle": 1,
+      "issue": "Cleanup does not repair POSIX read-only parent directories. **DEFER hardening**: normal extraction/git staging does not create such directories; clarify any broader task prose when repairing R1.",
+      "severity": "\ud83d\udfe1",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:388",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Cleanup retries every rmtree error with chmod, including unrelated failures. **DEFER hardening**; R1 must preserve the original exception for these failures too.",
+      "severity": "\ud83d\udfe1",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:388",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Two cleanup-test names are awkward. **DEFER cosmetic naming**; improve while changing those tests if useful.",
+      "severity": "\u26aa",
+      "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py:391",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Internal helper names/signatures differ across PRD, design and code. **DEFER documentation reconciliation**; exported signatures are unchanged and the implementation decision is recorded.",
+      "severity": "\u26aa",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:379",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Ignored archive members are excluded from the chmod groups. **DEFER inherited seal-contract gap**: git add -A already omitted such members before this lane; preserve the guard against chmod on untracked paths until that contract is resolved.",
+      "severity": "\u26aa",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:321",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Prefix helper is imported inside a test to avoid a circular import. **DEFER test organization**; no incorrect result demonstrated.",
+      "severity": "\u26aa",
+      "file": "skills/use-qwen/scripts/test_eval_tree_state.py:569",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Existing staging test hedges with reached-is-None-or-reached; older exception alternatives also remain. **DEFER inherited test hardening**: line 266 predates this lane. This retains the first mechanical tautology flag.",
+      "severity": "\ud83d\udfe1",
+      "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py:266",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Generic rmtree callback assumes a single-argument callable and may mishandle open/scandir errors. **DEFER with R8**: unreadable directories are outside normal staging construction.",
+      "severity": "\u26aa",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:390",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    },
+    {
+      "cycle": 1,
+      "issue": "Links retain archive order instead of target-first order. **DEFER specification reconciliation**: explicit type from full-chain landing supplies the required Windows type without depending on creation order.",
+      "severity": "\u26aa",
+      "file": "skills/use-qwen/scripts/eval_harness/trees.py:296",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    },
+    {
+      "cycle": 2,
+      "issue": "The two never-lifts cleanup tests assert only `isinstance(cleanup, PermissionError)`, so an unrelated `PermissionError` would pass. Task 10's contract asked for the exact type and the injected object or message. **DEFER (verified, single-voice)**: confirmed at lines 435 and 464; the injector raises `PermissionError(errno.EACCES, \"read-only file refused deletion\", path)`, so `type(cleanup) is PermissionError` plus `cleanup.strerror` would close it. The PRD rule (keep the original as the raised error) is met and pinned by identity. The installed gate refuses a single-voice task, so this is carried to batch end as a test-strength follow-up. Alice's \"exact `PermissionError` context\" claim is refuted by the code.",
+      "severity": "\ud83d\udfe1",
+      "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py:434",
+      "action": "deferred",
+      "reason": "deferred by review-close",
+      "type": "deferred_decision",
+      "prd": "00162-template-archive-breaks-on-windows-v1.md"
+    }
+  ]
+}

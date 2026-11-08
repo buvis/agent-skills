@@ -3260,3 +3260,5 @@
 {"id":"c40a725c","kind":"pat","task":"12","queued_at":1794175371,"prompt_bytes":8581}
 {"id":"c40a725c","ended_at":1794175388,"elapsed_s":17,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"review","edge":"leave","at":1794175830,"phase":"done","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1794176156,"phase":"done","prd":"00162-template-archive-breaks-on-windows-v1.md"}
+{"kind":"handoff","site":"done","edge":"leave","at":1794176279,"phase":"done","prd":"00162-template-archive-breaks-on-windows-v1.md"}

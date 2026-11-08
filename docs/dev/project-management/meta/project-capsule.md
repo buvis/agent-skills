@@ -54,6 +54,14 @@ Generated: 2026-11-02 (closeout/archive-windows worktree — PRD 00162 catchup)
 
 ## Active Work
 
+### Batch 202611020612
+- [x] 00162-template-archive-breaks-on-windows-v1 (2 cycles)
+
+Observations: finalized 2026-11-08 at cap (cycle 2); 10 deferred items (R23
+included) are in `deferred/202611020612-deferred.json`; R4 stays open as
+native Windows verification on the exact combined candidate. Batch closed as
+drained: `wip/` 00133 and 00160 are not this worktree's to advance.
+
 - This worktree (`agent-skills/closeout-archive-windows`, branch
   `closeout/archive-windows`) is Stage 1 Lane B of
   `plans/repository-closeout-plan.md`: native-Windows repair for PRD 00160's
@@ -83,8 +91,9 @@ Generated: 2026-11-02 (closeout/archive-windows worktree — PRD 00162 catchup)
 - Batch 202610271200 (main checkout) is stopped after 33 completed PRDs. PRD
   00133 remains in `wip/` there, build phase, zero completed tasks — unrelated
   to this worktree's batch and must not be touched from here.
-- The store contains 18 backlog, 2 wip (00133, 00160), 20 hold, and 100 done
-  PRDs, as seen from this worktree.
+- The store contains 20 backlog, 2 wip (00133, 00160), 19 hold, and 101 done
+  PRDs, as seen from this worktree (re-counted 2026-11-08 after 00162
+  finalize).
 - PRD 00111's four code/test commits were manually reverted. Custody is closed;
   the later state-decoding fix remains. Its original persistence defect remains
   unresolved, and its custody branch is retained for follow-up.
