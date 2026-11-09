@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **use-herdr**: new skill grounded in Herdr's installed guide and CLI manuals, with worktree spaces, terminal routing, customization checks, and observed tab-versus-space behavior.
 - **create-adr**, **build-mcp-server**, **explore-abap-solution**, **document-abap-solution**, **review-abap-solution-documentation**, **write-abap-specs**, **publish-confluence-docs**: seven new skills. Fixtures use neutral `ZEXAMPLE_*` names; SAP, Jira, and Confluence access is caller-supplied.
 - **copy-rich-text**: new skill. Copies Markdown or HTML to the macOS clipboard as rich text (HTML plus an RTF fallback) so links, lists, images, tables, and Teams-native code blocks survive a paste into Microsoft Teams or Outlook. Set `JIRA_BASE_URL` to auto-link bare issue keys.
 - **create-note**: new skill. Creates a note in the BIM vault (`note`, `illustrated`, `meeting`, `youtube`, `article`, `prr`, `project`, `book`, `contact`) from a ported Templater template with a unique id, contact wikilinks, and a daily-note log entry; never overwrites a file.
