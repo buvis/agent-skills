@@ -463,6 +463,13 @@
       "detail": "fast-track/00133-transcript-judge-inherits-tools-v1-c1: stopped: gate 2; full suite 4392 passed, 1 failed, 12 skipped. test_funnel_distil.py:275 uses FakeClaudeCli raw-suffix triage matching at funnel_test_helpers.py:172, outside fixed card allowlist. Commits c49d87c/ac18d34 remain local; no completion review. See reports/00133-transcript-judge-inherits-tools-v1-build.md and implementation-model audit.",
       "op_id": "1faa00f8bc6d",
       "prd": "00133-transcript-judge-inherits-tools-v1.md"
+    },
+    {
+      "type": "stall",
+      "site": "fast_track_blocked",
+      "detail": "fast-track/00134-empty-sweep-lacks-verification-marker-v1-c1: suite red: 4394 passed, 1 failed, 12 skipped; distil-memory/test_funnel_distil.py:275 expects survivors 0 but sees 2; sweep tests 55 passed; commits 3ac0274 caea851 retained; see reports/00134-empty-sweep-lacks-verification-marker-v1-build.md",
+      "op_id": "a36e48a288fd",
+      "prd": "00134-empty-sweep-lacks-verification-marker-v1.md"
     }
   ]
 }

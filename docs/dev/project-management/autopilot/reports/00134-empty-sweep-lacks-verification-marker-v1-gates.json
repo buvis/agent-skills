@@ -1,0 +1,22 @@
+{
+  "named_suite": {
+    "exit": 0,
+    "passed": 55
+  },
+  "full_suite": {
+    "exit": 1,
+    "passed": 4394,
+    "failed": 1,
+    "skipped": 12,
+    "seconds": 352.74,
+    "failure": "skills/distil-memory/scripts/test_funnel_distil.py:275"
+  },
+  "validator": {
+    "exit": 0
+  },
+  "braid": {
+    "plain_exit": 2,
+    "explicit_source_exit": 0,
+    "drift": 0
+  }
+}

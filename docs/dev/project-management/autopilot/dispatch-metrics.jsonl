@@ -3140,3 +3140,9 @@
 {"id":"8ac49953","kind":"fast-track:ivan","task":"00133-transcript-judge-inherits-tools-v1-c1","queued_at":1794267626,"prompt_bytes":41334}
 {"id":"8ac49953","ended_at":1794267682,"elapsed_s":56,"outcome":"ok","detail":"gpt-6.1-sol medium; targeted 55 passed exit 0; funnel.py only"}
 {"kind":"handoff","site":"build","edge":"leave","at":1794268109,"phase":"build","prd":"00133-transcript-judge-inherits-tools-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1794268118,"phase":"build","prd":"00134-empty-sweep-lacks-verification-marker-v1.md"}
+{"id":"e4462bc1","kind":"fast-track:tess","task":"00134-empty-sweep-lacks-verification-marker-v1-c1","queued_at":1794268175,"prompt_bytes":24000}
+{"id":"e4462bc1","ended_at":1794268314,"elapsed_s":139,"outcome":"ok","detail":null}
+{"id":"7f54df56","kind":"fast-track:ivan","task":"00134-empty-sweep-lacks-verification-marker-v1-c1","queued_at":1794268315,"prompt_bytes":56733}
+{"id":"7f54df56","ended_at":1794268407,"elapsed_s":92,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1794268794,"phase":"build","prd":"00134-empty-sweep-lacks-verification-marker-v1.md"}

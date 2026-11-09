@@ -1,0 +1,40 @@
+{
+  "fingerprint": "5b1f0fba48faec77ab77704f41f6ef09068012106136322601b832734d8a8389",
+  "snapshot": {
+    "prd": "00134-empty-sweep-lacks-verification-marker-v1.md",
+    "cycle": 1,
+    "work_start_sha": "d7299cf7e205741a4366df6f7a3a352c11ac0857",
+    "tasks": [
+      {
+        "id": "1",
+        "attempts": [
+          {
+            "attempt": 1,
+            "actual_model": "gpt-6.1-sol",
+            "actual_provider": "openai",
+            "implementor": "codex",
+            "outcome": "failed"
+          }
+        ]
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "task": "1",
+      "role": "implementation",
+      "model": "gpt-6.1-sol",
+      "path": "docs/dev/project-management/autopilot/reports/00134-empty-sweep-lacks-verification-marker-v1-worker-metadata.jsonl",
+      "line": 1,
+      "sha256": "3853a18133d9e3dbd7cb68b21b6a2093baa2b29aad3d09ccd369d70ff10885d0"
+    },
+    {
+      "task": "1",
+      "role": "implementation",
+      "model": "gpt-6.1-sol",
+      "path": "docs/dev/project-management/autopilot/reports/00134-empty-sweep-lacks-verification-marker-v1-worker-metadata.jsonl",
+      "line": 2,
+      "sha256": "56f03cfa58587944451f7283678d584a8982cd926f5c701ccba85e99a9435d41"
+    }
+  ]
+}
