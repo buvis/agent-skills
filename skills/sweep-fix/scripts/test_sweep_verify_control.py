@@ -24,20 +24,6 @@ def test_verify_control_returns_none_when_pattern_finds_hits_in_control_repo(tmp
     assert result is None
 
 
-def test_verify_control_returns_none_when_pattern_and_control_term_both_absent(
-    tmp_path,
-):
-    control_repo = tmp_path / "control"
-    control_repo.mkdir()
-    (control_repo / "file.txt").write_text("unrelated content\n")
-
-    result = sweep.verify_control(
-        "NOTPRESENTPATTERN", "rg", control_repo, "NOTPRESENTTERM"
-    )
-
-    assert result is None
-
-
 def test_verify_control_raises_unverified_when_pattern_misses_but_control_term_present(
     tmp_path, capsys
 ):
@@ -252,11 +238,10 @@ def test_verify_control_lets_the_control_term_search_use_all_the_budget_the_scan
     )
     control_repo = _clean_control_repo(tmp_path)
 
-    result = sweep.verify_control(
+    sweep.verify_control(
         "NOTPRESENTPATTERN", "rg", control_repo, "SPARETERM", deadline=6
     )
 
-    assert result is None
     assert scan_deadlines == [pytest.approx(6, abs=0.1)]
     assert shim_pid_file.exists()
 
@@ -308,9 +293,8 @@ def test_verify_control_raises_timeout_only_when_its_scan_ran_out_of_deadline(
     ("content", "pattern", "control_term"),
     [
         ("AMPLEMARKER line\n", "AMPLEMARKER", "irrelevant-term"),
-        ("unrelated content\n", "AMPLEABSENTPATTERN", "AMPLEABSENTTERM"),
     ],
-    ids=["pattern-confirmed", "both-absent"],
+    ids=["pattern-confirmed"],
 )
 def test_verify_control_with_ample_deadline_returns_none_as_without_one(
     tmp_path, content, pattern, control_term

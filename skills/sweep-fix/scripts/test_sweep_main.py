@@ -337,6 +337,7 @@ def test_main_completes_and_reports_hits_when_pattern_absent_from_control_repo_b
 
     report = out_path.read_text()
     assert "Hits (1):" in report
+    assert "Unverified:" not in report
     hit_lines = re.findall(r"^- .+:\d+: .*REORDERPATTERN.*$", report, re.MULTILINE)
     assert len(hit_lines) == 1
     assert str(repo_a) in report
@@ -608,7 +609,7 @@ def test_main_passes_remaining_deadline_into_verify_control(tmp_path, monkeypatc
     # main() finds zero hits, so it falls through to verify_control(), which
     # calls scan() a second time on just the control repo. That second call
     # is bound by what the sweep left of the shared --deadline budget, and a
-    # control check that fits in it still succeeds.
+    # control check that fits in it still writes its inconclusive report.
     argv, _repos, out_path = _build_sweep_main_scaffold(
         tmp_path, monkeypatch, "VERIFYDEADLINEMARKER", _make_repo
     )
@@ -626,8 +627,9 @@ def test_main_passes_remaining_deadline_into_verify_control(tmp_path, monkeypatc
 
     exit_code = sweep.main(argv)
 
-    assert exit_code == 0
+    assert exit_code == 1
     assert out_path.exists()
+    assert "Unverified: control term not found" in out_path.read_text().splitlines()
     assert len(deadlines) == 2
     # Setup time is deducted from the flag value before this first scan()
     # call, same as test_main_passes_deadline_through_to_scan (R1).
@@ -699,6 +701,50 @@ def _zero_hit_argv(tmp_path, monkeypatch, control_repo, control_term):
         "--out", str(out_path),
     ]
     return argv, out_path
+
+
+@pytest.mark.parametrize("marker", ["ALPHACONTROL", "BETACONTROL"])
+@pytest.mark.parametrize("control_matches", [False, True], ids=["unverified", "verified"])
+def test_empty_sweep_saves_control_verification_status_and_scan_details(
+    tmp_path, monkeypatch, capsys, marker, control_matches
+):
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    pattern = f"^{marker}$"
+    content = f"prefix{marker}suffix\n{marker}suffix\nprefix{marker}\n{marker}Xliteral\n"
+    (control_repo / "file.txt").write_text(content)
+    argv, original_out = _zero_hit_argv(tmp_path, monkeypatch, control_repo, marker)
+    argv[argv.index("--pattern") + 1] = pattern
+    repo_a = original_out.parent.parent
+    repo_b = _make_repo(tmp_path / "org" / "repo-b")
+    (repo_b / "file.txt").write_text(content)
+    missing_repo = tmp_path / "org" / "missing-repo"
+    registry = Path(argv[argv.index("--registry") + 1])
+    _write_registry(registry, [str(repo_a), str(repo_b), str(missing_repo)])
+    # The fallback term is absent, despite near-matching regex source text.
+    argv[argv.index("--control-term") + 1] = f"{marker}.literal"
+    if control_matches:
+        (control_repo / "confirmed.txt").write_text(f"{marker}\n")
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    monkeypatch.chdir(elsewhere)
+    argv[argv.index("--out") + 1] = "reports/verification.md"
+    out_path = repo_a / "reports" / "verification.md"
+
+    exit_code = sweep.main(argv)
+
+    assert out_path.is_file()
+    report = out_path.read_text()
+    assert "Hits (0):" in report
+    assert pattern in report
+    assert "regression test for fail-loud setup" in report
+    assert "Gaps (1):" in report
+    assert f"- {missing_repo}: not found on disk" in report
+    marker_line = "Unverified: control term not found"
+    assert (marker_line in report.splitlines()) is (not control_matches)
+    assert exit_code == (0 if control_matches else 1)
+    assert str(out_path) in capsys.readouterr().out
+    assert not (elsewhere / "reports").exists()
 
 
 @pytest.mark.parametrize(
