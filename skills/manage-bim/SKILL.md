@@ -230,9 +230,10 @@ See `bim --skill` for every flag. The ones this skill relies on:
 The report is one JSON object: `id`, `type`, `title`, `tags`, `path`,
 `relative_path`, `wikilink`, and when relevant `daily_log`,
 `linked_contacts`, `archive.path`, `trashed_source`, `warnings`, `errors`.
-On failure bim prints `{"error": "..."}`, exits 1, and writes nothing. If the
-report has `errors`, the note exists but a follow-up step failed; tell the
-user.
+On failure bim prints `{"error": "..."}` and exits 1. Before you retry, follow
+`bim --skill` on failed creates: an error starting with `note saved at` means
+the note exists. If the report has `errors`, the note exists but a follow-up
+step failed; tell the user.
 
 ## After creating
 
