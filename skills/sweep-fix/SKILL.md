@@ -56,6 +56,13 @@ because a pattern that misses a known-present term is broken, and an
 unverified empty sweep is not a clean sweep). It then renders the report and
 writes it under `docs/dev/project-management/audit-results/`.
 
+If neither the pattern nor the fixed-string control term matches in the
+control repo, the empty sweep is inconclusive. The script saves the report
+with `Unverified: control term not found`, prints its path, and exits 1.
+Inspect that report and choose a control that can verify the pattern before
+treating the sweep as clean. A matching pattern in the control repo confirms
+the empty portfolio sweep and exits 0.
+
 The report's `Gaps:` section covers two different things: repos found on disk
 under the portfolio root that are missing from the registry (printed as a
 bare path), and registered rows that could not be scanned at all, a path no

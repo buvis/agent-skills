@@ -564,7 +564,7 @@ def verify_control(pattern, kind, control_repo, control_term, deadline=None):
     confirmed working and this returns None. If it finds none, searches
     `control_repo` for `control_term` (a string known to be present when the
     pattern's intended target is present). If `control_term` also finds no
-    hits, the control repo is inconclusive and this returns None. If
+    hits, the control repo is inconclusive and this returns False. If
     `control_term` finds hits but `pattern` did not, `pattern` is broken
     (e.g. the Rust-regex `\\|` literal-pipe trap): prints a message naming
     `control_term` and `control_repo`, then exits with status 1.
@@ -595,7 +595,7 @@ def verify_control(pattern, kind, control_repo, control_term, deadline=None):
 
     result = _search_control_term(control_repo, control_term, deadline, verify_start, expired)
     if result.returncode == 1:
-        return None
+        return False
 
     message = (
         f'sweep unverified: pattern found 0 hits but control term "{control_term}" is present in {control_repo} '
@@ -755,7 +755,7 @@ def _verify_zero_hit_sweep(args, start):
             "sweep unverified: deadline expired before control "
             f"verification could run in {args.control_repo}"
         )
-    verify_control(
+    return verify_control(
         args.pattern, args.kind, Path(args.control_repo), args.control_term, deadline=remaining
     )
 
@@ -777,8 +777,9 @@ def main(argv=None):
     The report is written under `--cwd`; an `--out` resolving outside that
     repo is refused.
 
-    Returns 0 on success. Returns 1 with one stderr line, writing no report,
-    on a setup failure (scan tool, registry, control check) or when
+    An inconclusive control check saves the report with an Unverified line
+    and returns 1. Returns 0 on success. Returns 1 with one stderr line,
+    writing no report, on a setup failure (scan tool, registry, control check) or when
     `--deadline` runs out before the control check can confirm a zero-hit
     sweep: the deadline bounds the sweep and the control check together.
     """
@@ -786,6 +787,7 @@ def main(argv=None):
 
     cwd_path = Path(args.cwd).resolve()
     out_path = _resolve_report_path(cwd_path, args.out, args.reason)
+    unverified = False
 
     try:
         start = time.monotonic()
@@ -794,7 +796,7 @@ def main(argv=None):
         scan_deadline = _scan_deadline_after_setup(args, start)
         hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap, deadline=scan_deadline)
         if not hits:
-            _verify_zero_hit_sweep(args, start)
+            unverified = _verify_zero_hit_sweep(args, start) is False
     except (RuntimeError, TimeoutError) as exc:
         print(exc, file=sys.stderr)
         return 1
@@ -806,13 +808,15 @@ def main(argv=None):
         "control_term": args.control_term,
     }
     report = render_report(derivation, hits, gaps, suppressed, failed)
+    if unverified:
+        report += "\nUnverified: control term not found\n"
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(report)
 
     print(out_path)
 
-    return 0
+    return 1 if unverified else 0
 
 
 if __name__ == "__main__":
