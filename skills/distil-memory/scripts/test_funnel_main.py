@@ -99,8 +99,8 @@ def test_main_normal_run_prints_and_writes_report_matching_render_yield_and_refl
     monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
 
     def fake_run(cmd, **kwargs):
-        prompt = kwargs["input"]
-        if prompt.endswith("and confirmed that"):
+        snippet = json.loads(kwargs["input"].rsplit("\n", 1)[-1])
+        if snippet == "and confirmed that":
             return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="transient", stderr="")
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="durable", stderr="")
 
@@ -278,7 +278,8 @@ def test_run_triage_returns_the_surviving_slices_with_a_matching_count_and_no_er
 
     def fake_run(cmd, **kwargs):
         judge_calls.append(cmd)
-        verdict = "transient" if kwargs["input"].endswith(transient_slice.text) else "durable"
+        snippet = json.loads(kwargs["input"].rsplit("\n", 1)[-1])
+        verdict = "transient" if snippet == transient_slice.text else "durable"
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout=verdict, stderr="")
 
     monkeypatch.setattr(funnel.subprocess, "run", fake_run)
