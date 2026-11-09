@@ -191,7 +191,9 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
             where = dest / name
             where.parent.mkdir(parents=True, exist_ok=True)
             landing = dest / _land(links, name)
-            os.symlink(target, where, target_is_directory=landing.is_dir())
+            # Windows stores relative targets verbatim: forward slashes make
+            # the link unreadable. Change separators only; preserve every hop.
+            os.symlink(target.replace("/", os.sep), where, target_is_directory=landing.is_dir())
     _git(dest, *IDENTITY, "init")
     _git(dest, "add", "-A")
     # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the

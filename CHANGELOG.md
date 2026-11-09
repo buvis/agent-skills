@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **use-qwen**, **create-note**: use native separators in relative symlink targets and project resource paths; Windows links now remain readable through directory aliases without collapsing parent hops.
 - **use-qwen**: reject Windows root-relative archive member names before creating links, preserving archive containment when the Windows and archive-validation fixes are combined.
 - **create-note**: use a Windows file lock when allocating note ids, so concurrent writes stay serialized and Windows test collection no longer imports Unix-only `fcntl`; preserve Windows drive letters and separators in archive and project links.
 - **braid**, **create-prd**, **distil-memory**, **glean**, **purge-devtmp**, **use-qwen**: handle Windows symlink spellings and directory links, citation paths, and byte-preserving writes; make Windows test fixtures use native paths and explicit line endings, including **sweep-fix** permission failures.

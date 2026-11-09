@@ -483,7 +483,7 @@ def create_locked(args: argparse.Namespace, vault: Path) -> dict:
 
     resources_path = ""
     if args.kind == "project":
-        resources_path = f"{Path(PROJECTS_ROOT).expanduser()}/{note_id}-{slug}"
+        resources_path = str(Path(PROJECTS_ROOT).expanduser() / f"{note_id}-{slug}")
     values = {
         "id": note_id,
         "title": title,

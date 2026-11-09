@@ -138,7 +138,8 @@ def _lay_links(root: Path, links: dict) -> None:
     for name, target in links.items():
         where = root / name
         where.parent.mkdir(parents=True, exist_ok=True)
-        os.symlink(target, where, target_is_directory=name in directories or (where.parent / target).is_dir())
+        os.symlink(target.replace("/", os.sep), where,
+                   target_is_directory=name in directories or (where.parent / target).is_dir())
 
 
 def _link_text(where: Path) -> str:
@@ -350,6 +351,29 @@ def _serve_archive(monkeypatch, bundle: bytes) -> None:
         return bundle if args and args[0] == "archive" else real(root, *args)
 
     monkeypatch.setattr(trees, "_git_bytes", fake)
+
+
+def test_build_template_uses_native_link_separators_without_collapsing_parent_hops(
+    tmp_path, built_repo, monkeypatch
+):
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    members = [
+        ("pkg", DIRECTORY), ("pkg/nested.txt", PAYLOAD),
+        ("alias", ("sym", "pkg/../pkg/nested.txt")),
+    ]
+    _serve_archive(monkeypatch, _crafted_tar(members))
+    calls = []
+
+    def symlink(target, destination, *, target_is_directory):
+        calls.append((target, destination, target_is_directory))
+
+    monkeypatch.setattr(trees, "os", SimpleNamespace(sep="\\", environ=os.environ, symlink=symlink))
+    dest = tmp_path / "template"
+
+    trees.build_template(repo, first, dest)
+
+    assert calls == [(r"pkg\..\pkg\nested.txt", dest / "alias", False)]
 
 
 class _TarfileWithoutDataFilter:
