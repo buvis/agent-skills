@@ -163,7 +163,8 @@ Type-specific frontmatter:
 
 ## Plugins that act on files
 
-- Templater runs `.tpl` templates only inside Obsidian. Skills port them.
+- Templater runs `.tpl` templates only inside Obsidian. `bim create`
+  reproduces them outside it.
 - Auto Note Mover moves notes tagged `#person` to `notes/contact/` and
   `#book` to `notes/book/`. Do not use those tags on other notes.
 - Linter formats on save: strips trailing spaces, sets blank lines around
@@ -175,8 +176,8 @@ Type-specific frontmatter:
 
 ## Rules for agents
 
-1. Create notes only through the `create-note` skill, so IDs and shapes stay
-   in line with the templates.
+1. Create notes only through the `create-note` skill (it runs `bim create`),
+   so IDs and shapes stay in line with the templates.
 2. Never overwrite, rename, or move an existing note. IDs and slugs are link
    targets.
 3. To delete, move the file to `.trash/`, keeping its name. On a clash, add a
@@ -192,5 +193,5 @@ Type-specific frontmatter:
 Sources: `notes/system/20240618170045.md` (organization),
 `notes/system/20240619195131.md` (change log), `notes/system/templates/`, and
 `.obsidian/plugins/*/data.json`. When vault conventions change, update this
-file and every skill that ports a template (for `create-note`, its
-`assets/templates/`).
+file; when a template changes, update the matching bundled template in
+`bim create` (buvis-gems).
