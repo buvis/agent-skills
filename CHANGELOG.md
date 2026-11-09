@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **create-note**: use a Windows file lock when allocating note ids, so concurrent writes stay serialized and Windows test collection no longer imports Unix-only `fcntl`; preserve Windows drive letters and separators in archive and project links.
 - **braid**, **create-prd**, **distil-memory**, **glean**, **purge-devtmp**, **use-qwen**: handle Windows symlink spellings and directory links, citation paths, and byte-preserving writes; make Windows test fixtures use native paths and explicit line endings, including **sweep-fix** permission failures.
 - **convert-to-icon**: `favicon.ico` now holds 16 to 256 px (the `.ico` maximum) instead of stopping at 48 px, so it stays sharp on high-density screens and where it is shown large.
 - **purge-devtmp**: candidate paths containing a tab or line break are refused and reported as `refused-unsafe-path` instead of writing an unrestorable manifest row; emptying a trash batch now also removes its manifest rows (from either tool), preserving retained-batch and unparseable historical rows.
