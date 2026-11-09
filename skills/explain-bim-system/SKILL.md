@@ -1,7 +1,7 @@
 ---
 name: explain-bim-system
-description: Use before any task that reads, searches, creates, or edits notes in the BIM Obsidian vault (~/bim or $BIM_VAULT), or when asked how the vault is organized. Covers layout, note anatomy, frontmatter, links, tags, GTD tasks, and agent rules.
-compatibility: Harness-neutral reference, no tools required. Assumes the vault at ~/bim or at the path in the BIM_VAULT environment variable.
+description: Use before any task that reads, searches, creates, or edits notes in the BIM Obsidian vault, or when asked how the vault is organized. Covers vault layout, backmatter, links, GTD tasks, plugins, and agent rules; `bim --skill` covers the CLI.
+compatibility: Harness-neutral reference. Assumes the bim CLI from buvis-gems and the vault whose notes/ folder is the bim path_zettelkasten setting (default ~/bim/notes/).
 ---
 
 # BIM system reference
@@ -9,14 +9,22 @@ compatibility: Harness-neutral reference, no tools required. Assumes the vault a
 BIM (BUVIS InfoMesh) is a personal knowledge system kept as an Obsidian vault.
 It blends GTD (David Allen), Zettelkasten (Niklas Luhmann), and PARA (Tiago
 Forte). The vault documents itself in `notes/system/` (start at
-`notes/system/index.md`). This file condenses what an agent needs and is the
-shared source of truth for every BIM skill. Skills must work without Obsidian
-running.
+`notes/system/index.md`). Skills must work without Obsidian running.
+
+Two sources split the work:
+
+- `bim --skill` prints bim's own skill. It is the authority for the bim CLI
+  (search with `bim query`, read, create, edit metadata, archive) and for the
+  shape each bundled template writes: frontmatter keys, file placement, slugs,
+  ids. Run it before you use bim.
+- This file covers the vault conventions bim does not know: layout, links,
+  backmatter, GTD tasks, the Obsidian plugins, and the rules for agents.
 
 ## Locate the vault
 
-- Path: `$BIM_VAULT` if set, else `~/bim`. A valid vault has `notes/` and
-  `notes/system/` at its root.
+bim's `path_zettelkasten` setting (default `~/bim/notes/`) is the vault's
+`notes/` folder; the vault root is its parent. A valid vault has `notes/` and
+`notes/system/` at its root.
 
 ## Layout
 
@@ -24,7 +32,7 @@ running.
 |------|-------|-------------|
 | `inbox/` | Raw material waiting to be processed. Any filename, rarely frontmatter. Obsidian and automations put new files here. | Read freely. Processing turns an item into notes, then moves the item to `.trash/`. |
 | `notes/` | Processed notes, the core of the system | See below. |
-| `notes/calendar/` | Time-scoped notes: `daily/YYYY-MM-DD.md`, `weekly/YYYY-Www.md` (monthly, quarterly, and yearly folders are linked but empty) | Obsidian creates these. Do not create them. Append to a daily `## Log` only when asked, except that `create-note` adds a log line linking each note it creates. |
+| `notes/calendar/` | Time-scoped notes: `daily/YYYY-MM-DD.md`, `weekly/YYYY-Www.md` (monthly, quarterly, and yearly folders are linked but empty) | Obsidian creates these. Do not create them. Append to a daily `## Log` only when asked, except that `bim create` adds a log line linking each note it creates. |
 | `notes/system/` | System docs (ID-named notes), `templates/` (Templater `.tpl`), `scripts/` (Templater user scripts, CustomJS classes) | Read-only unless asked. Templates define note shapes. |
 | `resources/<category>/` | Assets: `book-cover/`, `contact-picture/`, `notes-attachments/` (Obsidian's attachment folder), `screenshots/`, `icon/`, `media-lib/` (Media Extended plugin), and topic folders | Put new assets in the matching category and link them from a note. Leave `media-lib/` alone. |
 | `.obsidian/` | App and plugin config | Never edit. |
@@ -32,26 +40,19 @@ running.
 
 PARA reference material lives outside the vault:
 `~/Documents/reference/{10-projects,20-areas,30-resources,40-archives}`. Each
-project note links its support folder
-`~/Documents/reference/10-projects/<id>-<slug>/`. Notes never go there; they go
-to `notes/`. Archived articles (original text) live in
-`~/Documents/reference/40-archives/articles/YYYY/YYYYMM00/<original title>.md`;
-their core-facts note is a zettel that links the archive file.
+project note links its support folder in `10-projects/`, and each article note
+links its archived original in `40-archives/articles/`. Notes never go there;
+they go to `notes/`.
 
 ## Notes layout
 
 - `notes/<id>.md`: almost every note. `id` is the creation time
   `YYYYMMDDHHmmss` in local time. It is unique and never changes.
-- `notes/contact/<slug>.md`: people and companies, named by slug so links are
-  easy to type.
-- `notes/book/<slug>.md`: books, named by slug for the same reason.
+- `notes/contact/<slug>.md` and `notes/book/<slug>.md`: people and books,
+  named by slug so links are easy to type.
 - `notes/kanban/`: Kanban plugin boards. The plugin owns the format.
 - `notes/documents/`: zettels for documents, such as device manuals.
 - `notes/<id>.svg`: Excalidraw export next to its illustrated note.
-
-`slug` comes from the title: NFKD-normalize, drop combining marks, trim,
-lowercase, keep only `a-z 0-9 space -`, turn whitespace runs into `-`, collapse
-repeated `-`. Example: `Zoë Ångström-Müller` becomes `zoe-angstrom-muller`.
 
 ## Note anatomy
 
@@ -76,45 +77,31 @@ Body in Markdown.
 - web:: [Starter basics](https://example.com/starter)
 ```
 
-- Frontmatter order: `id`, `title`, `date`, `tags`, `type`, `publish`,
-  `processed`, then type-specific keys. Older notes vary; do not reorder them.
-- `title`: quoted when it contains a colon or other YAML-special characters.
-  The H1 repeats it verbatim (problem resolution reports prefix `PRR: `). The
-  Front Matter Title plugin shows `title` instead of the filename and adds it
-  as an alias, so no `aliases` key is needed.
-- `date`: creation time, ISO 8601 with UTC offset, same instant as `id`.
-- `tags`: flow list without `#`. Tags are lowercase, may nest with `/`
-  (`lang/rust`), and may hold non-ASCII letters.
+- Older notes vary in frontmatter key order; do not reorder them.
+- The H1 repeats `title` (older problem resolution reports prefix `PRR: `).
+  The Front Matter Title plugin shows `title` instead of the filename and adds
+  it as an alias, so no `aliases` key is needed.
 - `publish: false` always.
 - `processed: false` at creation. The owner flips it to `true` after review.
   The daily note offers a random unprocessed note.
 - Everything after the last `---` is "backmatter": Dataview inline fields
   `key:: value`, usually as list items, so references stay queryable. Common
   keys: `parent` (link to the parent note or project), `web`, `teams`, `ticket`,
-  `us`, `psd`, `pr`, `shop`, `repo`, `reading-notes`. Work projects add keys of
-  their own; keep every key you do not recognize when you rewrite a note.
+  `us`, `psd`, `pr`, `shop`, `repo`, `reading-notes`, `article`. Work projects
+  add keys of their own; keep every key you do not recognize when you rewrite
+  a note.
 - For Microsoft Teams URLs, use `teams::` rather than `web::` in backmatter.
 - Index (MOC) notes have a title starting with `§`.
 
 ## Note types
 
-`type` drives Dataview queries. Templates in `notes/system/templates/` exist for:
-
-| `type` | Template | File |
-|--------|----------|------|
-| `note` | `page.convert-to-generic-note.tpl` | `notes/<id>.md` |
-| `note` for an article | `page.convert-to-generic-note.tpl` | `notes/<id>.md` with the core facts; the original text lives in the archive (see above), linked by `article::` |
-| `note` with `origin: youtube` | `page.convert-to-notes-on-youtube-video.tpl` | `notes/<id>.md` |
-| `illustrated-note` | `page.convert-to-illustrated-note.tpl` | `notes/<id>.md` + `<id>.svg` |
-| `meeting-minutes` | `page.convert-to-meeting-minutes.tpl` | `notes/<id>.md` |
-| `problem-resolution-report` | `page.convert-to-problem-resolution-report.tpl` | `notes/<id>.md` |
-| `project` | `page.create-project.tpl` | `notes/<id>.md` + project support folder |
-| `book` | `page.convert-to-book.tpl` | `notes/book/<slug>.md` |
-| `contact` | `page.convert-to-contact-person.tpl` | `notes/contact/<slug>.md` |
-
-Other types reuse the generic note shape with a different `type`: `list`,
-`procedure`, `definition`, `wiki-article`, `cheatsheet`, `course`, `recipe`,
-`snippet`, and more. Check what exists before inventing one:
+`type` drives Dataview queries. `bim create -l` lists the templates that
+write each type. The vault uses `note` (also for YouTube notes, marked
+`origin: youtube`, and article notes), `illustrated-note`, `meeting-minutes`,
+`problem-resolution-report`, `project`, `book`, and `contact`. Other types
+reuse the note shape: `list`, `procedure`, `definition`, `wiki-article`,
+`cheatsheet`, `course`, `recipe`, `snippet`, and more. Check what exists
+before inventing one:
 `rg -NIo '^type: .*' ~/bim/notes | sort | uniq -c | sort -rn`.
 
 Title habits: procedures start with an imperative verb ("Rotate API keys
@@ -122,9 +109,8 @@ for the build server"), definitions use the bare term ("Idempotency").
 
 Type-specific frontmatter:
 
-- `project`: `completed` (bool), `resources` (`"[project resources](file:///...)"`
-  with the absolute path URL-encoded as one segment), `deliverable` (`fix`,
-  `enhancement`, or `support`).
+- `project`: `completed` (bool), `resources` (a `file://` link to the support
+  folder), `deliverable` (`fix`, `enhancement`, or `support`).
 - `meeting-minutes`: `location` (`webex`, `teams`, `phone`, `face to face`),
   `start` and `end` (`HH:mm`), `organizer`, `attendees` (list), `summary`.
 - `contact`: `contact-type` (one or more of `person`, `colleague`, `author`,

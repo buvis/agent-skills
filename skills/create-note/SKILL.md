@@ -256,8 +256,8 @@ bim reproduces the Templater notes with these deliberate changes:
 - Book and contact titles keep the casing you give. The templates lowercase
   everything first, which breaks names like "McDonald" or "iPhone". Contacts
   get every word capitalized; other notes only the first letter.
-- Slugs (contact and book file names, the project resources folder) follow
-  the NFKD rule in `explain-bim-system`, not
+- Slugs for the project resources folder follow bim's NFKD rule (the one
+  the contact and book templates use), not
   `notes/system/scripts/templater/slugify.js`: `/ _ , : ; ·` between letters
   are removed instead of turned into `-` (`TCP/IP` gives `tcpip`), accented
   letters slugify.js does not list survive (`Šňůra` gives `snura`, not
