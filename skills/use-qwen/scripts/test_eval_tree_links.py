@@ -10,10 +10,12 @@ is one spelling of each.
 """
 import hashlib
 import io
+import ntpath
 import os
 import tarfile
 import warnings
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -391,6 +393,15 @@ def _assert_refused_cleanly(tmp_path, built_repo, monkeypatch, members) -> None:
     # The escape did not happen: the outside directory holds what it held.
     assert sorted(p.name for p in outside.iterdir()) == ["secret.txt"]
     assert (outside / "secret.txt").read_bytes() == b"outside\n"
+
+
+@pytest.mark.parametrize("name", ["/outside", r"\outside", r"C:\outside", r"\\server\share\outside"])
+def test_archive_vetting_refuses_absolute_member_names_with_windows_path_rules(monkeypatch, name):
+    member = tarfile.TarInfo(name)
+    member.type, member.linkname = tarfile.SYMTYPE, "."
+    monkeypatch.setattr(trees, "os", SimpleNamespace(path=ntpath))
+    with pytest.raises(trees.TreeError):
+        trees._refuse_duplicate_or_crossing_members([member])
 
 
 @pytest.mark.parametrize("members", DUPLICATE_MEMBERS)

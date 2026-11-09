@@ -140,7 +140,7 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
     names = set()
     originals: list[str] = []
     for member in members:
-        if os.path.isabs(member.name):
+        if posixpath.isabs(member.name) or PureWindowsPath(member.name).drive or member.name.startswith("\\"):
             raise TreeError("%s is absolute" % member.name)
         if not (member.isfile() or member.isdir() or member.issym()):
             raise TreeError("%s is not a file, directory or symlink" % member.name)
