@@ -71,8 +71,8 @@ skills/distil-memory/scripts/
 
 ### Module: judge regression tests
 
-- **Locations**: `skills/distil-memory/scripts/test_funnel_triage.py`,
-  `skills/distil-memory/scripts/test_funnel_main.py`.
+- **Location**: `skills/distil-memory/scripts/test_funnel_triage.py`
+- **Location**: `skills/distil-memory/scripts/test_funnel_main.py`
 - **Maps-to-capability**: prove restrictive invocation survives malicious snippet text.
 - **Responsibility**: assert argv, framing, and existing classification/model controls.
 - **Exports**: none.
@@ -97,9 +97,7 @@ skills/distil-memory/scripts/
   `uv run pytest skills/distil-memory/scripts/test_funnel_triage.py skills/distil-memory/scripts/test_funnel_main.py`
   passes; the tool-restriction argv regression fails against prior code.
 
-Exit criteria: `uv run pytest`,
-`uv run python3 skills/create-skill/scripts/validate_skill.py skills/distil-memory`,
-and `braid --check` pass. Use shims or subprocess seams, not a live model or user corpus.
+**Exit Criteria**: `uv run pytest`, `uv run python3 skills/create-skill/scripts/validate_skill.py skills/distil-memory`, and `uv run braid --check` pass. Use shims or subprocess seams, not a live model or user corpus.
 
 ## Success Criteria
 
