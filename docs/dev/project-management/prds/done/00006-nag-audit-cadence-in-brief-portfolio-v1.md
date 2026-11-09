@@ -1,6 +1,6 @@
 # Put Config Maintenance on a Calendar
 
-Source: `~/.claude/dev/local/discovery/00155-schedule-maintenance-cadence.md`
+Source: link-ok: `~/.claude/dev/local/discovery/00155-schedule-maintenance-cadence.md`
 (decisions resolved 2026-08-28).
 
 ## Overview
@@ -13,7 +13,7 @@ already cost something - one hand-run cleanup reclaimed ~46 MB of stale plugin
 versions and archived nine legacy project dirs, work nothing would have
 scheduled. The gap is a cadence, not a capability. The brief already carries a
 single coarse maintenance nag whose stamp is the newest mtime under
-`~/.claude/dev/local/audit-results/`, which is a proxy: three of the seven audits
+link-ok: `~/.claude/dev/local/audit-results/`, which is a proxy: three of the seven audits
 write no report at all, so the row can read green while they have never run.
 
 ### Target Users
@@ -163,7 +163,7 @@ No dependencies - built first.
 - [ ] Remove `collect_claude_maintenance` and its `claude_maintenance_last`
   payload key (no deps)
   - Premise: `collect.py` still defines `collect_claude_maintenance` (the
-    newest-mtime proxy over `~/.claude/dev/local/audit-results/`) and still sets
+    newest-mtime proxy over link-ok: `~/.claude/dev/local/audit-results/`) and still sets
     `data["external"]["claude_maintenance_last"]`. Re-check at execution; if
     either is already gone, skip that half and report it rather than
     re-introducing the key.

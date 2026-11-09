@@ -1,0 +1,66 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "medium",
+    "issue": "No CHANGELOG.md entry for a containment security fix that changes user-visible refusal behaviour (duplicate and absolute members now raise `TreeError`). CHANGELOG.md already carries `**use-qwen**:` entries under Fixed, so the project convention applies. Add one under `[Unreleased]` / Fixed",
+    "file": "CHANGELOG.md",
+    "reason": "Deferred, not discarded. The decision gate's single-voice rule forbids a [1/3] medium becoming a task (`review-close` refuses it as `single_voice_fix`), but rules/changelog.md is a blocking project rule, so the obligation is recorded in deferred_decisions to stay visible at batch end rather than dropped on consensus grounds"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The spec says to reject any member whose parent path crosses an archive symlink. `_refuse_duplicate_or_crossing_members` rejects only a crossing that `_land` resolves to an escape, a `..` past the root, an absolute target or a cycle. A file under a symlink that stays inside the tree is accepted. Safe internal links are a stated \"preserve\" item, so this reading is arguable, but it is looser than the written rule. The tests encode the looser rule, and no test pins the strict reading or its relaxation.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:141",
+    "reason": "single-voice. Not dismissed on merit: this is the same defect as R8, raised independently by Blake and Bob in wording the consolidator did not merge (cited at trees.py:141 and :142), so its true consensus is 2/3. The substance is carried into R4's fix task, which names it explicitly"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Duplicate detection uses `posixpath.normpath` on the raw name. It does not fold case or Unicode, so two names that collide on a case-insensitive filesystem (macOS default) pass the preflight. On the compatibility path nothing else catches this, and the data filter does not catch it either. Two entries such as `Escape` as a link and `escape/x` as a file, which the preflight sees as unrelated, can still alias on such a host.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:137",
+    "reason": "single-voice. Nobody executed the claimed collision, so it stands as an unverified bypass vector on a case-insensitive host. Re-raise with a demonstrated case if it recurs"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`_land` permits members beneath safe symlinks, contrary to the PRD's ancestor-crossing refusal requirement. With `alias -> pkg`, `alias/file` can overwrite `pkg/file` despite distinct normalized names. Explicitly reject symlink ancestors and test this alias collision.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:142",
+    "reason": "single-voice. Same defect as R6 (see that entry); the substance is carried into R4's fix task"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The compatibility warning test requires the warning that task 2 requires absent, and never verifies successful sealing. Deleting `data_filter` leaves the current runtime's warning machinery intact, so this does not model an older runtime. Replace the expected-warning assertion with faithful compatibility coverage and successful sealing under the specific warning-as-error filter.",
+    "file": "skills/use-qwen/scripts/test_eval_tree_links.py:459",
+    "reason": "single-voice, and fully duplicated by R2, which Alice and Blake raised at [2/3] and which is a fix task this cycle. Nothing is lost"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The helper's design contract returned the symlink map as `dict[str, str]`. The implementation returns `None`, and the assumptions ledger records the choice. Fine, but the design doc still shows the old signature and docstring, which now disagree with the code",
+    "file": "docs/dev/project-management/designs/00131-crafted-template-archive-escapes-directory-v1-design.md:130",
+    "reason": "single-voice. The assumptions ledger already records the deliberate deviation, so the design doc's stale signature is documented drift, not an undisclosed one"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`dest.mkdir(parents=True, exist_ok=True)` runs before the preflight, so a refused archive leaves an empty destination directory behind. The tests assert only that it is empty. The spec requires refusal before a successful template is recorded, which holds.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:154",
+    "reason": "single-voice; the reviewer's own text concedes the spec requirement holds, so there is no defect to fix"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Blake did not rerun the suite, as the gate instructed. The gate reported exit 0 with no parsed counts, so he could not confirm from it that the new regressions fail against the pre-change code. The preflight logic and the duplicate, ancestor-crossing and safe-link fixtures do match the spec's required cases.",
+    "file": null,
+    "reason": "single-voice, and not a defect in the work: it reports the reviewer's own evidence limit. The fail-first replay block and Alice's executed base overlay supply that evidence, and R3 carries the substantive finding"
+  }
+]

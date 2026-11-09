@@ -24,7 +24,7 @@ braid --check
 ```
 
 Without installation, run `python bin/braid.py`. On Windows, use
-`py bin\\braid.py`; Braid falls back to NTFS junctions when directory symlink
+`py bin\braid.py`; Braid falls back to NTFS junctions when directory symlink
 privileges are unavailable.
 
 ## Source and overlay architecture
@@ -294,6 +294,7 @@ Current local policy:
 | `strunk` | Keep the language/testing skills as standalone compatibility copies; skip them in `braid`. |
 | `claude-checkup` | Claude owns the audits and they need its config layout, so the copies here are documentation only and sit in `docs/plugin-skills/`. |
 | `aegis` | `gateguard` documents a Claude hook and does nothing without it, so it is a documentation copy in `docs/plugin-skills/`. No cross-host behavior without a hook adapter. |
+| `autopilot` | Ships a CLI plus multiple agents/skills, so most of it (`design-solution`, `plan-tasks`, `work`, `review-*`, etc.) is a documentation copy in `docs/plugin-skills/`; duplicating the CLI/agents would fork a released product. Its three single-file helper skills (`use-codex`, `use-gemini`, `use-sonnet`) are the exception, kept as standalone compatibility copies in `~/.agents/skills` and skipped in `braid` via `.braidignore`. |
 | `warden` | Already carries Codex and Copilot adapters in addition to Claude integration; continue moving it toward one multi-host plugin. |
 | `loupe` | Hook-heavy Claude plugin; port the hook/event adapter before reuse. |
 | `agoge` | Claude agent pack; its prompts are reusable, but agent declarations and orchestration need host adapters. |

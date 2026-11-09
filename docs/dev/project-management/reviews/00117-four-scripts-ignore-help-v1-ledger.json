@@ -1,0 +1,130 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`import sys` sits inside `main()`, while every other import is at module top (skills/survey/scripts/run.py:1). This is style drift, and a function-local import has no reason here since `sys` is cheap and always needed. Move `import sys` to the top-level import block with `os` and `re`. This does not change behavior.",
+    "file": "skills/survey/scripts/run.py:468",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The three review-helper test files are near-verbatim copies. Only the script name and the valid-doc content differ, and each has the same `_run` helper, help test, near-miss test and preservation tests. One parametrized test over the three scripts would remove about 200 duplicated lines. This is a behavior-preserving simplification.",
+    "file": "skills/review-design-doc/scripts/test_claim_ladder_scan.py:1",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Help tests never assert the required document argument appears in usage; printing only the script name passes. Assert `<path/to/doc.md>` in all three helpers' help outputs.",
+    "file": "skills/review-design-doc/scripts/test_adversarial_signal_scan.py:33",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Each `test_help_flag_runs_before_file_validity_check` repeats the preceding parametrized test's `-h` invocation with weaker assertions. Remove these redundant tests; the preceding tests already require exit 0 and empty stderr.",
+    "file": "skills/review-design-doc/scripts/test_adversarial_signal_scan.py:50",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`test_help_flag_runs_before_file_validity_check` repeats the assertions of the parametrized `-h` case, which already asserts exit 0 and empty stderr. It is redundant, and the same redundancy was flagged in review 00036 as a 🟡.",
+    "file": "skills/review-design-doc/scripts/test_section_weight_audit.py:49",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The survey usage line `usage: run.py` is accurate, since `run.py` takes no positional input and surveys the cwd. It does not say that, so a user learns nothing about where the survey runs. Consider `usage: run.py  (surveys the current directory)`. This is optional, because the PRD only requires the script name.",
+    "file": "skills/survey/scripts/run.py:471",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The diff includes autopilot metrics, ledger and capsule files, which are harness bookkeeping and not part of the reviewed feature. They are not defects.",
+    "file": "N/A",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "No spec defects found. All four entry points handle -h/--help as argv[1] and print a one-line usage to stdout. They return, so exit is 0, before any repo scan or file check. Direct runs of run.py --help and claim_ladder_scan.py -h printed the usage line only.",
+    "file": "skills/survey/scripts/run.py:470",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Normal paths are untouched. The diff for 8b48133 is +18 lines across the 4 scripts, all in the help branch. The survey footer and brief logic are unchanged. The review helpers keep exit 2 for a wrong argument count and exit 1 with \"error: not a file\" for an invalid file.",
+    "file": "skills/review-design-doc/scripts/section_weight_audit.py:154",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Survey usage is \"usage: run.py\" with no positional argument. That is correct because run.py takes none and scans cwd. The three helpers name <path/to/doc.md>, matching their existing usage strings.",
+    "file": "skills/survey/scripts/run.py:471",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Four per-script help test files were added in 949477f, for example skills/survey/scripts/test_survey_help.py. The PRD says \"direct command checks suffice\" and forbids only a repository-wide documented-script help test. These are per-script, so they stay within the letter of the spec, but they go slightly beyond it. They pass: 35 passed in a narrow run of those files. I did not rerun the full suite (the test gate shows exit 0, no counts).",
+    "file": "skills/survey/scripts/test_survey_help.py",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Help is only recognised as argv[1], so `script file.md --help` falls through to the usage error with exit 2. This is acceptable under \"preserve normal invocation and error behavior\". It is not a defect.",
+    "file": "skills/review-design-doc/scripts/claim_ladder_scan.py:86",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "I did not run validate_skill.py or braid --check myself. I did not check the exit criteria for the normal-invocation preservation of each review helper beyond reading the unchanged code.",
+    "file": "N/A",
+    "reason": "single-voice"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "6 touched test(s) pass against the pre-change code: test_near_miss_help_spelling_falls_through_to_file_check, test_missing_argument_still_exits_2_with_usage_on_stderr, test_invalid_file_path_still_exits_1_with_error_on_stderr, test_normal_invocation_on_valid_doc_still_scans_and_exits_0",
+    "file": "skills/review-design-doc/scripts/test_adversarial_signal_scan.py",
+    "reason": "behavior-preserving: these are the PRD's own normal-invocation and error-behavior preservation tests; they pin unchanged behavior and pass against the pre-change code by design, which the fail-first replay block documents as an expected shape"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "6 touched test(s) pass against the pre-change code: test_near_miss_help_spelling_falls_through_to_file_check, test_missing_argument_still_exits_2_with_usage_on_stderr, test_invalid_file_path_still_exits_1_with_error_on_stderr, test_normal_invocation_on_valid_doc_still_scans_and_exits_0",
+    "file": "skills/review-design-doc/scripts/test_claim_ladder_scan.py",
+    "reason": "behavior-preserving: these are the PRD's own normal-invocation and error-behavior preservation tests; they pin unchanged behavior and pass against the pre-change code by design, which the fail-first replay block documents as an expected shape"
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "6 touched test(s) pass against the pre-change code: test_near_miss_help_spelling_falls_through_to_file_check, test_missing_argument_still_exits_2_with_usage_on_stderr, test_invalid_file_path_still_exits_1_with_error_on_stderr, test_normal_invocation_on_valid_doc_still_scans_and_exits_0",
+    "file": "skills/review-design-doc/scripts/test_section_weight_audit.py",
+    "reason": "behavior-preserving: these are the PRD's own normal-invocation and error-behavior preservation tests; they pin unchanged behavior and pass against the pre-change code by design, which the fail-first replay block documents as an expected shape"
+  }
+]

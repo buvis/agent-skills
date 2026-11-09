@@ -151,6 +151,10 @@ def format_table(findings: list[dict]) -> str:
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+        print("usage: section_weight_audit.py <path/to/doc.md>")
+        return
+
     if len(sys.argv) != 2:
         print("usage: section_weight_audit.py <path/to/doc.md>", file=sys.stderr)
         sys.exit(2)

@@ -10,19 +10,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **create-adr**, **build-mcp-server**, **explore-abap-solution**, **document-abap-solution**, **review-abap-solution-documentation**, **write-abap-specs**, **publish-confluence-docs**: seven new skills. Fixtures use neutral `ZEXAMPLE_*` names; SAP, Jira, and Confluence access is caller-supplied.
+- **copy-rich-text**: new skill. Copies Markdown or HTML to the macOS clipboard as rich text (HTML plus an RTF fallback) so links, lists, images, tables, and Teams-native code blocks survive a paste into Microsoft Teams or Outlook. Set `JIRA_BASE_URL` to auto-link bare issue keys.
+- **create-note**: new skill. Creates a note in the BIM vault (`note`, `illustrated`, `meeting`, `youtube`, `article`, `prr`, `project`, `book`, `contact`) from a ported Templater template with a unique id, contact wikilinks, and a daily-note log entry; never overwrites a file.
+- **explain-bim-system**: new reference skill describing the BIM vault layout, note anatomy, links, tags, GTD tasks, and the rules agents follow when they read or write the vault.
 - **sweep-fix**: `sweep.py` accepts `--deadline N` (default 300), a wall-clock budget in seconds for the whole sweep. A repo whose scan has not finished when the budget runs out is reported rather than waited for, and the report's `Partial: N repos not scanned (sweep deadline expired)` line means the sweep is incomplete and the pattern may still have hits in those repos.
 
 ### Fixed
 
 - **braid**, **create-prd**, **distil-memory**, **glean**, **purge-devtmp**, **use-qwen**: handle Windows symlink spellings and directory links, citation paths, and byte-preserving writes; make Windows test fixtures use native paths and explicit line endings, including **sweep-fix** permission failures.
+- **convert-to-icon**: `favicon.ico` now holds 16 to 256 px (the `.ico` maximum) instead of stopping at 48 px, so it stays sharp on high-density screens and where it is shown large.
 - **purge-devtmp**: candidate paths containing a tab or line break are refused and reported as `refused-unsafe-path` instead of writing an unrestorable manifest row; emptying a trash batch now also removes its manifest rows (from either tool), preserving retained-batch and unparseable historical rows.
+- **purge-devtmp**: restoration instructions now create the original parent directory before moving a trashed file or directory unit back, so restoring a unit whose parent was pruned no longer fails with `mv` exit 1.
 - **brush**: the manifest's fourth column is now store-relative (`.trash/<date>/<rel>`, resolve from `docs/dev/tmp`), matching purge-devtmp, so one base restores rows from either tool.
 - **sweep-fix**: `sweep.py` terminates every search process tree (and its descendants) still running when the `--deadline` expires, instead of merely stopping to wait for it; the deadline now also bounds the final control-verification check, so an expired zero-hit sweep refuses as unverified (`sweep unverified: ...` on stderr, exit 1, no report written) instead of running an unbounded fresh verification.
 - **review-deps-prs**: the discovery script now reports each repo whose PR lookup failed on stderr and exits 2, so a partial or empty scan is not mistaken for a clean one.
 - **create-prd**: `ground_prd.py` exits 2 with a clear message for an invalid `--root` or unreadable input; relative PRD paths are excluded relative to cwd.
+- **review-prd-backlog**: `check_links.py` no longer misreads UUID/dispatch-id fragments, quoted prior-run diagnostics, or backtick-wrapped `[[...]]` syntax examples and fenced "observed evidence" transcripts as dangling PRD or memory references.
+- **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
 
 ### Changed
 
+- **run-agoge** (documentation copy): every finding in the JSON sidecar carries `lanes`, the lanes merged into it, and the contract says `agoge-gym`'s scorer matches the finding's `title`. The gym notes point at the arm `bin/arm` prints, outside the gym, and say to copy a run's report out before re-arming. Mirrors the agoge plugin.
 - **sweep-fix**: `sweep.py` scans every gita-registered repo in parallel instead of one at a time, bounded by the `--deadline` above (default 300s).
 - **debrief-meeting**: `assets/template.html` is rebuilt with svelte 5.57.3, vite 8.3.5, @sveltejs/vite-plugin-svelte 7.3.1, vite-plugin-singlefile 2.3.4 and jsdom 30.1.3; CI moves to actions/setup-node v7 and astral-sh/setup-uv v10.3.2.
 - **debrief-meeting**: CI now fails when `assets/template.html` differs from a fresh `npm run build`, and Renovate groups the app's dependency bumps into one PR.

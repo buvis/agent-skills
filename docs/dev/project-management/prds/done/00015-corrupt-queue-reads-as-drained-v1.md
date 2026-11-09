@@ -98,7 +98,7 @@ stderr for "queue unreadable". Document both exits in `SKILL.md` steps 2 and 7, 
 ## Post-completion notes (2026-09-06)
 
 Deferred by batch 202609050909 (cycles 1 and 2), decided 2026-09-06 in the
-config-audit closure check (`~/.claude/dev/local/audit-results/2026-09-05.md`).
+config-audit closure check (link-ok: `~/.claude/dev/local/audit-results/2026-09-05.md`).
 
 - The Phase 0 acceptance names `test_docket.py` and the caller sweep above
   expects three test files; the exit-code tests landed in

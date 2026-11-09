@@ -32,7 +32,7 @@ conservative about tracking them.
 
 ## Ledger
 
-Two JSON files share one shape: `{"entries": [{path, verdict, decided, sha256?, note?}]}`.
+Two JSON files share one shape: `{"entries": [{path, verdict, decided, sha256?, count_mtime?, note?}]}`.
 
 - **Local** (`~/.local/state/glean/ledger.local.json`, never tracked): `never`
   and `machine` verdicts, plus a `config` block:
@@ -49,10 +49,11 @@ Two JSON files share one shape: `{"entries": [{path, verdict, decided, sha256?, 
 | encrypted | yes | tracked through git-secret |
 | noise | yes | cache, state, logs, generated |
 | link | yes | symlink into another repo (anything under `link_roots` is settled automatically) |
-| skip | no | not now. Comes back when sha256 changes or after 180 days |
+| skip | no | not now. Comes back when sha256 or count_mtime changes, or after 180 days |
 | machine | no | bound to this machine. Same re-surface rule |
 
-Volatile verdicts need the `sha256` from the scan output. A wholly
+Volatile verdicts need the `sha256` from the scan output, or its `count_mtime`
+(file count and newest mtime) for a directory of more than 200 files. A wholly
 untracked directory is one candidate with a directory fingerprint, so give the
 verdict to the directory path (trailing `/`), not to a file inside it. Paths are
 `$HOME`-relative. A trailing `/` covers a directory and `*` globs.

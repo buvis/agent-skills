@@ -41,7 +41,14 @@ older than 30 days are removed on later apply runs. Use
 defaults.
 
 The manifest at `docs/dev/tmp/.trash/manifest.tsv` records date, rule,
-original relative path, and trash path. Restore with `mv`.
+original relative path, and trash path, both relative to `docs/dev/tmp`.
+Pruning may have removed the original parent directory, for a trashed file or
+a trashed directory unit alike. Create it before moving the path back:
+
+```bash
+mkdir -p docs/dev/tmp/<original path's parent>
+mv docs/dev/tmp/<trash path> docs/dev/tmp/<original path>
+```
 
 A candidate path containing a tab or any line-break character (newline,
 carriage return, and the other `str.splitlines` separators) is refused and left in place,

@@ -482,8 +482,10 @@ def test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs(
 ):
     # Real clock, real hung search process. The fake rg on PATH sleeps 5s in
     # repo_b and prints one hit anywhere else. scan() must stop waiting at
-    # the 0.3s deadline and must not wait out the still-running search on
+    # the 1s deadline and must not wait out the still-running search on
     # the way out: the deadline kills it, so pool shutdown stays prompt.
+    # Fresh shim launches measured above 0.3s even for the fast repos;
+    # leave startup room while keeping the 2s return bound below the 5s hang.
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     shim = bin_dir / "rg"
@@ -503,7 +505,7 @@ def test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs(
 
     started = time.monotonic()
     hits, _suppressed, failed = sweep.scan(
-        "PARALLELMARKER", "rg", repos, deadline=0.3
+        "PARALLELMARKER", "rg", repos, deadline=1
     )
     elapsed = time.monotonic() - started
 

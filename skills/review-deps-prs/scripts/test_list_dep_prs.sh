@@ -29,10 +29,18 @@ for arg in "$@"; do
     [ "$PREV" = "--repo" ] && REPO="$arg"
     PREV="$arg"
 done
-case "$1 $2" in
-    "repo list")
-        DATA='[{"nameWithOwner":"me/personal"}]' ;;
-    "api user/repos")
+case "${2%%\?*}" in
+    user/repos) API_REPOS=1 ;;
+    *) API_REPOS=0 ;;
+esac
+if [ -n "${STUB_CALL_LOG:-}" ] && [ "$1" = "api" ] && [ "$API_REPOS" = "1" ]; then
+    printf '%s\n' "$*" >> "$STUB_CALL_LOG"
+fi
+case "$1" in
+    repo)
+        [ "$2" = "list" ] && DATA='[{"nameWithOwner":"me/personal"}]' || { echo "stub gh: unexpected call: $*" >&2; exit 64; } ;;
+    api)
+        if [ "$API_REPOS" != "1" ]; then echo "stub gh: unexpected call: $*" >&2; exit 64; fi
         [ -n "${STUB_FAIL_API:-}" ] && { echo "gh: Bad credentials (HTTP 401)" >&2; exit 1; }
         if [ -n "${STUB_FAIL_REPO:-}" ]; then
             # A third repo, queried after the one that fails, proves the loop
@@ -41,7 +49,7 @@ case "$1 $2" in
         else
             DATA='[{"full_name":"me/personal"},{"full_name":"acme/org-repo"}]'
         fi ;;
-    "pr list")
+    pr)
         if [ -n "${STUB_FAIL_ALL_PRS:-}" ]; then
             echo "gh: rate limited (HTTP 403) for $REPO" >&2
             exit 1
@@ -190,6 +198,34 @@ if grep -qF '"Pin dependencies"' "$ALLFAIL_OUT" || grep -qF '"Bump jq from 1.6 t
     FAIL "produces no PR results when every repository's lookup failed" "stdout: $(tr '\n' '|' < "$ALLFAIL_OUT")"
 else
     PASS "produces no PR results when every repository's lookup failed"
+fi
+
+# 9. The repository enumeration call sets an explicit page size via the
+#    query string and keeps pagination and GET semantics, so a large account
+#    doesn't pay default-size extra round trips, and no field-adding flag
+#    silently flips the request to a POST.
+CALL_LOG_A="$STUBDIR/calls_a.txt"
+: > "$CALL_LOG_A"
+PATH="$STUBDIR:$PATH" STUB_CALL_LOG="$CALL_LOG_A" bash "$LIST_SH" > /dev/null 2>/dev/null
+
+RECORDED_A="$(tr '\n' '|' < "$CALL_LOG_A")"
+
+if [ -s "$CALL_LOG_A" ] && grep -qF "user/repos?per_page=100" "$CALL_LOG_A"; then
+    PASS "repository enumeration requests the literal user/repos?per_page=100 query string"
+else
+    FAIL "repository enumeration requests the literal user/repos?per_page=100 query string" "recorded: $RECORDED_A"
+fi
+
+if grep -qF -- "--paginate" "$CALL_LOG_A"; then
+    PASS "repository enumeration keeps pagination alongside the explicit page size"
+else
+    FAIL "repository enumeration keeps pagination alongside the explicit page size" "recorded: $RECORDED_A"
+fi
+
+if grep -qE -- "(^| )(-f|-F|--field|--raw-field|--input|-X|--method)( |$)" "$CALL_LOG_A"; then
+    FAIL "repository enumeration stays a GET request (no field-adding or method-override flags)" "recorded: $RECORDED_A"
+else
+    PASS "repository enumeration stays a GET request (no field-adding or method-override flags)"
 fi
 
 echo ""

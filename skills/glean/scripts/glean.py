@@ -76,8 +76,8 @@ def load_ledgers(local_path: Path) -> tuple[dict, list[dict]]:
         v = e.get("verdict")
         if v not in VOLATILE | STABLE:
             sys.exit(f"glean: unknown verdict {v!r} for {e.get('path')}")
-        if v in VOLATILE and not e.get("sha256"):
-            sys.exit(f"glean: volatile entry {e.get('path')} needs sha256")
+        if v in VOLATILE and not (e.get("sha256") or e.get("count_mtime")):
+            sys.exit(f"glean: volatile entry {e.get('path')} needs sha256 or count_mtime")
     return cfg, entries
 
 
@@ -110,6 +110,17 @@ def sha256(p: Path) -> str:
 def is_text(p: Path) -> bool:
     with p.open("rb") as f:
         return b"\0" not in f.read(8192)
+
+
+def _total_size(files: list[Path]) -> int:
+    """Sum of st_size, skipping a file that vanishes between rglob() and stat()."""
+    total = 0
+    for f in files:
+        try:
+            total += f.stat().st_size
+        except OSError:
+            pass
+    return total
 
 
 def scan_lines(text: str) -> list[tuple[int, str]]:
@@ -152,7 +163,17 @@ def describe(rel: str) -> dict:
                     c["soft_hits"] += 1
         if len(files) > MAX_DIR_FILES:
             c["hints"].append(f"prescreen capped at {MAX_DIR_FILES} files")
-        elif sum(f.stat().st_size for f in files) <= MAX_FILE:
+            # too many files to hash: count plus newest whole-second mtime still notices edits and additions
+            # a file can vanish between rglob() and stat() (same race prescreen() guards against)
+            mtimes = []
+            for f in files:
+                try:
+                    mtimes.append(int(f.stat().st_mtime))
+                except OSError:
+                    pass
+            if mtimes:
+                c["count_mtime"] = f"{len(files)}:{max(mtimes)}"
+        elif _total_size(files) <= MAX_FILE:
             # ponytail: dir fingerprint = hash of (relpath, file hash); lets skip/machine cover a whole new dir
             c["sha256"] = hashlib.sha256(
                 "".join(f"{f.relative_to(p)}\0{sha256(f)}\n" for f in files).encode()
@@ -202,7 +223,7 @@ def cmd_scan(cfg: dict, entries: list[dict]) -> dict:
             continue
         c = describe(rel)
         if entry:  # volatile: quiet only while unchanged and recent
-            changed = c.get("sha256") != entry["sha256"]
+            changed = not any(c.get(k) and c[k] == entry.get(k) for k in ("sha256", "count_mtime"))
             stale = today - date.fromisoformat(entry["decided"]) > RESURFACE_AFTER
             if not changed and not stale:
                 settled += 1

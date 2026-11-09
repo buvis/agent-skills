@@ -53,8 +53,23 @@ skills/review-prd-backlog/scripts/
 ├── check_links.py       # context-aware reference extraction
 └── test_check_links.py  # literal examples and genuine-link positive controls
 docs/dev/project-management/prds/backlog/
-├── 00050-qwen-ivan-capability-eval-v1.md        # reported genuine dead-link example
-└── 00120-link-check-noise-hides-dead-references-v1.md  # refine concrete repair scope during design
+└── 00050-qwen-ivan-capability-eval-v1.md        # reported genuine dead-link example (out of scope, do not edit)
+docs/dev/project-management/prds/wip/
+└── 00120-link-check-noise-hides-dead-references-v1.md  # this PRD
+docs/dev/project-management/prds/done/
+├── 00118-historical-commit-types-preserve-history-v1.md   # stale backlog/ lifecycle path, line 54
+├── 00017-malformed-memory-half-written-v1.md              # provenance in dev/local, line 134
+├── 00003-add-plan-port-skill-v1.md                        # provenance in dev/local, line 7
+├── 00015-corrupt-queue-reads-as-drained-v1.md              # provenance in dev/local, line 101
+├── 00006-nag-audit-cadence-in-brief-portfolio-v1.md        # provenance in dev/local, lines 3, 16, 166
+├── 00002-add-sweep-fix-skill-v1.md                         # provenance in dev/local, line 3
+├── 00009-walk-memory-proposal-queue-v1.md                  # provenance in dev/local, line 3
+├── 00004-add-capture-experiment-skill-v1.md                # provenance in dev/local, line 7
+├── 00030-survey-prunes-skip-dirs-deep-v1.md                # provenance in dev/local, line 91
+├── 00007-extract-memory-candidates-from-transcripts-v1.md  # provenance in dev/local, line 7
+└── 00008-distil-memory-proposals-v1.md                     # provenance in dev/local, line 8
+docs/dev/project-management/designs/
+└── 00120-link-check-noise-hides-dead-references-v1-design.md  # link-ok: waiver on the new doc's own example tokens
 ```
 
 Design prerequisite: inspect current documents and enumerate every PRD file that

@@ -4,7 +4,7 @@ design: skip
 
 # Plan a Port and Retire the Original at Parity
 
-Source: `~/.claude/dev/local/discovery/00152-plan-ports-to-parity.md`
+Source: link-ok: `~/.claude/dev/local/discovery/00152-plan-ports-to-parity.md`
 (elicitation complete 2026-08-27, review 2026-08-28).
 
 ## Overview

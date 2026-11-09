@@ -88,7 +88,7 @@ No additional work; the Phase 0 tasks deliver this capability and its regression
 ## Post-completion notes (2026-09-07)
 
 Converged (batch 202609050909); two deferred rows walked 2026-09-07 in the config-audit closure walkthrough
-(`~/.claude/dev/local/audit-results/2026-09-05.md`). The ledger's decision fields get backfilled at batch end.
+(link-ok: `~/.claude/dev/local/audit-results/2026-09-05.md`). The ledger's decision fields get backfilled at batch end.
 
 - `test_survey.py` is over the 800-line cap (855 before this PRD, 1022 after, 1073 by 2026-09-07): PRD 00079
   splits it by concern with the collected test count as the contract.

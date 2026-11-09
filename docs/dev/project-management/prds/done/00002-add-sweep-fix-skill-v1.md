@@ -1,6 +1,6 @@
 # Sweep a Fix Across the Portfolio
 
-Source: `~/.claude/dev/local/discovery/00151-sweep-fixes-across-repos.md`
+Source: link-ok: `~/.claude/dev/local/discovery/00151-sweep-fixes-across-repos.md`
 (elicitation complete 2026-08-27, review 2026-08-28).
 
 ## Overview

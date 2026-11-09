@@ -12,7 +12,7 @@ All files live under `~/bim/inbox/automated/digest-github-repo/`.
 
 ## Dependencies
 
-- External `~/bim/` tree (hard anchor, no fallback): config `~/bim/inbox/automated/digest-github-repo/repos.yaml`, dedup grep over `~/bim/zettelkasten/` and `~/bim/inbox/`, output into `~/bim/inbox/automated/digest-github-repo/`.
+- External `~/bim/` tree (hard anchor, no fallback): config `~/bim/inbox/automated/digest-github-repo/repos.yaml`, dedup grep over `~/bim/notes/` and `~/bim/inbox/`, output into `~/bim/inbox/automated/digest-github-repo/`.
 
 ## Triggers
 
@@ -77,10 +77,10 @@ Find all files that track this repo by grepping for the `repo` frontmatter field
 locations:
 
 ```bash
-rg -l "^repo: OWNER/REPO" ~/bim/zettelkasten/ ~/bim/inbox/
+rg -l "^repo: OWNER/REPO" ~/bim/notes/ ~/bim/inbox/
 ```
 
-1. `~/bim/zettelkasten/` — the main zettelkasten (tracker files live here after triage)
+1. `~/bim/notes/` — the main zettelkasten (tracker files live here after triage)
 2. `~/bim/inbox/` (recursive) — previous digest summaries that haven't been triaged yet
 
 Every digest and tracker file produced by this skill includes `repo: OWNER/REPO` in its YAML

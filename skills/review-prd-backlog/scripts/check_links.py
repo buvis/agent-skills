@@ -23,9 +23,11 @@ import sys
 from pathlib import Path
 
 PATH_RE = re.compile(r"(?:~/\.claude/|/Users/|docs/dev/project-management/)[\w@%+=./-]*")
-PRD_RE = re.compile(r"(?<![\d/.-])(\d{5})-")
+PRD_RE = re.compile(r"(?<![\w/.-])(\d{5})-")
 MEM_RE = re.compile(r"\[\[([\w-]+)\]\]")
 WAIVER = "link-ok:"
+# the checker's own PRD-finding suffix; a match followed by it is a quoted diagnostic
+PRD_SELF_QUOTE = " (no PRD/discovery file)"
 # tokens that are patterns/placeholders, not real paths
 PLACEHOLDER = re.compile(r"[*?<>{}$]|\.\.\.|NNNNN|XXXX|YYYY")
 
@@ -72,13 +74,60 @@ def resolve_path(token: str, root: Path) -> bool:
     return p.exists()
 
 
+def _evidence_fence_ranges(lines):
+    """Return (skippable line-index set, errors) for 'observed evidence' fences.
+
+    Only a fence that opens after the evidence heading and closes before EOF is
+    skippable; an unclosed one is scanned normally and reported as an error.
+
+    The heading trigger must start the (stripped) line, so prose or code that
+    merely quotes the phrase mid-line does not arm a fence. The trigger is
+    also recognized only outside any open fence, so a marker written inside
+    an ordinary (or evidence) fenced block never arms suppression and never
+    leaves stale armed state behind once that fence closes.
+
+    Fences nest on a stack keyed by backtick-run length: a bare closing line
+    (backticks only, no language tag) closes the innermost fence whose tick
+    count it can match or exceed, while a backtick line that still carries a
+    language tag always opens a new level instead, so a language-tagged
+    fence inside an evidence fence can't be mistaken for its closer.
+    """
+    skip_lines = set()
+    errors = []
+    armed_at = None
+    stack = []  # (open_index, tick_len, is_evidence)
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            ticks = len(stripped) - len(stripped.lstrip("`"))
+            rest = stripped[ticks:].strip()
+            if not rest and stack and ticks >= stack[-1][1]:
+                open_index, _, is_evidence = stack.pop()
+                if is_evidence:
+                    skip_lines.update(range(open_index, i + 1))
+            else:
+                is_evidence = not stack and armed_at is not None
+                stack.append((i, ticks, is_evidence))
+                armed_at = None
+            continue
+        if not stack and stripped.startswith("Carry the observed evidence verbatim"):
+            armed_at = i
+    for open_index, _, _ in stack:
+        errors.append(f"evidence fence opened at line {open_index + 1} never closed")
+    return skip_lines, errors
+
+
 def scan_file(path: Path, root: Path, prds: set[str], memories: set[str]):
     findings, errors = [], []
     try:
         lines = path.read_text(errors="replace").splitlines()
     except OSError as e:
         return [], [f"{path}: unreadable ({e})"]
+    skip_lines, fence_errors = _evidence_fence_ranges(lines)
+    errors += [f"{path}: {e}" for e in fence_errors]
     for ln, line in enumerate(lines, 1):
+        if (ln - 1) in skip_lines:
+            continue
         if WAIVER in line:
             continue
         for m in PATH_RE.finditer(line):
@@ -88,9 +137,14 @@ def scan_file(path: Path, root: Path, prds: set[str], memories: set[str]):
             if not resolve_path(token, root):
                 findings.append((path, ln, token, line.strip()))
         for m in PRD_RE.finditer(line):
+            if line[m.end():m.end() + len(PRD_SELF_QUOTE)] == PRD_SELF_QUOTE:
+                continue
             if m.group(1) not in prds:
                 findings.append((path, ln, f"{m.group(1)}- (no PRD/discovery file)", line.strip()))
         for m in MEM_RE.finditer(line):
+            start, end = m.span()
+            if start > 0 and end < len(line) and line[start - 1] == "`" and line[end] == "`":
+                continue
             if m.group(1) not in memories:
                 findings.append((path, ln, f"[[{m.group(1)}]] (no memory)", line.strip()))
     return findings, errors

@@ -705,6 +705,160 @@ def test_main_next_names_the_explicit_queue_path_argument_in_the_diagnostic(
     assert explicit_queue.read_bytes() == original_bytes
 
 
+# A missing queue file is not corruption: load() treats it as a fresh, empty
+# queue, and that must stay true for exit codes and stdout. But a typo in
+# --queue, or a cwd that never had a queue, looks identical to "drained" or
+# "nothing unpublished" on stdout alone - an operator polling `next` or
+# `unpublished` has no way to tell "finished" from "never read". These tests
+# pin a stderr-only notice naming the missing path for `next` and
+# `unpublished`: exit code and stdout stay exactly what they are today, no
+# queue or store file gets created as a side effect of merely checking, and a
+# queue that does exist and is valid gets no notice at all. `start` and
+# `save` are the first-run path (an operator deliberately bootstrapping a new
+# queue) and must keep silently treating a missing queue as empty, with no
+# notice, so that normal onboarding does not start printing warnings.
+
+
+def test_main_next_warns_on_stderr_when_the_queue_file_does_not_exist(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    queue_path = _the_working_directory_queue_path(tmp_path)
+
+    exit_code = docket.main(["next"])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert not queue_path.exists()
+    assert str(queue_path) in captured.err
+    assert "warning" in captured.err.lower()
+    assert "Traceback" not in captured.err
+
+
+def test_main_next_warns_on_stderr_and_builds_nothing_when_an_explicit_queue_path_does_not_exist(
+    tmp_path, monkeypatch, capsys
+):
+    # Proves --queue actually reaches the missing-queue check: a notice naming
+    # the default working-directory path instead would mean the argument was
+    # silently ignored. Also proves the check never creates the path or even
+    # its parent directory while merely reporting on it.
+    monkeypatch.chdir(tmp_path)
+    explicit_queue = tmp_path / "elsewhere" / "custom-queue.json"
+
+    exit_code = docket.main(["next", "--queue", str(explicit_queue)])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert not explicit_queue.parent.exists()
+    assert str(explicit_queue) in captured.err
+    assert "warning" in captured.err.lower()
+    assert "Traceback" not in captured.err
+
+
+def test_main_next_does_not_warn_when_the_queue_file_exists_and_is_valid(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    docket.save([_proposal(1)])
+    capsys.readouterr()
+
+    exit_code = docket.main(["next"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert captured.out != ""
+    assert captured.err == ""
+
+
+def test_main_unpublished_warns_on_stderr_and_creates_neither_queue_nor_store_when_the_queue_file_does_not_exist(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    queue_path = _the_working_directory_queue_path(tmp_path)
+    store_dir = tmp_path / "store"
+
+    exit_code = docket.main(["unpublished", "--store", str(store_dir)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert not queue_path.exists()
+    assert not store_dir.exists()
+    assert str(queue_path) in captured.err
+    assert "warning" in captured.err.lower()
+    assert "Traceback" not in captured.err
+
+
+def test_main_unpublished_does_not_mention_the_queue_path_when_the_queue_file_exists_and_is_valid(
+    tmp_path, monkeypatch, capsys
+):
+    # A valid, merely-empty queue still has nothing unpublished and no kept
+    # entries for the store, so the pre-existing "no kept queue entries
+    # belong to store" notice is expected and is not what this test is about.
+    # What must NOT appear is any mention of the queue file's own path - that
+    # is the missing-queue notice, and the queue here was never missing.
+    monkeypatch.chdir(tmp_path)
+    store_dir = tmp_path / "store"
+    store_dir.mkdir()
+    queue_path = _the_working_directory_queue_path(tmp_path)
+    queue_path.parent.mkdir(parents=True, exist_ok=True)
+    queue_path.write_text(json.dumps({"cursor": 0, "entries": []}))
+
+    exit_code = docket.main(["unpublished", "--store", str(store_dir)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert str(queue_path) not in captured.err
+
+
+def test_main_start_warns_on_stderr_but_still_creates_the_queue_when_it_does_not_exist_yet(
+    tmp_path, monkeypatch, capsys
+):
+    # start remains the deliberate first-run bootstrap path: exit code and
+    # queue-creation side effect stay unchanged. But it shares the same
+    # resolved queue path as next/unpublished, and once start has created the
+    # file, next's missing-queue warning can never fire again for a mistyped
+    # path - so start must warn too, before it creates the queue.
+    monkeypatch.chdir(tmp_path)
+    queue_path = _the_working_directory_queue_path(tmp_path)
+
+    exit_code = docket.main(["start"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert str(queue_path) in captured.err
+    assert "warning" in captured.err.lower()
+    assert queue_path.exists()
+
+
+def test_main_save_does_not_warn_when_the_queue_file_does_not_exist_yet(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    proposals_dir = tmp_path / "proposals"
+    proposals_dir.mkdir()
+    (proposals_dir / "widget-fact.md").write_text("---\nname: widget-fact\n---\n\nBody text.\n")
+    record = {
+        "name": "widget-fact",
+        "kind": "new",
+        "transcript": "t.jsonl",
+        "line_no": 7,
+        "evidence_text": "evidence for widget",
+        "existing_text": None,
+        "file": "widget-fact.md",
+    }
+    (proposals_dir / "proposals.json").write_text(json.dumps([record]))
+
+    exit_code = docket.main(["save", "--proposals-dir", str(proposals_dir)])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert captured.err == ""
+
+
 def test_cli_next_returns_two_for_an_entry_without_a_decision(tmp_path):
     # Ported from the agoge strict-xfail regression (branch
     # agoge/authored-tests-2026-10-26): runs docket.py as a real subprocess

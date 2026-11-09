@@ -131,7 +131,7 @@ and `CHANGELOG.md` do not change: the implementation moves to meet them.
 
 Converged in review cycle 2 (batch 202609050909, 7 tasks, $226 on opus for both phases). The 18 deferred
 rows were walked on 2026-09-06 in the config-audit closure walkthrough
-(`~/.claude/dev/local/audit-results/2026-09-05.md`); the ledger's decision fields get backfilled at batch end.
+(link-ok: `~/.claude/dev/local/audit-results/2026-09-05.md`); the ledger's decision fields get backfilled at batch end.
 
 - Stale text, accepted as built: the docket read sites cited above as lines 177/185/211 sit at `docket.py:207`,
   `:218` and `:250` after PRDs 00016 and 00017; the Phase 0 index test moved to `test_write_crash_safety.py`

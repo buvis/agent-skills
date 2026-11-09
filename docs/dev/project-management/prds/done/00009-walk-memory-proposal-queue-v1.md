@@ -1,6 +1,6 @@
 # Distil Memory Candidates: Queue, Cursor and Walkthrough
 
-Source: `~/.claude/dev/local/discovery/00147-distil-memory-from-transcripts.md`
+Source: link-ok: `~/.claude/dev/local/discovery/00147-distil-memory-from-transcripts.md`
 (comprehensive, 2026-08-26). Slice 3 of 3: the persisted proposal queue, the
 cursor, the rejection record and the one-at-a-time approval walkthrough that
 actually writes memory. Depends on slice 2 (`00008`), which produces the

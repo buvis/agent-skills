@@ -128,7 +128,8 @@ Written for machine consumption, and shaped for `agoge-gym`'s `bin/score`:
       "severity": "CRITICAL",
       "paths": ["pocket/store.py"],
       "status": "verified",
-      "title": "`pocket done <id>` completes the wrong note after a delete"
+      "title": "`pocket done <id>` completes the wrong note after a delete",
+      "lanes": ["walter", "heidi"]
     }
   ]
 }
@@ -143,7 +144,8 @@ A downgraded finding carries the post-downgrade status and one extra key:
   "paths": ["pocket/sync.py"],
   "status": "unverified",
   "downgraded": "claimed verified; evidence read the code and named no command",
-  "title": "`pocket sync` posts to the legacy host"
+  "title": "`pocket sync` posts to the legacy host",
+  "lanes": ["heidi"]
 }
 ```
 
@@ -167,10 +169,17 @@ ignores it.
 targets can share a relative path (both gym fixtures ship a root `CHANGELOG.md`)
 and without it one target's finding would credit another's seed.
 
-`score` reads `fixture`, `domain`, `severity` and `paths`; the extra keys are
-carried for the human and ignored by matching. A finding with an empty `paths`
-list makes the whole report unscoreable, by design — it fails loud rather than
-scoring as a zero the pack did not earn.
+`score` matches a finding on `fixture`, `domain`, `paths` and `title`: it
+credits a defect only to a finding whose title describes it, so write the title
+as the defect a user meets, not as the file or the lane that found it. `lanes`
+names every lane whose finding was merged into this one, the names step 5 of the
+skill keeps on a merge, and `master` for the master's own interactive-run
+findings; the scorer reports them so a lane's own catch can be told from
+another lane's by-catch. An optional `symbols` list may name the functions,
+components or flags the defect lives in. `status` and `downgraded` are carried
+for the human. A finding with an empty `paths` list or no `title` makes the
+whole report unscoreable, by design — it fails loud rather than scoring as a
+zero the pack did not earn.
 
 ## Strategy profile contract
 

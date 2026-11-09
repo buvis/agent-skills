@@ -1,0 +1,66 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "The test gate reports the full suite exited 1 with no summary line, so the exit criterion \"`uv run pytest` passes\" is not confirmed. A comment-and-README diff cannot plausibly cause a failure, so the cause is probably pre-existing or environmental. I did not run `braid --check` or the full pytest suite.",
+    "file": "N/A",
+    "reason": "single-voice; also refuted - Alice re-ran the full suite at this HEAD and it passed clean (4145 passed, 9 skipped, 0 failed). The staged gate run's single failure was skills/sweep-fix/scripts/test_sweep_scan.py:511, a timing-sensitive deadline assertion that flaked under the load of four concurrent reviewers."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "README calls the three helper skills “single-file,” although the supplied inventory identifies their scripts and shell suites. Replace “three single-file helper skills” with “three helper skills.”",
+    "file": "README.md:297",
+    "reason": "single-voice. The claim is factually correct (each of use-codex, use-gemini and use-sonnet ships a scripts/ dir, and use-codex also ships references/), but no second reviewer raised it, so the gate's single-voice rule discards it rather than creating a task. Recorded here so the wording inaccuracy stays visible for a follow-up PRD."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "All three statements verified against current sources. CI comment now reads \"Five skills ship six bash suites\"; `rg --files -g \"test_*.sh\"` lists 6 suites across 5 skills (use-codex, use-sonnet, review-deps-prs, use-gemini, use-qwen x2).",
+    "file": ".github/workflows/ci.yml:122",
+    "reason": "single-voice; not a defect - an all-clear confirmation the consolidator parsed as a row."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "Qwen comment now says \"Promoted to default - see default-model.txt\". This matches skills/use-qwen/scripts/default-model.txt:4, which holds unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL, the model the comment describes. Only the comment line changed; the model entry at line 34 is untouched.",
+    "file": "skills/use-qwen/scripts/approved-models.txt:24",
+    "reason": "single-voice; not a defect - an all-clear confirmation the consolidator parsed as a row."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The README has exactly one autopilot row, and it is consistent with .braidignore. The row says most skills are documentation copies in docs/plugin-skills/. That is true: design-solution, plan-tasks, work, review-plan, review-work-completion, review-blindly and run-autopilot all exist there. It says use-codex, use-gemini and use-sonnet are standalone compatibility copies skipped via .braidignore. That is true: .braidignore lines 26-29 list them under \"# autopilot\".",
+    "file": "README.md:297",
+    "reason": "single-voice; not a defect - an all-clear confirmation the consolidator parsed as a row."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The diff (commit 9997d92) touches three files with 3 insertions and 2 deletions. It changes only a CI comment, a model-file comment and one README row. No workflow steps, approved-model records or .braidignore entries changed. The working tree has only unrelated autopilot metrics files modified. `python3 scripts/check_changelog_skills.py` ran with no output and no error. `validate_skill.py skills/use-qwen` reports valid.",
+    "file": "N/A",
+    "reason": "single-voice; not a defect - an all-clear confirmation the consolidator parsed as a row."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The README row names `~/.agents/skills` as the home of the standalone copies, while the repo source is skills/. This is the established installed-path convention and does not conflict with the row above it. Cosmetic only.",
+    "file": "README.md:297",
+    "reason": "single-voice; the reviewer himself called it cosmetic and consistent with the established installed-path convention documented in AGENTS.md."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The required pytest gate remains unsuccessful: 1 failed, 4144 passed, 9 skipped. The supplied results identify an unrelated timing-sensitive deadline assertion; repairing it is outside this documentation task.",
+    "file": "skills/sweep-fix/scripts/test_sweep_scan.py:511",
+    "reason": "single-voice; also refuted - Alice's independent full-suite rerun at this HEAD passed clean (4145 passed, 0 failed), confirming the assertion flaked under concurrent reviewer load rather than failing deterministically. Out of this PRD's docs-only scope either way."
+  }
+]

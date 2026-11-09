@@ -6,7 +6,7 @@ set -e
 
 # Every repo the token can reach: own, collaborator and organization repos.
 # (`gh repo list` without an owner lists only the account's own repos.)
-REPOS=$(gh api user/repos --paginate --jq '.[].full_name') \
+REPOS=$(gh api 'user/repos?per_page=100' --paginate --jq '.[].full_name') \
     || { echo "gh api user/repos failed; run 'gh auth status'" >&2; exit 1; }
 
 if [ -z "$REPOS" ]; then

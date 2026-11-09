@@ -265,6 +265,8 @@ def discover_repos() -> tuple[list[Path], str]:
         parts = row.split(",")
         if len(parts) >= 3 and parts[2]:
             paths.append(Path(parts[2]))
+    if not note and not paths:
+        note = "gita freeze returned no usable repo paths; scanning the working directory"
     # A host's own config directory can itself carry autopilot telemetry, but
     # only some do; include it when it actually holds a ledger rather than
     # assuming one layout. Without gita there is still the current repo.
@@ -586,6 +588,7 @@ def main(argv: list[str] | None = None) -> int:
     records = [scan_repo(repo) for repo in repos]
     card = render(records, compute(records), note)
     if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(card, encoding="utf-8")
         print(f"wrote {args.output}")
     else:
