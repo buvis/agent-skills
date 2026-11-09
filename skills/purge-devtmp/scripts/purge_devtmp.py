@@ -230,7 +230,7 @@ def empty_old_trash(store: Path, now: float, days: float, keep: str | None = Non
                 try:
                     text = "".join(f"{line}\n" for line in kept_lines)
                     tmp = manifest.with_name(manifest.name + ".tmp")
-                    tmp.write_text(text, encoding="utf-8")
+                    tmp.write_text(text, encoding="utf-8", newline="")
                     os.replace(tmp, manifest)
                 except OSError:
                     pass

@@ -15,7 +15,7 @@ import stat
 import subprocess
 import tarfile
 from collections.abc import Iterator, Sequence
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from eval_harness.runner import CommandResult, run_bounded
 
@@ -103,7 +103,7 @@ def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()
         if landing in active:
             raise TreeError("%s is a link cycle" % landing)
         target = links[landing]
-        if os.path.isabs(target):
+        if posixpath.isabs(target) or PureWindowsPath(target).drive or target.startswith("\\"):
             raise TreeError("%s leaves the tree: %s" % (landing, target))
         landing = _land(
             links, posixpath.join(posixpath.dirname(landing), target), active | {landing}
@@ -138,7 +138,16 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
         links = {member.name: member.linkname for member in archive.getmembers() if member.issym()}
         for name in links:
             _land(links, name)
-        archive.extractall(dest)
+        # tarfile creates file symlinks on Windows, even for directory targets.
+        # Extract ordinary members first, then use the vetted final landing to
+        # supply the directory flag, including forward references and chains.
+        members = archive.getmembers()
+        archive.extractall(dest, members=[member for member in members if not member.issym()])
+        for name, target in links.items():
+            where = dest / name
+            where.parent.mkdir(parents=True, exist_ok=True)
+            landing = dest / _land(links, name)
+            os.symlink(target, where, target_is_directory=landing.is_dir())
     _git(dest, *IDENTITY, "init")
     _git(dest, "add", "-A")
     # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the
@@ -233,6 +242,11 @@ def contained(root: Path, relpath: str) -> Path:
     if os.path.isabs(relpath):
         raise TreeError("%s is absolute" % relpath)
     destination = Path(root) / relpath
+    if os.name == "nt":
+        # Windows can lexically collapse `alias/..` before following alias.
+        # Vet link text explicitly so this cannot conceal a tree escape.
+        links = {name: os.readlink(path) for name, path in _walk(Path(root)) if path.is_symlink()}
+        _land(links, relpath)
     if not destination.resolve().is_relative_to(Path(root).resolve()):
         raise TreeError("%s lands outside the tree" % relpath)
     return destination

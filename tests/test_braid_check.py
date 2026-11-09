@@ -9,13 +9,27 @@ from __future__ import annotations
 import os
 import shutil
 from collections.abc import Callable
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import pytest
 from test_braid import enroll, kiro_root, make_skill, settings
 
 from agent_skills_braid import cli
 from agent_skills_braid.cli import BraidError, Mode, Result, Settings, run
+
+
+@pytest.mark.parametrize(
+    ("resolved", "expected"),
+    [
+        (r"\\?\C:\skills\demo", r"C:\skills\demo"),
+        (r"\\?\UNC\server\share\demo", r"\\server\share\demo"),
+    ],
+)
+def test_resolved_compares_windows_extended_paths_in_the_normal_namespace(
+    monkeypatch: pytest.MonkeyPatch, resolved: str, expected: str
+) -> None:
+    monkeypatch.setattr(Path, "resolve", lambda self, **kwargs: PureWindowsPath(resolved))
+    assert cli._resolved(Path("demo")) == Path(expected)
 
 
 def test_check_reports_a_managed_link_the_state_file_no_longer_records(tmp_path: Path) -> None:

@@ -145,7 +145,7 @@ def describe(rel: str) -> dict:
         files = [f for f in sorted(p.rglob("*")) if f.is_file() and not f.is_symlink()]
         c.update(kind="dir", files=len(files), soft_hits=0)
         for f in files[:MAX_DIR_FILES]:
-            for hit in prescreen(f, str(f.relative_to(HOME))):
+            for hit in prescreen(f, f.relative_to(HOME).as_posix()):
                 if hit["keyword"].startswith("HARD:"):
                     c["secret_hits"].append(hit)
                 else:

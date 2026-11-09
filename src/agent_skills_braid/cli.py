@@ -111,7 +111,14 @@ def _expand_user(path: str | Path) -> Path:
 
 
 def _resolved(path: Path) -> Path:
-    return _expand_user(path).resolve(strict=False)
+    resolved = str(_expand_user(path).resolve(strict=False))
+    # Windows readlink returns the extended-length spelling, while resolving
+    # an ordinary path omits it. Compare both spellings in the same namespace.
+    if resolved.startswith("\\\\?\\UNC\\"):
+        resolved = "\\\\" + resolved[8:]
+    elif resolved.startswith("\\\\?\\"):
+        resolved = resolved[4:]
+    return Path(resolved)
 
 
 def _absolute(path: Path) -> Path:

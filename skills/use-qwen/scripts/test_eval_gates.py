@@ -54,7 +54,8 @@ def _wrote_nothing(site, label: str) -> bool:
 
 def _append_to(log: Path) -> str:
     """A segment that records where it ran, in a log outside every clone."""
-    return f"pwd -P >> {shlex.quote(str(log))}"
+    script = 'import os, sys; open(sys.argv[1], "a").write(os.getcwd() + "\\n")'
+    return " ".join([shlex.quote(sys.executable), "-c", shlex.quote(script), shlex.quote(str(log))])
 
 
 def _resolved(path: Path) -> str:

@@ -110,12 +110,11 @@ def _spec(info: dict, *, segments=(), **over) -> dict:
 def _cwd_log_segment(log: Path) -> str:
     """A segment that appends `<physical cwd> <ns stamp>` to `log` (P15)."""
     script = (
-        'import sys, time; open(sys.argv[1], "a").write('
-        'sys.argv[2] + " " + str(time.time_ns()) + "\\n")'
+        'import os, sys, time; open(sys.argv[1], "a").write('
+        'os.getcwd() + " " + str(time.time_ns()) + "\\n")'
     )
     return " ".join(
-        [shlex.quote(sys.executable), "-c", shlex.quote(script), shlex.quote(str(log)),
-         '"$(pwd -P)"']
+        [shlex.quote(sys.executable), "-c", shlex.quote(script), shlex.quote(str(log))]
     )
 
 

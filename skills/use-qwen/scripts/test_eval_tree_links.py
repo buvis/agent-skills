@@ -127,10 +127,13 @@ def _spelled(links: dict, impl: str) -> dict:
 
 def _lay_links(root: Path, links: dict) -> None:
     """Write each `name -> target` link under `root`, target text as given."""
+    directories = {name for name, target in links.items() if (root / name).parent.joinpath(target).is_dir()}
+    for _ in links:
+        directories.update(name for name, target in links.items() if target in directories)
     for name, target in links.items():
         where = root / name
         where.parent.mkdir(parents=True, exist_ok=True)
-        os.symlink(target, where)
+        os.symlink(target, where, target_is_directory=name in directories or (where.parent / target).is_dir())
 
 
 def _link_text(where: Path) -> str:
@@ -172,6 +175,12 @@ def _template_on_disk(tmp_path: Path) -> Path:
 
 
 # -- build_template --------------------------------------------------------
+
+
+@pytest.mark.parametrize("target", ["/etc/passwd", r"C:\outside\secret.txt", "C:/outside/secret.txt", r"\outside\secret.txt"])
+def test_link_vetting_refuses_absolute_targets_from_either_platform(target):
+    with pytest.raises(trees.TreeError):
+        trees._land({"alias": target}, "alias")
 
 
 @pytest.mark.parametrize("links", ESCAPING_CHAINS)

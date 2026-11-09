@@ -48,7 +48,7 @@ def seed_batch(store: Path, batch: str, name: str) -> Path:
 def write_manifest(store: Path, lines: list[str]) -> Path:
     manifest = store / gc.TRASH_DIR / "manifest.tsv"
     manifest.parent.mkdir(parents=True, exist_ok=True)
-    manifest.write_text("\n".join(lines) + "\n" if lines else "")
+    manifest.write_text("\n".join(lines) + "\n" if lines else "", newline="")
     return manifest
 
 
@@ -84,6 +84,7 @@ def test_path_has_unsafe_characters_does_not_flag_literal_backslash_t():
 # --- process_store refusal -------------------------------------------------------
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows forbids tabs in filenames")
 def test_process_store_refuses_tab_path_and_still_trashes_ordinary_file(tmp_path, capsys):
     _repo, store = repo_store(tmp_path)
     ordinary = store / "old.txt"
@@ -110,6 +111,7 @@ def test_process_store_refuses_tab_path_and_still_trashes_ordinary_file(tmp_path
     assert "stale-temp=1" in out
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows forbids tabs in filenames")
 def test_process_store_verbose_reports_the_refusal_reason(tmp_path, capsys):
     _repo, store = repo_store(tmp_path)
     unsafe = store / "bad\ttab.txt"
@@ -120,6 +122,7 @@ def test_process_store_verbose_reports_the_refusal_reason(tmp_path, capsys):
     assert "refused-unsafe-path:" in out
 
 
+@pytest.mark.skipif(os.name == "nt", reason="Windows forbids tabs in filenames")
 def test_dry_run_never_touches_filesystem_for_unsafe_path(tmp_path):
     _repo, store = repo_store(tmp_path)
     unsafe = store / "bad\ttab.txt"
@@ -229,8 +232,9 @@ def test_path_has_unsafe_characters_flags_a_carriage_return():
     assert reason is not None
 
 
+@pytest.mark.parametrize("ending", [b"\n", b"\r\n"], ids=["lf", "crlf"])
 def test_manifest_rewrite_preserves_an_unrelated_row_containing_a_carriage_return(
-    tmp_path,
+    tmp_path, ending,
 ):
     _repo, store = repo_store(tmp_path)
     now = noon_today()
@@ -240,15 +244,12 @@ def test_manifest_rewrite_preserves_an_unrelated_row_containing_a_carriage_retur
     seed_batch(store, kept_batch, "keep.txt")
     cr_line = f"{kept_batch}\tstale-temp\tweird\rname.txt\t{gc.TRASH_DIR}/{kept_batch}/weird\rname.txt"
     old_line = f"{old_batch}\tstale-temp\tjunk.txt\t{gc.TRASH_DIR}/{old_batch}/junk.txt"
-    write_manifest(store, [cr_line, old_line])
+    manifest = write_manifest(store, [])
+    retained = cr_line.encode("utf-8") + ending
+    manifest.write_bytes(retained + old_line.encode("utf-8") + ending)
     removed = gc.empty_old_trash(store, now, 30, keep=kept_batch)
     assert removed == 1
-    with (store / gc.TRASH_DIR / "manifest.tsv").open(
-        "r", encoding="utf-8", newline=""
-    ) as handle:
-        manifest_lines = handle.read().split("\n")
-    assert cr_line in manifest_lines
-    assert not any(line.startswith(old_batch) for line in manifest_lines)
+    assert manifest.read_bytes() == retained
 
 
 def test_malformed_row_sharing_a_removed_batch_name_is_preserved(tmp_path):

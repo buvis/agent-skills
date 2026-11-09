@@ -354,6 +354,8 @@ def _decide_verb(args) -> int:
     file_text = None
     if args.file:
         try:
+            if Path(args.file).is_dir():
+                raise IsADirectoryError(f"{args.file} is a directory")
             file_text = Path(args.file).read_text()
         except (OSError, UnicodeDecodeError) as exc:
             print(f"cannot read the note file {args.file}: {exc}", file=sys.stderr)
