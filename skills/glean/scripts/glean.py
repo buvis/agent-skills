@@ -148,7 +148,13 @@ def describe(rel: str) -> dict:
     c: dict = {"path": rel, "hints": [], "secret_hits": []}
     if NOISE_HINT.search(rel):
         c["hints"].append("noise?")
-    if p.is_symlink():
+    try:
+        link = p.is_symlink()
+    except OSError as e:  # a host sandbox can deny lstat on a dotfile: report it, keep scanning
+        c.update(kind="file")
+        c["hints"].append(f"unreadable: {e.strerror}")
+        return c
+    if link:
         c.update(kind="symlink", target=str(p.readlink()))
         c["hints"].append("link?")
         return c
@@ -222,9 +228,11 @@ def cmd_scan(cfg: dict, entries: list[dict]) -> dict:
     for rel in paths:
         entry = next((e for e in entries if matches(rel, e["path"])), None)
         p = HOME / rel.rstrip("/")
-        if (entry and entry["verdict"] in STABLE) or (
-            p.is_symlink() and any(p.resolve().is_relative_to(r) for r in link_roots)
-        ):
+        try:
+            linked = p.is_symlink() and any(p.resolve().is_relative_to(r) for r in link_roots)
+        except OSError:  # a host sandbox can deny lstat on a dotfile: describe() reports it
+            linked = False
+        if (entry and entry["verdict"] in STABLE) or linked:
             settled += 1
             continue
         c = describe(rel)
