@@ -456,6 +456,13 @@
       "commit_range": "6091e02c41e823f3bd061434edf8bd389ffea8d0..388ce5be5191c83068feffb1d717d197a4fcd8ae",
       "op_id": "71736f63801b-resolve",
       "prd": "00111-braid-state-misses-link-removals-v1.md"
+    },
+    {
+      "type": "stall",
+      "site": "fast_track_blocked",
+      "detail": "fast-track/00133-transcript-judge-inherits-tools-v1-c1: stopped: gate 2; full suite 4392 passed, 1 failed, 12 skipped. test_funnel_distil.py:275 uses FakeClaudeCli raw-suffix triage matching at funnel_test_helpers.py:172, outside fixed card allowlist. Commits c49d87c/ac18d34 remain local; no completion review. See reports/00133-transcript-judge-inherits-tools-v1-build.md and implementation-model audit.",
+      "op_id": "1faa00f8bc6d",
+      "prd": "00133-transcript-judge-inherits-tools-v1.md"
     }
   ]
 }
