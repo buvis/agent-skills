@@ -81,15 +81,15 @@ def build_fixture_repo(root: Path, *, change_test: bool = False) -> dict:
     impl, oracle = root / IMPL_NAME, root / TEST_NAME
     _git(root, *IDENTITY, "init")
 
-    impl.write_text(BROKEN_IMPL, encoding="utf-8")
-    oracle.write_text(ORACLE, encoding="utf-8")
+    impl.write_text(BROKEN_IMPL, encoding="utf-8", newline="")
+    oracle.write_text(ORACLE, encoding="utf-8", newline="")
     _git(root, "add", IMPL_NAME, TEST_NAME)
     _git(root, *IDENTITY, "commit", "-m", "base: add() subtracts and the oracle says so")
     first = _git(root, "rev-parse", "HEAD")
 
-    impl.write_text(FIXED_IMPL, encoding="utf-8")
+    impl.write_text(FIXED_IMPL, encoding="utf-8", newline="")
     if change_test:
-        oracle.write_text(WIDENED_ORACLE, encoding="utf-8")
+        oracle.write_text(WIDENED_ORACLE, encoding="utf-8", newline="")
     _git(root, "add", IMPL_NAME, TEST_NAME)
     _git(root, *IDENTITY, "commit", "-m", "task: make add() sum its arguments")
     last = _git(root, "rev-parse", "HEAD")

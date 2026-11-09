@@ -38,6 +38,11 @@ def symbol_status(tokens, root, declared=frozenset()):
 # --- extract_claims ---------------------------------------------------------
 
 
+@pytest.mark.parametrize("path", [r"C:\work\src\app.py", "C:/work/src/app.py", r"src\app.py"])
+def test_citation_keeps_windows_path_and_drive(path):
+    assert kinds(f"see {path}:3-5") == [("citation", f"{path}:3-5", 1)]
+
+
 def test_citation_keeps_full_path_and_ranges_as_token_with_line():
     claims = kinds("intro\nsee src/app.py:3-5,8-9 and docs/guide.md:7 here\n")
     assert [c for c in claims if c[0] == "citation"] == [
@@ -222,11 +227,11 @@ def test_citation_with_same_line_symbol_outside_range_is_missing(tmp_path):
     }
 
 
-def test_citation_absolute_and_home_paths_ignore_root(tmp_path, monkeypatch):
+def test_citation_absolute_and_home_paths_ignore_root(tmp_path, isolate_home):
     make_repo(tmp_path)
     other_root = tmp_path / "elsewhere"
     other_root.mkdir()
-    monkeypatch.setenv("HOME", str(tmp_path))
+    isolate_home(tmp_path)
     text = f"abs {tmp_path}/src/app.py:4 `beta`\nhome ~/src/app.py:1 `alpha`\nrel src/app.py:1\n"
     assert citation_status(text, other_root) == {
         f"{tmp_path}/src/app.py:4": "ok",

@@ -35,7 +35,8 @@ WAIVER = "link-ok:"
 LIBRARY_MARKER = "(unverified library claim)"
 LOCK_PACKAGE_RE = re.compile(r'^name = "([^"]+)"\nversion = "([^"]+)"', re.MULTILINE)
 CITATION_RE = re.compile(
-    r"(?<![\w./~-])(?:~/|/)?[\w.-]+(?:/[\w.-]+)*\.[A-Za-z]\w*:\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*"
+    r"(?<![\w./\\~-])(?:[A-Za-z]:[/\\]|~[/\\]|[/\\])?"
+    r"[\w.-]+(?:[/\\][\w.-]+)*\.[A-Za-z]\w*:\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*"
 )
 BACKTICK_RE = re.compile(r"`([^`\n]+)`")
 NEW_SYMBOLS_RE = re.compile(r"^\s*(?:[-*]\s*)?New symbols:\s*(.*)$")
@@ -157,7 +158,7 @@ def resolve_symbols(
             rel = Path(p).resolve().relative_to(Path(root).resolve())
         except ValueError:
             continue
-        exclude_globs += ["--glob", f"!{rel}"]
+        exclude_globs += ["--glob", f"!{rel.as_posix()}"]
     exclude_globs = tuple(exclude_globs)
     result = {}
     for c in claims:

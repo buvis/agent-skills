@@ -7,7 +7,6 @@ on failure. Never overwrites a file. Standard library only, Python 3.9+.
 from __future__ import annotations
 
 import argparse
-import fcntl
 import json
 import os
 import re
@@ -184,6 +183,8 @@ def youtube_id(value: str) -> str:
 
 def file_url(path: str) -> str:
     """Port of toFileUrl() in page.create-project.tpl (encodeURIComponent per segment)."""
+    if sys.platform == "win32":
+        return Path(path).as_uri()
     return "file:///" + "%2F".join(quote(seg, safe="!*'()") for seg in path.split("/"))
 
 
@@ -301,6 +302,24 @@ def trash(vault: Path, source: Path) -> Path:
 @contextmanager
 def vault_lock(zettelkasten: Path):
     """Serialise runs from id scan to write, so parallel runs cannot take the same id."""
+    if sys.platform == "win32":
+        import msvcrt
+
+        # Windows cannot flock a directory. Keep one stable lock file: deleting
+        # it after release would let waiters and new callers lock different files.
+        fd = os.open(zettelkasten / ".create-note.lock", os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+            try:
+                yield
+            finally:
+                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+        finally:
+            os.close(fd)
+        return
+
+    import fcntl
+
     fd = os.open(zettelkasten, os.O_RDONLY)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
@@ -393,7 +412,7 @@ def create_article_locked(args: argparse.Namespace, vault: Path) -> dict:
         "tags": "[" + ", ".join(tags) + "]",
         "type": "note",
     }
-    backmatter = [f"- article:: [{title}](file://{quote(str(archive_path), safe='/')})"]
+    backmatter = [f"- article:: [{title}]({archive_path.absolute().as_uri()})"]
     if web:
         backmatter.append(f"- web:: [{title}]({web})")
     note_text = render_linked(values, summary, backmatter)
@@ -464,7 +483,7 @@ def create_locked(args: argparse.Namespace, vault: Path) -> dict:
 
     resources_path = ""
     if args.kind == "project":
-        resources_path = f"{Path(PROJECTS_ROOT).expanduser()}/{note_id}-{slug}"
+        resources_path = str(Path(PROJECTS_ROOT).expanduser() / f"{note_id}-{slug}")
     values = {
         "id": note_id,
         "title": title,

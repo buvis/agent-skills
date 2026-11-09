@@ -402,6 +402,7 @@ def test_selected_agent_gains_the_skill_resource_and_keeps_everything_else(
         plain, "dev", {"name": "dev", "resources": ["file://README.md"], "tools": ["read"]}
     )
     agent.chmod(0o640)
+    original_mode = agent.stat().st_mode & 0o777
     original = agent.read_bytes()
 
     result = run(enroll(plain, "dev"))
@@ -411,7 +412,7 @@ def test_selected_agent_gains_the_skill_resource_and_keeps_everything_else(
         "resources": ["file://README.md", "skill://~/.kiro/skills/*/SKILL.md"],
         "tools": ["read"],
     }
-    assert agent.stat().st_mode & 0o777 == 0o640
+    assert agent.stat().st_mode & 0o777 == original_mode
     assert result.configured == 1
     backups = list((kiro_root(plain) / "agent-backup").glob("*/agents/dev.json"))
     assert [backup.read_bytes() for backup in backups] == [original]

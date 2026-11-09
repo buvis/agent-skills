@@ -53,6 +53,26 @@ jobs:
       - name: Run the suite
         run: uv run --python ${{ matrix.python-version }} pytest
 
+  skill-integrations:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+      # Keep the SDK and converters out of braid's Python 3.10 environment,
+      # while exercising the tests that otherwise skip without these extras.
+      - name: Test MCP examples and document conversions
+        run: >-
+          uv run --python 3.13
+          --with mcp==2.3.0 --with httpx2==2.16.0
+          --with python-docx==1.1.2 --with pymupdf==1.25.3 --with pyyaml==6.0.2
+          pytest skills/build-mcp-server/tests skills/publish-confluence-docs/tests -q -rs
+
   # The same suite on a CRLF checkout and Windows path separators. 3.13 only:
   # the deny_access boundary wrappers rely on 3.11+ pathlib resolving its
   # accessor at call time, so a 3.10 lane here would pass while doing nothing.

@@ -15,7 +15,7 @@ import stat
 import subprocess
 import tarfile
 from collections.abc import Iterator, Sequence
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from eval_harness.runner import CommandResult, run_bounded
 
@@ -103,7 +103,7 @@ def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()
         if landing in active:
             raise TreeError("%s is a link cycle" % landing)
         target = links[landing]
-        if os.path.isabs(target):
+        if posixpath.isabs(target) or PureWindowsPath(target).drive or target.startswith("\\"):
             raise TreeError("%s leaves the tree: %s" % (landing, target))
         landing = _land(
             links, posixpath.join(posixpath.dirname(landing), target), active | {landing}
@@ -140,7 +140,7 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
     names = set()
     originals: list[str] = []
     for member in members:
-        if os.path.isabs(member.name):
+        if posixpath.isabs(member.name) or PureWindowsPath(member.name).drive or member.name.startswith("\\"):
             raise TreeError("%s is absolute" % member.name)
         if not (member.isfile() or member.isdir() or member.issym()):
             raise TreeError("%s is not a file, directory or symlink" % member.name)
@@ -176,11 +176,24 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
         # Read off the archive rather than off an extracted tree: a host that
         # cannot create a symlink at all still has to refuse one that escapes,
         # and refusing here leaves no half-built template behind.
-        _refuse_duplicate_or_crossing_members(archive.getmembers())
+        members = archive.getmembers()
+        _refuse_duplicate_or_crossing_members(members)
+        links = {member.name: member.linkname for member in members if member.issym()}
+        # tarfile creates file symlinks on Windows, even for directory targets.
+        # Extract ordinary members first, then use the vetted final landing to
+        # supply the directory flag, including forward references and chains.
+        ordinary_members = [member for member in members if not member.issym()]
         if hasattr(tarfile, "data_filter"):
-            archive.extractall(dest, filter="data")
+            archive.extractall(dest, members=ordinary_members, filter="data")
         else:
-            archive.extractall(dest)
+            archive.extractall(dest, members=ordinary_members)
+        for name, target in links.items():
+            where = dest / name
+            where.parent.mkdir(parents=True, exist_ok=True)
+            landing = dest / _land(links, name)
+            # Windows stores relative targets verbatim: forward slashes make
+            # the link unreadable. Change separators only; preserve every hop.
+            os.symlink(target.replace("/", os.sep), where, target_is_directory=landing.is_dir())
     _git(dest, *IDENTITY, "init")
     _git(dest, "add", "-A")
     # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the
@@ -275,6 +288,11 @@ def contained(root: Path, relpath: str) -> Path:
     if os.path.isabs(relpath):
         raise TreeError("%s is absolute" % relpath)
     destination = Path(root) / relpath
+    if os.name == "nt":
+        # Windows can lexically collapse `alias/..` before following alias.
+        # Vet link text explicitly so this cannot conceal a tree escape.
+        links = {name: os.readlink(path) for name, path in _walk(Path(root)) if path.is_symlink()}
+        _land(links, relpath)
     if not destination.resolve().is_relative_to(Path(root).resolve()):
         raise TreeError("%s lands outside the tree" % relpath)
     return destination

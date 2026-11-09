@@ -104,6 +104,28 @@ class GenericNoteTests(VaultTestCase):
 
 
 class IdAllocationTests(VaultTestCase):
+    def test_windows_lock_is_released_after_a_failed_write(self):
+        lock = mock.Mock(LK_LOCK=1, LK_UNLCK=0)
+        with mock.patch.dict(sys.modules, {"msvcrt": lock}), mock.patch.object(sys, "platform", "win32"):
+            with self.assertRaisesRegex(ValueError, "write failed"):
+                with create_note.vault_lock(self.vault / "notes"):
+                    raise ValueError("write failed")
+        fd = lock.locking.call_args_list[0].args[0]
+        self.assertEqual(lock.locking.call_args_list, [mock.call(fd, 1, 1), mock.call(fd, 0, 1)])
+        with self.assertRaises(OSError):
+            os.fstat(fd)
+
+    def test_windows_lock_failure_never_enters_the_write(self):
+        lock = mock.Mock(LK_LOCK=1, LK_UNLCK=0)
+        lock.locking.side_effect = OSError("lock unavailable")
+        with mock.patch.dict(sys.modules, {"msvcrt": lock}), mock.patch.object(sys, "platform", "win32"):
+            with self.assertRaisesRegex(OSError, "lock unavailable"):
+                with create_note.vault_lock(self.vault / "notes"):
+                    self.fail("must not write without the lock")
+        lock.locking.assert_called_once()
+        with self.assertRaises(OSError):
+            os.fstat(lock.locking.call_args.args[0])
+
     def test_taken_second_moves_id_to_next_free_second(self):
         (self.vault / "notes/contact/someone.md").write_text("---\nid: 20260105093012\n---\n", encoding="utf-8")
         (self.vault / "notes/20260105093013.md").write_text("no frontmatter\n", encoding="utf-8")
@@ -182,7 +204,7 @@ class ArticleTests(VaultTestCase):
         self.assertIn("type: note\n", note)
         self.assertIn("# Cloud Move: Phase 1/2\n\n- Fact one\n- Fact two\n", note)
         self.assertNotIn("Original text", note)
-        link = f"file://{self.archive}/2026/20260100/Cloud%20Move-%20Phase%201-2.md"
+        link = (self.archive / "2026" / "20260100" / "Cloud Move- Phase 1-2.md").as_uri()
         self.assertTrue(note.endswith(f"\n---\n\n- article:: [Cloud Move: Phase 1/2]({link})\n- web:: [Cloud Move: Phase 1/2](https://example.com/a)\n"))
 
     def test_existing_archive_file_is_never_overwritten_and_no_note_is_written(self):
@@ -417,15 +439,17 @@ class ProjectTests(VaultTestCase):
     def test_resources_url_expands_home_and_matches_captured_vault_value(self):
         # shape captured from a real project note made by page.create-project.tpl; user name, title, and ID replaced
         self.clock.return_value = datetime(2026, 3, 14, 10, 15, 0, tzinfo=timezone(timedelta(hours=1)))
-        with mock.patch.dict(os.environ, {"HOME": "/Users/ada"}):
+        home = "C:/Users/you" if os.name == "nt" else "/Users/you"
+        with mock.patch.dict(os.environ, {"HOME": home, "USERPROFILE": home}):
             code, report, _ = self.run_cli("project", "--title", "Plan team offsite",
                                            "--deliverable", "support", "--dry-run")
         self.assertEqual(code, 0)
-        self.assertIn(
-            'resources: "[project resources](file:///%2FUsers%2Fada%2FDocuments%2Freference%2F10-projects'
-            '%2F20260314101500-plan-team-offsite)"\n',
-            report["content"],
+        expected = (
+            "file:///C:/Users/you/Documents/reference/10-projects/20260314101500-plan-team-offsite"
+            if os.name == "nt" else
+            "file:///%2FUsers%2Fyou%2FDocuments%2Freference%2F10-projects%2F20260314101500-plan-team-offsite"
         )
+        self.assertIn(f'resources: "[project resources]({expected})"\n', report["content"])
         self.assertIn("- [ ] 2026-03-14 10:15 - plan the next action to move this project forward"
                       " | #gtd/act/now 📅 2026-03-14\n", report["content"])
 

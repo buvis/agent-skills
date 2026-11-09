@@ -14,6 +14,7 @@ import os
 import tarfile
 import warnings
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -130,10 +131,14 @@ def _spelled(links: dict, impl: str) -> dict:
 
 def _lay_links(root: Path, links: dict) -> None:
     """Write each `name -> target` link under `root`, target text as given."""
+    directories = {name for name, target in links.items() if (root / name).parent.joinpath(target).is_dir()}
+    for _ in links:
+        directories.update(name for name, target in links.items() if target in directories)
     for name, target in links.items():
         where = root / name
         where.parent.mkdir(parents=True, exist_ok=True)
-        os.symlink(target, where)
+        os.symlink(target.replace("/", os.sep), where,
+                   target_is_directory=name in directories or (where.parent / target).is_dir())
 
 
 def _link_text(where: Path) -> str:
@@ -175,6 +180,12 @@ def _template_on_disk(tmp_path: Path) -> Path:
 
 
 # -- build_template --------------------------------------------------------
+
+
+@pytest.mark.parametrize("target", ["/etc/passwd", r"C:\outside\secret.txt", "C:/outside/secret.txt", r"\outside\secret.txt"])
+def test_link_vetting_refuses_absolute_targets_from_either_platform(target):
+    with pytest.raises(trees.TreeError):
+        trees._land({"alias": target}, "alias")
 
 
 @pytest.mark.parametrize("links", ESCAPING_CHAINS)
@@ -341,6 +352,29 @@ def _serve_archive(monkeypatch, bundle: bytes) -> None:
     monkeypatch.setattr(trees, "_git_bytes", fake)
 
 
+def test_build_template_uses_native_link_separators_without_collapsing_parent_hops(
+    tmp_path, built_repo, monkeypatch
+):
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    members = [
+        ("pkg", DIRECTORY), ("pkg/nested.txt", PAYLOAD),
+        ("alias", ("sym", "pkg/../pkg/nested.txt")),
+    ]
+    _serve_archive(monkeypatch, _crafted_tar(members))
+    calls = []
+
+    def symlink(target, destination, *, target_is_directory):
+        calls.append((target, destination, target_is_directory))
+
+    monkeypatch.setattr(trees, "os", SimpleNamespace(sep="\\", environ=os.environ, symlink=symlink))
+    dest = tmp_path / "template"
+
+    trees.build_template(repo, first, dest)
+
+    assert calls == [(r"pkg\..\pkg\nested.txt", dest / "alias", False)]
+
+
 class _TarfileWithoutDataFilter:
     """Forwards to the real `tarfile` module, except hiding `data_filter`.
 
@@ -382,6 +416,14 @@ def _assert_refused_cleanly(tmp_path, built_repo, monkeypatch, members) -> None:
     # The escape did not happen: the outside directory holds what it held.
     assert sorted(p.name for p in outside.iterdir()) == ["secret.txt"]
     assert (outside / "secret.txt").read_bytes() == b"outside\n"
+
+
+@pytest.mark.parametrize("name", ["/outside", r"\outside", r"C:\outside", r"\\server\share\outside"])
+def test_archive_vetting_refuses_absolute_member_names_with_windows_path_rules(name):
+    member = tarfile.TarInfo(name)
+    member.type, member.linkname = tarfile.SYMTYPE, "."
+    with pytest.raises(trees.TreeError):
+        trees._refuse_duplicate_or_crossing_members([member])
 
 
 @pytest.mark.parametrize("members", DUPLICATE_MEMBERS)

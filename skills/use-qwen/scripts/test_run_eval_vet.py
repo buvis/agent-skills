@@ -12,11 +12,12 @@ import hashlib
 import shlex
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 import run_eval_harness
-from eval_harness import attempt, evidence, records, runner, trees
+from eval_harness import attempt, evidence, records, runner, trees, vetting
 from eval_harness_evidence_helpers import _read_json, _snapshot, _write_json
 from eval_harness_fixtures import BROKEN_IMPL, FIXED_IMPL, IDENTITY, _git, build_fixture_repo
 
@@ -85,7 +86,7 @@ def _nested_oracle_repo(root: Path) -> dict:
     first = _git(root, "rev-parse", "HEAD")
     (root / "calc.py").write_text(FIXED_IMPL, encoding="utf-8")
     (root / NESTED_ORACLE_PATH).parent.mkdir(parents=True)
-    (root / NESTED_ORACLE_PATH).write_text(NESTED_ORACLE, encoding="utf-8")
+    (root / NESTED_ORACLE_PATH).write_text(NESTED_ORACLE, encoding="utf-8", newline="")
     _git(root, "add", "calc.py", NESTED_ORACLE_PATH)
     _git(root, *IDENTITY, "commit", "-m", "task: make add() sum its arguments, tested under tests/")
     last = _git(root, "rev-parse", "HEAD")
@@ -364,9 +365,25 @@ def test_a_later_warmup_segment_gets_what_the_earlier_ones_left_of_the_bound(scr
     assert [(r["rc"], r["timed_out"]) for r in record["warmup"]] == [(0, False), (0, False)]
 
 
-def test_the_warmup_budget_runs_down_across_every_earlier_segment(scratch, capsys):
+def test_the_warmup_budget_runs_down_across_every_earlier_segment(scratch, capsys, monkeypatch):
     bundle = _new_bundle(scratch, "warm-triple", {"1-calc": {"warmup": TRIPLE_WARMUP}})
     task = bundle.root / "tasks" / "1-calc"
+    # Measure budget propagation independently of shell startup and clone I/O.
+    # Adjacent tests exercise real process deadlines; a busy Windows runner
+    # can otherwise consume this case's 0.6-second margin before segment two.
+    elapsed = 0.0
+    deadlines = []
+
+    def run_segment(segments, clone, deadline_s):
+        nonlocal elapsed
+        deadlines.append(deadline_s)
+        duration = min(0.7, deadline_s)
+        elapsed += duration
+        timed_out = deadline_s < 0.7
+        return runner.CommandResult(None if timed_out else 0, timed_out, None, None, duration)
+
+    monkeypatch.setattr(vetting, "time", SimpleNamespace(monotonic=lambda: elapsed))
+    monkeypatch.setattr(runner, "run_segments", run_segment)
 
     rc = attempt.vet(bundle.root, 2.0)
 
@@ -375,6 +392,7 @@ def test_the_warmup_budget_runs_down_across_every_earlier_segment(scratch, capsy
     assert rc == 1
     assert "1-calc" in err and "warmup" in err, err
     assert len(record["warmup"]) == 3, record["warmup"]
+    assert deadlines == pytest.approx([2.0, 1.3, 0.6])
     first, second, third = record["warmup"]
     assert (first["rc"], second["rc"]) == (0, 0)
     # what the first two left of the 2 s, not the bound minus the previous segment alone

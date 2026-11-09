@@ -471,7 +471,7 @@ def test_unpublished_raises_queue_error_naming_the_entry_when_a_queue_entry_is_m
     with pytest.raises(docket.QueueError) as raised:
         docket.unpublished(store, path=queue_path)
 
-    assert entry_id in str(raised.value)
+    assert repr(entry_id) in str(raised.value)
 
 
 def test_unpublished_raises_queue_error_when_a_queue_entry_has_no_id(tmp_path):
