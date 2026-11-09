@@ -50,14 +50,14 @@ def upload(page_id, filepath, token, existing):
         action = "Uploaded"
 
     r = subprocess.run([
-        "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
+        "curl", "-s", "-o", os.devnull, "-w", "%{http_code}",
         "-H", f"Authorization: Bearer {token}",
         "-H", "X-Atlassian-Token: nocheck",
         "-X", "POST", "-F", f"file=@{filepath}", url
     ], capture_output=True, text=True)
 
     code = r.stdout.strip()
-    ok = code.startswith("2")
+    ok = r.returncode == 0 and code.startswith("2")
     print(f"{'OK' if ok else 'FAIL'}: {action} {filename} (HTTP {code})")
     return ok
 

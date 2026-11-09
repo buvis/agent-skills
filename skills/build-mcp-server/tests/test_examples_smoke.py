@@ -13,6 +13,9 @@ import importlib.util
 import json
 from pathlib import Path
 import os
+import re
+import subprocess
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -105,3 +108,34 @@ def test_crud_delete_upstream_failure_is_reported():
     result = call(module, "delete_task", {"task_id": "t1"},
                   lambda request: httpx2.Response(500, content=json.dumps({"error": "boom"})))
     assert result.is_error
+
+
+def test_generated_project_installs_and_passes_its_tests(tmp_path):
+    template = (EXAMPLES.parent / "project-template.md").read_text(encoding="utf-8")
+    replacements = {
+        "<SERVER_NAME>": "example-server",
+        "<server-name>": "example-server",
+        "<ONE_LINE_DESCRIPTION>": "Example server",
+        "<DESCRIPTION>": "Example server",
+        "<ENV_VAR_BASE_URL>": "EXAMPLE_BASE_URL",
+        "<DEFAULT_URL>": "https://api.example.com",
+        "<ENV_VAR_API_KEY>": "EXAMPLE_API_KEY",
+    }
+    for name, language in (("pyproject.toml", "toml"), ("src/server.py", "python"),
+                           ("tests/test_server.py", "python")):
+        section = template.split("## " + name, 1)[1]
+        code = re.search(r"```" + language + r"\n(.*?)\n```", section, re.DOTALL).group(1)
+        for placeholder, value in replacements.items():
+            code = code.replace(placeholder, value)
+        target = tmp_path / name
+        target.parent.mkdir(exist_ok=True)
+        target.write_text(code, encoding="utf-8")
+    (tmp_path / "src/__init__.py").touch()
+    (tmp_path / "tests/__init__.py").touch()
+    env = {k: v for k, v in os.environ.items() if k not in ("VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT")}
+    result = subprocess.run(
+        ["uv", "run", "--python", sys.executable, "pytest", "-q"],
+        cwd=tmp_path, env=env, capture_output=True, text=True, timeout=180,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "4 passed" in result.stdout

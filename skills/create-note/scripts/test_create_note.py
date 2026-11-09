@@ -439,7 +439,7 @@ class ProjectTests(VaultTestCase):
     def test_resources_url_expands_home_and_matches_captured_vault_value(self):
         # shape captured from a real project note made by page.create-project.tpl; user name, title, and ID replaced
         self.clock.return_value = datetime(2026, 3, 14, 10, 15, 0, tzinfo=timezone(timedelta(hours=1)))
-        home = "C:/Users/you" if os.name == "nt" else "/Users/ada"
+        home = "C:/Users/you" if os.name == "nt" else "/Users/you"
         with mock.patch.dict(os.environ, {"HOME": home, "USERPROFILE": home}):
             code, report, _ = self.run_cli("project", "--title", "Plan team offsite",
                                            "--deliverable", "support", "--dry-run")
@@ -447,7 +447,7 @@ class ProjectTests(VaultTestCase):
         expected = (
             "file:///C:/Users/you/Documents/reference/10-projects/20260314101500-plan-team-offsite"
             if os.name == "nt" else
-            "file:///%2FUsers%2Fada%2FDocuments%2Freference%2F10-projects%2F20260314101500-plan-team-offsite"
+            "file:///%2FUsers%2Fyou%2FDocuments%2Freference%2F10-projects%2F20260314101500-plan-team-offsite"
         )
         self.assertIn(f'resources: "[project resources]({expected})"\n', report["content"])
         self.assertIn("- [ ] 2026-03-14 10:15 - plan the next action to move this project forward"

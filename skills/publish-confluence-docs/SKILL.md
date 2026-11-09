@@ -145,6 +145,7 @@ source: "sharepoint"  # or "confluence" or "new"
 
 - `md_to_confluence.py` without `--output` prints to stdout; pass that content using the page provider's supported request format
 - `confluence_attach.py` auto-detects existing attachments and updates instead of failing on duplicates
+- Image embedding replaces a matching leaf note macro; notes containing nested macros are preserved and the image is appended if no leaf matches
 - Tokens come only from `CONFLUENCE_TOKEN` or the explicit `--token` option; prefer the environment to avoid command-history exposure
 - Check the configured provider's payload limit; never silently truncate content to fit
 - Always render Mermaid to PNG via mmdc (not SVG→PNG) — mmdc uses `<foreignObject>` which only Chromium renders correctly

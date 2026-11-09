@@ -12,7 +12,7 @@ end of the page.
 Set CONFLUENCE_BASE_URL and CONFLUENCE_SPACE_KEY explicitly.
 Token resolution: --token arg > CONFLUENCE_TOKEN environment variable.
 """
-import argparse, json, os, re, sys, urllib.request
+import argparse, html, json, os, re, sys, urllib.request
 
 BASE_URL = os.environ.get("CONFLUENCE_BASE_URL", "").rstrip("/")
 SPACE_KEY = os.environ.get("CONFLUENCE_SPACE_KEY", "")
@@ -46,7 +46,7 @@ def update_page(page_id, title, content, version, token):
         return json.load(resp)
 
 def image_tag(filename, width):
-    return f'<p><ac:image ac:width="{width}"><ri:attachment ri:filename="{filename}" /></ac:image></p>'
+    return f'<p><ac:image ac:width="{width}"><ri:attachment ri:filename="{html.escape(filename, quote=True)}" /></ac:image></p>'
 
 def main(argv=None):
     """Return 0 only when the page was read and updated."""
@@ -78,10 +78,14 @@ def main(argv=None):
     for img in args.images:
         tag = image_tag(img, args.width)
         stem = os.path.splitext(img)[0]
-        # Try to replace a note macro mentioning this image
-        pattern = rf'<ac:structured-macro ac:name="note"[^>]*>.*?{re.escape(stem)}.*?</ac:structured-macro>'
-        if re.search(pattern, content, re.DOTALL):
-            content = re.sub(pattern, tag, content, count=1, flags=re.DOTALL)
+        # Bound each candidate to one leaf macro; nested notes are preserved.
+        pattern = (r'<ac:structured-macro\b(?=[^>]*\bac:name=[\'"]note[\'"])[^>]*>'
+                   r'(?P<body>(?:(?!</?ac:structured-macro\b).)*)</ac:structured-macro>')
+        match = next((m for m in re.finditer(pattern, content, re.DOTALL)
+                      if re.search(rf'(?<!\w){re.escape(stem)}(?!\w)',
+                                   html.unescape(re.sub(r'<[^>]*>', '', m.group("body"))))), None)
+        if match:
+            content = content[:match.start()] + tag + content[match.end():]
             print(f"Replaced placeholder for {img}")
         else:
             content += f"\n{tag}"

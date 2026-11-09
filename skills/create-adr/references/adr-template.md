@@ -4,7 +4,7 @@ Use this template when creating Architecture Decision Records.
 
 ---
 
-```markdown
+````markdown
 # ADR-{NUMBER}: {TITLE}
 
 **Status:** {Proposed | Accepted | Deprecated | Superseded by ADR-XXX}  
@@ -88,7 +88,7 @@ List specific triggers — not vague "if things change" statements.}
 - {Specific trigger 1}
 - {Specific trigger 2}
 - {Specific trigger 3}
-```
+````
 
 ---
 

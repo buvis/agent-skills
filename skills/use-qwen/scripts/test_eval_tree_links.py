@@ -10,7 +10,6 @@ is one spelling of each.
 """
 import hashlib
 import io
-import ntpath
 import os
 import tarfile
 import warnings
@@ -420,10 +419,9 @@ def _assert_refused_cleanly(tmp_path, built_repo, monkeypatch, members) -> None:
 
 
 @pytest.mark.parametrize("name", ["/outside", r"\outside", r"C:\outside", r"\\server\share\outside"])
-def test_archive_vetting_refuses_absolute_member_names_with_windows_path_rules(monkeypatch, name):
+def test_archive_vetting_refuses_absolute_member_names_with_windows_path_rules(name):
     member = tarfile.TarInfo(name)
     member.type, member.linkname = tarfile.SYMTYPE, "."
-    monkeypatch.setattr(trees, "os", SimpleNamespace(path=ntpath))
     with pytest.raises(trees.TreeError):
         trees._refuse_duplicate_or_crossing_members([member])
 

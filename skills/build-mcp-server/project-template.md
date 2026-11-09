@@ -29,7 +29,7 @@ dependencies = [
     "pydantic>=2.12",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=8.0",
 ]
@@ -37,6 +37,9 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 ```
 
 ## src/__init__.py
@@ -228,10 +231,10 @@ cp .env.example .env
 # Edit .env with your API credentials
 
 # Run in development (opens MCP Inspector)
-uv run mcp dev src/server.py
+uv run --env-file .env mcp dev src/server.py
 
 # Run for production (stdio transport)
-uv run mcp run src/server.py
+uv run --env-file .env mcp run src/server.py
 ```
 
 ## Environment Variables

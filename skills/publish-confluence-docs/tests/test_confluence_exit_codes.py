@@ -57,6 +57,13 @@ class AttachTests(unittest.TestCase):
         with patch("urllib.request.urlopen", side_effect=err):
             self.assertEqual(quiet(self.main, ["1", "a.png", "--token", "t"]), 1)
 
+    def test_transfer_failure_with_success_status_is_failure(self):
+        result = subprocess.CompletedProcess([], 23, stdout="200", stderr="write failed")
+        with patch("subprocess.run", return_value=result) as invoked:
+            self.assertFalse(quiet(self.mod["upload"], "1", "a.png", "t", {}))
+        command = invoked.call_args.args[0]
+        self.assertEqual(command[command.index("-o") + 1], os.devnull)
+
     def test_listing_follows_pagination(self):
         pages = [
             {"results": [{"title": "a.png", "id": "1"}], "_links": {"next": "/x"}},
@@ -110,6 +117,45 @@ class EmbedTests(unittest.TestCase):
         def boom(*a):
             raise urllib.error.URLError("down")
         self.assertEqual(self.run_main(boom), 1)
+
+    def test_replacement_preserves_prior_notes_and_intervening_content(self):
+        first = ('<ac:structured-macro ac:name="note"><ac:rich-text-body>'
+                 '<p>Keep this</p></ac:rich-text-body></ac:structured-macro>')
+        between = '<h2>Keep this heading too</h2>'
+        placeholder = '<ac:structured-macro ac:name="note"><p>d.png</p></ac:structured-macro>'
+        self.page["body"]["storage"]["value"] = first + between + placeholder
+        saved = []
+
+        def update(*args):
+            saved.append(args[2])
+            return {"version": {"number": 2}}
+
+        self.assertEqual(self.run_main(update), 0)
+        self.assertEqual(saved, [first + between + self.mod["image_tag"]("d.png", 900)])
+
+    def test_nested_notes_are_preserved_when_appending_an_image(self):
+        content = ('<ac:structured-macro ac:name="note"><p>d.png</p>'
+                   '<ac:structured-macro ac:name="info"><p>Keep</p></ac:structured-macro>'
+                   '</ac:structured-macro>')
+        self.page["body"]["storage"]["value"] = content
+        saved = []
+
+        def update(*args):
+            saved.append(args[2])
+            return {"version": {"number": 2}}
+
+        self.assertEqual(self.run_main(update), 0)
+        self.assertEqual(saved, [content + "\n" + self.mod["image_tag"]("d.png", 900)])
+
+    def test_image_filename_is_xml_escaped(self):
+        from xml.etree import ElementTree
+
+        filename = 'diagram "A&B".png'
+        fragment = self.mod["image_tag"](filename, 900)
+        root = ElementTree.fromstring(
+            '<root xmlns:ac="urn:ac" xmlns:ri="urn:ri">' + fragment + '</root>'
+        )
+        self.assertEqual(root.find('.//{urn:ri}attachment').attrib['{urn:ri}filename'], filename)
 
 
 if __name__ == "__main__":

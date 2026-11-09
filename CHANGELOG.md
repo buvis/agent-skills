@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **build-mcp-server**: generated projects declare their package and development dependencies, load `.env` explicitly, and are installed and tested by the optional integration suite.
+
+- **publish-confluence-docs**: image placeholders preserve unrelated and nested macros, attachment names are XML-escaped, and uploads check curl failures using the platform's null device. CI runs the optional MCP and document conversion tests on Linux and Windows.
+- **create-adr**: the template's outer fence preserves its nested diagram block.
+
 - **use-qwen**, **create-note**: use native separators in relative symlink targets and project resource paths; Windows links now remain readable through directory aliases without collapsing parent hops.
 - **use-qwen**: reject Windows root-relative archive member names before creating links, preserving archive containment when the Windows and archive-validation fixes are combined.
 - **create-note**: use a Windows file lock when allocating note ids, so concurrent writes stay serialized and Windows test collection no longer imports Unix-only `fcntl`; preserve Windows drive letters and separators in archive and project links.
