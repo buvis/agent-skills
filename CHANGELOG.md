@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **create-adr**, **build-mcp-server**, **explore-abap-solution**, **document-abap-solution**, **review-abap-solution-documentation**, **write-abap-specs**, **publish-confluence-docs**: seven new skills. Fixtures use neutral `ZEXAMPLE_*` names; SAP, Jira, and Confluence access is caller-supplied.
 - **copy-rich-text**: new skill. Copies Markdown or HTML to the macOS clipboard as rich text (HTML plus an RTF fallback) so links, lists, images, tables, and Teams-native code blocks survive a paste into Microsoft Teams or Outlook. Set `JIRA_BASE_URL` to auto-link bare issue keys.
 - **create-note**: new skill. Decides what to note (copy or extraction, article detection, message links) and creates the note in the BIM vault with `bim create --json`, which supplies the templates, ids, contact wikilinks, the daily-note log entry, and the article archive. Requires the first buvis-gems release after 0.19.2.
-- **explain-bim-system**: new reference skill describing the BIM vault layout, note anatomy, links, tags, GTD tasks, and the rules agents follow when they read or write the vault.
 - **sweep-fix**: `sweep.py` accepts `--deadline N` (default 300), a wall-clock budget in seconds for the whole sweep. A repo whose scan has not finished when the budget runs out is reported rather than waited for, and the report's `Partial: N repos not scanned (sweep deadline expired)` line means the sweep is incomplete and the pattern may still have hits in those repos.
 
 ### Fixed

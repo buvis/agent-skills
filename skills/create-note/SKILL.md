@@ -17,15 +17,14 @@ never overwrites a file, and prints a JSON report.
   or older, stop and tell the user to upgrade buvis-gems. Do not write the
   note by hand.
 - `bim --skill` prints bim's own skill. It is the authority for flags, JSON
-  keys, and template answers. Read it before the first create in a session.
+  keys, and template answers, and its "The BIM vault" section covers vault
+  layout, note anatomy, links, tags, and writing rules. Read it before the
+  first create in a session. If it has no "The BIM vault" section, stop; do
+  not invent conventions.
 - The vault: bim writes to the `path_zettelkasten` setting (default
   `~/bim/notes/`). `path_daily`, `path_projects`, and `path_articles` are
   settings too. Set them in `~/.config/buvis/buvis-bim.yaml`, as
   `BUVIS_BIM_PATH_<NAME>` environment variables, or with `bim --config FILE`.
-- `explain-bim-system` (this repository): read
-  `~/.agents/skills/explain-bim-system/SKILL.md` first for vault layout, note
-  anatomy, links, tags, and writing rules. If it is missing, stop; do not
-  invent conventions.
 - Source access: use an available authorized connector or local archive. A
   missing one blocks only that source, not the skill.
 
@@ -179,7 +178,8 @@ Infer from the request and context; ask only for what you cannot infer.
     `YYYY-MM-DD | <Subject> meeting minutes`, so do not add the date or
     "meeting minutes" yourself.
   - Book: the title as printed on the cover.
-- `--tags`: reuse existing tags (see the command in `explain-bim-system`).
+- `--tags`: reuse existing tags (`rg -NIo '^tags: \[.*\]' ~/bim/notes` lists
+  them).
   `person` and `book` belong only to contacts and books; bim adds them and
   rejects them on other templates.
 - `-a deliverable=` (project): `fix` for broken things, `enhancement` for new
