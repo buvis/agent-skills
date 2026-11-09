@@ -467,6 +467,36 @@ if argv_has_pair "$CLAUDE_ARGV_FILE" --effort high; then PASS "review override";
 run_sonnet effort-invalid --effort typo "test"
 if [ "$RC" -ne 0 ] && [ ! -f "$CLAUDE_ARGV_FILE" ]; then PASS "invalid effort refuses launch"; else FAIL "invalid effort refuses launch" "launched"; fi
 
+# Tool-free review must retain explicit effort and the pinned conversation.
+make_prompt tools-review
+REVIEW_UUID=$(new_uuid)
+run_sonnet tools-review --effort high -t "" -S "$REVIEW_UUID" -f "$PROMPT_F"
+if [ "$RC" -eq 0 ] && argv_has_pair "$CLAUDE_ARGV_FILE" --tools "" && argv_has_pair "$CLAUDE_ARGV_FILE" --effort high && argv_has_pair "$CLAUDE_ARGV_FILE" --session-id "$REVIEW_UUID" && ! grep -qxF -- '--permission-mode' "$CLAUDE_ARGV_FILE"; then
+    PASS "tool-free fresh review preserves effort and session without permission bypass"
+else
+    FAIL "tool-free fresh review" "missing restriction or wrong session/effort"
+fi
+make_prompt resumed-review
+run_sonnet resumed-review --effort high --tools "" -R "$REVIEW_UUID" -f "$PROMPT_F"
+if [ "$RC" -eq 0 ] && argv_has_pair "$CLAUDE_ARGV_FILE" --tools "" && argv_has_pair "$CLAUDE_ARGV_FILE" --effort high && argv_has_pair "$CLAUDE_ARGV_FILE" --resume "$REVIEW_UUID" && grep -qxF -- '--print' "$CLAUDE_ARGV_FILE" && grep -qxF -- "$PROMPT_TEXT" "$CLAUDE_ARGV_FILE" && [ ! -s "$CLAUDE_STDIN_FILE" ]; then
+    PASS "tool-free resumed review is headless with exact prompt and closed stdin"
+else
+    FAIL "tool-free resumed review" "missing restriction, prompt or resume; or inherited stdin"
+fi
+make_prompt resumed-dash '- [ ] '
+run_sonnet resumed-dash --tools "" --resume-print "$REVIEW_UUID" --effort high -f "$PROMPT_F"
+if argv_has_pair "$CLAUDE_ARGV_FILE" --tools "" && argv_has_pair "$CLAUDE_ARGV_FILE" --resume "$REVIEW_UUID" && [ "$(cat "$CLAUDE_STDIN_FILE")" = "$PROMPT_TEXT" ]; then
+    PASS "resumed hyphen prompt retains restrictions and stdin delivery"
+else
+    FAIL "resumed hyphen prompt" "lost restrictions or prompt"
+fi
+run_sonnet tools-missing -t
+if [ "$RC" -ne 0 ] && [ ! -f "$CLAUDE_ARGV_FILE" ]; then PASS "missing tools refuses launch"; else FAIL "missing tools" "launched"; fi
+run_sonnet resume-missing -R
+if [ "$RC" -ne 0 ] && [ ! -f "$CLAUDE_ARGV_FILE" ]; then PASS "missing resume id refuses launch"; else FAIL "missing resume id" "launched"; fi
+run_sonnet resume-option -R --effort high -f "$PROMPT_F"
+if [ "$RC" -ne 0 ] && [ ! -f "$CLAUDE_ARGV_FILE" ]; then PASS "resume option as id refuses launch"; else FAIL "resume option as id" "launched"; fi
+
 # ══ summary ═══════════════════════════════════════════════════════════════════
 echo ""
 echo "SUMMARY: $PASS_COUNT passed, $FAIL_COUNT failed"

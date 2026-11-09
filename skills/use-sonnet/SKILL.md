@@ -70,12 +70,19 @@ Session and user-global effort settings are not used as wrapper defaults.
 | Use case | Key flags |
 | --- | --- |
 | Read-only analysis | `-f prompt.txt` |
+| Tool-free review at explicit high effort | `--effort high -t "" -S UUID -f prompt.txt` |
+| Headless follow-up to that review | `--effort high -t "" -R UUID -f delta.txt` |
 | Interactive with initial prompt | `-i "prompt"` |
 | Auto-approve edits only | `-a -f prompt.txt` |
 | Full auto, unattended agentic (edits + commands) | `-y -f prompt.txt` |
 | Allow specific directory | `-d <DIR> -f prompt.txt` |
 | Resume recent session | `--continue` |
 | Resume specific session | `--resume [sessionId]` |
+
+`-t`/`--tools` forwards the exact tool list; an empty string disables tools.
+`-R`/`--resume-print` requires a session ID and a new prompt, keeps print mode,
+and closes inherited stdin. Use these together for per-task reviews without
+`-a` or `-y`; effort, nesting guards and permission defaults remain intact.
 | Scripting (clean output) | `-s -f prompt.txt` |
 
 ## Helper Script

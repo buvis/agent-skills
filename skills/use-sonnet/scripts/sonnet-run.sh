@@ -46,6 +46,8 @@ PROMPT=""
 PROMPT_FILE=""
 OUTPUT_FILE=""
 SESSION_ID=""
+RESUME_ID=""
+TOOLS_ARGS=()
 
 usage() {
     echo "Usage: $0 [options] [prompt]"
@@ -65,6 +67,8 @@ usage() {
     echo "  -r, --resume [ID]      Resume session (optionally specify ID)"
     echo "  -c, --continue         Resume most recent session"
     echo "  -S, --session-id UUID  Pin the Claude session id (print mode only)"
+    echo "  -t, --tools LIST       Restrict tools; an empty string disables every tool"
+    echo "  -R, --resume-print ID  Resume a specific session headlessly with a new prompt"
     echo "  -h, --help             Show this help"
     echo ""
     echo "Examples:"
@@ -124,6 +128,18 @@ while [[ $# -gt 0 ]]; do
             fi
             shift
             ;;
+        -t|--tools)
+            [ $# -ge 2 ] || { echo "ERROR: --tools requires a list (empty is allowed)" >&2; exit 1; }
+            [[ "$2" != -* ]] || { echo "ERROR: --tools requires a list, not an option" >&2; exit 1; }
+            TOOLS_ARGS=("--tools" "$2")
+            shift 2
+            ;;
+        -R|--resume-print)
+            [ $# -ge 2 ] && [ -n "$2" ] && [[ "$2" != -* ]] || { echo "ERROR: --resume-print requires a session ID" >&2; exit 1; }
+            MODE="resume-print"
+            RESUME_ID="$2"
+            shift 2
+            ;;
         -c|--continue)
             MODE="continue"
             shift
@@ -177,20 +193,22 @@ run_cmd() {
 # Pinning the session id only makes sense for a fresh headless run: resume and
 # continue already carry an id, and interactive claude picks its own.
 SESSION_ARGS=()
-if [ -n "$SESSION_ID" ]; then
+if [ "$MODE" = "resume-print" ]; then
+    SESSION_ARGS=("--resume" "$RESUME_ID")
+elif [ -n "$SESSION_ID" ]; then
     SESSION_ARGS=("--session-id" "$SESSION_ID")
 fi
 
 case $MODE in
     resume)
         if [ -n "$PROMPT" ]; then
-            run_cmd claude --model "$MODEL" --effort "$EFFORT" $PERM --resume "$PROMPT"
+            run_cmd claude --model "$MODEL" "${TOOLS_ARGS[@]}" --effort "$EFFORT" $PERM --resume "$PROMPT"
         else
-            run_cmd claude --model "$MODEL" --effort "$EFFORT" $PERM --resume
+            run_cmd claude --model "$MODEL" "${TOOLS_ARGS[@]}" --effort "$EFFORT" $PERM --resume
         fi
         ;;
     continue)
-        run_cmd claude --model "$MODEL" --effort "$EFFORT" $PERM --continue
+        run_cmd claude --model "$MODEL" "${TOOLS_ARGS[@]}" --effort "$EFFORT" $PERM --continue
         ;;
     interactive)
         if [ -z "$PROMPT" ]; then
@@ -198,9 +216,9 @@ case $MODE in
             usage >&2
             exit 1
         fi
-        run_cmd claude --model "$MODEL" --effort "$EFFORT" $PERM "${ADD_DIRS[@]}" "$PROMPT"
+        run_cmd claude --model "$MODEL" "${TOOLS_ARGS[@]}" --effort "$EFFORT" $PERM "${ADD_DIRS[@]}" "$PROMPT"
         ;;
-    prompt)
+    prompt|resume-print)
         if [ -z "$PROMPT" ]; then
             echo "ERROR: Prompt required" >&2
             usage >&2
@@ -218,10 +236,10 @@ case $MODE in
         # prompt from stdin byte-verbatim when no positional prompt is given.
         case "$PROMPT" in
             -*)
-                printf '%s' "$PROMPT" | run_cmd claude --print --model "$MODEL" --effort "$EFFORT" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}"
+                printf '%s' "$PROMPT" | run_cmd claude --print --model "$MODEL" "${TOOLS_ARGS[@]}" --effort "$EFFORT" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}"
                 ;;
             *)
-                run_cmd claude --print --model "$MODEL" --effort "$EFFORT" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}" "$PROMPT" < /dev/null
+                run_cmd claude --print --model "$MODEL" "${TOOLS_ARGS[@]}" --effort "$EFFORT" $PERM "${ADD_DIRS[@]}" "${SESSION_ARGS[@]+"${SESSION_ARGS[@]}"}" "$PROMPT" < /dev/null
                 ;;
         esac
         ;;
