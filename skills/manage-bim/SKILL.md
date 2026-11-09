@@ -1,14 +1,17 @@
 ---
-name: create-note
-description: Use when creating BIM notes from Teams messages, articles, videos, meetings, ideas, or inbox items, or adding projects, books, or contacts. Triggers on "take note", "note this", "create a note", "add a zettel", "make meeting minutes".
+name: manage-bim
+description: Use for any BUVIS InfoMesh (BIM) knowledge task - take, create, find, read, edit, link, archive notes; inbox, projects, meetings, contacts, books. Triggers on "take note", "note this", "create note", "find note", "my notes", "zettel", "bim".
 compatibility: Requires the bim CLI from buvis-gems, the first release after 0.19.2 (bim create --json), and the BIM vault at the bim path_zettelkasten setting. Harness-neutral.
 ---
 
-# Create a BIM note
+# Manage the BIM vault
 
-Decides what to note and how, then creates one note with `bim create`. bim
-fills a template that reproduces the vault's Templater notes, assigns the id,
-never overwrites a file, and prints a JSON report.
+Every vault task goes through `bim`, and `bim --skill` says how. Run it first,
+every session: it is the authority for the CLI (search, read, create, edit,
+archive) and, in its "The BIM vault" section, for the vault's layout, note
+anatomy, links, tags, and rules. This skill adds only the judgement bim cannot
+make when a note is created: whether to note, copy or extraction, articles,
+message links, and the template.
 
 ## Dependencies
 
@@ -16,17 +19,20 @@ never overwrites a file, and prints a JSON report.
   `bim create --help` lists `--json` and `--summary-file`. If bim is missing
   or older, stop and tell the user to upgrade buvis-gems. Do not write the
   note by hand.
-- `bim --skill` prints bim's own skill. It is the authority for flags, JSON
-  keys, and template answers, and its "The BIM vault" section covers vault
-  layout, note anatomy, links, tags, and writing rules. Read it before the
-  first create in a session. If it has no "The BIM vault" section, stop; do
-  not invent conventions.
+- `bim --skill` prints bim's own skill. If it has no "The BIM vault" section,
+  stop; do not invent conventions.
 - The vault: bim writes to the `path_zettelkasten` setting (default
   `~/bim/notes/`). `path_daily`, `path_projects`, and `path_articles` are
   settings too. Set them in `~/.config/buvis/buvis-bim.yaml`, as
   `BUVIS_BIM_PATH_<NAME>` environment variables, or with `bim --config FILE`.
 - Source access: use an available authorized connector or local archive. A
   missing one blocks only that source, not the skill.
+
+## Find, read, edit, or archive notes
+
+Follow `bim --skill`: `bim query` to find notes (JSON output when you parse
+it), `bim show` to read one, `bim edit` for metadata, `bim archive` to put one
+away. Give the user each note's title and wikilink, not only its path.
 
 ## "Take note" means create a BIM note
 
