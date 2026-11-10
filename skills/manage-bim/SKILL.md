@@ -25,6 +25,8 @@ message links, and the template.
   `~/bim/notes/`). `path_daily`, `path_projects`, and `path_articles` are
   settings too. Set them in `~/.config/buvis/buvis-bim.yaml`, as
   `BUVIS_BIM_PATH_<NAME>` environment variables, or with `bim --config FILE`.
+  bim does not read `$BIM_VAULT`. `<vault>` below is the vault root, the
+  parent of `path_zettelkasten`; pass `--source` as a full path under it.
 - Source access: use an available authorized connector or local archive. A
   missing one blocks only that source, not the skill.
 
@@ -46,7 +48,9 @@ the session without the user's explicit approval. This rule overrides
   `rg`, `cat`, file reads, or `--dry-run` of an inbox file without that
   approval.
 - Creating a note needs no approval: you supply its text, and the
-  `bim create --json` report holds only paths and metadata.
+  `bim create --json` report holds only paths, metadata, and the titles of
+  contacts your text already names. `--dry-run` with `--source` prints the
+  inbox file, so it counts as a read.
 
 ## Find, read, edit, or archive notes
 
@@ -172,9 +176,10 @@ makes a pair:
   Its backmatter links the archive copy (`article::`, a `file://` link) and
   the source (`web::`).
 
-Write the original and the core facts to temporary files (for example in the
-session folder), leave out the H1 in both (bim writes it from the title), and
-run:
+Write the original and the core facts to temporary files outside any
+repository (the session scratch folder or the system temp folder), leave out
+the H1 in both (bim writes it from the title), run the command below, then
+delete both files:
 
 ```sh
 bim create -t article --title "<title>" --tags a,b -a web="<source URL>" \
@@ -246,24 +251,28 @@ See `bim --skill` for every flag. The ones this skill relies on:
 - `-a key=value` answers template questions only. Other frontmatter (meeting
   `start`, `end`, `attendees`, `summary`; contact `contact-type`; book
   `author`, `summary`; YouTube `author`, `summary`) is set after creation
-  with `bim edit PATH -s key=value`.
+  with `bim edit PATH -s key=value`. `-s` stores a plain string, so write a
+  list such as meeting `attendees` into the frontmatter by hand as a YAML
+  list, then run `bim format PATH`.
 
 The report is one JSON object: `id`, `type`, `title`, `tags`, `path`,
 `relative_path`, `wikilink`, and when relevant `daily_log`,
 `linked_contacts`, `archive.path`, `trashed_source`, `warnings`, `errors`.
-On failure bim prints `{"error": "..."}` and exits 1. Before you retry, follow
-`bim --skill` on failed creates: an error starting with `note saved at` means
-the note exists. If the report has `errors`, the note exists but a follow-up
-step failed; tell the user.
+On failure bim prints `{"error": "..."}` and exits 1. An error starting with
+`note saved at` means the note exists; do not retry. After a filesystem error,
+an empty file can be left at the destination: ask the user before you inspect
+it or retry. If the report has `errors`, the note exists but a follow-up step
+failed; tell the user.
 
 ## After creating
 
 1. Tell the user the `relative_path` and the `wikilink`.
 2. Mention `linked_contacts` and the `daily_log` status in one short line.
-3. To add content later, edit the created file. Replace the template's
-   guidance text instead of leaving both, keep the frontmatter key order,
-   and keep the backmatter fields after the closing `---`. Add `teams::` and
-   `web::` backmatter this way; only `article` writes `web::` itself.
+3. To add content later, edit the created file (a note you just created is
+   yours to read). Replace the template's guidance text instead of leaving
+   both, keep the frontmatter key order, and keep the backmatter fields after
+   the closing `---`. Add `teams::` and `web::` backmatter this way; only
+   `article` writes `web::` itself. Run `bim format PATH` after the edit.
 4. To link the new note from another note, paste the `wikilink`.
 5. For a project, report any `warnings` entry. It means the `path_projects`
    root does not exist on this machine; the `resources` link is written
@@ -273,27 +282,7 @@ step failed; tell the user.
 
 - Write notes by hand or copy a template yourself; run `bim create`.
 - Retry with a different title to dodge an "already exists" error for a
-  contact or book. Open the existing note and tell the user.
+  contact or book. Tell the user the note exists; open it only if they
+  approve.
 - Convert files from outside `inbox/`; bim refuses.
 - Create calendar notes. bim only appends to an existing daily note's log.
-
-## Differences from the Obsidian templates
-
-bim reproduces the Templater notes with these deliberate changes:
-
-- Book and contact titles keep the casing you give. The templates lowercase
-  everything first, which breaks names like "McDonald" or "iPhone". Contacts
-  get every word capitalized; other notes only the first letter.
-- Slugs for the project resources folder follow bim's NFKD rule (the one
-  the contact and book templates use), not
-  `notes/system/scripts/templater/slugify.js`: `/ _ , : ; ·` between letters
-  are removed instead of turned into `-` (`TCP/IP` gives `tcpip`), accented
-  letters slugify.js does not list survive (`Šňůra` gives `snura`, not
-  `ura`), and `ł` is dropped instead of mapped to `l`.
-- A title whose slug would be empty (no Latin letters or digits) fails
-  instead of writing `.md`.
-- The project `resources` link is a plain `file://` URL.
-- The problem resolution report heading is `# <title>`, not
-  `# PRR: <title>`, because bim keeps the H1 equal to the title.
-- `--source` drops the old frontmatter for every template (the vault only
-  does that for projects) and takes files only from `inbox/`.
