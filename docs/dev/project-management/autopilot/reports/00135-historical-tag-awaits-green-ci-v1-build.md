@@ -260,3 +260,35 @@ under a separately prepared, authorized recovery; preserve these observations.
 No branch push, force update, asset upload, other-version publication, local
 commit, workflow/state edit, new test, or completion review was performed by
 this worker. Coordinator additions above were preserved.
+
+## Persisted pause and prepared recovery choices
+
+Coordinator persisted `phase: paused`, `next_phase: paused`, and
+`pause_reason.site: publication_conflict` through statectl. Task 1 is completed;
+Task 2 remains pending with its failed attempt and actual-model provenance.
+Neither completion review nor finalization ran. The build is not complete.
+
+An operator decision is indispensable because the PRD explicitly requires
+stopping on publication conflicts and forbids Latest promotion, other versions,
+or overwriting existing releases. No waiver is inferred from elapsed time.
+Prepared choices, neither executed:
+
+- Retain the release and explicitly accept a no-Latest exception. Recovery must
+  also correct the notes' inaccurate designation sentence before verification.
+- Remove only the GitHub release with `gh release delete v0.1.0 --repo
+  buvis/agent-skills --yes`, without `--cleanup-tag`. This removes release
+  `439793234` and its public release entry while retaining the exact remote tag.
+  The complete notes remain preserved in this report. Publication then remains
+  pending a solution that satisfies the no-Latest requirement.
+
+No permission denial occurred. This pause follows an observed publication
+conflict, not an automatic approval rejection. No corrective external action is
+authorized until the operator resolves that conflict. Resume must re-inspect
+the current release and CI state; it must not push or recreate the tag blindly.
+
+The existing unrelated staged intake note is preserved outside this PRD's
+commits. Pause closeout records only this PRD's evidence and telemetry; the
+whole-store recorder is reserved for normal gate handoffs and would sweep that
+unrelated staged note into its commit. This is a paused build, not a completed
+build-to-review handoff. Existing worktrees/plans belong to other work and remain
+untouched; live publication notes and temporary evidence remain available.
