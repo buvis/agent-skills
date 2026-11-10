@@ -590,3 +590,45 @@ The unrelated staged intake note `intake/new/00176-skills-adopt-repository-memor
 is temporarily preserved in a path-scoped stash to exclude it from the store
 recorder; restore its original staged state immediately after that recorder.
 Existing worktrees and plans belong to other work and remain untouched.
+
+## Cycle 1 rework — Task 3
+
+Committed as `8bc7321`. Native isolated worker dispatch `e165b312`, logical
+sonnet, observed OpenAI `gpt-6.1-sol` / medium, session
+`01a1c767-5a66-7bd1-9779-43d1db73c145`; sanitized raw-metadata
+extract is retained in the sibling worker-metadata JSONL with its source hash.
+Host delegation overrides the eligible source micro lane; the independent
+review route remains Anthropic Opus/xhigh via the driver.
+
+Only the PRD record changed. Original conflict observations remain historical.
+The record now states final verification and v0.2.0 recovery safeguards,
+including the honest postpublication timing of the notes review. Read-only
+`gh run view 42819166960` confirmed exact head
+`3af575327b5526c0fb45ab3f3e249faaabe5c26d`, completed/success, eight
+successful jobs and every step successful. Python compared local v0.2.0
+notes bytes with the live REST release body: equality true; both SHA-256
+`c1dc88bef9af6f80a574ee8ddce9b630a5dc3c5a0cd51eda6a556e1b49e25ffd`.
+All six entry texts equal the tagged changelog section, blob
+`98c0aecd260372b4b9b1675eee1362603406cf96`. Read-only REST confirms
+release 440124980, published 2026-11-10T08:50:27Z, empty assets, false
+draft/prerelease. GraphQL confirms v0.1.0 is not Latest and v0.2.0 is Latest.
+Live v0.1.0 body hash remains
+`e8d19ba28db18b65bbc8ecfcf52ece574990ffe00491a1d5ffe13b178c2a511a`;
+read-only remote refs retain both exact tag targets. No external mutation.
+
+Documentation-only: Tess/red-check and per-task code review skipped under the
+source documentation rules; no new tests. Self-deslop skipped because only
+one implementation file changed. Reflow and diff checks passed.
+3: style_gate: clean, split_hygiene: skipped:no-tests.
+ASSUMPTIONS: none. The pre-existing assumptions ledger belongs to PRD 00131
+and is preserved; this task adds none. No queued verification checks exist.
+Ruff lint/format and explicit-source braid check passed (161 current, zero drift).
+Cycle 1 consolidated review shape/guard gate passed; prior receipts and audit
+snapshot remain unchanged for the fresh cycle 2 review.
+
+Final rework verification at `8bc7321943ea446e63075631c5347b3a5cc57f7b`:
+`autopilot verify --gate-command "uv run python scripts/gate.py" --cycle 1`
+returned exit 0, recorded true, clean tree: **PASS 4333 FAIL 0 SKIP 12 EXIT 0**.
+No suite retry or repair. State schema/task counts valid, 3/3 complete.
+Next action is canonical rework transition and fresh cycle 2 completion review;
+this session does not run that review or claim convergence.
