@@ -1,5 +1,5 @@
 ---
-eligibility: test -x "$HOME/.local/share/mise/installs/pipx-buvis-gems/latest/bin/braid"
+eligibility: B="$HOME/.local/share/mise/installs/pipx-buvis-gems/latest/bin/braid"; test -x "$B" && "$B" --help >/dev/null && ! "$B" --help | grep -q -- --config-root
 design: skip
 default_model: sonnet
 model_tier_rationale: deletion plus exact replacement text; the one judgment point (premise re-check) is spelled out in the task text
@@ -7,7 +7,9 @@ model_tier_rationale: deletion plus exact replacement text; the one judgment poi
 
 # Retire the bundled braid package
 
-Source: `~/.claude/docs/dev/project-management/discovery/00182-layer-agent-rules-across-hosts.md` (phase 1, retirement step). Runs after buvis/gems PRD 00115 is released and installed; the `eligibility` check holds the PRD until the gems `braid` binary exists.
+Source: `~/.claude/docs/dev/project-management/discovery/00182-layer-agent-rules-across-hosts.md` (phase 1, retirement step). Runs after buvis/gems#272 (gems PRD 00123) is released and installed: gems braid then reads its sources from `~/.config/buvis/buvis-braid.yaml` and no longer has `--config-root`. The `eligibility` check holds the PRD until then. Companion of buvis home PRD 00183.
+
+Reworked 2026-11-10: the first version gated only on the gems binary existing (already true while gems braid still read `~/.config/braid`, so a drain would have deleted the only working braid) and pointed readers at `~/.config/braid/sources.d`, which breaks the rule that gems tools keep config in `~/.config/buvis/`.
 
 ## Overview
 
@@ -36,7 +38,7 @@ Anyone reading or cloning this repository.
 - **Description**: Remove braid's source, launchers and tests.
 - **Inputs**: `src/agent_skills_braid/cli.py`, `src/agent_skills_braid/__init__.py`, `bin/braid`, `bin/braid.py`, `tests/test_braid.py`, `tests/test_braid_check.py`.
 - **Outputs**: Those files gone.
-- **Behavior**: Premise: the gems `braid` binary at `$HOME/.local/share/mise/installs/pipx-buvis-gems/latest/bin/braid` exists and `"$HOME/.local/share/mise/installs/pipx-buvis-gems/latest/bin/braid" --help` exits 0. Re-check at execution; if it fails, skip the whole PRD and report.
+- **Behavior**: Premise: the gems `braid` binary at `$HOME/.local/share/mise/installs/pipx-buvis-gems/latest/bin/braid` exists, its `--help` exits 0 and does not list `--config-root`, and `braid --check` (gems) exits 0 on this machine. Re-check at execution; if any part fails, skip the whole PRD and report.
 
 #### Feature: Make the project a non-package
 - **Description**: `pyproject.toml` keeps dev tooling only.
@@ -53,10 +55,10 @@ Anyone reading or cloning this repository.
 - **Behavior**: Command unchanged.
 
 #### Feature: README and AGENTS.md
-- **Description**: Documentation names gems braid and `~/.config/braid`.
+- **Description**: Documentation names gems braid and `~/.config/buvis/buvis-braid.yaml`.
 - **Inputs**: `README.md`, `AGENTS.md`, `CHANGELOG.md`.
 - **Outputs**: Edited text.
-- **Behavior**: In `README.md`: (1) replace the first paragraph (lines starting `Portable personal skills` through `host-specific discovery paths.`) with `Portable personal skills for AI coding assistants. They reach each assistant through braid, the composer in [buvis-gems](https://github.com/buvis/gems).`; (2) replace the body of `## Install` with a code block `git clone https://github.com/buvis/agent-skills ~/git/src/github.com/buvis/agent-skills`, `uv tool install buvis-gems`, `mkdir -p ~/.config/braid/sources.d`, `echo ~/git/src/github.com/buvis/agent-skills > ~/.config/braid/sources.d/personal`, `braid --dry-run`, `braid`, `braid --check`, followed by the sentence `braid usage, flags, Kiro enrollment and Windows behavior are documented in buvis-gems (docs/source/tools/braid.rst).`; (3) replace `~/.config/agent-skills/sources.d/` with `~/.config/braid/sources.d/` everywhere; (4) delete everything from the `## braid` heading through the paragraph ending `no Bash runtime\nis required.`, keeping the two `.braidignore` paragraphs that follow under a new heading `## .braidignore`, and change `Braid loads it from\nthe tool repository, ~/.agents,` to `braid loads it from\n~/.agents,`. In `AGENTS.md`, replace `` `skills/` is the only directory braid scans (`_skills_directory`) `` with `` `skills/` is the only directory braid (buvis-gems) scans for skills ``. In `CHANGELOG.md` `[Unreleased]`, add `### Removed` entry `- **braid**: the bundled agent-skills-braid package; install braid from buvis-gems and move sources.d to ~/.config/braid`.
+- **Behavior**: In `README.md`: (1) replace the first paragraph (lines starting `Portable personal skills` through `host-specific discovery paths.`) with `Portable personal skills for AI coding assistants. They reach each assistant through braid, the composer in [buvis-gems](https://github.com/buvis/gems).`; (2) replace the body of `## Install` with a code block `git clone https://github.com/buvis/agent-skills ~/git/src/github.com/buvis/agent-skills`, `uv tool install buvis-gems`, `mkdir -p ~/.config/buvis`, `printf 'sources:\n  - ~/git/src/github.com/buvis/agent-skills\n' >> ~/.config/buvis/buvis-braid.yaml`, `braid --dry-run`, `braid`, `braid --check`, followed by the sentence `braid usage, flags, machine-local sources, Kiro enrollment and Windows behavior are documented in buvis-gems (docs/source/tools/braid.rst).`; (3) replace every passage describing `~/.config/agent-skills/sources.d/` (the directory, its one-path-per-line files, `#` comments, the `personal`/`work` examples) with one sentence: `braid reads source repositories from the sources list in ~/.config/buvis/buvis-braid.yaml; machine-only sources go in ~/.local/.config/buvis/buvis-braid.yaml.`; (4) delete everything from the `## braid` heading through the paragraph ending `no Bash runtime\nis required.`, keeping the two `.braidignore` paragraphs that follow under a new heading `## .braidignore`, and change `Braid loads it from\nthe tool repository, ~/.agents,` to `braid loads it from\n~/.agents,`. In `AGENTS.md`, replace `` `skills/` is the only directory braid scans (`_skills_directory`) `` with `` `skills/` is the only directory braid (buvis-gems) scans for skills ``. In `CHANGELOG.md` `[Unreleased]`, add `### Removed` entry `- **braid**: the bundled agent-skills-braid package; install braid from buvis-gems and list sources in ~/.config/buvis/buvis-braid.yaml`.
 
 ## Structural Decomposition
 
@@ -115,4 +117,4 @@ No dependencies - built first.
 
 ## Risks
 
-- **This machine runs the old braid through `~/.agents/bin/braid`**: that link dangles after this PRD. The buvis home PRD 00183 removes it and moves `sources.d`; it carries the same eligibility check.
+- **This machine runs the old braid through `~/.agents/bin/braid`**: that link dangles after this PRD. The buvis home PRD 00183 removes it and moves the `sources.d` entries into `~/.config/buvis/buvis-braid.yaml`; it carries the same eligibility check. Run 00183 first or in the same batch, so the machine never runs without a configured braid.
