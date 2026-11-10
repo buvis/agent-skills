@@ -166,3 +166,14 @@ and contradicts the published notes' designation statement. External actions
 stopped at the conflict; no overwrite, deletion, or other-version release was
 attempted. Recovery remains pending. Full commands and evidence are in
 `docs/dev/project-management/autopilot/reports/00135-historical-tag-awaits-green-ci-v1-build.md`.
+
+## Operator waiver and recovery — 2026-11-10
+
+The operator waived "do not publish other versions" for v0.2.0 only, to clear
+the Latest conflict: v0.1.0 was the sole release, so GitHub made it Latest.
+After green CI run [42779216047](https://github.com/buvis/agent-skills/actions/runs/42779216047)
+on remote master `f90d5fa0f9966d1e673ed2c9cdc55067e1b8a763`, a release for the
+existing remote v0.2.0 tag was published as Latest:
+[v0.2.0](https://github.com/buvis/agent-skills/releases/tag/v0.2.0).
+v0.1.0 now reports `isLatest: false`; its release, both tags and master are
+unchanged. Phase 1 still needs the build session's final read-only verification.

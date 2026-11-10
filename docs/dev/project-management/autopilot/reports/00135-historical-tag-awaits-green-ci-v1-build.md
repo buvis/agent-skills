@@ -292,3 +292,62 @@ whole-store recorder is reserved for normal gate handoffs and would sweep that
 unrelated staged note into its commit. This is a paused build, not a completed
 build-to-review handoff. Existing worktrees/plans belong to other work and remain
 untouched; live publication notes and temporary evidence remain available.
+
+## Operator recovery: Latest conflict resolved (2026-11-10)
+
+Interactive recovery session, Claude Code, model `claude-fable-5-2` (Anthropic).
+This is an operator-authorized recovery action, not a Task 2 attempt. Task 2
+stays pending for the build session to re-verify and close idempotently.
+
+Cause: v0.1.0 was the only release in the repository. GitHub falls back to the
+sole published release as Latest, whatever `--latest=false` requested.
+
+Operator decision, asked and answered in this session: publish a release for
+the existing remote v0.2.0 tag, marked Latest. This waives the PRD's "do not
+publish other versions" rule for v0.2.0 only. The v0.1.0 release, both tags and
+master were not edited, deleted, or moved.
+
+Checks immediately before the action: remote master
+`f90d5fa0f9966d1e673ed2c9cdc55067e1b8a763`; latest CI run
+[42779216047](https://github.com/buvis/agent-skills/actions/runs/42779216047)
+for that SHA completed with success; all eight jobs and every step succeeded.
+Remote tags: v0.1.0 at `f4f2de0aa55b9c53a531b1b280a4339e74aebc64`, v0.2.0 at
+`f2b82d8372cceab04790e4fb183651a63de1e91d`.
+
+Notes: `docs/dev/tmp/00135-v0.2.0-release-notes.md`, the `[0.2.0] - 2026-10-25`
+section of `git show v0.2.0:CHANGELOG.md`, plus a source link and a line that
+says the GitHub publication is later than the version date.
+
+External action and result (exit 0):
+
+```text
+gh release create v0.2.0 --repo buvis/agent-skills --verify-tag --latest --title v0.2.0 --notes-file docs/dev/tmp/00135-v0.2.0-release-notes.md
+https://github.com/buvis/agent-skills/releases/tag/v0.2.0
+```
+
+Read-only results after the action:
+
+```text
+gh release list --repo buvis/agent-skills --json tagName,isLatest,isPrerelease,isDraft,publishedAt
+v0.2.0 isLatest=true  isDraft=false isPrerelease=false publishedAt=2026-11-10T08:50:27Z
+v0.1.0 isLatest=false isDraft=false isPrerelease=false publishedAt=2026-11-10T00:11:11Z
+
+gh api repos/buvis/agent-skills/releases/latest
+id 440124980, tag_name v0.2.0
+
+git ls-remote origin refs/heads/master 'refs/tags/v*'
+f90d5fa0f9966d1e673ed2c9cdc55067e1b8a763 refs/heads/master
+f4f2de0aa55b9c53a531b1b280a4339e74aebc64 refs/tags/v0.1.0
+f2b82d8372cceab04790e4fb183651a63de1e91d refs/tags/v0.2.0
+```
+
+The no-Latest criterion for v0.1.0 now holds, and the v0.1.0 notes' statement
+that it is not designated Latest is true. Release 439793234 is unchanged.
+
+For the review session: the v0.2.0 release is an Anthropic-model action outside
+the task attempts. Route review on the recorded attempts, and judge this action
+against the operator waiver above.
+
+The pause is cleared through statectl: `phase` and `next_phase` are `build`,
+`pause_reason` is deleted. Local master is merged with `origin/master` (merge,
+not rebase, so `work_start_sha` stays valid).
