@@ -1,7 +1,7 @@
 ---
 name: manage-bim
 description: Use for any BUVIS InfoMesh (BIM) knowledge task - take, create, find, read, edit, link, archive notes; inbox, projects, meetings, contacts, books. Triggers on "take note", "note this", "create note", "find note", "my notes", "zettel", "bim".
-compatibility: Requires the bim CLI from buvis-gems, the first release after 0.19.2 (bim create --json), and the BIM vault at the bim path_zettelkasten setting. Harness-neutral.
+compatibility: Requires the bim CLI from buvis-gems 0.20.0 or newer (bim create --json), and the BIM vault at the bim path_zettelkasten setting. Harness-neutral.
 ---
 
 # Manage the BIM vault
@@ -15,7 +15,7 @@ message links, and the template.
 
 ## Dependencies
 
-- `bim` from buvis-gems, the first release after 0.19.2. Check that
+- `bim` from buvis-gems 0.20.0 or newer. Check that
   `bim create --help` lists `--json` and `--summary-file`. If bim is missing
   or older, stop and tell the user to upgrade buvis-gems. Do not write the
   note by hand.
@@ -28,11 +28,32 @@ message links, and the template.
 - Source access: use an available authorized connector or local archive. A
   missing one blocks only that source, not the skill.
 
+## Keep vault content out of the session
+
+The vault is private. Its content (notes, inbox, daily notes, archived
+articles, project folders, tags, titles, and search results) must not reach
+the session without the user's explicit approval. This rule overrides
+`bim --skill`, including its "read freely" for `inbox/` and its pointer to
+`notes/system/index.md`.
+
+- Read only what the user asked you to read in this conversation: a note to
+  find or show, or an inbox file to process. That request covers that read
+  only, not the rest of the vault.
+- For any other read, ask first and wait: tag lookups, a `parent::` note,
+  duplicate checks, the vault's own docs, or context for a task. If the user
+  says no, go on without it.
+- Never read the vault on your own initiative: no `bim query`, `bim show`,
+  `rg`, `cat`, file reads, or `--dry-run` of an inbox file without that
+  approval.
+- Creating a note needs no approval: you supply its text, and the
+  `bim create --json` report holds only paths and metadata.
+
 ## Find, read, edit, or archive notes
 
-Follow `bim --skill`: `bim query` to find notes (JSON output when you parse
-it), `bim show` to read one, `bim edit` for metadata, `bim archive` to put one
-away. Give the user each note's title and wikilink, not only its path.
+When the user asks, follow `bim --skill`: `bim query` to find notes (JSON
+output when you parse it), `bim show` to read one, `bim edit` for metadata,
+`bim archive` to put one away. Keep queries to what the request needs. Give
+the user each note's title and wikilink, not only its path.
 
 ## "Take note" means create a BIM note
 
@@ -75,8 +96,8 @@ preserving a message archive or transcript:
   links. Drop greetings, repetition, conversational filler, and chat formatting.
 - Preserve uncertainty: a suggestion is not an agreed decision, and a proposed
   name or access item is not confirmed configuration.
-- Choose a subject-based title. Reuse existing tags and link a relevant existing
-  note with `parent::` when one exists. Use the source's backmatter field:
+- Choose a subject-based title. Link a `parent::` note only when the user names
+  it or approves a search for it. Use the source's backmatter field:
   `teams::` for Teams URLs, `web::` for ordinary web URLs. Name the people the
   source involves (sender, owners) by their full name in the text so they link to
   their contact note.
@@ -184,8 +205,8 @@ Infer from the request and context; ask only for what you cannot infer.
     `YYYY-MM-DD | <Subject> meeting minutes`, so do not add the date or
     "meeting minutes" yourself.
   - Book: the title as printed on the cover.
-- `--tags`: reuse existing tags (`rg -NIo '^tags: \[.*\]' ~/bim/notes` lists
-  them).
+- `--tags`: take them from the request, or choose plain kebab-case ones. Look
+  up the vault's existing tags only after the user approves that read.
   `person` and `book` belong only to contacts and books; bim adds them and
   rejects them on other templates.
 - `-a deliverable=` (project): `fix` for broken things, `enhancement` for new
