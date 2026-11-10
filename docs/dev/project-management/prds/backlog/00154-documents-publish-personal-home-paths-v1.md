@@ -26,6 +26,7 @@ Use repository-relative paths where appropriate and home-relative notation for r
 - Update consumers that open or compare serialized transcript paths so home-relative paths resolve intentionally. Preserve legacy absolute records, stable evidence association, queue deduplication, and store ownership checks.
 - Scrub the identified current tracked documents with context-aware replacements, preserving evidence meaning and valid repository-relative links. Review link destinations and structured data separately from prose.
 - Add a regression check for personal home prefixes in tracked project-management documents, including prefixes from other machines; allow explicit generic placeholders such as /Users/you and synthetic fixture values outside that public-document scope.
+- Cover the autocodex host writers too (added 2026-11-10 by operator decision, PRD 00135 review-1 R3). The driver and adapter under `~/.config/autocodex/` write absolute paths into tracked files: `autocodex-metrics.jsonl` rows (`raw`), review receipts (`output`, `raw`), and the `autocodex_<lens>_<provider>_receipt:` lines of review files. Make new records repo-relative. The adapter's receipt checks and `review-route` must accept both the legacy absolute form and the new form, so existing receipts keep validating. That code sits outside this repository and is read-only in the agent sandbox: route the change through warrant or an operator hand-off.
 - Keep diagnostics free of copied private path contents where a path-only diagnostic suffices. Do not add the actual operator prefix to the test source or this PRD.
 - Preserve git history and tags. Correcting current documents does not erase historical exposure.
 
@@ -93,6 +94,7 @@ The design must replace the final directory-only placeholder with the current af
 - [ ] Enumerate the current tracked-document occurrences and demonstrated generators/consumers, record concrete paths in the design and this PRD, and define reversible portable path rules. Keep private prefixes out of tracked artifacts.
 - [ ] Update generators and consumers together, covering both portable and legacy records without duplicate queue entries or incorrect store matching.
 - [ ] Scrub the enumerated current documents while preserving structured formats, evidence meaning, and valid links. Review the complete document diff.
+- [ ] Make the autocodex host writers emit repo-relative metrics and receipt paths, with readers accepting legacy absolute records; validate an existing receipt and a new one through the adapter's receipt check.
 - [ ] Add the tracked-document home-prefix regression and synthetic-home generator/consumer tests. Assert fake home prefixes are absent from published artifacts and portable references resolve to the correct source locally.
 - [ ] Run `uv run pytest skills/distil-memory/scripts scripts/test_public_doc_paths.py` and repository-required checks before committing. Validate any additional touched skill.
 
