@@ -143,7 +143,8 @@ eligibility, overwrite conflicting refs, or publish unreviewed additional scope.
 
 ## Publication record — 2026-11-10
 
-Phase 1 remains incomplete because final verification found a Latest conflict.
+At initial publication, Phase 1 was incomplete because verification found a
+Latest conflict; recovery and final verification are recorded below.
 Immediately before each external action, remote master
 `99f3c9cd0e0be8172e127559769e75044b0dafab` matched completed successful CI
 run [42716763283](https://github.com/buvis/agent-skills/actions/runs/42716763283);
@@ -160,11 +161,11 @@ or prerelease state. Notes SHA-256:
 Source: `v0.1.0:CHANGELOG.md`, `[0.1.0] - 2026-10-18`.
 Master and the newer v0.2.0 tag stayed unchanged.
 
-Despite `--latest=false`, REST `/releases/latest` resolves to this release and
-GraphQL reports `isLatest: true`. This fails the no-Latest acceptance criterion
-and contradicts the published notes' designation statement. External actions
+Despite `--latest=false`, REST `/releases/latest` resolved to this release and
+GraphQL reported `isLatest: true`. This failed the no-Latest acceptance criterion
+and contradicted the published notes' designation statement. External actions
 stopped at the conflict; no overwrite, deletion, or other-version release was
-attempted. Recovery remains pending. Full commands and evidence are in
+attempted. Recovery was pending at that point. Full commands and evidence are in
 `docs/dev/project-management/autopilot/reports/00135-historical-tag-awaits-green-ci-v1-build.md`.
 
 ## Operator waiver and recovery — 2026-11-10
@@ -176,4 +177,36 @@ on remote master `f90d5fa0f9966d1e673ed2c9cdc55067e1b8a763`, a release for the
 existing remote v0.2.0 tag was published as Latest:
 [v0.2.0](https://github.com/buvis/agent-skills/releases/tag/v0.2.0).
 v0.1.0 now reports `isLatest: false`; its release, both tags and master are
-unchanged. Phase 1 still needs the build session's final read-only verification.
+unchanged by recovery.
+
+Recovery used `--verify-tag --latest` for the existing v0.2.0 tag at
+`f2b82d8372cceab04790e4fb183651a63de1e91d`, without moving either tag.
+Notes source: `docs/dev/tmp/00135-v0.2.0-release-notes.md`, from
+`v0.2.0:CHANGELOG.md`, section `[0.2.0] - 2026-10-25` (blob
+`98c0aecd260372b4b9b1675eee1362603406cf96`). The documentation repair
+reviewed all six Changed/Fixed entries against that tagged section: they match
+exactly, and the added framing distinguishes the version date from publication.
+The live release body matches the prepared notes byte-for-byte, including the
+final newline; both have SHA-256
+`c1dc88bef9af6f80a574ee8ddce9b630a5dc3c5a0cd51eda6a556e1b49e25ffd`.
+Release `440124980` was published at 2026-11-10T08:50:27Z, with no assets,
+`draft: false`, and `prerelease: false`. This review records the notes check
+performed during documentation repair, without claiming a prepublication review.
+
+### Final read-only verification — 2026-11-10
+
+The build session verified Phase 1 at 2026-11-10T18:57:47+00:00 under the
+recorded waiver. Current published master
+`3af575327b5526c0fb45ab3f3e249faaabe5c26d` matched completed successful CI
+run [42819166960](https://github.com/buvis/agent-skills/actions/runs/42819166960);
+all eight jobs and every step, including Windows, passed with unchanged workflow
+blob `87421424848ad2d41436de49110f04e5eaa27243`. Remote v0.1.0 remained at
+`f4f2de0aa55b9c53a531b1b280a4339e74aebc64`, with its unchanged
+[historical release](https://github.com/buvis/agent-skills/releases/tag/v0.1.0)
+and matching body SHA-256
+`e8d19ba28db18b65bbc8ecfcf52ece574990ffe00491a1d5ffe13b178c2a511a`.
+GraphQL confirmed `v0.1.0.isLatest=false` and `v0.2.0.isLatest=true`;
+REST Latest was v0.2.0 release `440124980`. Both tag targets matched their
+local preserved commits. Phase 1 publication verification passed; this records
+publication evidence, not completion-review approval. Full commands and results
+remain in the build report linked above.
