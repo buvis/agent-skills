@@ -169,7 +169,9 @@ class FakeClaudeCli:
     def __call__(self, cmd, **kwargs):
         prompt = kwargs["input"]
         if cmd[cmd.index("--model") + 1] == "haiku":
-            verdict = "transient" if prompt.endswith(self.transient_texts) else "durable"
+            # triage sends the slice JSON-encoded as the prompt's final line
+            encoded = tuple(json.dumps(text) for text in self.transient_texts)
+            verdict = "transient" if prompt.endswith(encoded) else "durable"
             return _deliver(cmd, verdict)
         for text, answer in self.distil_answers.items():
             if prompt.endswith(text):
