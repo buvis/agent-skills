@@ -140,3 +140,29 @@ Later master CI success does not prove the historical tagged commit was green.
 The notes must be honest about that distinction. Publication is an external
 commitment, so prepare everything before the final action and never bypass
 eligibility, overwrite conflicting refs, or publish unreviewed additional scope.
+
+## Publication record — 2026-11-10
+
+Phase 1 remains incomplete because final verification found a Latest conflict.
+Immediately before each external action, remote master
+`99f3c9cd0e0be8172e127559769e75044b0dafab` matched completed successful CI
+run [42716763283](https://github.com/buvis/agent-skills/actions/runs/42716763283);
+all eight jobs and every step, including Windows, passed. The exact workflow
+blob remained unchanged and its inspected gates were not weakened.
+
+Only the existing v0.1.0 tag was pushed, without force, at
+`f4f2de0aa55b9c53a531b1b280a4339e74aebc64`. The verified remote tag was
+used to create [v0.1.0 (historical)](https://github.com/buvis/agent-skills/releases/tag/v0.1.0)
+with `--verify-tag --latest=false` and the prepared notes. Publication timestamp:
+2026-11-10T00:11:11Z. Body bytes match the prepared notes; no assets, draft,
+or prerelease state. Notes SHA-256:
+`e8d19ba28db18b65bbc8ecfcf52ece574990ffe00491a1d5ffe13b178c2a511a`.
+Source: `v0.1.0:CHANGELOG.md`, `[0.1.0] - 2026-10-18`.
+Master and the newer v0.2.0 tag stayed unchanged.
+
+Despite `--latest=false`, REST `/releases/latest` resolves to this release and
+GraphQL reports `isLatest: true`. This fails the no-Latest acceptance criterion
+and contradicts the published notes' designation statement. External actions
+stopped at the conflict; no overwrite, deletion, or other-version release was
+attempted. Recovery remains pending. Full commands and evidence are in
+`docs/dev/project-management/autopilot/reports/00135-historical-tag-awaits-green-ci-v1-build.md`.

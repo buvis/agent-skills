@@ -168,3 +168,95 @@ route: solo coordinator; effective route: native worker under the explicit host
 delegation requirement. No unsupported model provider or fallback was used.
 All completion review lenses remain reserved for a fresh session. The code-owned
 `suite_red` lane signal will escalate the finished build to full review.
+
+## Task 2: partial publication; Latest conflict blocks completion
+
+Dispatch `cc16b1da`, same runtime and logical tier as Task 1. Observation window:
+2026-11-10T00:10–00:11Z; final read-only inspection at 00:11:47Z.
+
+Immediately before **each** external action, a read-only Python command invoked
+the same `gh api` remote-master query, latest `gh run list`, and full `gh run
+view` jobs/steps queries recorded above. Both checks returned remote master
+`99f3c9cd0e0be8172e127559769e75044b0dafab` and CI run `42716763283`,
+completed/success, with the exact set of all eight required jobs and every
+returned step successful. Both checks re-read the exact workflow's GitHub
+contents blob, `87421424848ad2d41436de49110f04e5eaa27243`, unchanged from
+the inspected workflow. No job, Windows capability check, or gate was bypassed.
+
+Before push, `git rev-parse 'v0.1.0^{commit}'` again returned the accepted
+`f4f2de0aa55b9c53a531b1b280a4339e74aebc64`. Live `git ls-remote` showed
+v0.1.0 absent, master unchanged, and v0.2.0 at
+`f2b82d8372cceab04790e4fb183651a63de1e91d`. Release list remained `[]`.
+Prepared notes were checked against the exact embedded text above and their
+SHA-256 was computed:
+`e8d19ba28db18b65bbc8ecfcf52ece574990ffe00491a1d5ffe13b178c2a511a`.
+
+Exact external action and result (exit 0):
+
+```text
+git push origin refs/tags/v0.1.0:refs/tags/v0.1.0
+To github.com:buvis/agent-skills.git
+ * [new tag]         v0.1.0 -> v0.1.0
+```
+
+Before release creation, repeated all CI checks above, live remote-ref checks,
+and `gh api repos/buvis/agent-skills/git/ref/tags/v0.1.0 --jq .object.sha`.
+Both Git and GitHub independently returned the accepted v0.1.0 SHA. The
+release list was still empty; notes SHA-256 was unchanged.
+
+Exact external action and result (exit 0):
+
+```text
+gh release create v0.1.0 --repo buvis/agent-skills --verify-tag --latest=false --title 'v0.1.0 (historical)' --notes-file docs/dev/tmp/00135-v0.1.0-release-notes.md
+https://github.com/buvis/agent-skills/releases/tag/v0.1.0
+```
+
+Final read-only results from `gh api repos/buvis/agent-skills/releases/tags/v0.1.0`:
+
+```text
+id: 439793234
+tag_name: v0.1.0
+name: v0.1.0 (historical)
+html_url: https://github.com/buvis/agent-skills/releases/tag/v0.1.0
+draft: false
+prerelease: false
+created_at: 2026-10-18T09:52:22Z
+published_at: 2026-11-10T00:11:11Z
+assets: []
+body UTF-8 bytes == prepared notes bytes: true
+```
+
+The notes remain unchanged, sourced exclusively from tagged CHANGELOG blob
+`b72c63a890227ca85d8b87f7f194267e389fd102`, version date 2026-10-18.
+The actual GitHub publication occurred on 2026-11-10. Final `git ls-remote`
+confirmed exactly:
+
+```text
+99f3c9cd0e0be8172e127559769e75044b0dafab refs/heads/master
+f4f2de0aa55b9c53a531b1b280a4339e74aebc64 refs/tags/v0.1.0
+f2b82d8372cceab04790e4fb183651a63de1e91d refs/tags/v0.2.0
+```
+
+**Blocking conflict:** despite the required explicit `--latest=false`, GitHub's
+`gh api repos/buvis/agent-skills/releases/latest` now returns release
+`439793234` (previously 404). GraphQL confirms this is Latest, not merely a
+REST display ambiguity:
+
+```text
+gh api graphql -f query='query { repository(owner:"buvis", name:"agent-skills") { release(tagName:"v0.1.0") { name tagName isLatest isDraft isPrerelease url } } }'
+{"data":{"repository":{"release":{"name":"v0.1.0 (historical)","tagName":"v0.1.0","isLatest":true,"isDraft":false,"isPrerelease":false,"url":"https://github.com/buvis/agent-skills/releases/tag/v0.1.0"}}}}
+```
+
+`gh release create --help` describes `--latest=false` as explicitly not setting
+Latest. The observed server state conflicts with that requested behavior.
+The final releases list contains only v0.1.0. No second release was created,
+and no existing release was overwritten, edited, deleted, or converted into a
+prerelease. No further external mutation was attempted after the conflict.
+The no-Latest acceptance criterion therefore **does not pass**, and the notes'
+statement that this release is not designated Latest is contradicted by the
+server state. Do not mark Phase 1 or the PRD complete. Resolve the conflict
+under a separately prepared, authorized recovery; preserve these observations.
+
+No branch push, force update, asset upload, other-version publication, local
+commit, workflow/state edit, new test, or completion review was performed by
+this worker. Coordinator additions above were preserved.
