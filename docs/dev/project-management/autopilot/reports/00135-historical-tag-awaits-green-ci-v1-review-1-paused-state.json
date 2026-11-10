@@ -1,0 +1,2050 @@
+{
+  "phase": "paused",
+  "next_phase": "paused",
+  "schema_version": 1,
+  "batch": {
+    "id": "202610271200",
+    "mode": "autopilot",
+    "completed_prds": [
+      {
+        "filename": "00090-missing-public-ledger-disables-guard-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00091-brush-trashes-protected-directory-contents-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00092-glean-crashes-non-ascii-filenames-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00093-sweep-counts-its-own-reports-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00094-guest-labels-merge-speaker-turns-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00095-similar-names-collapse-distinct-speakers-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00096-brush-hides-pull-request-failures-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00097-dependency-review-hides-repository-failures-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00099-evaluation-render-crashes-malformed-data-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 12,
+        "escalated_decisions": 0,
+        "tasks_completed": 3,
+        "tasks_total": 3,
+        "lane": "full",
+        "lane_reason": "security_path",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00101-damaged-queue-looks-finished-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "full",
+        "lane_escalated": {
+          "from": "fast-track",
+          "signal": "unnamed_path"
+        }
+      },
+      {
+        "filename": "00102-prd-validation-release-notes-missing-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "solo",
+        "lane_reason": "no_production_code",
+        "lane_effective": "solo",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00103-sweep-scanning-release-notes-missing-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "solo",
+        "lane_reason": "no_production_code",
+        "lane_effective": "solo",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00105-qwen-silently-exits-mise-failure-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00106-cleanup-manifests-use-different-paths-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00107-meeting-tools-crash-malformed-input-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 0,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "full",
+        "lane_escalated": {
+          "from": "fast-track",
+          "signal": "unnamed_path"
+        }
+      },
+      {
+        "filename": "00109-sweep-hides-stale-registry-entries-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00110-trash-manifest-breaks-retains-dead-records-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00114-qwen-audit-hides-discovery-fallback-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00115-documentation-has-three-stale-statements-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 4,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "full",
+        "lane_reason": "unparsed",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00116-survey-truncation-explanation-incomplete-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "solo",
+        "lane_reason": "no_production_code",
+        "lane_effective": "solo",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00117-four-scripts-ignore-help-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 4,
+        "escalated_decisions": 0,
+        "tasks_completed": 2,
+        "tasks_total": 2,
+        "lane": "fast-track",
+        "lane_reason": "uncardable",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00118-historical-commit-types-preserve-history-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "solo",
+        "lane_reason": "no_production_code",
+        "lane_effective": "solo",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00119-windows-command-has-extra-backslash-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "solo",
+        "lane_reason": "no_production_code",
+        "lane_effective": "solo",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00120-link-check-noise-hides-dead-references-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 15,
+        "escalated_decisions": 0,
+        "tasks_completed": 8,
+        "tasks_total": 8,
+        "lane": "full",
+        "lane_reason": "design",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00121-survey-performance-accepted-observation-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "solo",
+        "lane_reason": "no_production_code",
+        "lane_effective": "solo",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00122-glean-performance-accepted-observation-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "solo",
+        "lane_reason": "no_production_code",
+        "lane_effective": "solo",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00123-large-skipped-directories-may-resurface-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 6,
+        "escalated_decisions": 0,
+        "tasks_completed": 5,
+        "tasks_total": 5,
+        "lane": "full",
+        "lane_reason": "design",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00127-dependency-discovery-uses-small-pages-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00128-mistyped-queue-needs-warning-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00129-nested-trash-restoration-needs-parent-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "solo",
+        "lane_reason": "no_production_code",
+        "lane_effective": "solo",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00130-braid-mislabels-unreadable-state-encoding-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00131-crafted-template-archive-escapes-directory-v1.md",
+        "cycles": 2,
+        "autonomous_decisions": 8,
+        "escalated_decisions": 0,
+        "tasks_completed": 4,
+        "tasks_total": 4,
+        "lane": "full",
+        "lane_reason": "security_path",
+        "lane_effective": "full",
+        "lane_escalated": null
+      },
+      {
+        "filename": "00132-linked-temp-store-loses-prd-protection-v1.md",
+        "cycles": 1,
+        "autonomous_decisions": 0,
+        "escalated_decisions": 0,
+        "tasks_completed": 1,
+        "tasks_total": 1,
+        "lane": "fast-track",
+        "lane_reason": "card_sized",
+        "lane_effective": "fast-track",
+        "lane_escalated": null
+      }
+    ],
+    "plugin_versions": {
+      "aegis@buvis-plugins": "0.4.1",
+      "warden@buvis-plugins": "0.14.1"
+    },
+    "parks_consecutive": 0,
+    "skips": [
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T21:20:37Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T21:20:37Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T21:20:37Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T21:42:04Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T21:42:04Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T21:42:04Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T22:59:36Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T22:59:36Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T22:59:36Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T22:59:59Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T22:59:59Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-27T22:59:59Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:15:12Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:15:12Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:15:12Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:15:35Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:15:35Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:15:35Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:51:14Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:51:14Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:51:14Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:51:34Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:51:34Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T00:51:34Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T02:00:14Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T02:00:14Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T02:00:14Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T02:00:55Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T02:00:55Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T02:00:55Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T03:09:45Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T03:09:45Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T03:09:45Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T03:10:24Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T03:10:24Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T03:10:24Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T04:40:06Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T04:40:06Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T04:40:06Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T04:40:26Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T04:40:26Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T04:40:26Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T05:13:54Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T05:13:54Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T05:13:54Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T05:14:20Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T05:14:20Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T05:14:20Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T06:39:28Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T06:39:28Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T06:39:28Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T08:02:10Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T08:02:10Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T08:02:10Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T08:02:35Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T08:02:35Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T08:02:35Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T09:12:40Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T09:12:40Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T09:12:40Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:07:21Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:07:21Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:07:21Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:07:54Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:07:54Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:07:54Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:42:05Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:42:05Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:42:05Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:42:31Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:42:31Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T22:42:31Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T23:26:37Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T23:26:37Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-28T23:26:37Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T02:22:24Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T02:22:24Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T02:22:24Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T03:34:29Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T03:34:29Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T03:34:29Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T03:35:14Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T03:35:14Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T03:35:14Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T04:48:12Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T04:48:12Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T04:48:12Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T04:48:53Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T04:48:53Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T04:48:53Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T06:11:31Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T06:11:31Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T06:11:31Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T06:11:53Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T06:11:53Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T06:11:53Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T07:21:48Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T07:21:48Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T07:21:48Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T08:01:13Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T08:01:13Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T08:01:13Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T08:01:40Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T08:01:40Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T08:01:40Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T09:18:47Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T09:18:47Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T09:18:47Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T09:19:14Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T09:19:14Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T09:19:14Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T11:16:32Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T11:16:32Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T11:16:32Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T12:13:15Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T12:13:15Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T12:13:15Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T13:55:38Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T13:55:38Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T13:55:38Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T13:56:08Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T13:56:08Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T13:56:08Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T14:52:20Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T14:52:20Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T14:52:20Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T14:53:06Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T14:53:06Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T14:53:06Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T15:08:26Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T15:08:26Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T15:08:26Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T15:09:08Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T15:09:08Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T15:09:08Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T16:27:51Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T16:27:51Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T16:27:51Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T16:34:56Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T16:34:56Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T16:34:56Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T16:35:50Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T16:35:50Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T16:35:50Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T17:11:43Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T17:11:43Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T17:11:43Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T17:12:25Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T17:12:25Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T17:12:25Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:00:34Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:00:34Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:00:34Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:01:05Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:01:05Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:01:05Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:41:32Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:41:32Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:41:32Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:42:18Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:42:18Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T20:42:18Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T21:24:54Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T21:24:54Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T21:24:54Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T21:25:23Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T21:25:23Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T21:25:23Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T23:24:31Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T23:24:31Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T23:24:31Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T23:26:19Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T23:26:19Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-29T23:26:19Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T00:05:07Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T00:05:07Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T00:05:07Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T00:45:23Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T00:45:23Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T00:45:23Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T01:38:25Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T01:38:25Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T01:38:25Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T01:38:48Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T01:38:48Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T01:38:48Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T02:20:25Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T02:20:25Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T02:20:25Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T02:20:49Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T02:20:49Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T02:20:49Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T03:33:44Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T03:33:44Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T03:33:44Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T06:01:33Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T06:01:33Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T06:01:33Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T06:02:03Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T06:02:03Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T06:02:03Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T07:20:50Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T07:20:50Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T07:20:50Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T07:21:18Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T07:21:18Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-10-30T07:21:18Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-11-09T23:48:38Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-11-09T23:48:38Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-11-09T23:48:38Z"
+      },
+      {
+        "prd": "00049-qwen-completion-status-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-11-10T00:00:04Z"
+      },
+      {
+        "prd": "00050-qwen-ivan-capability-eval-v1.md",
+        "command": "test -f docs/dev/project-management/prds/done/00049-qwen-completion-status-v1.md && rg -q '^effort: (low|medium|xhigh)$' docs/dev/project-management/audit-results/qwen-ivan-calibration/protocol.md",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-11-10T00:00:04Z"
+      },
+      {
+        "prd": "00078-qwen-dispatch-skips-pi-extensions-v1.md",
+        "command": "test \"$(git rev-parse --git-dir)\" != \"$(git rev-parse --git-common-dir)\"",
+        "exit_code": 1,
+        "note": "",
+        "at": "2026-11-10T00:00:04Z"
+      }
+    ],
+    "catchup_completed_at": "2026-10-29T21:27:12Z",
+    "catchup_head_sha": "cfb04608e7856513a98ce16e6e62e157b9319b17",
+    "minted_stubs": [
+      "00113-triage-check-run-shape-validates-only-the-per-t-v1.md",
+      "00124-triage-r2-2070164-v1.md",
+      "00125-triage-r1-s-fix-setup-time-deducted-from-the-sc-v1.md",
+      "00126-triage-windows-cleanup-remains-outside-the-requ-v1.md",
+      "00140-triage-r1-3-3-critical-regression-introduced-by-v1.md",
+      "00141-triage-r2-2-3-high-the-ci-lint-job-is-red-at-he-v1.md",
+      "00142-triage-cycle-2-2-unresolved-3-3-critical-r1-the-v1.md",
+      "00151-triage-most-repairs-are-link-ok-waivers-on-genu-v1.md",
+      "00152-triage-the-one-prd-the-spec-names-as-the-report-v1.md",
+      "00155-triage-the-rework-adds-three-refusal-paths-with-v1.md",
+      "00156-triage-the-compatibility-branch-is-an-unfiltere-v1.md",
+      "00157-triage-the-compatibility-path-still-raises-the-v1.md",
+      "00158-triage-symlink-ancestors-still-permit-a-contain-v1.md"
+    ],
+    "critical_on_master": []
+  },
+  "prd": "00135-historical-tag-awaits-green-ci-v1.md",
+  "catchup_mode": "skip",
+  "doubt_reviewer": "codex",
+  "consensus_engine": "legacy",
+  "session_model": "sonnet",
+  "rework_cap": 2,
+  "lane": "solo",
+  "lane_reason": "no_production_code",
+  "lane_effective": "full",
+  "tasks_total": 2,
+  "tasks_completed": 2,
+  "phases_completed": [],
+  "cycle": 1,
+  "replan_count": 0,
+  "applied_review_batches": [
+    "docs/dev/project-management/reviews/00099-evaluation-render-crashes-malformed-data-v1-review-1.md::decision-gate",
+    "docs/dev/project-management/reviews/00104-sweep-overruns-process-deadline-v1-review-1.md::decision-gate",
+    "docs/dev/project-management/reviews/00111-braid-state-misses-link-removals-v1-review-1.md::decision-gate",
+    "docs/dev/project-management/reviews/00115-documentation-has-three-stale-statements-v1-review-1.md::decision-gate",
+    "docs/dev/project-management/reviews/00117-four-scripts-ignore-help-v1-review-1.md::decision-gate",
+    "docs/dev/project-management/reviews/00117-four-scripts-ignore-help-v1-review-1.md::tail-sweep",
+    "docs/dev/project-management/reviews/00120-link-check-noise-hides-dead-references-v1-review-1.md::decision-gate",
+    "docs/dev/project-management/reviews/00120-link-check-noise-hides-dead-references-v1-review-2.md::decision-gate",
+    "docs/dev/project-management/reviews/00120-link-check-noise-hides-dead-references-v1-review-2.md::tail-sweep",
+    "docs/dev/project-management/reviews/00123-large-skipped-directories-may-resurface-v1-review-1.md::decision-gate",
+    "docs/dev/project-management/reviews/00123-large-skipped-directories-may-resurface-v1-review-1.md::tail-sweep",
+    "docs/dev/project-management/reviews/00131-crafted-template-archive-escapes-directory-v1-review-1.md::decision-gate"
+  ],
+  "catchup_probe": {
+    "batch_id": "202610271200",
+    "gh": "ok",
+    "engram": "ok",
+    "checked_at": "2026-10-28T23:27:17Z"
+  },
+  "contract_card": "step: PRD 00135 cycle 1 review paused; no canonical review or decision gate was committed.\ninvariants: Preserve all reviewer raw evidence, rejected and successful receipts, corrected mixed-provider audit, work_start_sha, and existing attempts. Do not change releases/tags, clear the pause, downgrade effort, switch launchers, or retry unattended.\nnext: Interactive host recovery resolves Kiro Claude Opus 5.5 xhigh evidence failure. Anthropic Blake retry exited 1; first Blake run violated no-shell. See the durable review-1-pause report and evidence manifest. Other results remain partial; no provider_review_guard is certified.",
+  "prd_budget_since": "2026-11-10T00:00:04Z",
+  "design_mode": "skip",
+  "loop_entry": {
+    "entered_by": "loop",
+    "prd": "00135-historical-tag-awaits-green-ci-v1.md",
+    "result": {
+      "stop": "lane",
+      "detail": "lane: solo (no_production_code)",
+      "prd": "00135-historical-tag-awaits-green-ci-v1.md",
+      "source": "wip",
+      "parked": null,
+      "custody_pending": 0,
+      "lane_effective": "solo",
+      "catchup": null,
+      "design": null,
+      "resume_target": "/work continues at first non-completed task 2",
+      "batch": "open"
+    }
+  },
+  "work_start_sha": "1a2928a39a666ab0b42e92ebb7335eaf135ce9ba",
+  "repo_root": ".",
+  "tasks": [
+    {
+      "name": "Verify current published-master CI and publication state; prepare exact historical v0.1.0 notes from the tagged source.",
+      "id": "1",
+      "status": "completed",
+      "attempts": [
+        {
+          "attempt": 1,
+          "model": "sonnet",
+          "actual_model": "gpt-6.1-sol",
+          "actual_provider": "openai",
+          "outcome": "completed",
+          "review_cycle": null,
+          "cause": null,
+          "implementor": "codex",
+          "preflight_outcome": null,
+          "pipeline": "solo"
+        }
+      ]
+    },
+    {
+      "name": "Recheck CI, publish only the preserved missing v0.1.0 tag and historical release, then verify publication and record evidence.",
+      "id": "2",
+      "status": "completed",
+      "attempts": [
+        {
+          "attempt": 1,
+          "model": "sonnet",
+          "actual_model": "gpt-6.1-sol",
+          "actual_provider": "openai",
+          "outcome": "failed",
+          "review_cycle": null,
+          "cause": "publication_conflict: GitHub reports isLatest=true despite --latest=false; exact tag and release exist, operator decision required before any corrective publication action",
+          "implementor": "codex",
+          "preflight_outcome": null,
+          "pipeline": "solo"
+        },
+        {
+          "attempt": 2,
+          "model": "sonnet",
+          "actual_model": "gpt-6.1-sol",
+          "actual_provider": "openai",
+          "outcome": "completed",
+          "review_cycle": null,
+          "cause": null,
+          "implementor": "codex",
+          "preflight_outcome": null,
+          "pipeline": "solo"
+        }
+      ]
+    }
+  ],
+  "lane_escalated": {
+    "from": "solo",
+    "signal": "unnamed_path"
+  },
+  "review_lenses": {
+    "consensus": "done",
+    "blind": "failed",
+    "doubt": "done"
+  },
+  "pause_reason": {
+    "site": "host_reviewer_evidence",
+    "detail": "PRD 00135 cycle 1: required Anthropic Blake retry exited 1; Kiro stderr says failed to set effort xhigh: model claude-opus-5.5 offers no effort levels. First Blake run executed forbidden shell true and is noncompliant. No compliant Blake Anthropic receipt exists; preserve raw evidence and require interactive recovery before any retry or launcher change. Carl independently refused nested dispatch (exit 3), no backend ran."
+  }
+}

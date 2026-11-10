@@ -62,6 +62,14 @@
       "path": "docs/dev/project-management/autopilot/reports/00135-historical-tag-awaits-green-ci-v1-worker-metadata.jsonl",
       "line": 3,
       "sha256": "3232e46a9795c1730f04ea724c27af6aa1bece5ebed5a85d86485a30f51ade9a"
+    },
+    {
+      "task": "2",
+      "role": "implementation",
+      "model": "claude-fable-5-2",
+      "path": "docs/dev/project-management/autopilot/reports/00135-historical-tag-awaits-green-ci-v1-recovery-metadata.jsonl",
+      "line": 1,
+      "sha256": "c65f3006ba3d9a4fa95a1506f339b12d658c02fd0d7121f2be19847dba667a26"
     }
   ]
 }

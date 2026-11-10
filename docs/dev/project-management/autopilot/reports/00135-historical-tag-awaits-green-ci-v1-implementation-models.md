@@ -30,3 +30,15 @@ The independent completion-review provider is Anthropic; all three fresh lenses
 are required in the next fresh session. The operator's separately authorized
 recovery action and waiver remain documented in the build report; no task
 attempt is relabeled as that recovery session.
+
+## Review preflight correction
+
+The earlier exclusion of operator recovery from review routing was incorrect.
+Raw assistant metadata in recovery session 513b28de-7b1f-417c-ad08-becbc6e85f56,
+line 216, identifies `claude-fable-5-2` on the exact v0.2.0 publication tool
+call. The sibling recovery-metadata JSONL preserves the source line hash,
+session, tool-call ID and command. This contributed to Task 2 acceptance even
+though it was outside the recorded task attempts. Existing attempts remain
+unchanged. The driver maps the observed `claude-` model to Anthropic and the
+augmented evidence requires both complete provider rosters. This correction
+supersedes the earlier Anthropic-only routing conclusion.
