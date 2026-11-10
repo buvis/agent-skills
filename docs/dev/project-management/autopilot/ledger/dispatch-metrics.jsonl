@@ -3146,3 +3146,7 @@
 {"id":"7f54df56","kind":"fast-track:ivan","task":"00134-empty-sweep-lacks-verification-marker-v1-c1","queued_at":1794268315,"prompt_bytes":56733}
 {"id":"7f54df56","ended_at":1794268407,"elapsed_s":92,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1794268794,"phase":"build","prd":"00134-empty-sweep-lacks-verification-marker-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1794268804,"phase":"build","prd":"00135-historical-tag-awaits-green-ci-v1.md"}
+{"id":"cc16b1da","kind":"historical-release-sonnet","task":"2","queued_at":1794269412,"prompt_bytes":2204}
+{"id":"cc16b1da","ended_at":1794269558,"elapsed_s":146,"outcome":"error","detail":"Exact tag/release published; GraphQL isLatest=true despite latest=false. Publication conflict requires operator decision; task incomplete."}
+{"kind":"handoff","site":"build","edge":"leave","at":1794269672,"phase":"paused","prd":"00135-historical-tag-awaits-green-ci-v1.md"}
