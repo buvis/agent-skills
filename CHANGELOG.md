@@ -11,8 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **create-adr**, **build-mcp-server**, **explore-abap-solution**, **document-abap-solution**, **review-abap-solution-documentation**, **write-abap-specs**, **publish-confluence-docs**: seven new skills. Fixtures use neutral `ZEXAMPLE_*` names; SAP, Jira, and Confluence access is caller-supplied.
 - **copy-rich-text**: new skill. Copies Markdown or HTML to the macOS clipboard as rich text (HTML plus an RTF fallback) so links, lists, images, tables, and Teams-native code blocks survive a paste into Microsoft Teams or Outlook. Set `JIRA_BASE_URL` to auto-link bare issue keys.
-- **create-note**: new skill. Creates a note in the BIM vault (`note`, `illustrated`, `meeting`, `youtube`, `article`, `prr`, `project`, `book`, `contact`) from a ported Templater template with a unique id, contact wikilinks, and a daily-note log entry; never overwrites a file.
-- **explain-bim-system**: new reference skill describing the BIM vault layout, note anatomy, links, tags, GTD tasks, and the rules agents follow when they read or write the vault.
+- **manage-bim**: new skill. Entry point for any BIM vault task: it has the agent read `bim --skill` (CLI and vault conventions) and adds the note-taking judgement bim cannot make (copy or extraction, article detection, message links, template choice) before creating the note with `bim create --json`. Vault content (notes, inbox, tags, search results) reaches the session only when the user asked for that read or approved it. Requires buvis-gems 0.20.0 or newer.
 - **sweep-fix**: `sweep.py` accepts `--deadline N` (default 300), a wall-clock budget in seconds for the whole sweep. A repo whose scan has not finished when the budget runs out is reported rather than waited for, and the report's `Partial: N repos not scanned (sweep deadline expired)` line means the sweep is incomplete and the pattern may still have hits in those repos.
 
 ### Fixed
@@ -22,9 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **publish-confluence-docs**: image placeholders preserve unrelated and nested macros, attachment names are XML-escaped, and uploads check curl failures using the platform's null device. CI runs the optional MCP and document conversion tests on Linux and Windows.
 - **create-adr**: the template's outer fence preserves its nested diagram block.
 
-- **use-qwen**, **create-note**: use native separators in relative symlink targets and project resource paths; Windows links now remain readable through directory aliases without collapsing parent hops.
+- **use-qwen**: use native separators in relative symlink targets; Windows links now remain readable through directory aliases without collapsing parent hops.
 - **use-qwen**: reject Windows root-relative archive member names before creating links, preserving archive containment when the Windows and archive-validation fixes are combined.
-- **create-note**: use a Windows file lock when allocating note ids, so concurrent writes stay serialized and Windows test collection no longer imports Unix-only `fcntl`; preserve Windows drive letters and separators in archive and project links.
 - **braid**, **create-prd**, **distil-memory**, **glean**, **purge-devtmp**, **use-qwen**: handle Windows symlink spellings and directory links, citation paths, and byte-preserving writes; make Windows test fixtures use native paths and explicit line endings, including **sweep-fix** permission failures.
 - **use-sonnet**: support tool-free reviews and headless review continuation with `--tools` and `--resume-print`, while retaining explicit effort and permission defaults.
 - **convert-to-icon**: `favicon.ico` now holds 16 to 256 px (the `.ico` maximum) instead of stopping at 48 px, so it stays sharp on high-density screens and where it is shown large.
