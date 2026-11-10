@@ -351,3 +351,242 @@ against the operator waiver above.
 The pause is cleared through statectl: `phase` and `next_phase` are `build`,
 `pause_reason` is deleted. Local master is merged with `origin/master` (merge,
 not rebase, so `work_start_sha` stays valid).
+
+## Task 2: final read-only verification after operator recovery
+
+Verified at 2026-11-10T18:57:47+00:00. Task 2 acceptance now passes under the recorded
+v0.2.0 operator waiver. This verification preserved the failed attempt above
+and performed no release/tag creation, edit, deletion, push, commit, workflow
+change, or task-state mutation. Completion review was not run. Only this report
+was edited by this worker.
+
+Runtime provenance: isolated native host worker `/root/verify_publication`.
+Coordinator-provided observed raw-log evidence identifies provider OpenAI,
+model `gpt-6.1-sol`, effort `medium`, worker session
+`01a1c6d1-8015-75d3-be76-4141ab45f9a6`, and parent thread
+`01a1c6d0-e27d-71e3-bebc-4eb55f064391`. Evidence source:
+`rollout-2026-11-10T19-56-21-01a1c6d1-8015-75d3-be76-4141ab45f9a6.jsonl`,
+line 1 (worker/provider/parent) and line 10 (`turn_context` model/effort).
+This reports observed coordinator evidence, not an inferred backend identity.
+The host-provided independent review route is Anthropic Opus/xhigh; it was not
+invoked by this worker.
+
+Commands below were executed read-only and returned exit 0. Run-view output is
+projected to job IDs and exhaustive step-success counts after checking the
+exact eight-job set and every returned step's status/conclusion. Release REST
+output is projected to publication fields, excluding account profile metadata.
+
+```text
+$ gh api repos/buvis/agent-skills/git/ref/heads/master --jq .object.sha
+exit: 0
+3af575327b5526c0fb45ab3f3e249faaabe5c26d
+$ gh run list --repo buvis/agent-skills --workflow ci.yml --branch master --limit 1 --json databaseId,headSha,status,conclusion,url
+exit: 0
+[
+  {
+    "conclusion": "success",
+    "databaseId": 42819166960,
+    "headSha": "3af575327b5526c0fb45ab3f3e249faaabe5c26d",
+    "status": "completed",
+    "url": "https://github.com/buvis/agent-skills/actions/runs/42819166960"
+  }
+]
+$ gh run view 42819166960 --repo buvis/agent-skills --json headSha,status,conclusion,jobs,url
+exit: 0
+{
+  "headSha": "3af575327b5526c0fb45ab3f3e249faaabe5c26d",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/buvis/agent-skills/actions/runs/42819166960",
+  "jobs": [
+    {
+      "name": "lint",
+      "id": 129839927939,
+      "status": "completed",
+      "conclusion": "success",
+      "stepCount": 11,
+      "allStepsCompletedSuccess": true
+    },
+    {
+      "name": "skill-integrations (windows-latest)",
+      "id": 129839928304,
+      "status": "completed",
+      "conclusion": "success",
+      "stepCount": 7,
+      "allStepsCompletedSuccess": true
+    },
+    {
+      "name": "windows",
+      "id": 129839928331,
+      "status": "completed",
+      "conclusion": "success",
+      "stepCount": 9,
+      "allStepsCompletedSuccess": true
+    },
+    {
+      "name": "test (3.10)",
+      "id": 129839928353,
+      "status": "completed",
+      "conclusion": "success",
+      "stepCount": 8,
+      "allStepsCompletedSuccess": true
+    },
+    {
+      "name": "skill-integrations (ubuntu-latest)",
+      "id": 129839928462,
+      "status": "completed",
+      "conclusion": "success",
+      "stepCount": 7,
+      "allStepsCompletedSuccess": true
+    },
+    {
+      "name": "node",
+      "id": 129839928499,
+      "status": "completed",
+      "conclusion": "success",
+      "stepCount": 9,
+      "allStepsCompletedSuccess": true
+    },
+    {
+      "name": "test (3.13)",
+      "id": 129839928539,
+      "status": "completed",
+      "conclusion": "success",
+      "stepCount": 8,
+      "allStepsCompletedSuccess": true
+    },
+    {
+      "name": "shell",
+      "id": 129839928712,
+      "status": "completed",
+      "conclusion": "success",
+      "stepCount": 5,
+      "allStepsCompletedSuccess": true
+    }
+  ]
+}
+$ git ls-remote origin refs/heads/master 'refs/tags/v0.1.0*' 'refs/tags/v0.2.0*'
+exit: 0
+3af575327b5526c0fb45ab3f3e249faaabe5c26d	refs/heads/master
+f4f2de0aa55b9c53a531b1b280a4339e74aebc64	refs/tags/v0.1.0
+f2b82d8372cceab04790e4fb183651a63de1e91d	refs/tags/v0.2.0
+$ git rev-parse 'v0.1.0^{commit}' 'v0.2.0^{commit}'
+exit: 0
+f4f2de0aa55b9c53a531b1b280a4339e74aebc64
+f2b82d8372cceab04790e4fb183651a63de1e91d
+$ gh api repos/buvis/agent-skills/releases/tags/v0.1.0
+exit: 0
+{
+  "id": 439793234,
+  "tag_name": "v0.1.0",
+  "name": "v0.1.0 (historical)",
+  "html_url": "https://github.com/buvis/agent-skills/releases/tag/v0.1.0",
+  "draft": false,
+  "prerelease": false,
+  "created_at": "2026-10-18T09:52:22Z",
+  "updated_at": "2026-11-10T00:11:11Z",
+  "published_at": "2026-11-10T00:11:11Z",
+  "assets": []
+}
+$ gh api repos/buvis/agent-skills/releases/latest
+exit: 0
+{
+  "id": 440124980,
+  "tag_name": "v0.2.0",
+  "name": "v0.2.0",
+  "html_url": "https://github.com/buvis/agent-skills/releases/tag/v0.2.0",
+  "draft": false,
+  "prerelease": false,
+  "created_at": "2026-10-25T22:23:30Z",
+  "updated_at": "2026-11-10T08:50:27Z",
+  "published_at": "2026-11-10T08:50:27Z",
+  "assets": []
+}
+$ gh api graphql -f 'query=query { repository(owner:"buvis", name:"agent-skills") { historical: release(tagName:"v0.1.0") { databaseId tagName isLatest isDraft isPrerelease url } newer: release(tagName:"v0.2.0") { databaseId tagName isLatest isDraft isPrerelease url } } }'
+exit: 0
+{
+  "data": {
+    "repository": {
+      "historical": {
+        "databaseId": 439793234,
+        "tagName": "v0.1.0",
+        "isLatest": false,
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/buvis/agent-skills/releases/tag/v0.1.0"
+      },
+      "newer": {
+        "databaseId": 440124980,
+        "tagName": "v0.2.0",
+        "isLatest": true,
+        "isDraft": false,
+        "isPrerelease": false,
+        "url": "https://github.com/buvis/agent-skills/releases/tag/v0.2.0"
+      }
+    }
+  }
+}
+$ gh api 'repos/buvis/agent-skills/contents/.github/workflows/ci.yml?ref=3af575327b5526c0fb45ab3f3e249faaabe5c26d' --jq '{sha,size,path}'
+exit: 0
+{
+  "path": ".github/workflows/ci.yml",
+  "sha": "87421424848ad2d41436de49110f04e5eaa27243",
+  "size": 9255
+}
+$ git rev-parse 3af575327b5526c0fb45ab3f3e249faaabe5c26d:.github/workflows/ci.yml
+exit: 0
+87421424848ad2d41436de49110f04e5eaa27243
+$ gh api repos/buvis/agent-skills/git/ref/heads/master --jq .object.sha
+exit: 0
+3af575327b5526c0fb45ab3f3e249faaabe5c26d
+```
+
+Prepared-notes verification used Python `Path.read_bytes()`, extracted the
+report's first fenced Markdown block, compared both with the REST body encoded
+as UTF-8, and computed `hashlib.sha256(notes).hexdigest()`. All three byte
+sequences match exactly, including final newline; SHA-256:
+`e8d19ba28db18b65bbc8ecfcf52ece574990ffe00491a1d5ffe13b178c2a511a`. Historical release ID, title, timestamps,
+empty assets, draft/prerelease flags, body, and exact tag target match the
+pre-recovery publication evidence. GraphQL independently confirms
+`v0.1.0.isLatest=false` and `v0.2.0.isLatest=true`; REST Latest is ID
+`440124980`. Both local tag commits match their exact remote refs.
+
+The full GitHub workflow contents at the current exact master SHA were decoded
+and inspected, and the matching local Git blob was checked. Blob
+`87421424848ad2d41436de49110f04e5eaa27243` is unchanged from preparation and
+publication. Its six definitions expand to all eight successful jobs, including
+Windows full Python 3.13 suite/capabilities and Windows integrations. No
+`continue-on-error`, job/step `if:` filter, path filter, matrix exclusion, or
+fail-open test command was introduced; `fail-fast: false`, accumulated shell/
+validator failure exits, capability failure exits, and template-drift failure
+exit remain intact. Remote master was re-read after the other checks and
+remained the same exact SHA. These observations establish the current gate;
+they do not claim retrospective CI success for the historical tag.
+
+No new unit tests are needed for this read-only publication verification.
+
+## Resumed build closeout
+
+`autopilot verify --gate-command 'uv run pytest' --cycle 1` ran at
+`3af575327b5526c0fb45ab3f3e249faaabe5c26d`: pytest exited 0 with **4330 passed,
+12 skipped, 2 warnings**, in 337.64 seconds. The verify CLI returned 3 because
+its summary parser found no counts line; it wrote no verification record.
+These counts are the actual pytest summary in `docs/dev/tmp/gate-3af5753.log`,
+not a synthesized record. No retry or unrelated repair was needed.
+
+`uv run ruff check`, `uv run ruff format --check`, `git diff --check`, and
+`braid --check --source <repository-root>` passed (161 current, zero drift).
+No skill changed in this resumed task, so per-skill validation is inapplicable.
+Full state-schema validation and task-count consistency passed: 2/2 completed.
+
+`autopilot lane-check` exited 3: `unnamed_path`. It canonically escalated the
+solo classification to full review because the preserved work range includes
+production changes merged during operator recovery. The work start remains
+unchanged; no attempt or prior evidence was dropped. The model audit includes
+Task 2 attempt 2, and driver `review-route` validates it and requires Anthropic.
+All completion-review lenses are reserved for the fresh review session.
+
+The unrelated staged intake note `intake/new/00176-skills-adopt-repository-memory/idea.md`
+is temporarily preserved in a path-scoped stash to exclude it from the store
+recorder; restore its original staged state immediately after that recorder.
+Existing worktrees and plans belong to other work and remain untouched.
