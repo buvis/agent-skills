@@ -3163,3 +3163,9 @@
 {"id":"e165b312","kind":"ivan","task":"3","queued_at":1794346795,"prompt_bytes":11360}
 {"id":"e165b312","ended_at":1794346887,"elapsed_s":92,"outcome":"ok","detail":"Native gpt-6.1-sol medium; documentation task 3; observed rollout metadata retained"}
 {"kind":"handoff","site":"review","edge":"leave","at":1794347317,"phase":"review","prd":"00135-historical-tag-awaits-green-ci-v1.md"}
+{"kind":"handoff","site":"review","edge":"resume","at":1794347375,"phase":"review","prd":"00135-historical-tag-awaits-green-ci-v1.md"}
+{"id":"0be092eb","kind":"bob","task":"review-00135-c2-20261110","queued_at":1794347413,"prompt_bytes":54824}
+{"id":"466afc62","kind":"carl","task":"review-00135-c2-20261110","queued_at":1794347520,"prompt_bytes":6690}
+{"id":"466afc62","ended_at":1794347533,"elapsed_s":13,"outcome":"error","detail":"exit 3: refusing nested dispatch (already inside a CLI agent)"}
+{"id":"0be092eb","ended_at":1794347653,"elapsed_s":240,"outcome":"error","detail":"mixed-provider roster incomplete: Anthropic Bob SIGILL; OpenAI output retained"}
+{"kind":"handoff","site":"review","edge":"leave","at":1794347669,"phase":"paused","prd":"00135-historical-tag-awaits-green-ci-v1.md"}

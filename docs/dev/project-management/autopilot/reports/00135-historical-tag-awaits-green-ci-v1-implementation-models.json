@@ -1,8 +1,8 @@
 {
-  "fingerprint": "8ae7efeb7629d8cb4e790e5b1f39add2796e89adb48affb6176ef643ec5bb4a3",
+  "fingerprint": "b9fc5143c089a8991325d4e0c6548fb9cdbb32db7cb707eb9116e19ce3a50e45",
   "snapshot": {
     "prd": "00135-historical-tag-awaits-green-ci-v1.md",
-    "cycle": 1,
+    "cycle": 2,
     "work_start_sha": "1a2928a39a666ab0b42e92ebb7335eaf135ce9ba",
     "tasks": [
       {
@@ -29,6 +29,18 @@
           },
           {
             "attempt": 2,
+            "actual_model": "gpt-6.1-sol",
+            "actual_provider": "openai",
+            "implementor": "codex",
+            "outcome": "completed"
+          }
+        ]
+      },
+      {
+        "id": "3",
+        "attempts": [
+          {
+            "attempt": 1,
             "actual_model": "gpt-6.1-sol",
             "actual_provider": "openai",
             "implementor": "codex",
@@ -70,6 +82,14 @@
       "path": "docs/dev/project-management/autopilot/reports/00135-historical-tag-awaits-green-ci-v1-recovery-metadata.jsonl",
       "line": 1,
       "sha256": "c65f3006ba3d9a4fa95a1506f339b12d658c02fd0d7121f2be19847dba667a26"
+    },
+    {
+      "task": "3",
+      "role": "implementation",
+      "model": "gpt-6.1-sol",
+      "path": "docs/dev/project-management/autopilot/reports/00135-historical-tag-awaits-green-ci-v1-worker-metadata.jsonl",
+      "line": 4,
+      "sha256": "b80c4269c6652a48ff65a0b7785a84cedd88fcebe1f1a48b5142a0053ef10cd9"
     }
   ]
 }

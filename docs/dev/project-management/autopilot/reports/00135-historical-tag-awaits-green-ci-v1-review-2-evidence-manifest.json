@@ -1,0 +1,147 @@
+{
+  "prd": "00135-historical-tag-awaits-green-ci-v1.md",
+  "cycle": 2,
+  "status": "paused",
+  "files": [
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-historical-tag-awaits-green-ci-v1-review-2-pause.md",
+      "sha256": "7d4e13006cae1a4c50a93e1d2057f42e31b55cf45c9d142a653f8f12278ae90d"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-historical-tag-awaits-green-ci-v1-review-2-paused-state.json",
+      "sha256": "b85891ca366ab722724026706b262a5984dfc6ea5419186deea2f5581ac9d108"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/alice-anthropic-output-21186e5c759a4cf9a14d8f9be6a4b157.jsonl",
+      "sha256": "f711a88ea48583d8c22f92ac2c4d24640f0fd33d2b3dd69a6cc2a6bdea098421"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/alice-anthropic-output-21186e5c759a4cf9a14d8f9be6a4b157.stderr",
+      "sha256": "5cfc0dad96d3d8ad5693301753fb27585636465712ed7bf7735072fa13c1ca7b"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/alice-anthropic-prompt.md",
+      "sha256": "41edc56187138b7d24b7581a4b7fb7e5aa79337bf43bd904f6a2d5589399bd59"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/alice-openai-output-3ce0a72775e1464787599f279f6ce77d.jsonl",
+      "sha256": "01c03b485d659f7ccba7a7733a81314b2e55e66b8e43d9485da11c9fc9b602b6"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/alice-openai-output-3ce0a72775e1464787599f279f6ce77d.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/alice-openai-output.txt",
+      "sha256": "e87f24cf4104c9ef71fd707ed8b3b1aa2c4b03f4a53ec0dbcc7494bb7da6a271"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/alice-openai-output.txt.receipt.json",
+      "sha256": "cd6033df4b2ae6ee624713d81947d999d814bd532e0cc1db3d3057b25968f412"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/alice-openai-prompt.md",
+      "sha256": "41edc56187138b7d24b7581a4b7fb7e5aa79337bf43bd904f6a2d5589399bd59"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-anthropic-output-588bf3ffadfd401db43d9f0deabeaba8.jsonl",
+      "sha256": "0d9e0493659e24393be44c222b558dc58cdf8cac5c10c427f71d4bb106f5dcc7"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-anthropic-output-588bf3ffadfd401db43d9f0deabeaba8.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-anthropic-output.txt",
+      "sha256": "347c9cdda8643447e478cd69917253fb225cbea1ad07e9b5c782afcaf6397a75"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-anthropic-output.txt.receipt.json",
+      "sha256": "fb6602e85a8602f1f6c3348d410937f759e5f87a0aee7dc66ef09d790d2f0528"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-anthropic-prompt.md",
+      "sha256": "25ca251d10ce118b32f5c46089af0e22333f4ca9e1da67f5ac60a2dce21b37af"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-openai-output-93219d6b75524bc8ae2e6918e7adc794.jsonl",
+      "sha256": "3c2fdb6519b3b6c514d3e614b8dfbe6d7971772d2811062f099dd250334ba6c4"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-openai-output-93219d6b75524bc8ae2e6918e7adc794.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-openai-output.txt",
+      "sha256": "415e36a85a160710ca964f3314c0209e7ea14ea16b74e8115f1a0366f624aec1"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-openai-output.txt.receipt.json",
+      "sha256": "405b065083395b2c4a692fc73d3d60a928499b9798f95480d3ef9aebe1978730"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/blake-openai-prompt.md",
+      "sha256": "25ca251d10ce118b32f5c46089af0e22333f4ca9e1da67f5ac60a2dce21b37af"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/bob-anthropic-output-47988259a9f84d80bfc1086e80c4e16a.jsonl",
+      "sha256": "14ff703378341804ee875b7afc23b7c4f6f02720f89c0ce4e6aebaf6ddab2625"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/bob-anthropic-output-47988259a9f84d80bfc1086e80c4e16a.stderr",
+      "sha256": "5cfc0dad96d3d8ad5693301753fb27585636465712ed7bf7735072fa13c1ca7b"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/bob-anthropic-prompt.md",
+      "sha256": "a6047e86f17dd4b29cad27125be47e9098219e049715c70fa9380cca4e44af46"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/bob-openai-output-9849a0d791cb4d31ab17975a23ca853a.jsonl",
+      "sha256": "b8e00eb64aa9ac1576785e800630cd7286cb3e3a6745230c7f181c36a6128080"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/bob-openai-output-9849a0d791cb4d31ab17975a23ca853a.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/bob-openai-output.txt",
+      "sha256": "c56ae253729b4a944d54ada6b4c0e551ff679a8a7e2b5dfc3c3005fdc7abe37a"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/bob-openai-output.txt.receipt.json",
+      "sha256": "bb3a9052d0b3f5f5e51c0d4d1f9796ccfb873b347c183689e97615d9ec53ec36"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/bob-openai-prompt.md",
+      "sha256": "a6047e86f17dd4b29cad27125be47e9098219e049715c70fa9380cca4e44af46"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/carl-dispatch.txt",
+      "sha256": "b7b42915272fd5e3b0a4c83d70d6d6a6111150cdaf63987ba345b3d5aa1bb802"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/carl-prompt.md",
+      "sha256": "d7f8d1fe5fab010ab2d10408b86c23e97180689538a6327662cdff175f5e4051"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/diff-scope.json",
+      "sha256": "bae01eb3364691ff3d5ae70b652a2bb0c8ec25547828c97564b39c5b26b03729"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/full-range.diff",
+      "sha256": "de2cd2ef21bd63cd8d5bd2e46951460f881a2d193a9a25b0e4a13fb1199c4c40"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/implementation.diff",
+      "sha256": "cf9c506f24cdc5265364c0022198a9f5a0fe876ef20056a824c4b32daa7660f9"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/pack.md",
+      "sha256": "03cda9b8109d540a5ed61cebffcbf79e12bef9a1e5c469acd207f666f2db6387"
+    },
+    {
+      "path": "docs/dev/project-management/autopilot/reports/00135-review-2-inputs/review-context.md",
+      "sha256": "2fe2c5dce833d95cd236a7d2421a8e30b30ddc7fb4f9fe30261d6ba568feda00"
+    }
+  ]
+}

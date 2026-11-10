@@ -42,3 +42,7 @@ though it was outside the recorded task attempts. Existing attempts remain
 unchanged. The driver maps the observed `claude-` model to Anthropic and the
 augmented evidence requires both complete provider rosters. This correction
 supersedes the earlier Anthropic-only routing conclusion.
+
+## Cycle 2 revalidation
+
+Task 3 attempt 1 correlates dispatch e165b312 with isolated worker /root/task3, session 01a1c767-5a66-7bd1-9779-43d1db73c145 and commit 8bc7321. Raw turn-context line 10 proves gpt-6.1-sol at medium effort; worker-metadata line 4 retains its source hash. All four OpenAI source lines were revalidated against raw logs. Earlier contributing attempts and the Anthropic recovery publication remain included. The snapshot now binds cycle 2 and all three completed tasks. Both provider rosters remain required. Read-only reviewers and coordinators are excluded.
