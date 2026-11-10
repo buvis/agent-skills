@@ -17,7 +17,7 @@ last-brushed stamp for its 30-day cadence nag, so keep that line's shape.
 | action | detail | undo |
 |---|---|---|
 | trash | `debug_probe.py` -> `docs/dev/tmp/.trash/2026-07-13/` | mv back (see manifest.tsv) |
-| branch-delete | `feat/x` was `abc1234` (merged) | `git branch feat/x abc1234` |
+| branch-delete | `feature/x` was `abc1234` (merged) | `git branch feature/x abc1234` |
 | commit | `chore(hygiene): ignore __pycache__` -> `def5678` | `git revert def5678` |
 
 ## 2. Decisions - mark [x] to approve, then run /brush apply
@@ -25,7 +25,7 @@ last-brushed stamp for its 30-day cadence nag, so keep that line's shape.
 - [ ] BR-1 (branch-delete) sha=abc1234 age=94d - unmerged `spike/foo`, no upstream - cmd: `git branch -D spike/foo`
 - [ ] BR-2 (stash-drop) age=61d - stash@{2} "wip: old experiment" - cmd: `git stash drop stash@{2}`
 - [ ] BR-3 (trash-scratch) age=12d - `scratch_bench.py`, unreferenced - cmd: `python3 ~/.agents/skills/brush/scripts/trash_untracked.py --repo <root> --rule brush-scratch --apply scratch_bench.py`
-- [ ] BR-4 (rebase) base=master behind=23 - local-only `feat/y` drifted - cmd: `git rebase master feat/y`
+- [ ] BR-4 (rebase) base=master behind=23 - local-only `feature/y` drifted - cmd: `git rebase master feature/y`
 
 Unchecked = skipped. Apply re-verifies sha/path first; stale items are skipped and noted.
 
