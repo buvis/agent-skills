@@ -724,7 +724,8 @@ def test_empty_sweep_saves_control_verification_status_and_scan_details(
     # The fallback term is absent, despite near-matching regex source text.
     argv[argv.index("--control-term") + 1] = f"{marker}.literal"
     if control_matches:
-        (control_repo / "confirmed.txt").write_text(f"{marker}\n")
+        # LF explicitly: a CRLF line never matches an rg `$` anchor on Windows.
+        (control_repo / "confirmed.txt").write_text(f"{marker}\n", newline="\n")
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
     monkeypatch.chdir(elsewhere)
