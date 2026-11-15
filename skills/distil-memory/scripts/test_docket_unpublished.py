@@ -556,6 +556,28 @@ def test_main_unpublished_warns_on_a_nonexistent_store_path(tmp_path, monkeypatc
     assert _snapshot_queue_and_store(queue_path, store) == before
 
 
+def test_main_unpublished_warns_on_a_missing_store_that_still_has_kept_entries(
+    tmp_path, monkeypatch, capsys
+):
+    # PRD 00108: the missing-store warning is unconditional. A deleted store
+    # whose kept entries all list as unpublished still says the store is gone.
+    monkeypatch.chdir(tmp_path)
+    queue_path = tmp_path / "q.json"
+    project = _project(tmp_path)
+    store = project / "memory"
+    kept = _kept(project, 1, "orphaned-fact")
+    _queue_kept(queue_path, [kept])
+    store.rmdir()
+    capsys.readouterr()
+
+    exit_code = docket.main(["unpublished", "--store", str(store), "--queue", str(queue_path)])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert captured.out == f"{_id(kept)}\n"
+    _assert_warns_about_the_store(captured.err, store)
+
+
 def test_main_unpublished_warns_when_every_kept_entry_belongs_to_another_store(
     tmp_path, monkeypatch, capsys
 ):
