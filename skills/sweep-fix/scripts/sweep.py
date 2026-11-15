@@ -292,9 +292,15 @@ class _ProcessRegistry:
     def kill_all(self):
         with self._lock:
             self._closed = True
-            keys = list(self._procs)
-        for key in keys:
-            self.kill(key)
+            procs = [proc for group in self._procs.values() for proc in group]
+            self._procs.clear()
+        # At once, not in turn: on Windows one stalled taskkill costs
+        # KILL_TREE_TIMEOUT, and in turn every stalled call would add its own.
+        threads = [threading.Thread(target=_kill_tree, args=(proc,)) for proc in procs]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
 
 def _communicate_tracked(proc, timeout, registry, key):
