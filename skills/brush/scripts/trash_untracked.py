@@ -7,6 +7,9 @@ brush moves too. The manifest's fourth field is store-relative (relative to
 docs/dev/tmp, e.g. ".trash/<date>/<rel>"), matching purge-devtmp's writer.
 Refuses tracked files, project-management records, docs, secrets, paths
 outside the repo, and anything fresher than --min-age-days.
+Stdout is JSON: "applied" is false for a preview (nothing moved; "moved" then
+lists what would move) and true for an --apply run; "moved" and "refused" list
+the per-path results.
 Restore: mv docs/dev/tmp/<fourth field> back to the original path (second
 to last manifest column).
 """
@@ -139,7 +142,8 @@ def main() -> int:
     ap.add_argument("--min-age-days", type=int, default=3)
     ap.add_argument("--apply", action="store_true",
                     help="move files to .trash (default: dry-run)")
-    ap.add_argument("paths", nargs="+", help="repo-relative paths to trash")
+    ap.add_argument("paths", nargs="+", help="paths to trash: absolute paths inside the repo, or "
+                    "paths relative to the repo root")
     args = ap.parse_args()
 
     # Untested: root's .resolve() matches p's, for Windows 8.3 short names.
@@ -148,8 +152,8 @@ def main() -> int:
     date = datetime.date.today().isoformat()
     moved, refused = [], []
     for raw in args.paths:
-        raw = raw.strip("/\\" if os.name == "nt" else "/")
-        p = (root / raw).resolve()
+        cand = Path(raw)
+        p = (cand if cand.is_absolute() else root / cand).resolve()
         if not p.is_relative_to(root):
             refused.append({"path": raw, "reason": "outside repo"})
             continue
@@ -166,7 +170,8 @@ def main() -> int:
         moved.append({"path": rel, "trash": trash_rel})
     if not args.apply:
         print("DRY-RUN (use --apply)", file=sys.stderr)
-    print(json.dumps({"moved": moved, "refused": refused}, indent=2))
+    print(json.dumps({"applied": args.apply, "moved": moved,
+                      "refused": refused}, indent=2))
     return 0
 
 
