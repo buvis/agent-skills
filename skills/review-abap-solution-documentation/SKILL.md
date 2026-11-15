@@ -12,7 +12,7 @@ Adversarial audit of a completed `explore-abap-solution` + `document-abap-soluti
 
 ## Dependencies
 
-- **Input:** a directory with both `research/` and documentation deliverables. The full-mode validator at `~/.agents/skills/document-abap-solution/scripts/check_run.py` must have passed. If the sibling skill is missing, report the missing dependency and stop.
+- **Input:** a directory with both `research/` and documentation deliverables. The full-mode validator at `~/.agents/skills/document-abap-solution/scripts/check_run.py` must have passed. `scripts/check_trust.py` also imports the shared identifier helper `~/.agents/skills/document-abap-solution/scripts/abap_idents.py`. If the sibling skill is missing, the script exits with a message naming it; report the missing dependency and stop.
 - **Python 3.12+** for `scripts/check_trust.py` (mechanical audit) and `scripts/check_review.py` (report validator).
 - **SAP read access** (OPTIONAL). When an authorized SAP reader is available, D7 spot-checks run. When unavailable, the review is offline-only and says so.
 

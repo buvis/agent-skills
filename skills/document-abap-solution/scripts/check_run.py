@@ -12,8 +12,7 @@ receipted snippet bank. The full check adds the document-abap-solution
 contract on top: doc deliverables, banners on INCOMPLETE runs, cited sources
 banked, doc identifiers traced to research/, the explorer, and the solution
 data INLINED in explorer.html (<script type="application/json" id="solution-data">).
-This copy validates the final output; the copy in explore-abap-solution is
-used with --research-only.
+This is the only copy: explore-abap-solution runs it with --research-only.
 It cannot check truth against the SAP system -- Phase 6 does that when access
 exists. Exit 0 only when every check passes. Paste the output verbatim into
 the Validation Report and the final report; never edit files just to turn a
@@ -27,6 +26,8 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Callable
+
+from abap_idents import custom_idents
 
 Report = Callable[..., None]
 

@@ -1,7 +1,7 @@
 ---
 name: explore-abap-solution
 description: Use when exhaustively exploring an ABAP solution into a validated research package (census, ledger, object cards, verbatim snippet bank) - the input for document-abap-solution. Triggers on "explore abap solution", "research abap framework".
-compatibility: "Portable; needs Python 3.12+ and a caller-supplied read-only SAP source/search provider (no provider ships here)."
+compatibility: "Portable; needs Python 3.12+, the document-abap-solution skill (hard dependency, for the research-only validator) and a caller-supplied read-only SAP source/search provider (no provider ships here)."
 ---
 
 # Explore ABAP Solution
@@ -16,7 +16,8 @@ Works for anything written in ABAP, however it is structured: REST/HTTP API fram
 
 - **A runner able to complete the evidence checks.** Record the model/client in `research/notes.md` §1. Do not infer correctness from a model tier; stop with an explicit incomplete report when the runner cannot finish the required reads and checks.
 - **SAP read access** through whatever this session has: ADT/RFC MCP tools, CLIs, or an abapGit-style source dump from the user. Reading source somehow is a hard requirement; without any path to source, stop and ask. Table-row access and where-used are degradable (fallbacks in `references/exploration-tactics.md`).
-- **Python 3.12+** for the package self-check `scripts/check_run.py --research-only` (in `scripts/` next to this SKILL.md). When it cannot run, record WHY (missing script means the skill copy is incomplete; tell the user). Manual inspection is not a substitute for a passing automated gate. Only `--research-only` is supported here; the final output is validated by the copy in `document-abap-solution`.
+- **The `document-abap-solution` skill (hard dependency)** for the package self-check, `~/.agents/skills/document-abap-solution/scripts/check_run.py --research-only`. This skill invokes that script and ships no copy of it. When the script is missing, stop and tell the user to install `document-abap-solution`; do not skip the gate or reproduce it by hand. Manual inspection is not a substitute for a passing automated gate.
+- **Python 3.12+** to run that script. When it cannot run, record WHY.
 - **This skill's references:** `references/exploration-tactics.md` (read when Phase 0 starts, stays loaded through Phase 2) and `references/quality-gates.md` (read when entering Phase 2's depth-reading loop — contains bug anti-patterns, snippet specs, gate conditions, sweep checklist, and self-check fix guide). Both live in the `references/` subdirectory next to this SKILL.md; find them via the skill's own path or glob `**/explore-abap-solution/references/*.md`. Log the outcome in `research/notes.md` as a `References loaded:` line (or `unavailable: <error>`) — the self-check requires it.
 - **Multi-session resume** (for Large solutions >40 objects). Use the session's SAP reader. Read in groups of 10-15, write cards and snippets continuously, and save a Resume Point before context exhaustion. Start a fresh session with this skill and the same output directory, then resume from the ledger. No separate launcher is required or included.
 
@@ -205,7 +206,7 @@ The log accumulates through the run. When you correct a claim in notes.md, ALSO 
 
 **THE SELF-CHECK IS MANDATORY AND COMES FIRST.** Do not write the `Status:` line until `check_run.py` passes. The sequence is: (1) run the script, (2) fix every FAIL it reports, (3) re-run until 0 FAIL, (4) THEN write Status. A run that writes Status before running the script has declared the package valid without checking — every historical resume run traced back to this inversion.
 
-1. Run `python3 ~/.agents/skills/explore-abap-solution/scripts/check_run.py --research-only <output_dir>` and paste its output verbatim into `research/notes.md` §8 (Validation Report). When the script is missing, say so (incomplete skill copy) and reproduce every check by hand in the same per-line format with the directory listings that justify each PASS.
+1. Run `python3 ~/.agents/skills/document-abap-solution/scripts/check_run.py --research-only <output_dir>` and paste its output verbatim into `research/notes.md` §8 (Validation Report). When the script is missing, the `document-abap-solution` skill is not installed: stop and tell the user. Do not write the Status line without a passing run.
 2. Resolve every FAIL by doing the missing work or declaring INCOMPLETE honestly — never by editing a file to green a marker. **See `references/quality-gates.md` § Phase V: Self-Check Fix Guide** for common FAILs and their exact fixes.
 3. Write the `Status:` line ONCE, now: COMPLETE (both gates passed, self-check green) or INCOMPLETE (what is missing and why). Anything appended to COMPLETE makes it INCOMPLETE.
 
