@@ -40,6 +40,7 @@ from test_eval_tree_links import (
     bare_ci,
     built_repo,
 )
+from test_eval_tree_state import _host_carries_an_executable_bit
 
 # A second content value, so a check that only ever sees one payload cannot
 # pass by remembering it.
@@ -662,10 +663,11 @@ def test_control_build_template_keeps_the_executable_bit_and_only_where_it_was_s
         "bin/run": "100755", "bin/run.txt": "100644",
         "bin/tool.sh": "100755", "bin/README": "100644",
     }
-    for path, (data, mode) in files.items():
-        executable = bool((dest / path).lstat().st_mode & stat.S_IXUSR)
-        assert executable == bool(mode & stat.S_IXUSR), path
-        assert (dest / path).read_bytes() == data, path
+    if _host_carries_an_executable_bit():
+        for path, (data, mode) in files.items():
+            executable = bool((dest / path).lstat().st_mode & stat.S_IXUSR)
+            assert executable == bool(mode & stat.S_IXUSR), path
+            assert (dest / path).read_bytes() == data, path
 
 
 # Links that stay inside the tree, by kind. A dangling link names a path the

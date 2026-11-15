@@ -173,3 +173,22 @@
 ## 11: [D1] Move the link-typing tests into their own module (review cycle 1)
 
 - The `# -- fresh_clone --` section header stays in `test_eval_tree_links.py` for the fresh_clone test that remains there (Ivan).
+
+# Assumptions ledger — PRD 00164-clone-links-and-disk-mode-check-on-windows-v1
+
+## 1: Add a spy regression for host-separator link text in fresh_clone
+
+- `_template_on_disk` writes `calc.py` with the content `inside\n`. Taken from the existing assertion at line 754, not from reading the helper.
+- `trees.os` is the global `os` module, so the red check patched `os.sep` for the whole process. `monkeypatch` undid it, and `_host_form` saw the same patched value.
+- Targets were compared as a dict and the type flag was ignored, because the task asked only for the name-to-target mapping.
+
+## 2: Convert clone link text to the host separator in _copytree_links_typed
+
+- The Windows-only test (task 1's regression) is the one this task targets. It is the only test in the commit, and nothing fails on this host.
+- On Windows, `os.readlink` returns a relative target with the same separators it was created with, so converting `/` to the host separator gives the expected form.
+- Call order across links is not part of the contract, so the strengthened test's comparison is `sorted(calls) == sorted(expected)`, which still counts duplicates. This matches the sibling typing test just above it.
+- `same -> alias/calc.py` should be typed as a file (`False`), because its chain resolves to the regular file `calc.py`.
+
+## 3: Guard the on-disk executable-bit loop with the host capability probe
+
+- Running the probe (`_host_carries_an_executable_bit()`) in a separate process counts as the check the spec asked for (that the `if` branch is taken on macOS), in place of a temporary print.

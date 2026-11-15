@@ -233,3 +233,31 @@ def test_fresh_clone_links_typed_as_a_directory_where_the_template_s_target_is_o
         assert (dest / name / "nested.txt").read_bytes() == b"nested\n"
     assert (dest / "calc-link").read_bytes() == b"inside\n"
     assert not (dest / "nowhere-link").exists()
+
+
+@NEEDS_SYMLINKS
+def test_fresh_clone_writes_chain_link_text_in_host_separator_form(
+    tmp_path, monkeypatch
+):
+    # `same`'s text holds a `/`: on Windows a link written with `/` does not
+    # resolve through the chain, so the clone must spell it for the host.
+    template = _template_on_disk(tmp_path)
+    links = {"alias": ".", "same": "alias/calc.py"}
+    _lay_links(template, links)
+    calls = _record_symlinks(monkeypatch)
+    dest = tmp_path / "clone"
+
+    trees.fresh_clone(template, dest)
+
+    # Exactly one call per link, typed from the template, text in host form:
+    # no extra link planted anywhere, none typed wrong.
+    assert sorted(calls) == sorted(
+        [("alias", ".", True), ("same", _host_form("alias/calc.py"), False)]
+    )
+    for name in links:
+        assert (dest / name).is_symlink(), name
+    assert os.readlink(dest / "same") == _host_form("alias/calc.py")
+    assert (dest / "same").read_bytes() == b"inside\n"
+    # The rest of the template survives the clone.
+    assert (dest / "calc.py").read_bytes() == b"inside\n"
+    assert (dest / "pkg" / "nested.txt").read_bytes() == b"nested\n"
