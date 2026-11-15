@@ -51,9 +51,11 @@ def _iter_entries(path: Path) -> Iterator[tuple[int, dict]]:
     (shape reused, not imported - this is a 6-line generator, not worth a
     cross-module dependency for). The whole file is decoded as UTF-8 up
     front so a bad byte anywhere in the file isolates the whole file
-    rather than only the lines after it."""
+    rather than only the lines after it. Lines split on "\\n" alone, as
+    JSONL defines them: str.splitlines() would also break at U+2028,
+    U+2029 and U+0085, which JSON allows raw inside a string."""
     text = path.read_bytes().decode("utf-8")
-    for line_no, raw in enumerate(text.splitlines(), 1):
+    for line_no, raw in enumerate(text.split("\n"), 1):
         raw = raw.strip()
         if not raw:
             continue
@@ -163,7 +165,7 @@ def scan(transcripts: list[Path]) -> tuple[int, list[Slice]]:
                 matched += entry_matched
                 kept.extend(entry_kept)
         except UnicodeDecodeError:
-            print(f"{path.name}: could not be read as UTF-8, skipping", file=sys.stderr)
+            print(f"{path}: could not be read as UTF-8, skipping", file=sys.stderr)
     return matched, kept
 
 

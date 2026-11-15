@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **review-prd-backlog**: `check_links.py` no longer misreads UUID/dispatch-id fragments, quoted prior-run diagnostics, or backtick-wrapped `[[...]]` syntax examples and fenced "observed evidence" transcripts as dangling PRD or memory references.
 - **glean**: `scan` no longer crashes when the host denies `stat` or `lstat` on an untracked dotfile (seen in an agent sandbox on `~/.python_history`); the file is listed as a candidate with an `unreadable` hint.
 - **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
+- **distil-memory**: a transcript with non-object JSON lines or invalid UTF-8 no longer aborts the whole `funnel.py` scan; the damage is skipped with a stderr warning naming the file, and entries holding a raw U+2028, U+2029 or U+0085 inside a string are no longer dropped.
 
 ### Changed
 
