@@ -541,6 +541,42 @@ test('insights tab reports nothing to show when extraction ran but found nothing
   )
 })
 
+function soloPayload(shareWords = 100) {
+  const payload = structuredClone(PAYLOAD)
+  const [sam] = payload.transcript.speakers
+  payload.transcript.speakers = [{ ...sam, words: 30, turns: 3, share_words: shareWords }]
+  payload.transcript.turns = payload.transcript.turns.map((t) => ({ ...t, s: 's0' }))
+  payload.transcript.matrix = {}
+  payload.transcript.buckets = { size: 67.5, series: [{ t: 0, by: { s0: 17 } }, { t: 67.5, by: { s0: 13 } }] }
+  return payload
+}
+
+async function airtimeText(payload) {
+  const { doc, openTab } = render(payload)
+  await openTab('People')
+  const section = [...doc.querySelectorAll('main section.sec')].find(
+    (s) => s.querySelector('h2')?.textContent.trim() === 'Airtime',
+  )
+  assert.ok(section, 'missing the Airtime section')
+  return { section, text: section.querySelector('p').textContent.replace(/\s+/g, ' ').trim() }
+}
+
+test('single-speaker airtime names one speaker, their real share, and no spread score', async () => {
+  const { section, text } = await airtimeText(soloPayload(88.2))
+  assert.equal(text, 'One speaker was identified: Sam Okafor, with 88.2% of the words. Spread: not applicable.')
+  assert.doesNotMatch(text, /two loudest|0 = even/)
+  assert.match(section.querySelector('tbody').textContent, /Sam Okafor/)
+  assert.equal(section.querySelectorAll('tbody tr').length, 1)
+})
+
+test('two-speaker airtime keeps the top-two summary and spread score', async () => {
+  const { text } = await airtimeText(PAYLOAD)
+  assert.equal(
+    text,
+    'The two loudest voices took 100% of the words. Spread score 0.17 (0 = even, 1 = one person).',
+  )
+})
+
 test('renders the not-built sentence when the marker was never substituted', () => {
   const marker = readFileSync(TEMPLATE, 'utf8').match(/__[A-Z]+_PAYLOAD__/)[0]
   const { doc } = renderRaw(marker)

@@ -15,11 +15,18 @@
 
 <section class="sec">
   <h2>Airtime</h2>
-  <p>
-    The two loudest voices took <strong>{topShare(roster, 2)}%</strong> of the words. Spread score
-    {dominance}
-    <span class="muted">(0 = even, 1 = one person)</span>.
-  </p>
+  {#if roster.length === 1}
+    <p>
+      One speaker was identified: {roster[0].name}, with <strong>{roster[0].share_words}%</strong>
+      of the words. Spread: not applicable.
+    </p>
+  {:else}
+    <p>
+      The two loudest voices took <strong>{topShare(roster, 2)}%</strong> of the words. Spread score
+      {dominance}
+      <span class="muted">(0 = even, 1 = one person)</span>.
+    </p>
+  {/if}
 
   <div class="scroll">
     <table>

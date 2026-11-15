@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **review-prd-backlog**: `check_links.py` no longer misreads UUID/dispatch-id fragments, quoted prior-run diagnostics, or backtick-wrapped `[[...]]` syntax examples and fenced "observed evidence" transcripts as dangling PRD or memory references.
 - **glean**: `scan` no longer crashes when the host denies `stat` or `lstat` on an untracked dotfile (seen in an agent sandbox on `~/.python_history`); the file is listed as a candidate with an `unreadable` hint.
 - **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
+- **debrief-meeting**: the People tab describes a single-speaker meeting with that speaker's real word share and marks spread as not applicable, instead of claiming two loudest voices and a spread score of 0.
 
 ### Changed
 
