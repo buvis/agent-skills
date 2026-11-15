@@ -24,6 +24,16 @@ def test_verify_control_returns_none_when_pattern_finds_hits_in_control_repo(tmp
     assert result is None
 
 
+def test_verify_control_returns_false_when_pattern_and_control_term_are_both_absent(tmp_path):
+    control_repo = tmp_path / "control"
+    control_repo.mkdir()
+    (control_repo / "file.txt").write_text("nothing relevant here\n")
+
+    result = sweep.verify_control("NOTPRESENTPATTERN", "rg", control_repo, "ABSENTTERM")
+
+    assert result is False
+
+
 def test_verify_control_raises_unverified_when_pattern_misses_but_control_term_present(
     tmp_path, capsys
 ):
@@ -238,10 +248,11 @@ def test_verify_control_lets_the_control_term_search_use_all_the_budget_the_scan
     )
     control_repo = _clean_control_repo(tmp_path)
 
-    sweep.verify_control(
+    result = sweep.verify_control(
         "NOTPRESENTPATTERN", "rg", control_repo, "SPARETERM", deadline=6
     )
 
+    assert result is False
     assert scan_deadlines == [pytest.approx(6, abs=0.1)]
     assert shim_pid_file.exists()
 

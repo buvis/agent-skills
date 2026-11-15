@@ -793,7 +793,6 @@ def main(argv=None):
 
     cwd_path = Path(args.cwd).resolve()
     out_path = _resolve_report_path(cwd_path, args.out, args.reason)
-    unverified = False
 
     try:
         start = time.monotonic()
@@ -801,8 +800,8 @@ def main(argv=None):
         repos, gaps = enumerate_repos(args.registry, args.cwd)
         scan_deadline = _scan_deadline_after_setup(args, start)
         hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap, deadline=scan_deadline)
-        if not hits:
-            unverified = _verify_zero_hit_sweep(args, start) is False
+        # False means inconclusive: zero hits and the control term absent too.
+        unverified = not hits and _verify_zero_hit_sweep(args, start) is False
     except (RuntimeError, TimeoutError) as exc:
         print(exc, file=sys.stderr)
         return 1

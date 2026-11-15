@@ -59,9 +59,11 @@ writes it under `docs/dev/project-management/audit-results/`.
 If neither the pattern nor the fixed-string control term matches in the
 control repo, the empty sweep is inconclusive. The script saves the report
 with `Unverified: control term not found`, prints its path, and exits 1.
-Inspect that report and choose a control that can verify the pattern before
-treating the sweep as clean. A matching pattern in the control repo confirms
-the empty portfolio sweep and exits 0.
+Do not treat that sweep as clean. With the current repo as the control, a
+zero-hit sweep never exits 0: the current repo is swept too, so a pattern that
+matches there produces hits. A zero-hit sweep exits 0 only when
+`--control-repo` is outside the swept set and still holds the bug shape, for
+example a checkout of the commit before the fix.
 
 The report's `Gaps:` section covers two different things: repos found on disk
 under the portfolio root that are missing from the registry (printed as a
