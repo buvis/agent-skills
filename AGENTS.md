@@ -111,9 +111,10 @@ braid --check
 `uv run pytest` collects `tests/` for braid plus every `test_*.py` a skill
 ships under `skills/`. Autopilot's full-suite gate command is
 `uv run python scripts/gate.py`: it runs the same suite and ends with the
-`PASS n FAIL n SKIP n EXIT n` line `autopilot verify` parses. A skill that adds tests is picked up with no config
-change. One of them, the `create-skill` validator's acceptance test, runs every
-skill in this repo through the live-profile bash lint.
+`PASS n FAIL n SKIP n EXIT n` line `autopilot verify` parses. A skill that
+adds tests is picked up with no config change. One of them, the `create-skill`
+validator's acceptance test, runs every skill in this repo through the
+live-profile bash lint.
 
 This repository is public. Keep personal paths, usernames, hostnames,
 employer names, and private project names out of it, including inside

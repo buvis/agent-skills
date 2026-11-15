@@ -8,16 +8,33 @@ import re
 import subprocess
 import sys
 
-_FINAL_RE = re.compile(r"^=+ (.+) in [\d.]+s\b")
+# pytest's last line, with or without the `=` rails (`-q` drops them).
+_FINAL_RE = re.compile(r"^(?:=+ )?(\d+ [a-z]+(?:, \d+ [a-z]+)*) in [\d.]+s\b")
 _COUNT_RE = re.compile(r"(\d+) (passed|failed|skipped|errors?)\b")
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def parse_counts(output: str) -> dict[str, int] | None:
+    """Counts from pytest's last summary line, or None when there is none."""
+    plain = (_ANSI_RE.sub("", line) for line in output.splitlines())
+    finals = [m[1] for line in plain if (m := _FINAL_RE.match(line))]
+    if not finals:
+        return None
+    counts = {"passed": 0, "failed": 0, "skipped": 0}
+    for number, kind in _COUNT_RE.findall(finals[-1]):
+        counts["failed" if kind.startswith("error") else kind] += int(number)
+    return counts
 
 
 def summary_line(output: str, exit_code: int) -> str:
-    """Build the gate line from pytest's last summary line; errors count as failures."""
-    counts = {"passed": 0, "failed": 0, "skipped": 0}
-    finals = [m[1] for line in output.splitlines() if (m := _FINAL_RE.match(line))]
-    for number, kind in _COUNT_RE.findall(finals[-1] if finals else ""):
-        counts["failed" if kind.startswith("error") else kind] += int(number)
+    """Build the gate line from pytest's last summary line; errors count as failures.
+
+    Without a summary line the counts are unknown, so the line never reads as a
+    pass: a zero exit code is reported as 1.
+    """
+    counts = parse_counts(output)
+    if counts is None:
+        return f"PASS 0 FAIL 0 SKIP 0 EXIT {exit_code or 1}"
     return (
         f"PASS {counts['passed']} FAIL {counts['failed']} SKIP {counts['skipped']} EXIT {exit_code}"
     )
@@ -31,12 +48,15 @@ def main(argv: list[str]) -> int:
         text=True,
     )
     lines = []
-    assert proc.stdout is not None
     for line in proc.stdout:
         sys.stdout.write(line)
         lines.append(line)
     code = proc.wait()
-    print(summary_line("".join(lines), code), flush=True)
+    output = "".join(lines)
+    if parse_counts(output) is None:
+        print("gate: no pytest summary line found; counts are unknown", file=sys.stderr)
+        code = code or 1
+    print(summary_line(output, code), flush=True)
     return code
 
 
