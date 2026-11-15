@@ -9,6 +9,7 @@ sentinel come from that module and from test_eval_tree_links.py, so there is
 one spelling of each.
 """
 import errno
+import io
 import os
 import stat
 import tarfile
@@ -93,6 +94,17 @@ def test_build_template_refuses_a_member_named_under_a_symlink_that_resolves_saf
         tmp_path, built_repo, monkeypatch, filter_support,
         _crafted_tar(ANCESTOR_CROSSING_THROUGH_A_SAFE_LINK),
     )
+
+
+def test_archive_vetting_refuses_a_member_named_under_a_symlink_that_resolves_safely():
+    # The build above would fail anyway once it lays `alias` over the real
+    # `alias/` directory `alias/file.txt` made; only the ancestor rule refuses
+    # the archive before anything is written, so pin that rule on its own.
+    with tarfile.open(fileobj=io.BytesIO(_crafted_tar(ANCESTOR_CROSSING_THROUGH_A_SAFE_LINK))) as archive:
+        members = archive.getmembers()
+
+    with pytest.raises(trees.TreeError, match="beneath an archive symlink"):
+        trees._refuse_duplicate_or_crossing_members(members)
 
 
 @NEEDS_SYMLINKS
