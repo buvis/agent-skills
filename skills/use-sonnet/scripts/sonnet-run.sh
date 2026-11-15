@@ -32,6 +32,17 @@ export CLAUDE_NESTED=1
 # when this is set; permission_prompt still pages.
 export _CLAUDE_NOTIFY_QUIET=1
 
+# Claude Code strips CLAUDE_CODE_OAUTH_TOKEN from its tool subprocesses, so a
+# nested claude falls back to the shared Keychain login, which concurrent
+# refreshes revoke ("OAuth token revoked", 2026-11-15). Load the long-lived
+# setup token the way run-agent does when the caller's env lacks it, unless
+# the caller opted into the Keychain login with RUN_AGENT_CLAUDE_LOGIN.
+SETUP_TOKEN_FILE="${CLAUDE_SETUP_TOKEN_FILE:-$HOME/.local/secrets/claude-setup-token}"
+if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] && [ -z "${RUN_AGENT_CLAUDE_LOGIN:-}" ] && [ -r "$SETUP_TOKEN_FILE" ]; then
+    CLAUDE_CODE_OAUTH_TOKEN="$(<"$SETUP_TOKEN_FILE")"
+    export CLAUDE_CODE_OAUTH_TOKEN
+fi
+
 # `sonnet` alias always resolves to the latest base Sonnet. No Copilot
 # multiplier to dodge anymore - override with -m only when you need a specific
 # model id or a different tier.

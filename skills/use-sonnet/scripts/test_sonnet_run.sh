@@ -55,6 +55,7 @@ cat > "$STUBDIR/claude" <<'STUB'
 #!/bin/bash
 printf '%s\n' "$@" > "${CLAUDE_ARGV_FILE:?}"
 cat > "${CLAUDE_STDIN_FILE:?}"
+printf '%s' "${CLAUDE_CODE_OAUTH_TOKEN-<unset>}" > "${CLAUDE_ARGV_FILE}.token"
 echo "stub-claude-ran"
 exit "${STUB_EXIT_CODE:-0}"
 STUB
@@ -496,6 +497,38 @@ run_sonnet resume-missing -R
 if [ "$RC" -ne 0 ] && [ ! -f "$CLAUDE_ARGV_FILE" ]; then PASS "missing resume id refuses launch"; else FAIL "missing resume id" "launched"; fi
 run_sonnet resume-option -R --effort high -f "$PROMPT_F"
 if [ "$RC" -ne 0 ] && [ ! -f "$CLAUDE_ARGV_FILE" ]; then PASS "resume option as id refuses launch"; else FAIL "resume option as id" "launched"; fi
+
+# ══ T15: setup token reaches the child when the caller's env lacks it ═════════
+# Claude Code strips CLAUDE_CODE_OAUTH_TOKEN from its tool subprocesses, so a
+# nested claude fell back to the shared Keychain login and failed with "OAuth
+# token revoked" (2026-11-15). The wrapper loads the long-lived setup token from
+# its file when the variable is unset, keeps a caller's own value, and honours
+# run-agent's RUN_AGENT_CLAUDE_LOGIN opt-out.
+TOKEN_FILE="$WORK/setup-token"
+TOKEN_VALUE="tok-$RANDOM-$RANDOM"
+printf '%s\n' "$TOKEN_VALUE" > "$TOKEN_FILE"
+token_case() {
+    # $1 = label, $2 = expected token seen by the child, $3.. = env assignments
+    local label="$1" want="$2"
+    shift 2
+    make_prompt "token-$label"
+    export CLAUDE_ARGV_FILE="$WORK/token-$label.argv"
+    export CLAUDE_STDIN_FILE="$WORK/token-$label.stdin"
+    RC=0
+    env -u CLAUDE_CODE_OAUTH_TOKEN -u RUN_AGENT_CLAUDE_LOGIN "$@" PATH="$RUN_PATH" \
+        bash "$SONNET_RUN_SH" -f "$PROMPT_F" > /dev/null 2>&1 <<< '' || RC=$?
+    local got
+    got=$(cat "$CLAUDE_ARGV_FILE.token" 2>/dev/null || echo '<no child>')
+    if [ "$RC" -eq 0 ] && [ "$got" = "$want" ]; then
+        PASS "setup token: $label"
+    else
+        FAIL "setup token: $label" "rc=$RC; child saw '$got', want '$want'"
+    fi
+}
+token_case "loaded from file when unset" "$TOKEN_VALUE" CLAUDE_SETUP_TOKEN_FILE="$TOKEN_FILE"
+token_case "caller value kept" "caller-tok" CLAUDE_SETUP_TOKEN_FILE="$TOKEN_FILE" CLAUDE_CODE_OAUTH_TOKEN=caller-tok
+token_case "keychain opt-out honoured" "<unset>" CLAUDE_SETUP_TOKEN_FILE="$TOKEN_FILE" RUN_AGENT_CLAUDE_LOGIN=1
+token_case "missing file leaves it unset" "<unset>" CLAUDE_SETUP_TOKEN_FILE="$WORK/no-such-token"
 
 # ══ summary ═══════════════════════════════════════════════════════════════════
 echo ""
