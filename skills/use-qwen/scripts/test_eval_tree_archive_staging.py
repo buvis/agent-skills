@@ -287,8 +287,10 @@ def test_build_template_refuses_a_member_whose_name_the_filesystem_cannot_hold(
 
     # The exact member reached, not merely that some failure occurred: a fix
     # that blamed the wrong member, or a build that failed for an unrelated
-    # reason, must not pass this.
-    assert failing_member in str(excinfo.value), "the wrong member was blamed for the failure"
+    # reason, must not pass this. Matched on the member's last component: the
+    # data-filter seam reports the host path, which on Windows uses `\`.
+    blamed = failing_member.rpartition("/")[2]
+    assert blamed in str(excinfo.value), "the wrong member was blamed for the failure"
     assert watched, "extraction never started"
     for seen in watched:
         assert not seen["dest_existed"], "extraction ran with dest already in place"

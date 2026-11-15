@@ -26,7 +26,8 @@ def test_check_trust_fails_loudly_without_document_skill(tmp_path):
     result = subprocess.run(
         [sys.executable, "-B", str(copy), "--selftest"],
         capture_output=True, text=True, check=False,
-        env={"HOME": str(tmp_path), "PATH": ""},
+        # USERPROFILE is what Path.home() reads on Windows.
+        env={"HOME": str(tmp_path), "USERPROFILE": str(tmp_path), "PATH": ""},
     )
     assert result.returncode != 0
     assert "document-abap-solution" in result.stderr
