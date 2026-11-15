@@ -40,6 +40,29 @@ previous did not: `test_the_warmup_budget_runs_down_across_every_earlier_segment
 in skills/use-qwen/scripts/test_run_eval_vet.py raises WinError 32 (file in use)
 on its temporary output file after the warm-up timeout kills the child.
 
+Update 2026-11-01 (repository closeout, Stage 1): unparked for the attended
+closeout. The current failure set is the 126-row matrix in
+`docs/dev/project-management/audit-results/repository-closeout-preparation.md`
+(Windows appendix). It holds 61 failures at master run 41032617118 and 65 at
+PR #17 run 41030058506, grouped into causes B1-B2, P1-P2, D1-D3, G1, U1-U2, S1
+and Q1-Q8. That report's "Windows diagnosis and ownership" table gives each
+cause's minimal repair and the regression that must detect the old behavior.
+The custody addendum
+`docs/dev/project-management/audit-results/repository-closeout-preparation-session-123534.md`
+refines Q3 (`eval_harness_run_helpers.py` pwd logging) and Q4-Q5. Rules for this run:
+
+- Causes Q4, Q5 and Q6 belong to PRD 00160. This PRD never edits
+  `skills/use-qwen/scripts/eval_harness/trees.py`,
+  `skills/use-qwen/scripts/test_eval_tree_links.py` or
+  `skills/use-qwen/scripts/test_eval_tree_state.py`.
+- Do not edit `skills/distil-memory/scripts/funnel.py` (PRD 00133 owns it).
+- Hypothesis rows (B1, Q2, Q4, Q8) get a portable repair plus a local
+  regression that simulates the Windows behavior. Mark each one unverified
+  until the native run confirms it.
+- This build makes no push, branch publication or workflow dispatch. The
+  closeout coordinator runs the native Windows job once, on the combined
+  candidate, after explicit user approval of its exact SHA.
+
 ### Target Users
 Maintainers changing portable skills or Braid, and Windows users relying on the README.
 
@@ -221,15 +244,18 @@ record the failure and file in the implementation plan rather than perform a gen
 **Goal**: Prove full-suite closure on native Windows and document only that evidence.
 
 **Tasks**:
-- [ ] Run the complete Python suite on POSIX and windows-latest for the final changed commit
-  (depends on: Phase 1). Use the existing GitHub Actions workflow and authenticated headless gh CLI
-  to inspect the branch/PR run; no manual browser check or interactive login is part of this task.
-  Acceptance: `uv run --python 3.13 pytest` exits 0 on Windows; the existing Ubuntu matrix is green;
-  record the run URL, tested commit, collected tests and every skip/xfail reason in the review evidence.
-  Fix additional Windows failures of collected tests in this PRD, preserving behavior and full collection.
-  If authentication/runner access is unavailable, stop and record the execution blocker; do not
-  weaken the command or mark this validation complete.
+- [ ] Prepare native Windows validation for the final changed commit (depends on: Phase 1).
+  The closeout coordinator owns the actual run: one approved `workflow_dispatch` of
+  `.github/workflows/ci.yml` on the combined candidate. This task makes no push and no dispatch.
+  Acceptance: `uv run pytest` exits 0 locally. A note in the PRD's review evidence names each
+  cause row (B1-B2, P1-P2, D1-D3, G1, U1-U2, S1, Q1-Q3, Q7, Q8), the commit that repairs it,
+  its local regression, and whether the native run must still confirm it.
+  Native acceptance, recorded later by the coordinator: `uv run --python 3.13 pytest` exits 0 on
+  Windows; the Ubuntu matrix is green; the run URL, tested commit, collection and every skip/xfail
+  reason are recorded. Do not weaken the command or mark native validation complete without that run.
 - [ ] Correct the Windows command and coverage paragraph (depends on: the passing full-suite run).
+  Premise: a passing native Windows run is recorded for this PRD's commit. If it is not, skip and
+  report this task; never claim coverage in advance.
   Premise: re-read the README and named junction stub test; retain any already-correct wording.
   Acceptance: a file assertion finds the single-backslash command and no doubled spelling;
   README names full Python coverage on windows-latest, distinguishes Git Bash test requirements

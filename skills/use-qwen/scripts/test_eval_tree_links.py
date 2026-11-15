@@ -130,7 +130,17 @@ def _spelled(links: dict, impl: str) -> dict:
 
 
 def _lay_links(root: Path, links: dict) -> None:
-    """Write each `name -> target` link under `root`, target text as given."""
+    """Write each `name -> target` link under `root`, target text as given,
+    separators in host form.
+
+    `target_is_directory=True` is passed whenever the target resolves to a
+    directory, directly or through another link of `links`: on Windows a
+    symlink's reparse-point type is fixed at creation and wrong for a
+    directory target unless told so, so a fixture built without this would
+    exercise file-typed reparse points only - never the directory-link shape
+    the production walk also has to refuse or follow. `os.symlink` ignores the
+    flag on POSIX, so this changes nothing there.
+    """
     directories = {name for name, target in links.items() if (root / name).parent.joinpath(target).is_dir()}
     for _ in links:
         directories.update(name for name, target in links.items() if target in directories)
@@ -367,12 +377,19 @@ def test_build_template_uses_native_link_separators_without_collapsing_parent_ho
     def symlink(target, destination, *, target_is_directory):
         calls.append((target, destination, target_is_directory))
 
-    monkeypatch.setattr(trees, "os", SimpleNamespace(sep="\\", environ=os.environ, symlink=symlink))
+    monkeypatch.setattr(trees, "os", SimpleNamespace(
+        sep="\\", environ=os.environ, symlink=symlink, path=os.path, urandom=os.urandom,
+    ))
     dest = tmp_path / "template"
 
     trees.build_template(repo, first, dest)
 
-    assert calls == [(r"pkg\..\pkg\nested.txt", dest / "alias", False)]
+    [(target, destination, is_directory)] = calls
+    assert (target, is_directory) == (r"pkg\..\pkg\nested.txt", False)
+    # Laid in the staged tree that is sealed and then renamed to `dest`.
+    assert destination.name == "alias"
+    assert destination.parent.parent == dest.parent
+    assert destination.parent.name.startswith(dest.name + ".staging-")
 
 
 class _TarfileWithoutDataFilter:
@@ -676,6 +693,27 @@ def test_hash_paths_refuses_a_link_with_an_absolute_target_before_reading_it(
             trees.hash_paths(root, [listed])
     finally:
         (outside / "secret.txt").chmod(0o644)
+
+
+@NEEDS_SYMLINKS
+@pytest.mark.parametrize(
+    "target",
+    [r"\etc\passwd", "C:\\Windows\\System32\\x", r"\\host\share\x"],
+    ids=["windows-rooted", "drive-absolute", "unc"],
+)
+def test_hash_paths_refuses_a_link_with_a_windows_shaped_absolute_target(
+    tree_and_outside, target
+):
+    root, _ = tree_and_outside
+    _lay_links(root, {"escape": target})
+
+    # The fixture's own link text, read back whole: the escape under test is
+    # the Windows-shaped target itself, not a slip in how the fixture wrote
+    # it.
+    assert os.readlink(root / "escape") == target
+
+    with pytest.raises(trees.TreeError):
+        trees.hash_paths(root, ["escape"])
 
 
 @NEEDS_SYMLINKS

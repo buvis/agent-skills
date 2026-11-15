@@ -1,6 +1,6 @@
 # Project Capsule: agent-skills
 
-Generated: 2026-10-30 (Git hygiene and unpublished-change review)
+Generated: 2026-11-01 (closeout/archive worktree — PRD 00160 catchup)
 
 ## Key Invariants
 
@@ -54,13 +54,28 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
 
 ## Active Work
 
+- This worktree (`agent-skills-closeout/archive`, branch `closeout/archive`)
+  is Stage 1 Lane A of `plans/repository-closeout-plan.md`: archive
+  containment only, dedicated to `eval_harness/trees.py` and its tests.
+  Lanes B (Windows CI) and C (migration/dependency PRs) run in separate
+  worktrees; never touch their files from here.
+- A fresh autopilot batch (`202611011931`) was minted in this worktree for
+  PRD 00160 (`template-archive-extraction-fails-closed`), which promotes held
+  triage stubs 00155-00158 against done PRD 00131's `build_template`/
+  `fresh_clone`/`hash_paths` in `skills/use-qwen/scripts/eval_harness/trees.py`.
+  00131 already landed partial containment (commit `147d146`); open gaps are
+  the symlink-ancestor bypass (00158), the unfiltered `extractall` fallback's
+  setuid/ownership leak and `DeprecationWarning` (00156/00157), and missing
+  refusal-path regression coverage (00155). `default_model: opus` per the PRD
+  frontmatter (security containment predicate, filter-parity equivalence).
 - `plans/repository-closeout-plan.md` defines three execution sessions and a
   fourth independent verification session. It covers archive safety, Windows
   CI, and PRs #17/#15/#16; PRD 00133 implementation remains outside its scope.
-- Batch 202610271200 is stopped after 33 completed PRDs. PRD 00133 remains in
-  `wip/`, build phase, zero completed tasks. The interrupted run's telemetry
-  and unchanged backlog-to-wip move are committed.
-- The store contains 19 backlog, 1 wip, 20 hold, and 100 done PRDs.
+- Batch 202610271200 (main checkout) is stopped after 33 completed PRDs. PRD
+  00133 remains in `wip/` there, build phase, zero completed tasks — unrelated
+  to this worktree's batch and must not be touched from here.
+- The store contains 18 backlog, 2 wip (00133, 00160), 20 hold, and 100 done
+  PRDs, as seen from this worktree.
 - PRD 00111's four code/test commits were manually reverted. Custody is closed;
   the later state-decoding fix remains. Its original persistence defect remains
   unresolved, and its custody branch is retained for follow-up.
@@ -76,6 +91,10 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
 
 ## Related context
 
+- No topic query this session: `wip/` holds two PRDs (00133, 00160), so the
+  single-PRD topic rule does not apply, and `engram` was skipped by
+  `catchup-probe` for this run regardless. Prior-session related context
+  (below) is unchanged from the last query that ran it.
 - `prds/wip/00133-transcript-judge-inherits-tools-v1.md:7` — score 0.0328;
   the interrupted work's tool restriction boundary.
 - `prds/done/00072-distil-judge-no-persistence-v1.md:7` — score 0.0159;

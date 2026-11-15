@@ -1,0 +1,130 @@
+[
+  {
+    "cycle": 1,
+    "disposition": "settled-deferral",
+    "severity": "critical",
+    "issue": "Case-folding ancestor alias lets an accepted archive write outside `dest`. `A -> .` plus a member named `a/../outside/secret.txt` passes validation: the duplicate/case rule folds whole normalized names, so it never notices that `a` aliases the symlink `A` on a case-insensitive host. On the manual (no-filter) path `dest.joinpath(member.name)` then mkdirs through `dest/a`, which case-folds onto `dest/A -> .`, so `..` climbs out of `dest` and the payload lands beside it.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:213",
+    "reason": "Critical severity, always: recorded in deferred_decisions as the audit trail the cycle it was raised. It is NOT settled away - per the Cap check a CRITICAL blocks until it is fixed, so it is also entered as a fix row and carries the cycle-1 rework design."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Failures after extraction raise raw errors instead of `TreeError`. `subprocess.CalledProcessError` from git init, add or commit, and `tarfile.ReadError` from a corrupt archive both escape unwrapped. The spec only requires translating FilterError and `OSError` during extraction. Cleanup of `staging` is done with `ignore_errors=True`, so a read-only directory made by the manual path can leave the staging directory behind.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:315",
+    "reason": "single-voice. Also substantially covered: the R4 fix row carries \"wrap the seal failure\", so the seal-path translation lands with that rework task anyway. PRD A10 mandates translating FilterError and OSError during extraction only, which the code does."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`contained` now rebuilds the links map with a full `os.walk` of `root` on every call. `hash_paths` calls it once per path, and `prove_state` calls `hash_paths` on every proof, so the cost is paths x tree size (a clone holding `node_modules` or build output is the bad case). `Path.resolve` was O(depth). Build the links map once per `hash_paths` or `overlay_oracle` call and pass it into the landing step. This keeps behavior and cuts the cost",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:421",
+    "reason": "single-voice. Performance, not correctness, and the PRD deliberately chose the shared link walk over `Path.resolve` for containment (\"Resolve with the same link walk used for archives, not only `Path.resolve`\"). Reverting the cost would reopen the A11 defect. Worth a separate PRD, not this cycle's rework."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`except trees.TreeError: assert list(dest.glob(\"*\")) == []` accepts a refusal as a pass, and `dest` is always empty or absent after a refusal, so a build that raises `TreeError` for every archive passes the refusal branch. I checked the other branch: with `_safe_mode` made the identity function, the no-filter params fail, so the test does bite there. Tighten it by requiring success for the setuid/foreign-owner cases (git-archive-valid input) or by asserting the refusal reason",
+    "file": "skills/use-qwen/scripts/test_eval_tree_archive_safety_modes.py:132",
+    "reason": "single-voice. Alice verified the success branch does bite under mutation, so the test is not tautological; only its refusal branch is loose."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`build_template` raises `TreeError` when `dest` exists in any form, including an empty directory. The spec says to refuse only when `dest` is non-empty, and marks that as a guess. The docstring documents the stricter rule, so it is a deliberate spec deviation.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:296",
+    "reason": "single-voice. The PRD marks the non-empty rule \"(guess)\" and the stricter rule is documented in the docstring and pinned by tests. Fail-closed is the safer direction for a security PRD; the reviewer himself calls it deliberate."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "`_lay_links` determines directory type from targets already present on disk, so a forward chain such as `a -> b`, `b -> pkg` types `a` incorrectly on Windows. Resolve directory type through the supplied links map before creating each fixture link.",
+    "file": "skills/use-qwen/scripts/test_eval_tree_links.py:145",
+    "reason": "single-voice. Test-fixture typing on a platform this suite only simulates; the PRD's own Risks section records Windows link typing as an unverified hypothesis whose native result comes only from the hosted Windows job."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "Final rename can replace an empty directory created after the initial existence check on POSIX. The documentation's create-only guarantee is therefore too strong; this concurrency limitation is explicitly outside the PRD's accepted single-writer scope.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:323",
+    "reason": "single-voice, and the doubt lens filed it in its own KNOWN bucket with an out-of-scope justification. A time-of-check-to-time-of-use race needs a second writer, which the harness's single-writer model excludes."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The seal-failure test accepts either `type(error)` or `TreeError`, so it cannot tell whether failures are translated. Pin one outcome per step, or document that the seal deliberately does not translate",
+    "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py:325",
+    "reason": "single-voice."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`if os.path.isabs(member.name): raise TreeError(... is absolute)` is unreachable because `_archive_name_escapes` already refuses a leading \"/\" and every Windows-absolute form on the line above. It is dead code and can be dropped (the `isabs` in `_land` at line 106 is likewise redundant, but the design asked for it)",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:206",
+    "reason": "single-voice. Verified unreachable, but it is a belt-and-braces refusal on a security path and the design asked for the matching one in `_land`. Removing a refusal to save two lines is the wrong trade here."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The case-collision check uses `str.lower()`, not `casefold()` or Unicode normalization. Names that differ only by NFC/NFD form, or by case-folds like \"ß\", still collide on macOS/Windows and pass",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:214",
+    "reason": "single-voice as filed at low severity. The R1 fix row covers case-equivalence for ancestor and symlink lookups, which is the reachable half of this; Unicode normalization of the whole-name fold is the residue and is recorded here rather than dropped."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "`_archive_name_escapes` checks `\":\" in component[1:]`, so a component that starts with a colon (such as `:stream`) is not refused. This is an edge case of the NTFS stream-like rule.",
+    "file": "skills/use-qwen/scripts/eval_harness/trees.py:145",
+    "reason": "single-voice. Verified: `_archive_name_escapes(\":stream\")` is False. A leading-colon component is not a stream reference on NTFS (a stream needs a name before the colon), so the rule's intent holds."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "low",
+    "issue": "The PRD names three test files, but the implementation adds two more: `skills/use-qwen/scripts/test_eval_tree_archive_staging.py` and `skills/use-qwen/scripts/test_eval_tree_archive_safety_modes.py`. This is a harmless split and needs no action.",
+    "file": null,
+    "reason": "single-voice, and the reviewer states it needs no action. Splitting one oversized test module into three is required by the project's own file-size limits."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "54 touched test(s) pass against the pre-change code: test_build_template_refuses_a_member_named_absolute_in_any_domain, test_build_template_refuses_a_link_whose_target_is_absolute_in_any_domain +48 more",
+    "file": "skills/use-qwen/scripts/test_eval_tree_archive_safety.py",
+    "reason": "single-voice (mech-check), and contradicts nothing: the replay reports 150 of 237 touched tests failing against the base, so each acceptance row retains a pinning regression. The 87 passers are the valid-input controls the PRD's Phase 0 asked for plus refusals the pre-change code already made (POSIX-absolute names and targets were refused by the old walk). The PRD's Phase 0 acceptance names A1 and A7 as the rows that must fail at base, and both do."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "27 touched test(s) pass against the pre-change code: test_build_template_never_applies_setuid_setgid_or_a_foreign_owner_from_the_archive +21 more",
+    "file": "skills/use-qwen/scripts/test_eval_tree_archive_safety_modes.py",
+    "reason": "single-voice (mech-check). Same computed fact as the row above: the filter-present parametrisations of this module pass at base because `filter=\"data\"` already stripped setuid there; the no-filter parametrisations are the ones that fail at base, and they are the A7 regression."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "4 touched test(s) pass against the pre-change code: test_build_template_still_seals_an_absent_dest_beside_siblings_sharing_its_prefix",
+    "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py",
+    "reason": "single-voice (mech-check). The named test is a valid-input control for the staging rename, which the PRD asks for explicitly (\"Pre-existing `dest` sibling content survives\"); a control is supposed to pass against both revisions."
+  },
+  {
+    "cycle": 1,
+    "disposition": "discarded",
+    "severity": "medium",
+    "issue": "2 touched test(s) pass against the pre-change code: test_build_template_refuses_every_absolute_target_shape_as_a_tree_error",
+    "file": "skills/use-qwen/scripts/test_eval_tree_state.py",
+    "reason": "single-voice (mech-check). The pre-change code already raised TreeError for a POSIX-absolute link target; this PRD's task 7 widened the same test over Windows-rooted, drive and UNC shapes, and those parametrisations are inside the 150 that fail at base."
+  }
+]
