@@ -1,5 +1,6 @@
 """Tests for check_links.py (PRD 00081)."""
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -78,13 +79,119 @@ def test_memory_links_resolve_stem_and_frontmatter_name(tmp_path, monkeypatch):
 
 
 def test_memory_dir_scanned_as_source(tmp_path, monkeypatch):
-    make_tree(tmp_path)
-    mem = tmp_path / "memory"
-    mem.mkdir()
+    """~/.claude is the one root whose auto-memory files are scanned as sources."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: home)
+    claude_root = home / ".claude"
+    make_tree(claude_root)
+    mem = check_links.project_memory_dir(claude_root)
+    mem.mkdir(parents=True)
     (mem / "m.md").write_text("cites docs/dev/project-management/notes/vanished.md\n")
-    monkeypatch.setattr(check_links, "project_memory_dir", lambda _root: mem)
-    findings, _ = check_links.run(tmp_path)
+    findings, _ = check_links.run(claude_root)
     assert any("vanished" in f[2] for f in findings)
+
+
+def test_memory_source_excluded_for_an_ordinary_root(tmp_path, monkeypatch):
+    """A clean, ordinary repo must not surface findings from its home-dir memory file."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: home)
+    ordinary_root = tmp_path / "myrepo"
+    make_tree(ordinary_root)
+    # the memory dir associated with this ordinary root still exists and has a dead ref
+    mem = check_links.project_memory_dir(ordinary_root)
+    mem.mkdir(parents=True)
+    (mem / "m.md").write_text("cites docs/dev/project-management/notes/vanished.md\n")
+    findings, errors = check_links.run(ordinary_root)
+    assert findings == [] and errors == []
+
+
+def test_memory_source_excluded_for_root_named_dot_claude_but_not_under_home(tmp_path, monkeypatch):
+    """A near-miss root (basename '.claude', wrong parent) must not be treated as the home ~/.claude."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: home)
+    lookalike_root = tmp_path / "somewhere" / ".claude"
+    make_tree(lookalike_root)
+    mem = check_links.project_memory_dir(lookalike_root)
+    mem.mkdir(parents=True)
+    (mem / "m.md").write_text("cites docs/dev/project-management/notes/vanished.md\n")
+    findings, errors = check_links.run(lookalike_root)
+    assert findings == [] and errors == []
+
+
+def test_memory_source_included_for_unresolved_claude_root_spellings(tmp_path, monkeypatch):
+    """A trailing-slash or '..'-laden spelling of ~/.claude still gates in, once resolved."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: home)
+    claude_root = home / ".claude"
+    make_tree(claude_root)
+    mem = check_links.project_memory_dir(claude_root)
+    mem.mkdir(parents=True)
+    (mem / "m.md").write_text("cites docs/dev/project-management/notes/vanished.md\n")
+
+    trailing_slash = Path(str(claude_root) + "/")
+    dotdot = home / "other" / ".." / ".claude"
+
+    findings_a, _ = check_links.run(trailing_slash)
+    findings_b, _ = check_links.run(dotdot)
+    assert any("vanished" in f[2] for f in findings_a)
+    assert any("vanished" in f[2] for f in findings_b)
+
+
+def test_memory_source_included_for_a_root_reached_through_a_symlink(tmp_path, monkeypatch):
+    """A symlink to ~/.claude resolves to the real root, so its memory files are scanned."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: home)
+    claude_root = home / ".claude"
+    make_tree(claude_root)
+    mem = check_links.project_memory_dir(claude_root.resolve())
+    mem.mkdir(parents=True)
+    (mem / "m.md").write_text("cites docs/dev/project-management/notes/vanished.md\n")
+    link = tmp_path / "via-link"
+    link.symlink_to(claude_root, target_is_directory=True)
+
+    findings, _ = check_links.run(link)
+    assert any("vanished" in f[2] for f in findings)
+
+
+def test_cli_clean_exit_for_ordinary_root_despite_dead_home_memory_refs(tmp_path, monkeypatch):
+    """CLI regression: a clean ordinary repo exits 0 even though its home auto-memory file is broken."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: home)
+    ordinary_root = tmp_path / "myrepo"
+    make_tree(ordinary_root)
+    mem = check_links.project_memory_dir(ordinary_root)
+    mem.mkdir(parents=True)
+    (mem / "m.md").write_text("cites docs/dev/project-management/notes/vanished.md\n")
+
+    env = dict(os.environ)
+    env["HOME"] = str(home)
+    env["USERPROFILE"] = str(home)
+    script = Path(check_links.__file__)
+    result = subprocess.run(
+        [sys.executable, str(script), "--root", str(ordinary_root), "--json"],
+        capture_output=True, text=True, env=env,
+    )
+    assert result.returncode == 0
+    assert json.loads(result.stdout) == {"findings": [], "scan_errors": []}
+
+    claude_root = home / ".claude"
+    make_tree(claude_root)
+    claude_mem = check_links.project_memory_dir(claude_root)
+    claude_mem.mkdir(parents=True)
+    (claude_mem / "m.md").write_text("cites docs/dev/project-management/notes/vanished.md\n")
+    dirty = subprocess.run(
+        [sys.executable, str(script), "--root", str(claude_root), "--json"],
+        capture_output=True, text=True, env=env,
+    )
+    assert dirty.returncode == 1
+    payload = json.loads(dirty.stdout)
+    assert any("vanished" in f["target"] for f in payload["findings"])
 
 
 def test_placeholders_skipped(tmp_path):
