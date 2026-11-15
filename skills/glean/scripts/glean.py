@@ -39,9 +39,12 @@ SOFT = re.compile(
     r"api[_-]?key|secret|token|passw|bearer|private[_-]?key|oauth|client_id|credential",
     re.I,
 )
+# Each alternative is a named category; a hit's label is built from the group
+# name alone, so it never carries characters of the matched secret.
 HARD = re.compile(
-    r"BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{20,}|(?<![A-Za-z0-9-])sk-[A-Za-z0-9_-]{20,}"
-    r"|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}"
+    r"(?P<private_key>BEGIN [A-Z ]*PRIVATE KEY)|(?P<github_token>gh[pousr]_[A-Za-z0-9]{20,})"
+    r"|(?P<sk_key>(?<![A-Za-z0-9-])sk-[A-Za-z0-9_-]{20,})"
+    r"|(?P<aws_access_key>AKIA[0-9A-Z]{16})|(?P<slack_token>xox[abpr]-[A-Za-z0-9-]{10,})"
 )
 NOISE_HINT = re.compile(
     r"cache|log|histor|session|state|\.lock$|\.sock$|tmp|backup|\.bak|\.db(-wal|-shm)?$|__pycache__",
@@ -58,31 +61,67 @@ def load_json(path: Path) -> dict:
         sys.exit(f"glean: {path} is not valid JSON: {e}")
 
 
+def validate_entries(data: dict, path: Path) -> list[dict]:
+    entries = data.get("entries", [])
+    if not isinstance(entries, list):
+        sys.exit(f"glean: {path} has a non-list 'entries'")
+    for e in entries:
+        if not isinstance(e, dict):
+            sys.exit(f"glean: {path} has a non-object entry: {e!r}")
+        if not isinstance(e.get("path"), str):
+            sys.exit(f"glean: entry in {path} has a missing or non-string 'path': {e!r}")
+        v = e.get("verdict")
+        if v not in VOLATILE | STABLE:
+            sys.exit(f"glean: unknown verdict {v!r} for {e.get('path')}")
+        if v in VOLATILE:
+            if not (e.get("sha256") or e.get("count_mtime")):
+                sys.exit(f"glean: volatile entry {e.get('path')} needs sha256 or count_mtime")
+            decided = e.get("decided")
+            try:
+                date.fromisoformat(decided)
+            except (TypeError, ValueError):
+                sys.exit(f"glean: volatile entry {e.get('path')} in {path} has invalid decided date {decided!r}")
+    return entries
+
+
 def load_ledgers(local_path: Path) -> tuple[dict, list[dict]]:
     local = load_json(local_path)
+    if not isinstance(local, dict):
+        sys.exit(f"glean: {local_path} must be a JSON object, not {type(local).__name__}")
     cfg = local.get("config")
-    if not cfg or "git_dir" not in cfg:
+    if not isinstance(cfg, dict) or "git_dir" not in cfg:
         sys.exit(
             f"glean: no config in {local_path}. First run: create it with "
             '{"config": {"git_dir": "~/<bare-repo>", "public_ledger": "~/<path>.json"}, "entries": []}'
         )
-    entries = BUILTIN + local.get("entries", [])
+    if not isinstance(cfg["git_dir"], str):
+        sys.exit(f"glean: {local_path} has a non-string 'git_dir': {cfg['git_dir']!r}")
+    if "public_ledger" in cfg and not isinstance(cfg["public_ledger"], str):
+        sys.exit(f"glean: {local_path} has a non-string 'public_ledger': {cfg['public_ledger']!r}")
+    if "link_roots" in cfg and not isinstance(cfg["link_roots"], list):
+        sys.exit(f"glean: {local_path} has a non-list 'link_roots': {cfg['link_roots']!r}")
+    for r in cfg.get("link_roots", []):
+        if not isinstance(r, str):
+            sys.exit(f"glean: {local_path} has a non-string 'link_roots' element: {r!r}")
+    try:
+        git_dir(cfg).relative_to(HOME)
+    except ValueError:
+        sys.exit(f"glean: git_dir {git_dir(cfg)} is outside the supported home layout ({HOME})")
+    entries = BUILTIN + validate_entries(local, local_path)
     if cfg.get("public_ledger"):
         public_path = Path(cfg["public_ledger"]).expanduser()
         if not public_path.exists():
             sys.exit(f"glean: public_ledger {public_path} does not exist")
-        entries += load_json(public_path).get("entries", [])
-    for e in entries:
-        v = e.get("verdict")
-        if v not in VOLATILE | STABLE:
-            sys.exit(f"glean: unknown verdict {v!r} for {e.get('path')}")
-        if v in VOLATILE and not (e.get("sha256") or e.get("count_mtime")):
-            sys.exit(f"glean: volatile entry {e.get('path')} needs sha256 or count_mtime")
+        public = load_json(public_path)
+        if not isinstance(public, dict):
+            sys.exit(f"glean: {public_path} must be a JSON object, not {type(public).__name__}")
+        entries += validate_entries(public, public_path)
     return cfg, entries
 
 
 def git_dir(cfg: dict) -> Path:
-    return Path(cfg["git_dir"]).expanduser()
+    p = Path(cfg["git_dir"]).expanduser()
+    return p if p.is_absolute() else HOME / p
 
 
 def git(cfg: dict, *args: str) -> str:
@@ -128,7 +167,7 @@ def scan_lines(text: str) -> list[tuple[int, str]]:
     hits = []
     for n, line in enumerate(text.splitlines(), 1):
         if m := HARD.search(line):
-            hits.append((n, "HARD:" + m.group(0)[:4]))
+            hits.append((n, "HARD:" + m.lastgroup.replace("_", "-")))
         elif m := SOFT.search(line):
             hits.append((n, m.group(0).lower()))
     return hits

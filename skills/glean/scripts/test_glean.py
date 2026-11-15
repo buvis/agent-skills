@@ -205,6 +205,41 @@ def test_hard_pattern_ignores_sk_inside_kebab_case_words():
     assert glean.scan_lines("key: sk-" + "a" * 40 + "\n")[0][1].startswith("HARD:")
 
 
+# Synthetic values only; two different suffixes per category must give one label.
+HARD_SAMPLES = [
+    ("HARD:private-key", ["-----BEGIN RSA PRIVATE KEY-----", "-----BEGIN OPENSSH PRIVATE KEY-----"]),
+    ("HARD:github-token", ["ghp_" + "Q" * 36, "gho_" + "7" * 36]),
+    ("HARD:sk-key", ["sk-" + "Zq" * 20, "sk-" + "9x" * 20]),
+    ("HARD:aws-access-key", ["AKIA" + "Q" * 16, "AKIA" + "7" * 16]),
+    ("HARD:slack-token", ["xoxb-" + "Zq" * 6, "xoxp-" + "9x" * 6]),
+]
+
+
+@pytest.mark.parametrize("label,secrets", HARD_SAMPLES)
+def test_hard_label_is_a_constant_category_never_secret_text(label, secrets):
+    for secret in secrets:
+        assert glean.scan_lines("pad\nkey: " + secret + "\n") == [(2, label)]
+
+
+@pytest.mark.parametrize("label,secrets", HARD_SAMPLES)
+def test_scan_and_check_staged_output_carries_no_secret_characters(home, label, secrets):
+    for secret in secrets:
+        (home / ".toolrc").write_text("pad\nkey: " + secret + "\n")
+        ledger = write_ledger(home, [])
+        scan = run_cli(home, ledger, "scan")
+        assert scan.returncode == 0, scan.stderr
+        hit = json.loads(scan.stdout)["candidates"][0]["secret_hits"][0]
+        assert hit == {"file": ".toolrc", "line": 2, "keyword": label}
+        git(home, "add", "-f", ".toolrc")
+        staged = run_cli(home, ledger, "check-staged")
+        assert staged.returncode == 1
+        assert json.loads(staged.stdout)["hard"] == [{"path": ".toolrc", "line": 2, "why": "credential pattern " + label[5:]}]
+        git(home, "rm", "-q", "--cached", ".toolrc")
+        for out in (scan.stdout, scan.stderr, staged.stdout, staged.stderr):
+            assert secret not in out
+            assert secret[:4] not in out  # the old label leaked this prefix
+
+
 def test_check_staged_passes_comment_mentions_as_soft(home):
     (home / ".toolrc").write_text("# keep secrets out of here\n")
     git(home, "add", ".toolrc")
@@ -301,7 +336,7 @@ def test_check_staged_flags_credential_in_non_ascii_path(home):
     assert r.returncode == 1
     body = json.loads(r.stdout)
     assert [h["path"] for h in body["hard"]] == [".café"]
-    assert body["hard"][0]["why"] == "credential pattern ghp_"
+    assert body["hard"][0]["why"] == "credential pattern github-token"
     assert body["staged"] == 1
 
 
@@ -365,6 +400,150 @@ def test_check_staged_reports_filename_with_space_and_combining_character(home):
     # git normalizes a decomposed (NFD) filename to composed (NFC) on add on some
     # platforms (e.g. macOS core.precomposeunicode); either normal form is correct.
     assert [unicodedata.normalize("NFC", h["path"]) for h in body["hard"]] == [unicodedata.normalize("NFC", name)]
+
+
+def write_raw(path: Path, data) -> Path:
+    path.write_text(json.dumps(data))
+    return path
+
+
+def test_load_ledgers_rejects_list_root_instead_of_crashing(home):
+    ledger = write_raw(home / "ledger.json", [])
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr
+
+
+def test_load_ledgers_rejects_other_list_root_shape_instead_of_crashing(home):
+    # a different shape of the same mistake (a hand-edited list, not an empty one)
+    ledger = write_raw(home / "other.json", [{"config": {}}])
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr
+
+
+def test_load_ledgers_rejects_non_object_entry_among_valid_ones(home):
+    ledger = write_raw(home / "ledger.json", {
+        "config": {"git_dir": str(home / ".dots")},
+        "entries": [
+            {"path": ".ok", "verdict": "never", "decided": TODAY},
+            "x",
+            {"path": ".also-ok", "verdict": "noise", "decided": TODAY},
+        ],
+    })
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert ".ok" not in r.stderr  # the valid entries are not what's being blamed
+    assert str(ledger) in r.stderr or "entries" in r.stderr.lower()
+
+
+def test_load_ledgers_rejects_volatile_entry_missing_decided(home):
+    ledger = write_raw(home / "ledger.json", {
+        "config": {"git_dir": str(home / ".dots")},
+        "entries": [{"path": ".missing-decided", "verdict": "skip", "sha256": "abc123"}],
+    })
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert ".missing-decided" in r.stderr
+
+
+def test_load_ledgers_rejects_volatile_entry_with_invalid_decided_date(home):
+    ledger = write_raw(home / "ledger.json", {
+        "config": {"git_dir": str(home / ".dots")},
+        "entries": [{"path": ".bad-date", "verdict": "skip", "decided": "yesterday", "sha256": "abc123"}],
+    })
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert ".bad-date" in r.stderr
+
+
+def test_load_ledgers_rejects_volatile_entry_with_malformed_iso_date(home):
+    # near-miss: looks like an ISO date but has an out-of-range month/day
+    ledger = write_raw(home / "ledger.json", {
+        "config": {"git_dir": str(home / ".dots")},
+        "entries": [{"path": ".bad-iso", "verdict": "machine", "decided": "2026-13-45", "sha256": "abc123"}],
+    })
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert ".bad-iso" in r.stderr
+
+
+def test_load_ledgers_rejects_git_dir_outside_supported_home_layout(home):
+    outside = home.parent / "outside-dots"
+    ledger = write_raw(home / "ledger.json", {
+        "config": {"git_dir": str(outside)},
+        "entries": [],
+    })
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(outside) in r.stderr
+
+
+def test_load_ledgers_rejects_list_root_in_public_ledger(home):
+    public = write_raw(home / "public.json", [])
+    ledger = write_ledger_with_public(home, public)
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(public) in r.stderr
+
+
+def test_load_ledgers_rejects_non_object_entry_in_public_ledger(home):
+    public = write_raw(home / "public.json", {
+        "entries": [
+            {"path": ".pub-ok", "verdict": "never", "decided": TODAY},
+            "x",
+            {"path": ".pub-also-ok", "verdict": "noise", "decided": TODAY},
+        ],
+    })
+    ledger = write_ledger_with_public(home, public)
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert ".pub-ok" not in r.stderr
+
+
+def test_load_ledgers_rejects_public_ledger_volatile_entry_missing_decided(home):
+    public = write_raw(home / "public.json", {
+        "entries": [{"path": ".pub-missing-decided", "verdict": "skip", "sha256": "abc123"}],
+    })
+    ledger = write_ledger_with_public(home, public)
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert ".pub-missing-decided" in r.stderr
+
+
+def test_load_ledgers_rejects_public_ledger_volatile_entry_with_invalid_date(home):
+    public = write_raw(home / "public.json", {
+        "entries": [{"path": ".pub-bad-date", "verdict": "machine", "decided": "not-a-date", "sha256": "abc123"}],
+    })
+    ledger = write_ledger_with_public(home, public)
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert ".pub-bad-date" in r.stderr
+
+
+def test_load_ledgers_still_accepts_valid_entries_alongside_validation(home):
+    # control: the new validation must not reject a well-formed ledger
+    (home / ".config" / "tool.toml").write_text("theme = 'dark'\n")
+    ledger = write_raw(home / "ledger.json", {
+        "config": {"git_dir": str(home / ".dots")},
+        "entries": [{"path": ".netrc", "verdict": "never", "decided": TODAY}],
+    })
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 0, r.stderr
+    assert "Traceback" not in r.stderr
+    body = json.loads(r.stdout)
+    assert ".config/tool.toml" in [c["path"] for c in body["candidates"]]
 
 
 def test_check_staged_reports_renamed_non_ascii_path_not_the_original(home):
@@ -657,3 +836,51 @@ def test_stable_entry_needs_no_fingerprint(home):
     entry = {"path": ".config/newtool/", "verdict": "noise", "decided": TODAY}
     _, loaded = glean.load_ledgers(write_ledger(home, [entry]))
     assert entry in loaded
+
+
+def test_load_ledgers_rejects_non_dict_config_instead_of_crashing(home):
+    ledger = write_raw(home / "ledger.json", {"config": ["git_dir"], "entries": []})
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr
+
+
+def test_load_ledgers_rejects_non_string_git_dir_instead_of_crashing(home):
+    ledger = write_raw(home / "ledger.json", {"config": {"git_dir": 5}, "entries": []})
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr
+
+
+@pytest.mark.parametrize("bad", [5, None, ["~/x"], {"a": 1}])
+def test_load_ledgers_rejects_non_string_link_roots_element_instead_of_crashing(home, bad):
+    ledger = write_raw(
+        home / "ledger.json",
+        {"config": {"git_dir": str(home / ".dots"), "link_roots": ["~/ok", bad]}, "entries": []},
+    )
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr
+    assert "link_roots" in r.stderr
+
+
+def test_scan_accepts_relative_git_dir_under_home(home):
+    ledger = write_raw(home / "ledger.json", {"config": {"git_dir": ".dots"}, "entries": []})
+    r = run_cli(home, ledger, "scan")
+    assert "Traceback" not in r.stderr, r.stderr
+    assert r.returncode == 0, r.stderr
+
+
+def test_load_ledgers_rejects_entry_missing_path_instead_of_crashing(home):
+    (home / ".untracked-file").write_text("x\n")
+    ledger = write_raw(home / "ledger.json", {
+        "config": {"git_dir": str(home / ".dots")},
+        "entries": [{"verdict": "never", "sha256": "abc123", "decided": TODAY}],
+    })
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr
