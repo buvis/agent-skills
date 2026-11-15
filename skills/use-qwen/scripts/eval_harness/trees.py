@@ -196,6 +196,18 @@ def _archive_name_escapes(text: str) -> bool:
     return any(":" in component[1:] for component in text.split("/"))
 
 
+def _names_a_git_directory(text: str) -> bool:
+    """True iff a component of archive member name `text` is `.git` as some
+    host reads it: in any case, with trailing dots or spaces, or as the NTFS
+    short name `git~1`.
+
+    Git refuses to track such a path, so `git archive` never emits one. One
+    crafted into the archive would be extracted before `git init` and survive
+    it: a `.git/config` or hook in the sealed template runs in every clone.
+    """
+    return any(_fold(part).rstrip(". ") in (".git", "git~1") for part in text.split("/"))
+
+
 def _ancestor_crossing(members: Sequence[tarfile.TarInfo], links: dict[str, str]) -> None:
     """Refuse any member whose path has an archive symlink as a proper
     ancestor, judged on where that symlink itself *lands* - not on whether
@@ -275,6 +287,8 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
             raise TreeError("%s names a place outside the tree" % member.name)
         if os.path.isabs(member.name):
             raise TreeError("%s is absolute" % member.name)
+        if _names_a_git_directory(member.name):
+            raise TreeError("%s writes into a git directory" % member.name)
         if not (member.isfile() or member.isdir() or member.issym()):
             raise TreeError("%s is not a file, directory or symlink" % member.name)
         name = posixpath.normpath(member.name)
