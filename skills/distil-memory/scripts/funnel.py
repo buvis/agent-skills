@@ -216,21 +216,26 @@ _TRIAGE_PROMPT = (
 
 def triage(
     slices: list[Slice], judge: Callable[[str, str], str] = judge
-) -> tuple[list[Slice], int]:
+) -> tuple[list[Slice], int, int]:
     """Cheap-tier pass: ask `judge` to classify each slice as transient or
-    durable, discarding transient ones. Fail-open - any response other than
-    an exact (case/whitespace-insensitive) match on "transient" keeps the
-    slice. Returns (survivors, discard_count)."""
+    durable, discarding transient ones. Replies are matched after case and
+    whitespace normalization. Fail-open - a reply that is neither label
+    (empty, an error string, prose) keeps the slice but is counted as
+    unclassified, not as a durable judgment. Returns (survivors,
+    discard_count, unclassified_count)."""
     survivors: list[Slice] = []
     discard_count = 0
+    unclassified_count = 0
     for slice_ in slices:
         prompt = _TRIAGE_PROMPT.format(transient=_TRANSIENT, durable=_DURABLE, text=json.dumps(slice_.text))
-        response = judge(prompt, "cheap")
-        if response.strip().lower() == _TRANSIENT:
+        label = judge(prompt, "cheap").strip().lower()
+        if label == _TRANSIENT:
             discard_count += 1
-        else:
-            survivors.append(slice_)
-    return survivors, discard_count
+            continue
+        if label != _DURABLE:
+            unclassified_count += 1
+        survivors.append(slice_)
+    return survivors, discard_count, unclassified_count
 
 
 def render_yield(counts: dict[str, object], proposals_dir: Path | None = None) -> str:
@@ -262,6 +267,7 @@ def render_yield(counts: dict[str, object], proposals_dir: Path | None = None) -
         f"slices_matched: {counts['slices_matched']}",
         f"slices_kept: {counts['slices_kept']}",
         f"survivors: {text('survivors')}",
+        f"unclassified: {text('unclassified')}",
         f"proposals: {text('proposals')}",
         f"discards: {text('discards')}",
         f"new_vs_update: {'n/a' if pair is None else f'{pair[0]}/{pair[1]}'}",
@@ -277,24 +283,44 @@ def render_yield(counts: dict[str, object], proposals_dir: Path | None = None) -
     return "\n".join(lines) + "\n"
 
 
-def _run_triage(kept_slices: list[Slice]) -> tuple[list[Slice], int | None, str | None]:
+def _run_triage(
+    kept_slices: list[Slice],
+) -> tuple[list[Slice], int | None, int | None, str | None]:
     """Cheap-tier triage with the model-call failure path folded in.
 
-    Returns (survivors, survivors_count, error_message), where the count is
-    always len(survivors) from the one triage pass, so the number reported
-    can never disagree with the slices handed back. On any failure reaching
-    the `claude` CLI there are no survivors and the count is None - rendered
-    "n/a", the same as a dry run, because no survivor count exists - and the
-    message is the failure text. The report still gets printed either way: a
-    run must never go silent.
+    Returns (survivors, survivors_count, unclassified_count, error_message),
+    where the survivor count is always len(survivors) from the one triage
+    pass, so the number reported can never disagree with the slices handed
+    back. On any failure reaching the `claude` CLI there are no survivors and
+    both counts are None - rendered "n/a", the same as a dry run, because no
+    count exists - and the message is the failure text. The report still gets
+    printed either way: a run must never go silent.
+
+    Unclassified replies keep their slices (fail-open) and are warned about on
+    stderr by count only, never echoing the reply or the snippet. When every
+    reply of a nonempty triage is unclassified, the judge answered nothing
+    usable: the counts stand, but the error message is set, so the run exits
+    1 and nothing downstream treats that triage as a success.
     """
     try:
-        survivors, _discard_count = triage(kept_slices)
-        return survivors, len(survivors), None
+        survivors, _discard_count, unclassified = triage(kept_slices)
     except subprocess.TimeoutExpired as exc:
-        return [], None, f"claude timed out after {exc.timeout}s"
+        return [], None, None, f"claude timed out after {exc.timeout}s"
     except (RuntimeError, OSError) as exc:
-        return [], None, str(exc)
+        return [], None, None, str(exc)
+    total = len(kept_slices)
+    labels = f"'{_TRANSIENT}' or '{_DURABLE}'"
+    if total and unclassified == total:
+        return survivors, len(survivors), unclassified, (
+            f"triage failed: none of the {total} judge replies was {labels}"
+        )
+    if unclassified:
+        print(
+            f"warning: {unclassified} of {total} judge replies were not {labels}; "
+            "those candidates were kept unclassified",
+            file=sys.stderr,
+        )
+    return survivors, len(survivors), unclassified, None
 
 
 def _report_dir() -> Path:
@@ -551,15 +577,16 @@ def main(argv: list[str] | None = None) -> int:
     matched_count, kept_slices = scan(transcripts)
 
     if args.dry_run:
-        survivors, survivors_count, triage_error = [], None, None
+        survivors, survivors_count, unclassified_count, triage_error = [], None, None, None
     else:
-        survivors, survivors_count, triage_error = _run_triage(kept_slices)
+        survivors, survivors_count, unclassified_count, triage_error = _run_triage(kept_slices)
 
     counts: dict[str, object] = {
         "transcripts_read": len(transcripts),
         "slices_matched": matched_count,
         "slices_kept": len(kept_slices),
         "survivors": survivors_count,
+        "unclassified": unclassified_count,
         "claude_checkup_version": resolved_version,
     }
 

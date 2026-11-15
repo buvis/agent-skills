@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
 - **distil-memory**: a transcript with non-object JSON lines or invalid UTF-8 no longer aborts the whole `funnel.py` scan; the damage is skipped with a stderr warning naming the file, and entries holding a raw U+2028, U+2029 or U+0085 inside a string are no longer dropped.
 - **distil-memory**: `write.py` refuses an absent `--store` with `store directory does not exist: <store>` instead of naming a temporary file, and creates nothing.
+- **distil-memory**: judge replies that are neither `transient` nor `durable` (empty output, an error string) are counted as `unclassified` in the yield report with a stderr warning; a run where every reply is unclassified skips the distil stage, writes its report, and exits 1.
 
 ### Changed
 

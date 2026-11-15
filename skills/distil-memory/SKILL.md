@@ -25,10 +25,11 @@ an explicit per-entry decision.
   import); `assert_contract()` hard-fails below `0.2.2`, the release that
   fixed `d10ecb1`'s `promptSource=="sdk"` bug - older parsers over-count
   user prompts by roughly 41%. `funnel.py`'s `main()` exits non-zero on
-  three failure paths, each printing to stderr: an absent or stale cache
+  four failure paths, each printing to stderr: an absent or stale cache
   raises `StaleParserError`; a triage model-call failure (the `claude` CLI
-  errors, is missing, or times out); and a report-write failure. There is
-  no fallback for any of the three.
+  errors, is missing, or times out); a triage whose every reply was
+  unclassified; and a report-write failure. There is no fallback for any
+  of the four.
 - `encode-incident`, pointed at rather than invoked. It owns `feedback`
   memories; this skill emits `project` memories only, and neither skill reads
   or rewrites the other's type. Nothing here depends on it being installed.
@@ -84,8 +85,13 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
 3. **Triage** (`funnel.py:triage`, skipped on `--dry-run`): a cheap-tier
    (`haiku`) judge classifies each kept slice as `transient` (verifies
    something already known or already working) or `durable` (a new fact
-   worth remembering). Fail-open: any judge response other than an exact
-   `transient` match keeps the slice. What's left is `survivors`.
+   worth remembering). Replies are matched after case and whitespace
+   normalization. Fail-open: a reply that is neither label (empty output, an
+   error string, prose) keeps the slice, counts it as `unclassified`, and
+   prints a count-only warning to stderr. What's left is `survivors`. When
+   every reply of a nonempty triage is unclassified, the judge answered
+   nothing usable: the run skips the distil stage, still writes the report,
+   and exits 1.
 4. **Distil** (`funnel.py:_distil_and_publish`, runs only behind `--distil`):
    calls `distil.distil` at the `strong` tier to turn each surviving slice
    into either a complete memory file (a proposal, carrying the transcript
@@ -102,7 +108,7 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
 
 ## Yield report
 
-Nine counts, in order - four from stages 1-3, then five from the distil stage:
+Ten counts, in order - five from stages 1-3, then five from the distil stage:
 
 - `transcripts_read` - transcripts selected by step 1.
 - `slices_matched` - assistant-role text blocks carrying a raw marker hit
@@ -112,6 +118,8 @@ Nine counts, in order - four from stages 1-3, then five from the distil stage:
   filtering.
 - `survivors` - slices that survived judge triage (`n/a` on `--dry-run` and
   also `n/a` after a triage model-call failure).
+- `unclassified` - survivors kept only because the judge's reply was neither
+  `transient` nor `durable` (`n/a` when triage did not run).
 - `proposals` - complete memory files emitted by step 4.
 - `discards` - slices the distiller refused, each with a reason.
 - `new_vs_update` - the split of typed proposals, rendered `<new>/<update>`.
