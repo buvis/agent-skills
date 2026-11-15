@@ -180,6 +180,16 @@ else
     FAIL "--preflight never dispatches pi (probe only)" "stub pi ran with argv: $(tr '\n' ' ' < "$WORK/t3.argv")"
 fi
 
+# ══ T3b: dispatch runs pi without extensions ═════════════════════════════════
+# The pi-llama extension prints a localhost:8080 "failed to reach" warning on
+# every start; a dispatch never needs it (providers come from models.json).
+run_qwen t3b -f "$PROMPT_FILE_T"
+if [ "$RC" -eq 0 ] && grep -qx -- "--no-extensions" "$WORK/t3b.argv"; then
+    PASS "dispatch passes --no-extensions to pi"
+else
+    FAIL "dispatch passes --no-extensions to pi" "rc=$RC; argv: $(tr '\n' ' ' < "$WORK/t3b.argv" 2>/dev/null || echo MISSING); output: $OUT"
+fi
+
 # ══ T4: healthy dispatch reaches pi; child stdin is guarded ═══════════════════
 export STUB_ARGV_FILE="$WORK/t4.argv"
 export STUB_STDIN_FILE="$WORK/t4.stdin"

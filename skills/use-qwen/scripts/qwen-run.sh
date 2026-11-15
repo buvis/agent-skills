@@ -478,7 +478,8 @@ PI_MODE="$OUTPUT_MODE"
 [ "$MODE" = "prompt" ] && PI_MODE="json"
 
 # Common pi arguments
-ARGS=(--provider "$PROVIDER" --model "$MODEL" --mode "$PI_MODE")
+# --no-extensions: providers resolve from models.json; extensions only add startup noise (pi-llama's localhost:8080 probe).
+ARGS=(--provider "$PROVIDER" --model "$MODEL" --mode "$PI_MODE" --no-extensions)
 if [ -n "$READ_ONLY" ]; then
     ARGS+=(--tools read,grep,find,ls)
 fi
