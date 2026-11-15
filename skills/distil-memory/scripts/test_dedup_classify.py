@@ -744,7 +744,7 @@ class TestDecisionSide:
         dedup.classify(fresh, candidates, judge=stub_judge)
 
         (prompt,) = prompts
-        assert fresh.file_text in prompt
+        assert json.dumps(fresh.file_text) in prompt
         for name, text in candidates:
             assert text in prompt
             start = prompt.index(text)
@@ -777,7 +777,7 @@ class TestDecisionSide:
         dedup.classify(fresh, candidates, judge=stub_judge)
 
         (prompt,) = prompts
-        instruction = prompt.replace(fresh.file_text, "")
+        instruction = prompt.replace(json.dumps(fresh.file_text), "")
         for _name, text in candidates:
             instruction = instruction.replace(text, "")
         for name, _text in candidates:

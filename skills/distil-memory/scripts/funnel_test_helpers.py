@@ -174,7 +174,7 @@ class FakeClaudeCli:
             verdict = "transient" if prompt.endswith(encoded) else "durable"
             return _deliver(cmd, verdict)
         for text, answer in self.distil_answers.items():
-            if prompt.endswith(text):
+            if prompt.endswith(json.dumps(text)):
                 self.distilled.append(text)
                 self.distil_prompts.append(prompt)
                 return _deliver(cmd, answer)

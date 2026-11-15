@@ -321,7 +321,7 @@ def test_distil_tells_the_judge_to_answer_with_a_discard_line_or_a_memory_file()
     distil.distil(slice_, examples, judge=stub_judge)
 
     (prompt,) = prompts
-    instruction = prompt.replace(slice_.text, "")
+    instruction = prompt.replace(json.dumps(slice_.text), "")
     for example in examples:
         instruction = instruction.replace(example, "")
 
