@@ -101,7 +101,9 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
    restates a memory that already exists. Deduplication is two steps on
    purpose - `dedup.shortlist` narrows the field using MEMORY.md's recall
    cues, and only the shortlisted memory files are then read. Reading every
-   memory file on every proposal is the cost this two-step avoids.
+   memory file on every proposal is the cost this two-step avoids. Every
+   judge call runs without tools, and every transcript-derived input (snippet
+   or proposal text) goes in as untrusted JSON data on the prompt's final line.
 5. **Report** (`funnel.py:render_yield`): prints the yield report and
    writes it to `docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>.md`
    (`%Y%m%dT%H%M%SZ`). A rerun within the same second adds `-2`, `-3`, and
