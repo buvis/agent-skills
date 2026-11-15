@@ -34,6 +34,21 @@ def test_verify_control_returns_false_when_pattern_and_control_term_are_both_abs
     assert result is False
 
 
+def test_verify_control_ignores_the_control_term_inside_a_saved_report(tmp_path):
+    # A saved sweep report quotes the pattern and the reason, so it can hold
+    # the control term. It must not turn an inconclusive control check into
+    # a "broken pattern" abort on the next run.
+    control_repo = tmp_path / "control"
+    report_dir = control_repo / "docs" / "dev" / "project-management" / "audit-results"
+    report_dir.mkdir(parents=True)
+    (control_repo / "file.txt").write_text("nothing relevant here\n")
+    (report_dir / "sweep-earlier-run.md").write_text("Reason: REPORTONLYTERM was the bug\n")
+
+    result = sweep.verify_control("NOTPRESENTPATTERN", "rg", control_repo, "REPORTONLYTERM")
+
+    assert result is False
+
+
 def test_verify_control_raises_unverified_when_pattern_misses_but_control_term_present(
     tmp_path, capsys
 ):

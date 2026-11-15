@@ -545,7 +545,9 @@ def _search_control_term(control_repo, control_term, deadline, verify_start, exp
             raise TimeoutError(expired)
         timeout = min(remaining, DEFAULT_SCAN_TIMEOUT)
     try:
-        return _run_rg(["-F", "--", control_term, "."], control_repo, timeout=timeout)
+        return _run_rg(
+            ["-F", "--glob", AUDIT_RESULTS_GLOB, "--", control_term, "."], control_repo, timeout=timeout
+        )
     except subprocess.TimeoutExpired as exc:
         if timeout < DEFAULT_SCAN_TIMEOUT:
             raise TimeoutError(expired) from exc
