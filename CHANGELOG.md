@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **distil-memory**: `write.py` refuses an absent `--store` with `store directory does not exist: <store>` instead of naming a temporary file, and creates nothing.
 - **distil-memory**: judge replies that are neither `transient` nor `durable` (empty output, an error string) are counted as `unclassified` in the yield report with a stderr warning; a run where every reply is unclassified skips the distil stage, writes its report, and exits 1.
 - **distil-memory**: `funnel.py` runs within the same second no longer overwrite each other's report; a taken name gets a `-2`, `-3`, ... suffix shared by the report and its proposals directory.
+- **distil-memory**: proposal and discard manifests record a transcript under the home as `~/...`, and the yield report names its proposals directory repository-relative, so published artefacts no longer carry the operator's home path; `docket.py` reads both the new and the older absolute records for queue deduplication and store matching.
 
 ### Changed
 

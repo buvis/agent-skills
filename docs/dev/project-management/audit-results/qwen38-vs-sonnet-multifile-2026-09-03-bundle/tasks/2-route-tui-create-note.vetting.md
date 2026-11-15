@@ -6,7 +6,7 @@ had narrowed this to the `create_note` pair; retry 1 restores the full set - see
 
 Kind: impl+test
 
-Repo: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+Repo: `~/git/src/github.com/buvis/gems` (Python)
 PRD: `dev/local/prds/done/00054-bim-serve-tui-convergence-v1.md:82`
 
 Commit run: `c084d88c..cb2e1c55` (3 commits: `c084d88c` test, `3c6493fa` feat,
@@ -26,7 +26,7 @@ Raw test command:
     uv --directory <tree> run pytest tests/tools/bim/tui/test_create_note.py tests/lib/pybase/test_result.py -q
 
 Run once at `<base-sha>` against the source tree
-(`uv --directory /Users/bob/git/src/github.com/buvis/gems run pytest
+(`uv --directory ~/git/src/github.com/buvis/gems run pytest
 tests/tools/bim/tui/test_create_note.py tests/lib/pybase/test_result.py -q`):
 **exit 0**, `20 passed in 1.66s`. `test_create_note.py` contributes 6 of the 20
 and `test_result.py` the other 14; none failed.
@@ -110,7 +110,7 @@ Callable` line. The revert leaves `_json_safe` and `CommandResult` in place.
 All four files are `whole-file`, so the plain two-point diff is exact; no
 hand-written hunk is needed.
 
-`git -C /Users/bob/git/src/github.com/buvis/gems apply --check -v <patch>`:
+`git -C ~/git/src/github.com/buvis/gems apply --check -v <patch>`:
 clean, all four files.
 
 Pretask: 22c9ebb6608169c64c98d241627e795c3300e901

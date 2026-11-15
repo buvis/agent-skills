@@ -34,7 +34,7 @@ Five commits, three files: `447759f` + `9b6a33d` (task 1), `f99813a` + `608c471`
 `skills/brief-portfolio/scripts/test_build_page.py` and `CHANGELOG.md`.
 
 pack: skipped (`engram pack` exited 1 — `not inside a registered repo; register
-it in /Users/bob/.config/gita/repos.csv`). Non-fatal by contract: `{PACK_FILE}`
+it in ~/.config/gita/repos.csv`). Non-fatal by contract: `{PACK_FILE}`
 and `{PACK_FINDINGS}` were substituted with `(no pack available this cycle)` for
 every reviewer that takes them, and Blake never receives a pack by design. The
 review is degraded by the missing findings-precedent section, not invalid.

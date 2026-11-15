@@ -96,6 +96,28 @@ def test_unpublished_returns_only_kept_entries_missing_from_the_store_in_queue_o
     assert docket.unpublished(store, path=queue_path) == [_id(zeta), _id(alpha)]
 
 
+@pytest.mark.parametrize("form", ["home_relative", "legacy_absolute"])
+def test_unpublished_matches_a_transcript_under_the_home_to_the_store_beside_it_in_either_form(
+    tmp_path, isolate_home, form
+):
+    """A kept entry's own store is the `memory` directory beside its transcript.
+    A home-relative transcript is expanded against this machine's home before
+    that comparison, and a legacy absolute one is taken as written, so both
+    reach the same store and no other."""
+    home = tmp_path / "fake-operator-7f3"
+    isolate_home(home)
+    queue_path = tmp_path / "queue.json"
+    project = _project(home / ".claude" / "projects")
+    other = _project(tmp_path, "elsewhere")
+    entry = _kept(project, 4, "home-fact")
+    if form == "home_relative":
+        entry["transcript"] = "~/.claude/projects/proj/session.jsonl"
+    _queue_kept(queue_path, [entry])
+
+    assert docket.unpublished(project / "memory", path=queue_path) == [_id(entry)]
+    assert docket.unpublished(other / "memory", path=queue_path) == []
+
+
 def test_unpublished_lists_an_update_whose_target_still_holds_the_old_text(tmp_path):
     queue_path = tmp_path / "queue.json"
     project = _project(tmp_path)

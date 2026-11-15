@@ -1,6 +1,6 @@
 {
   "fixture": "agent-skills-lane-brief",
-  "target": "/Users/bob/git/src/github.com/buvis/agent-skills-lane-brief",
+  "target": "~/git/src/github.com/buvis/agent-skills-lane-brief",
   "head": "4a96fb5f0cc19d2e57a2d53c4685c1ca5d4e41e0",
   "date": "2026-09-05",
   "authorization": {"route": "invocation", "source": "autoclaude-drain"},

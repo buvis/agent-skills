@@ -21,7 +21,7 @@ Diff range: `f394bd527184dd8c46a3d8e589363b15a9e4a019..0183537fc3e1ac890b76ec3bf
 codex_rung_guard: not fired
 
 consensus_engine: shadow (legacy Alice gated this cycle; the `review-fanout` workflow ran beside her, non-gating — see "Shadow consensus engine" below)
-pack: failed (`engram pack` exited 1 twice: "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv") — every prompt taking `{PACK_FILE}`/`{PACK_FINDINGS}` received the `(no pack available this cycle)` sentinel. The review is degraded (no findings-precedent retrieval), not invalid.
+pack: failed (`engram pack` exited 1 twice: "not inside a registered repo; register it in ~/.config/gita/repos.csv") — every prompt taking `{PACK_FILE}`/`{PACK_FINDINGS}` received the `(no pack available this cycle)` sentinel. The review is degraded (no findings-precedent retrieval), not invalid.
 
 ## Diff-scope correction (read this before the findings)
 

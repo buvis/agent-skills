@@ -22,7 +22,7 @@ codex_rung_guard: not fired
 
 consensus_engine: shadow — **both legs ran this cycle.** Legacy Alice gated; the `review-fanout` workflow ran beside her (run id `wf_bc133a2a-4a5`), non-gating, recorded under Alice's section below. The workflow file had to be copied from `~/.claude/workflows/` into `dev/local/tmp/` because the Workflow tool refuses a `scriptPath` outside the session's readable directories (the same refusal cycle 1 recorded as "engine unavailable"); with the copy in the repo the call was accepted.
 
-pack: skipped (`engram pack` exited 1: "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv" — the same long-standing gap the project capsule records; same outcome as cycle 1)
+pack: skipped (`engram pack` exited 1: "not inside a registered repo; register it in ~/.config/gita/repos.csv" — the same long-standing gap the project capsule records; same outcome as cycle 1)
 
 Bob (codex): first run exit 1 (codex `error` event on both the `--resume-thread` attempt and its fresh fallback), retry 1/1 exit 1 (same shape). A direct probe (`codex exec ... "Reply with the single word OK."`) returned `You've hit your usage limit ... try again at 6:11 AM`. Nothing salvageable was written, so the doubt lens ran as the **Claude fallback** (a Task subagent with Bob's exact assembled prompt, Read tool in place of the read-only shell). The lens did not drop. No `codex_thread_id` is stamped this cycle (the thread file holds only the failed run's id).
 

@@ -104,7 +104,7 @@ back in.
 
 ## Prospect 1: gems / repoint bim doc callers to pybase.filesystem
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+- **repo**: `~/git/src/github.com/buvis/gems` (Python)
 - **PRD**: `dev/local/prds/done/00041-atomic-write-foundation-v1.md:42`
 - **ledger line (verbatim)**:
   `- [ ] Repoint `bim/commands/doc/shared/` callers to `pybase.filesystem`; delete `doc/shared/atomic_write.py` (depends on: Phase 0) — Acceptance: the only `atomic_write` references under `src/tools/bim` import from `buvis.pybase.filesystem`; bim doc tests pass.`
@@ -143,7 +143,7 @@ back in.
 
 ## Prospect 2: gems / route TUI create through CommandCreateNote
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+- **repo**: `~/git/src/github.com/buvis/gems` (Python)
 - **PRD**: `dev/local/prds/done/00054-bim-serve-tui-convergence-v1.md:82`
 - **ledger line (verbatim)**:
   `- [ ] Route `tui/create_note.py` through `CommandCreateNote` (depends on: Phase 0) — Acceptance: TUI create runs the same validation/defaults as CLI; empty required answer is rejected.`
@@ -173,7 +173,7 @@ back in.
 
 ## Prospect 3: gems / repoint MarkdownZettelRepository.save to atomic_write_text
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+- **repo**: `~/git/src/github.com/buvis/gems` (Python)
 - **PRD**: `dev/local/prds/done/00041-atomic-write-foundation-v1.md:40`
 - **ledger line (verbatim)**:
   `- [ ] Repoint `MarkdownZettelRepository.save` (`:55`) to `atomic_write_text` (depends on: Phase 0) — Acceptance: regression test proves an interrupted save leaves the original note intact.`
@@ -198,7 +198,7 @@ back in.
 
 ## Prospect 4: gems / record raw source sha on triage and promote
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+- **repo**: `~/git/src/github.com/buvis/gems` (Python)
 - **PRD**: `dev/local/prds/done/00044-bim-doc-claim-dedup-integrity-v1.md:43`
 - **ledger line (verbatim)**:
   `- [ ] Record the raw source sha on triage (`pipeline.py:627`) and promote (`promote.py:236-237`) (depends on: Phase 0) — Acceptance: re-ingesting the same source PDF after promote is detected as duplicate, no second archive copy.`
@@ -228,7 +228,7 @@ back in.
 
 ## Prospect 5: ddb / generalize the git write-lock helper for the index-rebuild lock
 
-- **repo**: `/Users/bob/git/src/github.com/doogat/ddb` (Rust)
+- **repo**: `~/git/src/github.com/doogat/ddb` (Rust)
 - **PRD**: `dev/local/prds/done/00169-poison-file-reindex-resilience-v1.md:163`
 - **ledger line (verbatim)**:
   `- [ ] Extend/reuse the 00162 lock helper (`git_ops/write_lock.rs`) for an index-rebuild lock file; define and document the lock-ordering rule vs the git write lock (no deps) - Acceptance: a unit test proves two handles serialize and the guard releases on drop; the ordering rule is written down (module doc).`
@@ -255,7 +255,7 @@ back in.
 
 ## Prospect 6: ddb / cap frontmatter size at the parse boundary
 
-- **repo**: `/Users/bob/git/src/github.com/doogat/ddb` (Rust)
+- **repo**: `~/git/src/github.com/doogat/ddb` (Rust)
 - **PRD**: `dev/local/prds/done/00169-poison-file-reindex-resilience-v1.md:175`
 - **ledger line (verbatim)**:
   `- [ ] Cap frontmatter size at the parse boundary so an oversized synced file degrades into the lenient skip path, never a fatal error or unbounded parse (depends on: Phase 0 collect-and-skip) - Acceptance: a file with an over-cap frontmatter block is skipped with a warning naming the path and reason; normal files unaffected; `--strict` hard-fails it; unit-tested.`
@@ -284,7 +284,7 @@ back in.
 
 ## Prospect 7: ddb / surface reindex skip warnings on the verb facades and the FFI record
 
-- **repo**: `/Users/bob/git/src/github.com/doogat/ddb` (Rust)
+- **repo**: `~/git/src/github.com/doogat/ddb` (Rust)
 - **PRD**: `dev/local/prds/done/00169-poison-file-reindex-resilience-v1.md:172`
 - **ledger line (verbatim)**:
   `- [ ] Capture the `RebuildReport` in `ensure_fresh` and merge its skip warnings into the verb `AppOutput.warnings` via the facade; add a `warnings` field to the FFI `RebuildReport` record (`ddb-core/src/ffi/records.rs:173-177`) (depends on: mapping) - Acceptance: after a poison file lands, a create AND a search both succeed and each carries a skip `AppWarning`; the warning reaches CLI stderr (`write_warnings`) and the GraphQL warnings extension (`forward_warnings`); the FFI reindex report exposes the skip.`
@@ -331,7 +331,7 @@ back in.
 
 ## Prospect 8: gems / create pybase.filesystem atomic_write
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+- **repo**: `~/git/src/github.com/buvis/gems` (Python)
 - **PRD**: `dev/local/prds/done/00041-atomic-write-foundation-v1.md:37`
 - **ledger line (verbatim)**:
   `- [ ] Create `pybase/filesystem/atomic_write.py` by lifting the impl from `doc/shared/atomic_write.py`; export in `filesystem/__init__.py` — Acceptance: `from buvis.pybase.filesystem import atomic_write_text, atomic_write_bytes` works; unit test covers happy-path replace and same-dir tempfile.`
@@ -355,7 +355,7 @@ back in.
 
 ## Prospect 9: gems / delegate the PATCH route and handle_patch to CommandEditNote
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+- **repo**: `~/git/src/github.com/buvis/gems` (Python)
 - **PRD**: `dev/local/prds/done/00054-bim-serve-tui-convergence-v1.md:81`
 - **ledger line (verbatim)**:
   `- [ ] Delete the PATCH route body; delegate to `UpdateZettelUseCase`, preserving the 00042 security layer on the route (`confine_path` + `X-Buvis-Token` check) (depends on: Phase 0) — Acceptance: PATCH and `handle_patch` share one code path; section-replace exists once; an out-of-vault or tokenless PATCH still returns 403/401.`
@@ -379,7 +379,7 @@ back in.
 
 ## Prospect 10: gems / surface CommandResult failures in the WebUI and the TUI screens
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/gems` (Python + TypeScript/Svelte)
+- **repo**: `~/git/src/github.com/buvis/gems` (Python + TypeScript/Svelte)
 - **PRD**: `dev/local/prds/done/00054-bim-serve-tui-convergence-v1.md:88`
 - **ledger line (verbatim)**:
   `- [ ] `api.ts` / `ActionBar` check the envelope `status` (keeping the 00042 `X-Buvis-Token` header); `EditScreen._save` and the query-TUI screens `notify(severity="error")` on `CommandResult` failure (depends on: Phase 1) — Acceptance: a failing action returns non-2xx with the envelope (route test) and the TUI notifies on failure (Textual test); `api.ts`/`ActionBar` changes are verified indirectly (frontend has no test harness — manual WebUI smoke post-merge).`
@@ -408,7 +408,7 @@ back in.
 
 ## Prospect 11: gems / repoint the updater state write to atomic_write_text
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+- **repo**: `~/git/src/github.com/buvis/gems` (Python)
 - **PRD**: `dev/local/prds/done/00041-atomic-write-foundation-v1.md:41`
 - **ledger line (verbatim)**:
   `- [ ] Repoint `updater/state.py._write_state` (`:36-42`) to `atomic_write_text`, keeping error-swallow (depends on: Phase 0) — Acceptance: state write is atomic; existing updater tests pass.`
@@ -428,7 +428,7 @@ back in.
 
 ## Prospect 12: gems / surface find_all parse errors across both zettel backends
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+- **repo**: `~/git/src/github.com/buvis/gems` (Python)
 - **PRD**: `dev/local/prds/done/00050-zettel-scanner-error-surfacing-v1.md:36`
 - **ledger line (verbatim)**:
   `- [ ] Wrap the Python fallback loop to collect per-file errors matching Rust semantics — Acceptance: parametrized test shows both backends report the bad file and return the rest.`
@@ -450,7 +450,7 @@ back in.
 
 ## Prospect 13: ddb / stamp the index schema version and lock the schema-upgrade drop
 
-- **repo**: `/Users/bob/git/src/github.com/doogat/ddb` (Rust)
+- **repo**: `~/git/src/github.com/doogat/ddb` (Rust)
 - **PRD**: `dev/local/prds/done/00169-poison-file-reindex-resilience-v1.md:174`
 - **ledger line (verbatim)**:
   `- [ ] Stamp an index schema version (`PRAGMA user_version` or a `_ddb_meta` key) written on every rebuild and checked at connection/configure; a mismatch takes the locked destructive-rebuild path; retire or demote the FTS-column probe (`needs_schema_upgrade`, `indexer/mod.rs:159-180`) (depends on: locked destructive rebuild) - Acceptance: opening an index stamped with an older version triggers exactly one locked drop-rebuild and a current version triggers none; unit-tested.`
@@ -476,7 +476,7 @@ back in.
 
 ## Prospect 14: ddb / add the consistency-warning to AppWarning mapping
 
-- **repo**: `/Users/bob/git/src/github.com/doogat/ddb` (Rust)
+- **repo**: `~/git/src/github.com/doogat/ddb` (Rust)
 - **PRD**: `dev/local/prds/done/00169-poison-file-reindex-resilience-v1.md:171`
 - **ledger line (verbatim)**:
   `- [ ] Add `From<ConsistencyWarning> for AppWarning` in `ddb-core/src/app_contract/output.rs` (depends on: Phase 0) - Acceptance: each variant maps to a stable `code` + human `message`; unit-tested.`
@@ -499,7 +499,7 @@ back in.
 
 ## Prospect 15: claude-warden / diagnose scaffolding and the native-permission shadowing check
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/claude-warden` (TypeScript)
+- **repo**: `~/git/src/github.com/buvis/claude-warden` (TypeScript)
 - **PRD**: `dev/local/prds/done/00015-diagnose-setup-issues-v1.md:110`
 - **ledger line (verbatim)**:
   `- [ ] Implement the native-permission shadowing check across the three settings files (no deps) - Acceptance: fixture settings with `Bash(rm:*)` in deny fails with file+entry named; `Bash(*)` in allow passes with info; missing files pass.`
@@ -520,7 +520,7 @@ back in.
 
 ## Prospect 16: claude-warden / hook-registration, binary, and config-health checks
 
-- **repo**: `/Users/bob/git/src/github.com/buvis/claude-warden` (TypeScript)
+- **repo**: `~/git/src/github.com/buvis/claude-warden` (TypeScript)
 - **PRD**: `dev/local/prds/done/00015-diagnose-setup-issues-v1.md:111`
 - **ledger line (verbatim)**:
   `- [ ] Implement hook-registration, binary, and config-health checks (no deps) - Acceptance: missing `dist/index.cjs` fails; absent PreToolUse Bash matcher fails; unparseable fixture yaml fails with the parse error.`

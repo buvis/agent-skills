@@ -32,7 +32,7 @@ Bob's codex session was resumed via `--resume-thread 01a05512-…`, so he verifi
 closure against his own cycle-1 critique rather than re-reviewing from zero.
 
 **Context pack: unavailable this cycle.** `engram pack` failed with
-`not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv` —
+`not inside a registered repo; register it in ~/.config/gita/repos.csv` —
 the same deterministic error that failed twice in cycle 1, so no retry was burned.
 Per the skill this is non-fatal: `(no pack available this cycle)` was substituted for
 `{PACK_FILE}` and `{PACK_FINDINGS}` in every prompt that takes them. For Eve, the real

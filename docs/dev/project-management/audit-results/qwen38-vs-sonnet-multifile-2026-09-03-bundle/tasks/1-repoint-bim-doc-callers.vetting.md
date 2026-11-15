@@ -4,7 +4,7 @@ Stage A prospect 1. Verdict: **eligible**.
 
 Kind: impl+caller
 
-Repo: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+Repo: `~/git/src/github.com/buvis/gems` (Python)
 PRD: `dev/local/prds/done/00041-atomic-write-foundation-v1.md:42`
 
 Commit run: `d29dab6f..4d23c02d` (7 commits: `d29dab6f`, `3fd57f22`, `c1d56718`,
@@ -29,7 +29,7 @@ tree):
 Verified segment by segment at `<base-sha>` in the source tree, 2026-09-02:
 
 - segment 1: `ls` on
-  `/Users/bob/git/src/github.com/buvis/gems/src/tools/bim/commands/doc/shared/atomic_write.py`
+  `~/git/src/github.com/buvis/gems/src/tools/bim/commands/doc/shared/atomic_write.py`
   -> `No such file or directory`, so `test ! -e` **exits 0**.
 - segment 2: `rg -n "shared\.atomic_write|shared/atomic_write"` over
   `src/tools/bim` and `tests/tools/bim` printed **nothing**, so `! rg -q`
@@ -37,7 +37,7 @@ Verified segment by segment at `<base-sha>` in the source tree, 2026-09-02:
   misfire: the same search for `atomic_write` alone returns `28 matches ... 14
   files contained matches`, and the same alternation with one live branch
   (`shared\.atomic_write|shared\.zettel_writer`) returns 12 files.
-- segment 3: `uv --directory /Users/bob/git/src/github.com/buvis/gems run
+- segment 3: `uv --directory ~/git/src/github.com/buvis/gems run
   pytest tests/tools/bim/doc -q` -> **exit 0**, `977 passed in 1.86s`.
 
 ## Required files
@@ -115,7 +115,7 @@ today's `naming` import line as context.
 
 plus the hand-written `pipeline.py` hunk appended.
 
-`git -C /Users/bob/git/src/github.com/buvis/gems apply --check -v <patch>`:
+`git -C ~/git/src/github.com/buvis/gems apply --check -v <patch>`:
 clean, all 8 files.
 
 Pretask: e0b3b1bf841c455c191ce405491866908ad75fd4

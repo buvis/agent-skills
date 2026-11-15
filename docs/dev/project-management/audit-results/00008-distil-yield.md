@@ -6,7 +6,7 @@ changes no code.
 ## The command
 
 Run once, from the repo root
-(`/Users/bob/git/src/github.com/buvis/agent-skills`), in the background:
+(`~/git/src/github.com/buvis/agent-skills`), in the background:
 
 ```bash
 python3 skills/distil-memory/scripts/funnel.py --days 30 --project agent-skills --distil --distil-limit 5

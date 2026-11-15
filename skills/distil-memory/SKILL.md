@@ -198,7 +198,10 @@ approval or rejection:
    ```
 
 5. For keep with no edit, record the decision, derive the store path as
-   `Path(entry["transcript"]).parent / "memory"`, then write the saved entry:
+   `portable.local_path(entry["transcript"]).parent / "memory"`, then write
+   the saved entry. Published transcript paths under the home read `~/...`;
+   `local_path` expands that against this machine's home and takes a legacy
+   absolute path as written, where a bare `Path(...)` would not expand `~`:
 
    ```bash
    python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" kept --queue "<queue-path>"

@@ -187,7 +187,7 @@ def _refuse_to_distil(cmd, **kwargs):
 
 
 @pytest.fixture
-def make_corpus(tmp_path, monkeypatch):
+def make_corpus(tmp_path, monkeypatch, tmp_path_factory, isolate_home):
     """Build a one-project corpus under tmp_path and return its landmarks.
 
     Each `slice_texts` entry becomes one assistant text block on its own JSONL
@@ -200,6 +200,10 @@ def make_corpus(tmp_path, monkeypatch):
     """
 
     def build(slice_texts=(_SLICE_ONE, _SLICE_TWO), extra_memories=0):
+        # Home sits outside tmp_path, so the corpus is not under it and its
+        # transcript paths publish as written. On Windows tmp_path lies inside
+        # the real profile.
+        isolate_home(tmp_path_factory.mktemp("home"))
         monkeypatch.chdir(tmp_path)
         projects_root = tmp_path / "claude_projects"
         monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)

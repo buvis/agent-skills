@@ -18,7 +18,7 @@ Diff range: `8e1ed1b4564d8ffd25ab3043079d3b0a00f72e3b..d4796dce0081badf630611cfd
 
 codex_rung_guard: not fired
 
-pack: failed (engram: "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv") — retried once, same error. `{PACK_FILE}` and `{PACK_FINDINGS}` substituted with the no-pack sentinel in every prompt that takes them. Blake never receives a pack by design.
+pack: failed (engram: "not inside a registered repo; register it in ~/.config/gita/repos.csv") — retried once, same error. `{PACK_FILE}` and `{PACK_FINDINGS}` substituted with the no-pack sentinel in every prompt that takes them. Blake never receives a pack by design.
 
 ## Review Summary
 

@@ -57,7 +57,7 @@ a verdict, and all three are recorded rather than papered over.
    correct full-range diff.
 2. **The engram context pack was not generated.**
    `engram pack` exited 1 with `not inside a registered repo; register it in
-   /Users/bob/.config/gita/repos.csv`. `(no pack available this cycle)` was
+   ~/.config/gita/repos.csv`. `(no pack available this cycle)` was
    substituted for `{PACK_FILE}` and `{PACK_FINDINGS}` in every prompt, per the
    skill's own fallback. The review is degraded on retrieval context, not
    invalid. Worth noting that `agent-skills` being absent from the gita
@@ -137,7 +137,7 @@ insufficient.
   `skills/sweep-fix/scripts/sweep.py:183-195` | Task: 3 | Found by: Alice, Carl
 - [1/4] 🔴 The `~/.buvis` `git ls-files -z` call sets no `cwd=`, so it inherits
   whatever the OS process cwd happens to be. Blake reproduced it live: passing
-  `cwd='/Users/bob'` while the real process cwd was the scripts directory
+  `cwd='~'` while the real process cwd was the scripts directory
   returned 0 buvis files instead of 293. It works only when the process cwd is
   coincidentally `$HOME`. `test_enumerate_repos_uses_git_ls_files_for_buvis_bare_cwd`
   passes by accident — its fixture `work_tree` is disjoint from pytest's cwd, so

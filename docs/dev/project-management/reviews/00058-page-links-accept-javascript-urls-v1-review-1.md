@@ -20,7 +20,7 @@ Diff range: `0183537fc3e1ac890b76ec3bf26f33f7399af863..d6346a591ade04b4f007c9992
 codex_rung_guard: not fired
 
 consensus_engine: legacy (single Alice subagent; the PRD sets no `consensus_engine`)
-pack: failed (`engram pack` exited 1 twice: "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv") — every prompt taking `{PACK_FILE}`/`{PACK_FINDINGS}` received the `(no pack available this cycle)` sentinel. The review is degraded (no findings-precedent retrieval), not invalid.
+pack: failed (`engram pack` exited 1 twice: "not inside a registered repo; register it in ~/.config/gita/repos.csv") — every prompt taking `{PACK_FILE}`/`{PACK_FINDINGS}` received the `(no pack available this cycle)` sentinel. The review is degraded (no findings-precedent retrieval), not invalid.
 
 ## Diff-scope correction (read this before the findings)
 

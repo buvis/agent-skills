@@ -323,14 +323,18 @@ def _run_triage(
     return survivors, len(survivors), unclassified, None
 
 
-def _report_dir() -> Path:
-    """docs/dev/project-management/audit-results under the nearest ancestor of the cwd that
-    contains a .git entry, falling back to the cwd itself when none do.
-    Computed at call time (not a module constant) so it reflects the
-    caller's cwd rather than the cwd at import time."""
+def _repo_root() -> Path:
+    """The nearest ancestor of the cwd that contains a .git entry, falling
+    back to the cwd itself when none do. Computed at call time (not a module
+    constant) so it reflects the caller's cwd rather than the cwd at import
+    time."""
     cwd = Path.cwd()
-    root = next((p for p in (cwd, *cwd.parents) if (p / ".git").exists()), cwd)
-    return root / "docs" / "dev" / "project-management" / "audit-results"
+    return next((p for p in (cwd, *cwd.parents) if (p / ".git").exists()), cwd)
+
+
+def _report_dir() -> Path:
+    """docs/dev/project-management/audit-results under `_repo_root()`."""
+    return _repo_root() / "docs" / "dev" / "project-management" / "audit-results"
 
 
 def _select_run_id(report_dir: Path, timestamp: str) -> str:
@@ -616,9 +620,12 @@ def main(argv: list[str] | None = None) -> int:
         args, survivors, triage_error, report_dir / f"distil-memory-{run_id}-proposals"
     )
     counts.update(distil_counts)
+    # the report is a repository document: name the directory repo-relative,
+    # never by the absolute path that carries the operator's home
+    shown_dir = None if published_dir is None else published_dir.relative_to(_repo_root())
 
     return _report_outcome(
-        counts, report_dir, run_id, (triage_error, distil_error, publish_error), published_dir
+        counts, report_dir, run_id, (triage_error, distil_error, publish_error), shown_dir
     )
 
 

@@ -22,7 +22,7 @@ Diff range: `7a9c07e5c942b3b567c7a4c86cfbdd7d042c12cf..d4d73c0f4cddca5aa7844fb55
 
 codex_rung_guard: not fired
 
-pack: failed (engram pack exit 1: not inside a registered repo; run `gita add /Users/bob/git/src/github.com/buvis/agent-skills`)
+pack: failed (engram pack exit 1: not inside a registered repo; run `gita add ~/git/src/github.com/buvis/agent-skills`)
 
 Mechanical checks: 39 test functions checked in 3 test files, 0 tautological shapes. Fail-first replay: 1 touched test ran against `7a9c07e5c942`, 0 failed there, 1 passed. That one replay line is absorbed as R8 below.
 

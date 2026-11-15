@@ -67,7 +67,7 @@ preflight: healthy (provider 'llamacpp8002', model 'unsloth/Qwen3.8-27B-GGUF:UD-
 - Template (rebuilt, R2 reclassification of `app_contract/mod.rs`): `/tmp/qwen-eval-00010/5-surface-reindex-skip-warnings-tpl/` - fresh `git -C <src> archive` extraction at `<base-sha>` plus the regenerated 11-file reverse patch, not a clone of `alt1-*`. The prior 12-file template is kept, never deleted, at `5-surface-reindex-skip-warnings-tpl.v1`.
 - PRETASK_SHA: `84012329912e3ca78cfd037505e6e982a84948da`
 - `mise trust <tpl>/.mise.toml`: exit 0 / `mise env -C <tpl> -s bash`: exit 0 / warmup `cargo build --manifest-path <tpl>/Cargo.toml --tests`: exit 0, ~46s cold build / `cargo check --manifest-path <tpl>/Cargo.toml -p ddb-core`: exit 0, ~13s. Both show the same 4 unused-import/dead-code warnings only, no `REINDEX_SKIPPED_FILES` visibility errors.
-- Raw test command narrowed (Decision 2 step 3) from the full unfiltered `cargo test -p ddb-core --lib` to `cargo test -p ddb-core --lib -- service::mock_index_tests ffi::tests` (multiple positional filters are ORed by libtest, so this selects exactly the two canonical test modules the task's diff touches). Verified once against the canonical source tree (`cargo test --manifest-path /Users/bob/git/src/github.com/doogat/ddb/Cargo.toml -p ddb-core --lib -- service::mock_index_tests ffi::tests`): **exit 0**, `44 passed; 0 failed; 0 ignored; 0 measured; 1502 filtered out` (10 `service::mock_index_tests::*` cases, 34 `ffi::tests::*` cases - both modules ran).
+- Raw test command narrowed (Decision 2 step 3) from the full unfiltered `cargo test -p ddb-core --lib` to `cargo test -p ddb-core --lib -- service::mock_index_tests ffi::tests` (multiple positional filters are ORed by libtest, so this selects exactly the two canonical test modules the task's diff touches). Verified once against the canonical source tree (`cargo test --manifest-path ~/git/src/github.com/doogat/ddb/Cargo.toml -p ddb-core --lib -- service::mock_index_tests ffi::tests`): **exit 0**, `44 passed; 0 failed; 0 ignored; 0 measured; 1502 filtered out` (10 `service::mock_index_tests::*` cases, 34 `ffi::tests::*` cases - both modules ran).
 - `ddb-core/src/app_contract/mod.rs` reclassified Ancillary under R2 (a `#[cfg(test)]`-visibility reshuffle no `cargo test` invocation can observe; verified with a full grep for non-test consumers at the pre-task sha, and with `cargo check -p ddb-core` / `cargo build --tests` both exiting 0 with the file held at today's state). 11 Required files remain.
 - Necessity (11 Required files, clone rule, one clone at a time, `timeout -k 30 900`, narrowed command):
   - `ddb-core/src/service/create.rs`: exit 101, first failure: `assertion \`left == right\` failed: create must summarize a multi-file skip into exactly one REINDEX_SKIPPED_FILES warning, got: []` - necessity holds.
@@ -176,9 +176,9 @@ Venv re-sync (Decision 3): templates 1 and 2 were re-synced with
 `anyio` and unmasked task 2's necessity check from a harness-level
 `ERROR collecting` into genuine test-framework failures.
 
-## Task 1: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt
+## Task 1: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt
 
-Repo: /Users/bob/git/src/github.com/buvis/gems (Python) | Kind: impl+caller
+Repo: ~/git/src/github.com/buvis/gems (Python) | Kind: impl+caller
 Required files: src/tools/bim/commands/doc/shared/atomic_write.py (impl), src/tools/bim/commands/doc/shared/zettel_writer.py (caller), src/tools/bim/commands/doc/shared/issuers.py (caller), src/tools/bim/commands/doc/shared/ocr.py (caller), src/tools/bim/commands/doc/shared/triage.py (caller), src/tools/bim/commands/doc/shared/pipeline.py (caller), src/tools/bim/commands/doc/audit/reporter.py (caller), tests/tools/bim/doc/test_atomic_write.py (test) | Ancillary: none
 Template: /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-tpl (base 7d7f9d8a1fea3160650ee4eab6589d30cb4b6edf, task 4d23c02d, pretask e0b3b1bf841c455c191ce405491866908ad75fd4)
 Verify: `test ! -e src/tools/bim/commands/doc/shared/atomic_write.py && ! rg -q "shared\.atomic_write|shared/atomic_write" src/tools/bim tests/tools/bim && uv run pytest tests/tools/bim/doc -q` after copying canonical: none
@@ -187,9 +187,9 @@ Verify: `test ! -e src/tools/bim/commands/doc/shared/atomic_write.py && ! rg -q 
 
 Tree: /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-qwen-a1
 Harness note: a first launch at 13:05 exited 1 before pi started (untrusted .mise.toml on the fresh clone; fixed with mise trust); tree verified unchanged; the attempt recorded here is the real attempt 1.
-Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a1.out.txt`
+Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a1.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a1.out.txt (1193 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a1.wrapper.txt (1267 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a1.out.txt (1193 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a1.wrapper.txt (1267 bytes)
 Orchestrator note: `runs/1-qwen-a1.out.txt` on disk was found overwritten at 13:40 (mtime) with pi's 74-byte `[llama-cpp] failed to reach http://localhost:8080/v1/models: fetch failed` probe line; the dispatch agent's transcript names that path only in the dispatch line itself and in a `wc -c` (1193 bytes, before the overwrite), so the writer was not this session. It was a concurrent headless autopilot session: the operator's `autoclaude` loop was running unattended turns on this same PRD and task alongside this interactive session (wrapper log: turns at 13:26, 13:51, 13:58, 14:04, 14:10; the loop was paused by the operator at 14:13). The 13:26 turn root-caused pi's argv rejection, landed the helper fix on master (df551fc, 13:38:56), recorded its own decision entry in `state.json`, and verified the fixed helper live against llamacpp8002 with a scratch prompt; the 13:40:58 overwrite (pi's probe line only) is that session's verification or its own dispatch attempt with this `-o` path. The dispatch's 1193-byte content survives verbatim in `runs/1-qwen-a1.wrapper.txt` (lines 2-22, after the identity line) and in the engine-output block below. This attempt's exit-1 is a harness fault, not an engine fault: pi's arg parser rejected the prompt's leading `- [ ]` as an option; the helper was fixed on master at 13:38 (commit df551fc, stdin routing for hyphen-prefixed prompts) before attempt 2 ran.
 Dispatch exit code: 1 | Dispatch validity: DISCARDED:exit-1
 HEAD after dispatch: n/a (dispatch discarded; tree left untouched per the C4 retry rule)
@@ -229,9 +229,9 @@ Edit only inside this repository. Do not commit.
 
 Tree: /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-qwen-a2
 Retry note: fresh clone per the C4 retry rule after attempt 1's DISCARDED:exit-1; qwen preflight re-confirmed healthy before this dispatch (see attempt 1 block).
-Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a2.out.txt`
+Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a2.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a2.out.txt (1656 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a2.wrapper.txt (1730 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a2.out.txt (1656 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-qwen-a2.wrapper.txt (1730 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (e0b3b1bf841c455c191ce405491866908ad75fd4)
 Baseline gate exit code: 1 (runs/1-qwen-a1.baseline.txt, empty by construction); expected-failure evidence: first chain segment failed - src/tools/bim/commands/doc/shared/atomic_write.py still exists at PRETASK_SHA
@@ -302,9 +302,9 @@ gate exit code: 0
 ### sonnet attempt 1
 
 Tree: /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-sonnet-a1
-Dispatch: `timeout -k 60 2400 ~/.claude/plugins/cache/buvis-plugins/autopilot/0.3.0/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-sonnet-a1 -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a1.out.txt`
+Dispatch: `timeout -k 60 2400 ~/.claude/plugins/cache/buvis-plugins/autopilot/0.3.0/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-sonnet-a1 -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a1.out.txt`
 Engine identity: `sonnet-run.sh -y -m sonnet`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a1.out.txt (1194 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a1.wrapper.txt (1194 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a1.out.txt (1194 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a1.wrapper.txt (1194 bytes)
 Dispatch exit code: 1 | Dispatch validity: DISCARDED:exit-1
 HEAD after dispatch: n/a (dispatch discarded; tree left untouched per the C4 retry rule)
 Baseline gate exit code: 1 (runs/1-sonnet-a1.baseline.txt, empty by construction); expected-failure evidence: first chain segment failed - src/tools/bim/commands/doc/shared/atomic_write.py still exists at PRETASK_SHA
@@ -343,9 +343,9 @@ Edit only inside this repository. Do not commit.'
 
 Tree: /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-sonnet-a2
 Retry note: fresh clone per the C4 retry rule after attempt 1's DISCARDED:exit-1.
-Dispatch: `timeout -k 60 2400 ~/.claude/plugins/cache/buvis-plugins/autopilot/0.3.0/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-sonnet-a2 -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a2.out.txt`
+Dispatch: `timeout -k 60 2400 ~/.claude/plugins/cache/buvis-plugins/autopilot/0.3.0/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-sonnet-a2 -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a2.out.txt`
 Engine identity: `sonnet-run.sh -y -m sonnet`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a2.out.txt (1194 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a2.wrapper.txt (1194 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a2.out.txt (1194 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a2.wrapper.txt (1194 bytes)
 Dispatch exit code: 1 | Dispatch validity: DISCARDED:exit-1
 HEAD after dispatch: n/a (dispatch discarded; tree left untouched per the C4 retry rule)
 Baseline gate exit code: 1 (runs/1-sonnet-a1.baseline.txt, empty by construction); expected-failure evidence: first chain segment failed - src/tools/bim/commands/doc/shared/atomic_write.py still exists at PRETASK_SHA
@@ -386,9 +386,9 @@ Edit only inside this repository. Do not commit.'
 Attempt note: first real Sonnet attempt; attempts 1-2 were harness faults (see the orchestrator note above).
 
 Tree: /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-sonnet-a3
-Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-sonnet-a3 -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a3.out.txt`
+Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/1-repoint-bim-doc-callers-sonnet-a3 -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a3.out.txt`
 Engine identity: `sonnet-run.sh -y -m sonnet`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a3.out.txt (385 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a3.wrapper.txt (385 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a3.out.txt (385 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/1-sonnet-a3.wrapper.txt (385 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (e0b3b1bf841c455c191ce405491866908ad75fd4)
 Baseline gate exit code: 1 (runs/1-sonnet-a1.baseline.txt, empty by construction); expected-failure evidence: first chain segment failed - src/tools/bim/commands/doc/shared/atomic_write.py still exists at PRETASK_SHA
@@ -434,9 +434,9 @@ gate exit code: 0
 
 </details>
 
-## Task 2: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt
+## Task 2: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt
 
-Repo: /Users/bob/git/src/github.com/buvis/gems (Python) | Kind: impl+test
+Repo: ~/git/src/github.com/buvis/gems (Python) | Kind: impl+test
 Required files: src/tools/bim/tui/create_note.py (impl), src/lib/buvis/pybase/result.py (impl), tests/tools/bim/tui/test_create_note.py (test), tests/lib/pybase/test_result.py (test) | Ancillary: none
 Template: /tmp/qwen-eval-00010/2-route-tui-create-note-tpl (base 7d7f9d8a1fea3160650ee4eab6589d30cb4b6edf, task c084d88c..cb2e1c55, pretask 22c9ebb6608169c64c98d241627e795c3300e901)
 Verify: `uv run pytest tests/tools/bim/tui/test_create_note.py tests/lib/pybase/test_result.py -q` after copying canonical: tests/tools/bim/tui/test_create_note.py, tests/lib/pybase/test_result.py
@@ -444,9 +444,9 @@ Verify: `uv run pytest tests/tools/bim/tui/test_create_note.py tests/lib/pybase/
 ### qwen attempt 1
 
 Tree: /tmp/qwen-eval-00010/2-route-tui-create-note-qwen-a1
-Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a1.out.txt`
+Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a1.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a1.out.txt (74 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a1.wrapper.txt (148 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a1.out.txt (74 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a1.wrapper.txt (148 bytes)
 Dispatch exit code: n/a | Dispatch validity: DISCARDED:harness-interrupted
 HEAD after dispatch: unchanged (tree left with the engine's partial edits to src/lib/buvis/pybase/result.py, src/tools/bim/tui/create_note.py, tests/lib/pybase/test_result.py; never touched again, never gated)
 Baseline gate exit code: 1 (runs/2-qwen-a1.baseline.txt); expected-failure evidence: `ImportError: cannot import name 'notify_result' from 'buvis.pybase.result'` (collecting tests/lib/pybase/test_result.py)
@@ -465,9 +465,9 @@ Result: DISCARDED:harness-interrupted
 
 Tree: /tmp/qwen-eval-00010/2-route-tui-create-note-qwen-a2
 Retry note: fresh clone; attempt 1 was a harness fault (see above), so this is qwen's first real attempt on this task.
-Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a2.out.txt`
+Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a2.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a2.out.txt (74 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a2.wrapper.txt (148 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a2.out.txt (74 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a2.wrapper.txt (148 bytes)
 Dispatch exit code: 124 | Dispatch validity: DISCARDED:timeout
 HEAD after dispatch: unchanged (at the moment `timeout` fired, 40 min after launch, the tree carried the engine's edits to all four Required files - src/lib/buvis/pybase/result.py, src/tools/bim/tui/create_note.py, tests/lib/pybase/test_result.py, tests/tools/bim/tui/test_create_note.py - but `pi` had not finished; the tree is left as is, never gated, never touched again)
 Baseline gate exit code: 1 (runs/2-qwen-a1.baseline.txt); expected-failure evidence: `ImportError: cannot import name 'notify_result' from 'buvis.pybase.result'` (collecting tests/lib/pybase/test_result.py)
@@ -490,9 +490,9 @@ Result: DISCARDED:timeout
 Retry note: fresh clone; attempt 2 was `DISCARDED:timeout` (qwen's first real attempt); this is the single C4 retry allowed after a DISCARDED attempt.
 
 Tree: /tmp/qwen-eval-00010/2-route-tui-create-note-qwen-a3
-Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a3.out.txt`
+Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a3.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a3.out.txt (74 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a3.wrapper.txt (148 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a3.out.txt (74 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a3.wrapper.txt (148 bytes)
 Dispatch exit code: 124 | Dispatch validity: DISCARDED:timeout
 HEAD after dispatch: unchanged (22c9ebb6608169c64c98d241627e795c3300e901; at the moment `timeout` fired, 40 min after launch, the tree carried the engine's edits to all four Required files - src/lib/buvis/pybase/result.py, src/tools/bim/tui/create_note.py, tests/lib/pybase/test_result.py, tests/tools/bim/tui/test_create_note.py - but `pi` had not finished; the tree is left as is, never gated, never touched again)
 Baseline gate exit code: 1 (runs/2-qwen-a1.baseline.txt); expected-failure evidence: `ImportError: cannot import name 'notify_result' from 'buvis.pybase.result'` (collecting tests/lib/pybase/test_result.py)
@@ -513,9 +513,9 @@ Orchestrator note (user decision 2026-09-03, recorded in `autonomous_decisions` 
 ### sonnet attempt 1
 
 Tree: /tmp/qwen-eval-00010/2-route-tui-create-note-sonnet-a1
-Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/2-route-tui-create-note-sonnet-a1 -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-sonnet-a1.out.txt`
+Dispatch: `timeout -k 60 2400 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/2-route-tui-create-note-sonnet-a1 -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-sonnet-a1.out.txt`
 Engine identity: `sonnet-run.sh -y -m sonnet`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-sonnet-a1.out.txt (1071 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-sonnet-a1.wrapper.txt (1071 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-sonnet-a1.out.txt (1071 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-sonnet-a1.wrapper.txt (1071 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (22c9ebb6608169c64c98d241627e795c3300e901)
 Baseline gate exit code: 2 (runs/2-sonnet-a1.baseline.txt); expected-failure evidence: `ImportError: cannot import name 'notify_result' from 'buvis.pybase.result'` (collecting tests/lib/pybase/test_result.py)
@@ -559,9 +559,9 @@ gate exit code: 0
 Attempt note: rerun under the raised 60-min engine budget (user decision 2026-09-03); attempts 2-3 timed out at the former 40-min bound with the suite already green per pi's session log.
 
 Tree: /tmp/qwen-eval-00010/2-route-tui-create-note-qwen-a4
-Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a4.out.txt`
+Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a4.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a4.out.txt (2334 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a4.wrapper.txt (2408 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a4.out.txt (2334 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/2-qwen-a4.wrapper.txt (2408 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (22c9ebb6608169c64c98d241627e795c3300e901)
 Baseline gate exit code: 1 (runs/2-qwen-a1.baseline.txt); expected-failure evidence: `ImportError: cannot import name 'notify_result' from 'buvis.pybase.result'` (collecting tests/lib/pybase/test_result.py)
@@ -615,9 +615,9 @@ gate exit code: 0
 
 </details>
 
-## Task 3: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/3-repoint-zettel-save.prompt.txt
+## Task 3: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/3-repoint-zettel-save.prompt.txt
 
-Repo: /Users/bob/git/src/github.com/buvis/gems (Python) | Kind: impl+test
+Repo: ~/git/src/github.com/buvis/gems (Python) | Kind: impl+test
 Required files: src/lib/buvis/pybase/zettel/infrastructure/persistence/markdown_zettel_repository/markdown_zettel_repository.py (impl), tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py (test) | Ancillary: none
 Template: /tmp/qwen-eval-00010/3-repoint-zettel-save-tpl (base 7d7f9d8a1fea3160650ee4eab6589d30cb4b6edf, task a4fa75b1..30b42c3b, pretask 079ccaedba67c1efa9e947d8f7d5c8a84a8a5af6)
 Verify: `uv run pytest tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py -q` after copying canonical: tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py
@@ -625,9 +625,9 @@ Verify: `uv run pytest tests/lib/zettel/infrastructure/persistence/test_markdown
 ### qwen attempt 1
 
 Tree: /tmp/qwen-eval-00010/3-repoint-zettel-save-qwen-a1
-Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/3-repoint-zettel-save.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-qwen-a1.out.txt`
+Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/3-repoint-zettel-save.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-qwen-a1.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-qwen-a1.out.txt (1413 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-qwen-a1.wrapper.txt (1487 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-qwen-a1.out.txt (1413 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-qwen-a1.wrapper.txt (1487 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (079ccaedba67c1efa9e947d8f7d5c8a84a8a5af6)
 Baseline gate exit code: 1 (runs/3-qwen-a1.baseline.txt); expected-failure evidence: `Failed: DID NOT RAISE OSError` (test_save_propagates_atomic_write_failure_and_leaves_file_unchanged)
@@ -677,9 +677,9 @@ gate exit code: 0
 ### sonnet attempt 1
 
 Tree: /tmp/qwen-eval-00010/3-repoint-zettel-save-sonnet-a1
-Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/3-repoint-zettel-save-sonnet-a1 -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/3-repoint-zettel-save.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-sonnet-a1.out.txt`
+Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/3-repoint-zettel-save-sonnet-a1 -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/3-repoint-zettel-save.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-sonnet-a1.out.txt`
 Engine identity: `sonnet-run.sh -y -m sonnet`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-sonnet-a1.out.txt (181 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-sonnet-a1.wrapper.txt (181 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-sonnet-a1.out.txt (181 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/3-sonnet-a1.wrapper.txt (181 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (079ccaedba67c1efa9e947d8f7d5c8a84a8a5af6)
 Baseline gate exit code: 1 (runs/3-sonnet-a1.baseline.txt); expected-failure evidence: `Failed: DID NOT RAISE OSError` (test_save_propagates_atomic_write_failure_and_leaves_file_unchanged)
@@ -712,9 +712,9 @@ gate exit code: 0
 
 </details>
 
-## Task 4: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/4-record-raw-source-sha.prompt.txt
+## Task 4: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/4-record-raw-source-sha.prompt.txt
 
-Repo: /Users/bob/git/src/github.com/buvis/gems (Python) | Kind: impl+test
+Repo: ~/git/src/github.com/buvis/gems (Python) | Kind: impl+test
 Required files: src/tools/bim/commands/doc/promote/promote.py (impl), tests/tools/bim/doc/test_promote.py (test) | Ancillary: src/tools/bim/commands/doc/shared/pipeline.py, tests/tools/bim/doc/test_pipeline.py
 Template: /tmp/qwen-eval-00010/4-record-raw-source-sha-tpl (base 7d7f9d8a1fea3160650ee4eab6589d30cb4b6edf, task 0188270a..b919d7ad, pretask cada08ac7fd703e95887480ee45a5811e5f8b791)
 Verify: `uv run pytest tests/tools/bim/doc/test_promote.py -q` after copying canonical: tests/tools/bim/doc/test_promote.py
@@ -722,9 +722,9 @@ Verify: `uv run pytest tests/tools/bim/doc/test_promote.py -q` after copying can
 ### qwen attempt 1
 
 Tree: /tmp/qwen-eval-00010/4-record-raw-source-sha-qwen-a1
-Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/4-record-raw-source-sha.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-qwen-a1.out.txt`
+Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/4-record-raw-source-sha.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-qwen-a1.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-qwen-a1.out.txt (2467 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-qwen-a1.wrapper.txt (2541 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-qwen-a1.out.txt (2467 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-qwen-a1.wrapper.txt (2541 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (cada08ac7fd703e95887480ee45a5811e5f8b791)
 Baseline gate exit code: 1 (runs/4-qwen-a1.baseline.txt); expected-failure evidence: `assert False is True` (test_promote_dedups_raw_source_sha_as_well_as_filed_pdf_sha)
@@ -1038,9 +1038,9 @@ gate exit code: 1
 ### sonnet attempt 1
 
 Tree: /tmp/qwen-eval-00010/4-record-raw-source-sha-sonnet-a1
-Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/4-record-raw-source-sha-sonnet-a1 -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/4-record-raw-source-sha.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-sonnet-a1.out.txt`
+Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/4-record-raw-source-sha-sonnet-a1 -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/4-record-raw-source-sha.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-sonnet-a1.out.txt`
 Engine identity: `sonnet-run.sh -y -m sonnet`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-sonnet-a1.out.txt (366 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-sonnet-a1.wrapper.txt (366 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-sonnet-a1.out.txt (366 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/4-sonnet-a1.wrapper.txt (366 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (cada08ac7fd703e95887480ee45a5811e5f8b791)
 Baseline gate exit code: 1 (runs/4-sonnet-a1.baseline.txt); expected-failure evidence: `assert False is True` (test_promote_dedups_raw_source_sha_as_well_as_filed_pdf_sha)
@@ -1073,9 +1073,9 @@ gate exit code: 0
 
 </details>
 
-## Task 5: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/5-surface-reindex-skip-warnings.prompt.txt
+## Task 5: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/5-surface-reindex-skip-warnings.prompt.txt
 
-Repo: /Users/bob/git/src/github.com/doogat/ddb (Rust) | Kind: impl+test
+Repo: ~/git/src/github.com/doogat/ddb (Rust) | Kind: impl+test
 Required files: ddb-core/src/service/create.rs (impl), ddb-core/src/service/update.rs (impl), ddb-core/src/service/schema_apply.rs (impl), ddb-core/src/service/mod.rs (impl), ddb-core/src/ffi/records.rs (impl), ddb-core/src/ffi/driver.rs (impl), ddb-core/src/ffi/mod.rs (impl, gate-invisible), ddb-core/src/ddb.udl (impl, gate-invisible), ddb-cli/src/commands/crud.rs (caller, gate-invisible), ddb-core/src/service/mock_index_tests.rs (test), ddb-core/src/ffi/tests.rs (test) | Ancillary: ddb-core/src/app_contract/mod.rs
 Template: /tmp/qwen-eval-00010/5-surface-reindex-skip-warnings-tpl (base 8fe51c9d3fcee53a1ef14b2955083fd6a07977eb, task 7d72015..48b9925, pretask 84012329912e3ca78cfd037505e6e982a84948da)
 Verify: `cargo test -p ddb-core --lib -- service::mock_index_tests ffi::tests` after copying canonical: ddb-core/src/service/mock_index_tests.rs, ddb-core/src/ffi/tests.rs
@@ -1083,9 +1083,9 @@ Verify: `cargo test -p ddb-core --lib -- service::mock_index_tests ffi::tests` a
 ### qwen attempt 1
 
 Tree: /tmp/qwen-eval-00010/5-surface-reindex-skip-warnings-qwen-a1
-Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/5-surface-reindex-skip-warnings.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-qwen-a1.out.txt`
+Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/5-surface-reindex-skip-warnings.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-qwen-a1.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-qwen-a1.out.txt (74 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-qwen-a1.wrapper.txt (148 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-qwen-a1.out.txt (74 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-qwen-a1.wrapper.txt (148 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (84012329912e3ca78cfd037505e6e982a84948da)
 Baseline gate exit code: 101 (runs/5-qwen-a1.baseline.txt); expected-failure evidence: `error[E0609]: no field \`warnings\` on type \`records::RebuildReport\`` (ddb-core/src/ffi/tests.rs:973)
@@ -1230,9 +1230,9 @@ gate exit code: 101
 ### sonnet attempt 1
 
 Tree: /tmp/qwen-eval-00010/5-surface-reindex-skip-warnings-sonnet-a1
-Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/5-surface-reindex-skip-warnings-sonnet-a1 -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/5-surface-reindex-skip-warnings.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-sonnet-a1.out.txt`
+Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/5-surface-reindex-skip-warnings-sonnet-a1 -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/5-surface-reindex-skip-warnings.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-sonnet-a1.out.txt`
 Engine identity: `sonnet-run.sh -y -m sonnet`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-sonnet-a1.out.txt (62 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-sonnet-a1.wrapper.txt (62 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-sonnet-a1.out.txt (62 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/5-sonnet-a1.wrapper.txt (62 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (84012329912e3ca78cfd037505e6e982a84948da)
 Baseline gate exit code: 101 (runs/5-sonnet-a1.baseline.txt); expected-failure evidence: `error[E0609]: no field \`warnings\` on type \`records::RebuildReport\`` (ddb-core/src/ffi/tests.rs:973)
@@ -1365,9 +1365,9 @@ gate exit code: 0
 
 </details>
 
-## Task 6: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/6-cap-frontmatter-size.prompt.txt
+## Task 6: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/6-cap-frontmatter-size.prompt.txt
 
-Repo: /Users/bob/git/src/github.com/doogat/ddb (Rust) | Kind: impl+test
+Repo: ~/git/src/github.com/doogat/ddb (Rust) | Kind: impl+test
 Required files: ddb-core/src/parser/mod.rs (impl), ddb-core/src/parser/tests.rs (test) | Ancillary: ddb-core/src/indexer/tests/mod.rs, CHANGELOG.md
 Template: /tmp/qwen-eval-00010/6-cap-frontmatter-size-tpl (base 8fe51c9d3fcee53a1ef14b2955083fd6a07977eb, task 38577e7..b1bc2ed, pretask dea40bd2749e1edbb5f22e16a13ce53eecdc7a39)
 Verify: `cargo test -p ddb-core --lib parser` after copying canonical: ddb-core/src/parser/tests.rs
@@ -1376,9 +1376,9 @@ Verify: `cargo test -p ddb-core --lib parser` after copying canonical: ddb-core/
 
 Tree: /tmp/qwen-eval-00010/6-cap-frontmatter-size-qwen-a1
 Harness note: the baseline ran in a tree later set aside; this attempt's dispatch tree is a fresh clone.
-Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/6-cap-frontmatter-size.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-qwen-a1.out.txt`
+Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-qwen/scripts/qwen-run.sh --approved-only -P llamacpp8002 -m unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/6-cap-frontmatter-size.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-qwen-a1.out.txt`
 Engine identity: `Using provider 'llamacpp8002' model 'unsloth/Qwen3.8-27B-GGUF:UD-Q6_K_XL'`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-qwen-a1.out.txt (1753 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-qwen-a1.wrapper.txt (1827 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-qwen-a1.out.txt (1753 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-qwen-a1.wrapper.txt (1827 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (dea40bd2749e1edbb5f22e16a13ce53eecdc7a39)
 Baseline gate exit code: 101 (runs/6-qwen-a1.baseline.txt); expected-failure evidence: `error[E0425]: cannot find value \`MAX_FRONTMATTER_BYTES\` in this scope` (ddb-core/src/parser/tests.rs:194)
@@ -1532,9 +1532,9 @@ gate exit code: 0
 ### sonnet attempt 1
 
 Tree: /tmp/qwen-eval-00010/6-cap-frontmatter-size-sonnet-a1
-Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/6-cap-frontmatter-size-sonnet-a1 -f /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/6-cap-frontmatter-size.prompt.txt -o /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-sonnet-a1.out.txt`
+Dispatch: `timeout -k 60 3600 ~/.agents/skills/use-sonnet/scripts/sonnet-run.sh -y -m sonnet -d /tmp/qwen-eval-00010/6-cap-frontmatter-size-sonnet-a1 -f ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/6-cap-frontmatter-size.prompt.txt -o ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-sonnet-a1.out.txt`
 Engine identity: `sonnet-run.sh -y -m sonnet`
-Captured output: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-sonnet-a1.out.txt (616 bytes); wrapper: /Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-sonnet-a1.wrapper.txt (616 bytes)
+Captured output: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-sonnet-a1.out.txt (616 bytes); wrapper: ~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/runs/6-sonnet-a1.wrapper.txt (616 bytes)
 Dispatch exit code: 0 | Dispatch validity: VALID
 HEAD after dispatch: unchanged (dea40bd2749e1edbb5f22e16a13ce53eecdc7a39)
 Baseline gate exit code: 101 (runs/6-sonnet-a1.baseline.txt); expected-failure evidence: `error[E0425]: cannot find value \`MAX_FRONTMATTER_BYTES\` in this scope` (ddb-core/src/parser/tests.rs:194)

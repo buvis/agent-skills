@@ -19,7 +19,7 @@ Diff range: `19cbdf76f4eef0216328d69b25ac0fb808b014da..b542182469dc3ef410c8896fd
 codex_rung_guard: not fired
 
 pack: failed (`engram pack` exited 1 — "not inside a registered repo; register it in
-/Users/bob/.config/gita/repos.csv"). Prompts carried the `(no pack available this cycle)` sentinel for
+~/.config/gita/repos.csv"). Prompts carried the `(no pack available this cycle)` sentinel for
 `{PACK_FILE}` and `{PACK_FINDINGS}`. Deterministic configuration failure, so no retry was spent. The review is
 degraded on retrieval context only, not invalid.
 

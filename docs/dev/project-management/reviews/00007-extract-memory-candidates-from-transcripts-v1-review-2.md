@@ -35,7 +35,7 @@ Scope: **incremental review** of the rework since cycle 1. 8 files changed, 1390
 
 ### Run conditions worth recording
 
-1. **No engram context pack, again.** `engram pack` exited 1 with `not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv`. The precondition (`git rev-parse --show-toplevel`) succeeds here, so the pack was attempted and failed; the failure is deterministic and identical to cycle 1, so it was not retried. Every implementation-aware prompt received the sentinel `(no pack available this cycle)`. The review is degraded on retrieval context, not invalid. Blake never receives a pack by design.
+1. **No engram context pack, again.** `engram pack` exited 1 with `not inside a registered repo; register it in ~/.config/gita/repos.csv`. The precondition (`git rev-parse --show-toplevel`) succeeds here, so the pack was attempted and failed; the failure is deterministic and identical to cycle 1, so it was not retried. Every implementation-aware prompt received the sentinel `(no pack available this cycle)`. The review is degraded on retrieval context, not invalid. Blake never receives a pack by design.
 2. **Branch-base diff is empty on this repo** (work is committed directly to `master`), so `gather-context.sh` was run with an explicit `--since 67fa898…`, which is the correct incremental range.
 3. **Blake's filesystem-notes block did not apply.** `dev/local` is a real directory here and the project root's basename does not start with `.`, so neither trigger fired and no block was prepended.
 

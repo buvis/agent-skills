@@ -22,7 +22,7 @@ Diff range: `bde94d7872861cf65a1e3d11028bd377398dba18..9705c3dcb6aafffe4f514c00f
 
 codex_rung_guard: not fired
 
-pack: failed (engram pack exit 1: not inside a registered repo; run `gita add /Users/bob/git/src/worktrees/agent-skills/prd-00076-00077-distil-docket`)
+pack: failed (engram pack exit 1: not inside a registered repo; run `gita add ~/git/src/worktrees/agent-skills/prd-00076-00077-distil-docket`)
 
 Mechanical checks: 0 tautological shapes (72 test functions in 5 files). Fail-first replay: 28 touched tests ran, 1 failed against base, 27 passed. The five replay `[MECH]` lines are absorbed as R9-R13 below. This PRD is test-only by design (the one production change is the `docket.py` `is_dir()` refusal), so new tests that pin existing correct behaviour pass against base as intended; Alice and Blake confirmed the named mutants turn them red.
 
