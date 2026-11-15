@@ -9,12 +9,14 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import date
 from pathlib import Path
 
+from sweep_preimage import _export_preimage
 from sweep_report import DEADLINE_REASON, render_report
 
 @functools.lru_cache()
@@ -534,10 +536,11 @@ def scan(pattern, kind, repos, cap=20, timeout=DEFAULT_SCAN_TIMEOUT, deadline=No
     return _apply_scan_cap(results, cap)
 
 
-def _search_control_term(control_repo, control_term, deadline, verify_start, expired):
+def _search_control_term(control_repo, control_term, deadline, verify_start, expired, where):
     """Search `control_repo` for `control_term` within what `deadline` left
     since `verify_start`. Raises `TimeoutError(expired)` when that budget
-    runs out, `RuntimeError` when the search fails for any other reason."""
+    runs out, `RuntimeError` naming `where` when the search fails for any
+    other reason."""
     timeout = DEFAULT_SCAN_TIMEOUT
     if deadline is not None:
         remaining = deadline - (time.monotonic() - verify_start)
@@ -553,16 +556,16 @@ def _search_control_term(control_repo, control_term, deadline, verify_start, exp
             raise TimeoutError(expired) from exc
         reason = " ".join(str(exc).split())
         raise RuntimeError(
-            f'sweep unverified: could not search control term "{control_term}" in {control_repo}: {reason}'
+            f'sweep unverified: could not search control term "{control_term}" in {where}: {reason}'
         ) from exc
     except Exception as exc:
         reason = " ".join(str(exc).split())
         raise RuntimeError(
-            f'sweep unverified: could not search control term "{control_term}" in {control_repo}: {reason}'
+            f'sweep unverified: could not search control term "{control_term}" in {where}: {reason}'
         ) from exc
 
 
-def verify_control(pattern, kind, control_repo, control_term, deadline=None):
+def verify_control(pattern, kind, control_repo, control_term, deadline=None, label=None):
     """Verify `pattern` actually matches in `control_repo` before trusting a
     sweep run elsewhere.
 
@@ -581,11 +584,14 @@ def verify_control(pattern, kind, control_repo, control_term, deadline=None):
     `deadline` (seconds) is one budget shared by both searches, measured
     from entry: the control-term search gets only what the scan left. When
     the budget runs out first, raises `TimeoutError` instead.
+
+    `label`, when set, names the control in messages in place of `control_repo`.
     """
     verify_start = time.monotonic()
+    where = label or control_repo
     expired = (
         f"sweep unverified: deadline expired before control verification "
-        f"could confirm the result in {control_repo}"
+        f"could confirm the result in {where}"
     )
     hits, _suppressed, failed = scan(pattern, kind, [control_repo], deadline=deadline)
     if failed:
@@ -593,18 +599,17 @@ def verify_control(pattern, kind, control_repo, control_term, deadline=None):
         if raw_reason == DEADLINE_REASON:
             raise TimeoutError(expired)
         reason = " ".join(raw_reason.split())
-        raise RuntimeError(
-            f"sweep unverified: control repo {control_repo} could not be scanned: {reason}"
-        )
+        scanned = label or f"control repo {control_repo}"
+        raise RuntimeError(f"sweep unverified: {scanned} could not be scanned: {reason}")
     if hits:
         return None
 
-    result = _search_control_term(control_repo, control_term, deadline, verify_start, expired)
+    result = _search_control_term(control_repo, control_term, deadline, verify_start, expired, where)
     if result.returncode == 1:
         return False
 
     message = (
-        f'sweep unverified: pattern found 0 hits but control term "{control_term}" is present in {control_repo} '
+        f'sweep unverified: pattern found 0 hits but control term "{control_term}" is present in {where} '
         "-- the pattern shape is likely broken (e.g. `\\|` alternation, which rg's Rust regex treats as a literal backslash-pipe)"
     )
     print(message, file=sys.stderr)
@@ -630,6 +635,7 @@ def _parse_args(argv):
     parser.add_argument("--reason", required=True)
     parser.add_argument("--control-term", required=True)
     parser.add_argument("--control-repo", required=True)
+    parser.add_argument("--control-rev")
     parser.add_argument("--registry", default=str(GITA_CSV))
     parser.add_argument("--cwd", default=str(Path.cwd()))
     parser.add_argument("--cap", type=_positive_int("--cap"), default=20)
@@ -665,18 +671,39 @@ def _resolve_report_path(cwd_path, out, reason):
     return out_path
 
 
+def _verify_control_by(args, control_dir, deadline_at, expired, label=None):
+    """`verify_control` on `control_dir` with the time left to `deadline_at`."""
+    remaining = deadline_at - time.monotonic()
+    if remaining <= 0:
+        raise TimeoutError(expired)
+    return verify_control(
+        args.pattern, args.kind, control_dir, args.control_term, deadline=remaining, label=label
+    )
+
+
 def _verify_zero_hit_sweep(args, start):
     """Run the control check on what `--deadline` left since `start`.
-    Raises `TimeoutError` when nothing is left for it to run."""
-    remaining = args.deadline - (time.monotonic() - start)
-    if remaining <= 0:
-        raise TimeoutError(
-            "sweep unverified: deadline expired before control "
-            f"verification could run in {args.control_repo}"
-        )
-    return verify_control(
-        args.pattern, args.kind, Path(args.control_repo), args.control_term, deadline=remaining
+    Raises `TimeoutError` when nothing is left for it to run.
+
+    With `--control-rev`, the check runs on the pre-image of that commit,
+    exported to a temporary directory after the sweep's own scan returned,
+    so no swept search can see it. The export counts against the deadline,
+    and the directory is removed on every exit, `SystemExit` included."""
+    deadline_at = start + args.deadline
+    control_repo = Path(args.control_repo)
+    expired = (
+        "sweep unverified: deadline expired before control "
+        f"verification could run in {args.control_repo}"
     )
+    if not args.control_rev:
+        return _verify_control_by(args, control_repo, deadline_at, expired)
+    with tempfile.TemporaryDirectory(prefix="sweep-preimage-") as preimage:
+        try:
+            _export_preimage(control_repo, args.control_rev, Path(preimage), deadline_at)
+        except subprocess.TimeoutExpired as exc:
+            raise TimeoutError(expired) from exc
+        label = f"the pre-image of {args.control_rev} in {control_repo}"
+        return _verify_control_by(args, Path(preimage), deadline_at, expired, label)
 
 
 def _scan_deadline_after_setup(args, start):

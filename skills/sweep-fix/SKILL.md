@@ -20,8 +20,11 @@ omitted sha or range defaults to `HEAD`) and decide:
 - `kind`: `astgrep` (structural code pattern) or `rg` (text/regex pattern)
 - `pattern`: the search pattern for that kind
 - `reason`: one line on why this pattern indicates the same bug class
-- `control_term`: a term known to be present in the diff, used to prove the
-  sweep actually works before trusting an empty result anywhere else
+- `control_term`: a term on the removed side of the diff, so it is present in
+  the code before the fix, used to prove the sweep actually works before
+  trusting an empty result anywhere else
+- `control_rev`: the fix commit itself (its sha, or `HEAD` when the fix is
+  the last commit)
 
 None of this is computed by `sweep.py`. These are judgment calls made here,
 from reading the diff, not by any function in the script.
@@ -35,6 +38,7 @@ python3 ~/.agents/skills/sweep-fix/scripts/sweep.py \
   --reason TEXT \
   --control-term TEXT \
   --control-repo PATH \
+  --control-rev REV \
   [--registry PATH] [--cwd PATH] [--cap N] [--deadline N] [--out PATH]
 ```
 
@@ -48,22 +52,41 @@ check below: when a zero-hit sweep runs out of budget before the control check
 can confirm it, `sweep.py` exits 1 with a `sweep unverified: ...` stderr line
 and writes no report, the same refusal a broken pattern gets.
 
-`--control-repo` is the current repo, where the fix commit lives. `main()`
-resolves the scan tool, enumerates every repo in the gita registry, scans
-every registered repo, and only when the whole sweep found zero hits checks
-that the control term is present in `--control-repo` (aborting loud if it is,
-because a pattern that misses a known-present term is broken, and an
-unverified empty sweep is not a clean sweep). It then renders the report and
-writes it under `docs/dev/project-management/audit-results/`.
+`--control-repo` is the current repo, where the fix commit lives, and
+`--control-rev` names the fix commit. `main()` resolves the scan tool,
+enumerates every repo in the gita registry, and scans every registered repo
+plus the current one. Only when the whole sweep found zero hits does it run
+the control check. It renders the report and writes it under
+`docs/dev/project-management/audit-results/`.
 
-If neither the pattern nor the fixed-string control term matches in the
-control repo, the empty sweep is inconclusive. The script saves the report
-with `Unverified: control term not found`, prints its path, and exits 1.
-Do not treat that sweep as clean. With the current repo as the control, a
-zero-hit sweep never exits 0: the current repo is swept too, so a pattern that
-matches there produces hits. A zero-hit sweep exits 0 only when
-`--control-repo` is outside the swept set and still holds the bug shape, for
-example a checkout of the commit before the fix.
+The control check runs on the fix's pre-image: the files `--control-rev`
+changed, as they were in its first parent (for a merge, the branch it was
+merged into). `sweep.py` exports them with read-only git commands
+(`rev-parse`, `diff-tree`, `cat-file`) into a temporary directory outside
+every swept repo, and removes that directory on every exit. Files the fix
+added have no pre-image and are left out. The export counts against
+`--deadline`. The pre-image still holds the bug, so a working pattern matches
+there: that proves the pattern, and the zero-hit sweep exits 0 with no
+`Unverified:` line. If the pattern misses the pre-image but the fixed-string
+control term is present there, the pattern is broken: `sweep.py` exits 1 with
+one `sweep unverified: ...` stderr line and writes no report. A
+`--control-rev` that does not resolve, or has no parent, also exits 1 with
+one `sweep unverified: ...` line naming the revision and the repo, and writes
+no report.
+
+If neither the pattern nor the control term matches, the empty sweep is
+inconclusive. The script saves the report with `Unverified: control term not
+found`, prints its path, and exits 1. Do not treat that sweep as clean. Pick a
+control term from the removed side of the diff and run again.
+
+Without `--control-rev`, the control check runs on the live tree of
+`--control-repo` instead. The current repo is swept too, so with the current
+repo as the control a zero-hit sweep can only end unverified or as a broken
+pattern. Use that form only with a `--control-repo` outside the swept set
+that still holds the bug shape.
+
+The control-term search skips `docs/dev/project-management/audit-results/`,
+so a saved report that quotes the term never makes it look present.
 
 The report's `Gaps:` section covers two different things: repos found on disk
 under the portfolio root that are missing from the registry (printed as a

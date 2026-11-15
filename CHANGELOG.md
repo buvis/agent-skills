@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **sweep-fix**: when the sweep deadline expires on Windows, in-flight searches are killed at once, so several stalled `taskkill` calls no longer each add their own 5-second wait before the sweep exits.
 - **sweep-fix**: a zero-hit sweep whose control term is also absent now saves its report with an `Unverified: control term not found` line and exits 1 instead of 0.
+- **sweep-fix**: a zero-hit sweep can now be verified and exit 0: `sweep.py --control-rev REV` runs the control check on the files the fix commit changed, as they were before it, instead of on the swept live tree where the bug is already gone.
 - **sweep-fix**: the control-term search skips saved reports under `docs/dev/project-management/audit-results/`, so a rerun no longer finds the term in an earlier report and aborts as a broken pattern.
 - **distil-memory**: judge calls run with no built-in tools and ignore inherited MCP servers, and triage sends each snippet as one JSON-encoded line marked as untrusted data; a `claude` CLI without `--tools` or `--strict-mcp-config` fails the run with its error.
 - **use-codex**: inside an outer Seatbelt sandbox (run-agent), `codex-run.sh` runs codex without its own sandbox instead of failing every file read with `sandbox_apply: Operation not permitted`, and says so on stderr.
