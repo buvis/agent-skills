@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import random
+import string
 import subprocess
 import sys
 import zipfile
 from pathlib import Path
 
 import parse
+import pytest
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -221,6 +224,80 @@ def test_keeps_similar_last_names_apart() -> None:
 def test_keeps_similar_first_names_apart() -> None:
     mapping, _ = parse.canonicalize(["Alexander Smith", "Alexandra Smith"])
     assert mapping["Alexander Smith"] != mapping["Alexandra Smith"]
+
+
+def _distinct_full_names(count: int) -> list[str]:
+    rng = random.Random(137)
+    seen: set[tuple[str, str]] = set()
+    while len(seen) < count:
+        seen.add(tuple("".join(rng.choices(string.ascii_lowercase, k=5)) for _ in range(2)))
+    return [f"{first.title()} {last.title()}" for first, last in sorted(seen)]
+
+
+def _canonicalize_counting(monkeypatch, names: list[str]):
+    calls = [0]
+    real = parse._prefix_match
+
+    def counting(a, b):
+        calls[0] += 1
+        return real(a, b)
+
+    monkeypatch.setattr(parse, "_prefix_match", counting)
+    mapping, merges = parse.canonicalize(names)
+    return calls[0], mapping, merges
+
+
+@pytest.mark.parametrize("count", [100, 1000, 2000])
+def test_distinct_full_names_avoid_all_pairs_compatibility_checks(monkeypatch, count) -> None:
+    calls, mapping, merges = _canonicalize_counting(monkeypatch, _distinct_full_names(count))
+    assert merges == []
+    assert len(set(mapping.values())) == count
+    assert calls <= 10 * count  # all pairs would be count * (count - 1) / 2
+
+
+@pytest.mark.parametrize("count", [1000, 2000])
+def test_numbered_speakers_need_no_compatibility_checks(monkeypatch, count) -> None:
+    names = [f"Speaker {i}" for i in range(1, count + 1)]
+    calls, mapping, merges = _canonicalize_counting(monkeypatch, names)
+    assert merges == []
+    assert len(set(mapping.values())) == count
+    assert calls == 0
+
+
+def test_indexed_matching_picks_the_same_group_as_a_full_scan() -> None:
+    names = _distinct_full_names(300)
+    # initial forms of known names, repeated cues, and an ambiguous initial
+    names += ["A. Rivera", "Alex Rivera", "Anna Rivera", "Anna Rivera", "Rivera, A."]
+    names += [f"{n.split()[0][0]}. {n.split()[1]}" for n in names[:50]]
+    names += ["Speaker 1", "Speaker 10", "Speaker 1"]
+    counts: dict[str, int] = {}
+    for n in names:
+        counts[n] = counts.get(n, 0) + 1
+    groups: dict[tuple[str, ...], list[str]] = {}
+    scan_merges = []
+    for raw in sorted(counts, key=lambda n: (-counts[n], n)):
+        key = parse.name_key(raw)
+        hit = key if key in groups else next(
+            (k for k in groups if parse._prefix_match(k, key)), None
+        )
+        if hit is None:
+            groups[key] = [raw]
+            continue
+        if hit != key:
+            scan_merges.append((raw, groups[hit][0]))
+        groups[hit].append(raw)
+    expected = {}
+    for variants in groups.values():
+        display = parse.display_form(max(variants, key=lambda v: (len(v.split()), counts[v])))
+        expected.update(dict.fromkeys(variants, display))
+    mapping, merges = parse.canonicalize(names)
+    assert mapping == expected
+    assert [(m["from"], m["to"]) for m in merges] == [
+        (raw, expected[to]) for raw, to in scan_merges
+    ]
+    # the most frequent compatible group wins, as in the full scan
+    assert mapping["A. Rivera"] == mapping["Rivera, A."] == mapping["Anna Rivera"]
+    assert mapping["Alex Rivera"] != mapping["Anna Rivera"]
 
 
 def test_keeps_numbered_speakers_as_separate_turns_in_transcript() -> None:
