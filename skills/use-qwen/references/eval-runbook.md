@@ -29,6 +29,8 @@ Using provider '<provider>' model '<model-id>'
 
 as its first line. If that line does not name your candidate, discard the run - do not score it.
 
+**Completion is not correctness, and a failed dispatch is not retried.** The helper exits 0 only when pi's last assistant message ended with `stopReason: stop` and non-blank text. A length stop, an error, a stream that ends early, or a compaction with no later answer exits nonzero, even when pi itself exited 0, and the helper never continues or retries the session. Exit 0 says only that an answer completed: an answer with no edits can still exit 0, and a completed answer can still be wrong, so the real gate (§ 3) decides. `run-eval.sh` dispatches each task once. A failed dispatch keeps its exit status and diagnostic in the evidence log, is not scored, and blocks a PASS verdict and `--commit`. It may already have edited the tree, so a new trial is a new invocation, after you restore the task's baseline and re-verify it (§ 6 item 1).
+
 ## 3. Verify against the real gate - never the model's self-report
 
 Run the task's actual test/check yourself and read the result. A model claiming "tests pass" is not evidence.

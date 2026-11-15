@@ -471,8 +471,14 @@ if [ "$MODE" = "preflight" ]; then
     exit 0
 fi
 
+# A prompt dispatch always runs pi with its JSON event transport, whatever
+# the caller asked for: success is decided from those events (see
+# dispatch_prompt), and text output is rebuilt from them.
+PI_MODE="$OUTPUT_MODE"
+[ "$MODE" = "prompt" ] && PI_MODE="json"
+
 # Common pi arguments
-ARGS=(--provider "$PROVIDER" --model "$MODEL" --mode "$OUTPUT_MODE")
+ARGS=(--provider "$PROVIDER" --model "$MODEL" --mode "$PI_MODE")
 if [ -n "$READ_ONLY" ]; then
     ARGS+=(--tools read,grep,find,ls)
 fi
@@ -484,6 +490,101 @@ run_cmd() {
     else
         "$@"
     fi
+}
+
+# Reads pi's event stream on stdin, one JSON object per line. Each input line
+# yields "P<line>" when it is to be forwarded (-j), and the end of input
+# yields one "V<verdict>" line: {"reason": "" when complete, else why not,
+# "text": the final answer}. Only the last assistant message is held, never
+# the whole stream. A compaction summary is not an assistant message, so a
+# compaction alone never completes an answer.
+COMPLETION_JQ='
+def answer_text: [(.content // [])[] | select(type == "object" and .type == "text") | (.text // "")] | join("\n");
+foreach ((inputs | [.]), null) as $item (
+    {malformed: 0, last: null, ended: false};
+    if $item == null or ($item[0] | test("^\\s*$")) then .
+    else (try ($item[0] | fromjson) catch null) as $event
+        | if ($event | type) != "object" then .malformed += 1
+          elif $event.type == "agent_end" then .ended = true
+          elif $event.type == "message_end" and ($event.message | type) == "object"
+              and $event.message.role == "assistant" then
+              .last = {stop: ($event.message.stopReason // "missing"),
+                       text: ($event.message | answer_text),
+                       error: ($event.message.errorMessage // "")}
+              | .ended = false
+          else . end
+    end;
+    if $item == null then
+        "V" + ({text: (.last.text // ""), reason: (
+            if .malformed > 0 then "malformed event stream (\(.malformed) non-JSON line(s) on stdout)"
+            elif .last == null then "no assistant message in the event stream"
+            elif (.ended | not) then "event stream ended before agent_end (truncated)"
+            elif .last.stop != "stop" then "final assistant message ended with stopReason \(.last.stop)"
+                + (if .last.error != "" then " (\(.last.error))" else "" end)
+            elif (.last.text | test("^\\s*$")) then "final assistant message has no answer text"
+            else "" end)} | tojson)
+    elif $json then "P" + $item[0]
+    else empty end
+)'
+
+# Forwards pi's events unchanged under -j, as they arrive, and writes the
+# completion verdict to the file named by $1.
+observe_events() {
+    local forward=false
+    [ "$OUTPUT_MODE" = "json" ] && forward=true
+    jq -nRr --unbuffered --argjson json "$forward" "$COMPLETION_JQ" \
+        | awk -v verdict="$1" '/^P/ { print substr($0, 2); fflush(); next } /^V/ { print substr($0, 2) > verdict }'
+}
+
+# Non-interactive dispatch (PRD 00049). Exit 0 only when pi exits 0 AND its
+# last assistant message ended with stopReason "stop" and non-blank text: pi
+# exits 0 after a length stop followed by compaction, with no answer at all.
+# pi's stderr (provider-probe chatter included) is never parsed as protocol.
+# Child stdin is guarded so an unattended batch can never hang on a child
+# reading the inherited stdin (PRD 00040 hang class); interactive/resume
+# modes keep stdin, they need the TTY. Everything runs in the caller's process
+# group, so a group timeout stops pi and the observer together.
+dispatch_prompt() {
+    local verdict_file reason rcs pi_rc observe_rc
+    verdict_file="$(mktemp)"
+    set +e
+    # pi's own arg parser rejects any positional message starting with "-"
+    # as an unknown option (no -- escape exists), which a prompt sourced
+    # from a ledger checklist line ("- [ ] ...") hits every time. Route those
+    # through stdin instead: pi passes piped stdin content into the initial
+    # message byte-verbatim (no wrapping), so this is not a lossy fallback.
+    case "$PROMPT" in
+        -*)
+            printf '%s' "$PROMPT" | pi "${ARGS[@]}" -p | observe_events "$verdict_file"
+            rcs=("${PIPESTATUS[@]}")
+            pi_rc="${rcs[1]}" observe_rc="${rcs[2]}"
+            ;;
+        *)
+            pi "${ARGS[@]}" -p "$PROMPT" < /dev/null | observe_events "$verdict_file"
+            rcs=("${PIPESTATUS[@]}")
+            pi_rc="${rcs[0]}" observe_rc="${rcs[1]}"
+            ;;
+    esac
+    set -e
+    if [ "$pi_rc" -ne 0 ]; then
+        rm -f "$verdict_file"
+        echo "ERROR: dispatch failed: pi exited with status $pi_rc." >&2
+        return "$pi_rc"
+    fi
+    if [ "$observe_rc" -ne 0 ] || [ ! -s "$verdict_file" ]; then
+        reason="pi's event stream could not be read"
+    else
+        reason="$(jq -r '.reason' "$verdict_file")" || reason="unreadable completion verdict"
+    fi
+    if [ -n "$reason" ]; then
+        rm -f "$verdict_file"
+        echo "ERROR: dispatch incomplete: $reason. pi exited 0, but no completed final answer was observed." >&2
+        return 1
+    fi
+    if [ "$OUTPUT_MODE" = "text" ]; then
+        jq -r '.text' "$verdict_file"
+    fi
+    rm -f "$verdict_file"
 }
 
 case $MODE in
@@ -511,22 +612,6 @@ case $MODE in
             usage >&2
             exit 1
         fi
-        # Non-interactive dispatch: guard child stdin so an unattended batch
-        # can never hang on a child reading the inherited stdin (PRD 00040
-        # hang class). Interactive/resume modes keep stdin — they need the TTY.
-        # pi's own arg parser rejects any positional message starting with
-        # "-" as an unknown option (no -- escape exists), which a prompt
-        # sourced from a ledger checklist line ("- [ ] ...") hits every time.
-        # Route those through stdin instead: pi passes piped stdin content
-        # into the initial message byte-verbatim (no wrapping), so this is
-        # not a lossy fallback.
-        case "$PROMPT" in
-            -*)
-                printf '%s' "$PROMPT" | run_cmd pi "${ARGS[@]}" -p
-                ;;
-            *)
-                run_cmd pi "${ARGS[@]}" -p "$PROMPT" < /dev/null
-                ;;
-        esac
+        run_cmd dispatch_prompt
         ;;
 esac
