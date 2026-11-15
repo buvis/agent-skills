@@ -566,6 +566,10 @@ def test_contained_refuses_a_path_that_crosses_a_symlink_out_of_the_tree(
 def test_contained_refuses_a_path_that_crosses_a_windows_shaped_absolute_link(
     tree_and_outside, target
 ):
+    # Imported here, not at the top: test_eval_tree_links imports from this
+    # module at load time, so a top-level import is circular.
+    from test_eval_tree_links import _extended_prefix_stripped
+
     root, _ = tree_and_outside
     os.symlink(target, root / "escape")
 
@@ -574,7 +578,7 @@ def test_contained_refuses_a_path_that_crosses_a_windows_shaped_absolute_link(
     # `Path.resolve()` would treat this text as one opaque component and walk
     # straight past it on a POSIX host - the shared `_land` walk the rewrite
     # switches to must not.
-    assert os.readlink(root / "escape") == target
+    assert _extended_prefix_stripped(os.readlink(root / "escape")) == target
 
     with pytest.raises(trees.TreeError):
         trees.contained(root, "escape/secret.txt")

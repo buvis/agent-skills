@@ -13,6 +13,7 @@ import posixpath
 import shutil
 import stat
 import subprocess
+import sys
 import tarfile
 import unicodedata
 from collections.abc import Iterator, Sequence
@@ -38,6 +39,12 @@ MISE_MARKERS = (".mise.toml", "mise.toml", ".tool-versions")
 _GIT_TIMEOUT_S = 120
 _APPLY_TIMEOUT_S = 120.0
 
+# The separator in link text this host reads back from disk. A module constant,
+# so a test can simulate another host without patching `os.sep` globally. It
+# governs reading only: `_lay_links_typed` and `_copytree_links_typed` write
+# with `os.sep`, so a simulated host needs the write side to be real too.
+_HOST_SEP = os.sep
+
 
 class TreeError(RuntimeError):
     """Raised when a tree, or a path inside one, is not one the harness may use."""
@@ -56,10 +63,14 @@ def _git(root: Path, *args: str, env: dict[str, str] | None = None) -> str:
     return done.stdout.rstrip("\n")
 
 
-def _git_bytes(root: Path, *args: str) -> bytes:
-    """Git's stdout in `root`, byte for byte: a patch is not a re-encoded string."""
+def _git_bytes(root: Path, *args: str, input: bytes | None = None) -> bytes:
+    """Git's stdout in `root`, byte for byte: a patch is not a re-encoded string.
+
+    `input`, when given, is written to git's stdin.
+    """
     done = subprocess.run(
         ["git", "-C", str(root), *args],
+        input=input,
         capture_output=True,
         check=True,
         timeout=_GIT_TIMEOUT_S,
@@ -218,13 +229,24 @@ def _ancestor_crossing(members: Sequence[tarfile.TarInfo], links: dict[str, str]
                 raise TreeError("%s is beneath an archive symlink" % member.name)
 
 
+def _read_link(path: Path) -> str:
+    """The link text at `path` in slash form, as `_land` reads it.
+
+    Host-read text, not archive input: only the host's own separator becomes
+    `/`. On a `/` host the text is untouched, so a literal backslash in it is
+    still refused.
+    """
+    text = os.readlink(path)
+    return text if _HOST_SEP == "/" else text.replace(_HOST_SEP, "/")
+
+
 def _refuse_escaping_links(root: Path) -> None:
     """Refuse a tree whose symlinks reach past it, before anything copies it.
 
     `copytree(symlinks=True)` reproduces such a link faithfully, and a later
     write through it would reach the operator's own repository.
     """
-    links = {relpath: os.readlink(path) for relpath, path in _walk(root) if path.is_symlink()}
+    links = {relpath: _read_link(path) for relpath, path in _walk(root) if path.is_symlink()}
     for relpath in links:
         _land(links, relpath)
 
@@ -351,6 +373,35 @@ def _extract_without_filter(
             raise TreeError(f"{member.name}: {cause}") from cause
 
 
+def _set_index_modes(staging: Path, members: Sequence[tarfile.TarInfo]) -> None:
+    """Set the index mode of every regular-file member from its archive mode.
+
+    Read off the archive, never off the disk: a host where git ignores the
+    filesystem mode (`core.filemode=false`) records whatever landed as 100644.
+    Only the user's exec bit decides. `--chmod` with no path is a usage error,
+    so an empty group is skipped. A member the extracted `.gitignore` kept out
+    of the index stays out: `--chmod` refuses an untracked path.
+    """
+    listing = _git_bytes(staging, "ls-files", "-z").split(b"\0")
+    tracked = {name.decode("utf-8", "surrogateescape") for name in listing}
+    files = [member for member in members if member.isfile() and member.name in tracked]
+    for flag, paths in (
+        ("+x", [m.name for m in files if m.mode & stat.S_IXUSR]),
+        ("-x", [m.name for m in files if not m.mode & stat.S_IXUSR]),
+    ):
+        if paths:
+            # NUL-terminated on stdin, never on the command line: Windows caps
+            # a command line, and a thousand paths would pass it.
+            _git_bytes(
+                staging,
+                "update-index",
+                "--chmod=%s" % flag,
+                "-z",
+                "--stdin",
+                input=b"".join(path.encode("utf-8", "surrogateescape") + b"\0" for path in paths),
+            )
+
+
 def _lay_links_typed(dest: Path, members: Sequence[tarfile.TarInfo]) -> None:
     """Create every symlink member under `dest`, in archive order, once every
     file and directory member already exists there.
@@ -409,12 +460,14 @@ def _topmost_missing_ancestor(path: Path) -> Path | None:
     return missing
 
 
-def _seal_template(staging: Path) -> str:
-    """Commit the staged tree with a stable date, translating git failures."""
+def _seal_template(staging: Path, members: Sequence[tarfile.TarInfo]) -> str:
+    """Commit the staged tree with a stable date and the archive's own
+    executable bits, translating git failures."""
     dated = {**os.environ, "GIT_AUTHOR_DATE": SEAL_DATE, "GIT_COMMITTER_DATE": SEAL_DATE}
     try:
         _git(staging, *IDENTITY, "init")
         _git(staging, "add", "-A")
+        _set_index_modes(staging, members)
         _git(staging, *IDENTITY, "commit", "-m", "sealed pre-task tree", env=dated)
         return head_sha(staging)
     except (OSError, subprocess.SubprocessError) as cause:
@@ -446,25 +499,76 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
             staging.mkdir(parents=True)
         except OSError as cause:
             raise TreeError("%s could not be staged: %s" % (staging, cause)) from cause
-        _extract_bundle(bundle, staging)
-        sealed = _seal_template(staging)
+        sealed = _seal_template(staging, _extract_bundle(bundle, staging))
         try:
             staging.rename(dest)
         except OSError as cause:
             raise TreeError("%s could not be published: %s" % (dest, cause)) from cause
-    except BaseException:
-        shutil.rmtree(staging, ignore_errors=True)
-        if created_ancestor is not None:
-            shutil.rmtree(created_ancestor, ignore_errors=True)
+    except BaseException as original:
+        # A cleanup that fails must not mask why the build failed: the original
+        # is raised, with the cleanup failure as its `__context__`.
+        try:
+            _discard_build(staging, created_ancestor)
+        except Exception:
+            raise original
         raise
     return sealed
+
+
+def _discard_build(staging: Path, created_ancestor: Path | None) -> None:
+    """Remove a failed build's staging and any ancestor directory it created."""
+    for path in (staging, created_ancestor):
+        if path is not None and os.path.lexists(path):
+            _remove_tree(path)
+
+
+def _remove_tree(path: Path) -> None:
+    """Remove `path` and everything under it, clearing the read-only bit of an
+    entry that refuses removal and retrying it once.
+
+    Windows refuses to delete a read-only file, and git writes its own objects
+    read-only. A retry that fails again raises its own error: a cleanup that
+    could not finish must not pass for one that did.
+    """
+
+    def clear_readonly_and_retry(func, failing, _exc) -> None:
+        os.chmod(failing, stat.S_IWRITE)
+        func(failing)
+
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=clear_readonly_and_retry)
+    else:
+        shutil.rmtree(path, onerror=clear_readonly_and_retry)
 
 
 def fresh_clone(template: Path, dest: Path) -> Path:
     """Copy the sealed template to `dest`, bytes and symlinks alike."""
     _refuse_escaping_links(Path(template))
-    shutil.copytree(template, dest, symlinks=True)
+    _copytree_links_typed(Path(template), Path(dest))
     return Path(dest)
+
+
+def _copytree_links_typed(template: Path, dest: Path) -> None:
+    """Copy every file and directory of `template`, then lay its links, each
+    typed as a directory where the template's own link reaches one.
+
+    Typing off the template, never the half-built copy, makes the type right
+    whatever order the links are laid in.
+    """
+    links: list[str] = []
+
+    def skip_links(directory: str, names: list[str]) -> list[str]:
+        skipped = [name for name in names if os.path.islink(os.path.join(directory, name))]
+        links.extend(os.path.join(directory, name) for name in skipped)
+        return skipped
+
+    shutil.copytree(template, dest, symlinks=True, ignore=skip_links)
+    for link in links:
+        os.symlink(
+            _read_link(Path(link)).replace("/", os.sep),
+            dest / os.path.relpath(link, template),
+            target_is_directory=os.path.isdir(link),
+        )
 
 
 def _digest(path: Path) -> str:
@@ -550,7 +654,7 @@ def contained(root: Path, relpath: str) -> Path:
     if os.path.isabs(relpath):
         raise TreeError("%s is absolute" % relpath)
     root = Path(root)
-    links = {name: os.readlink(path) for name, path in _walk(root) if path.is_symlink()}
+    links = {name: _read_link(path) for name, path in _walk(root) if path.is_symlink()}
     landing = _land(links, relpath)
     return root / landing
 

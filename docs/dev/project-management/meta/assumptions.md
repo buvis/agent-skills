@@ -90,3 +90,86 @@
 - Per-task review (Pat): `sonnet-run.sh` failed identically to tasks 3/4/8 (OAuth token revoked, then session-id collision on retry) - the same deterministic headless-child OAuth issue. Fell back to the native `autopilot:pat` Claude subagent at sonnet for both task 9 and task 10's reviews, recording the actual backend used.
 - Pat's first review of task 9 found finding 5 only half-fixed: `staging.mkdir(parents=True)` still sat outside the `try:` block, so its own `OSError` still escaped unwrapped (as a raw `PermissionError`) and skipped the `created_ancestor` cleanup — filed MEDIUM, CLOSURE unresolved. Verified directly (confirmed the raw exception leaks, by temporarily reverting the structure and re-running the new test), then fixed by nesting `staging.mkdir(parents=True)` in its own `try/except OSError -> TreeError` inside the outer try, with a new regression test (monkeypatches `os.mkdir` to fail only for the staging path) confirmed red against the pre-fix structure before landing.
 - Pat's second review (after the mkdir fix) closed all 5 quoted findings `resolved`, with one residual LOW: `created_ancestor = _topmost_missing_ancestor(dest.parent)` itself still runs before the outer `try:`, and `Path.exists()` can re-raise `OSError` for errors `_ignore_error` does not treat as "doesn't exist" (e.g. `EACCES` on an inaccessible intermediate ancestor) - the same class of defect finding 5 named, at a different call site, pre-existing and not introduced by this task. Confirmed by reading `pathlib.Path.exists()`'s source directly (it re-raises unless `_ignore_error(e)` is true). Left unfixed and carried to the PRD-level review per the LOW-only outcome rule (`review` left unset on both tasks' attempt records; both reviews closed CLOSURE-resolved/LOW-only, no HIGH/MEDIUM survives).
+
+# Assumptions ledger — PRD 00162-template-archive-breaks-on-windows-v1
+
+## 1: Add executable-bit-survives-the-seal regression
+
+- Git reads `GIT_CONFIG_KEY_<n>` / `GIT_CONFIG_VALUE_<n>` with an underscore before the index, not the `GIT_CONFIG_KEY0`/`GIT_CONFIG_VALUE0` spelling the task description used; forced `core.filemode=false` via the environment using the underscore form (Ivan).
+- Forced the config through the environment, not by patching `trees.IDENTITY`, since `IDENTITY` appears to be passed only to the commit call, not to `git add -A`; could not fully confirm since trees.py was outside the allowlist for this task (Ivan).
+- One executable file and one plain file are enough; dropped the neighbouring test's second pair (it guards against guessing the bit from the file name, which doesn't apply to this cause) (Ivan).
+- The test name contains `executable_bit_survives` to match the verify command's `-k` filter (Ivan).
+
+## 2: Add symlink-order and symlink-chain-through-directory regressions
+
+- Regressions A and B use the no-data-filter branch (`_hide_data_filter`), because the design leaves the `extractall(filter="data")` branch untouched; a test against that branch would stay red after the fix (Ivan).
+- The spy keys calls by the link's base name (`Path(path).name`), since the staging directory name is random; every link in these tests sits at the top level (Ivan).
+- The target text is compared as `os.fspath(target)`; these targets have no separators, so the Windows backslash form does not change them (Ivan).
+- The task's premise that `fresh_clone` "currently passes by accident" does not hold on this runtime: today's `shutil.copytree(symlinks=True)` calls `os.symlink` with no `target_is_directory` at all, so the spy records `False` and the clone test fails on that assertion directly. Asserted what `os.symlink` is asked for rather than the non-existent `_copytree_links_typed` helper's `AttributeError`, so the test does not depend on that helper's name (Ivan).
+- Regression B also asserts that `b` is typed as a directory, not only `a` (Ivan).
+
+## 3: Add read-only-staging-survives-cleanup regression
+
+- Patched only `os.unlink`, not `os.rmdir`: the spec reads "os.unlink/os.rmdir (or Path.unlink)" as a choice, and refusing one read-only file alone is enough to leave staging behind (Ivan).
+- The patched `os.unlink` refuses every file without the owner-write bit inside staging, not only the one explicitly chmod'ed - this includes Git's 0444 object files, matching the real Windows cause (Ivan).
+- The patch accepts a `dir_fd` argument, because on this Python (3.14) `shutil.rmtree` deletes through dir_fd (Ivan).
+- Did not verify the planned `_remove_tree` fix would pass this test (the fix doesn't exist yet and trees.py was outside the allowlist); inferred from the design doc only that chmod to `S_IWRITE` plus retry would route through the patched `os.unlink` to a real delete (Ivan).
+
+## 4: Set Git index modes from archive members before the seal commit
+
+- **Adversarial finding (Devon), confirmed before implementation:** calling `archive.getmembers()` after the `with tarfile.open(...)` block in `build_template` has closed raises `OSError: TarFile is closed` - members must be captured inside that block. Fixed in the implementation: `members = archive.getmembers()` now runs inside the `with` block and is reused for `_refuse_duplicate_or_crossing_members` too (Devon, then Ivan).
+- Devon broke the task-1 regression test with 7 exploits (hardcoded name lists, reading the exec bit off the staging disk instead of the archive, keying on the wrong mode bit, exact-mode matching, `bin/`-only scoping) before this task's implementation existed. The test was strengthened in response (see task 1's ledger entry above) before the real fix was written (Devon, Ivan).
+- Paths passed to `git update-index` use the raw `member.name`, not a normalized one, per the design contract; the archive members are already validated upstream (Ivan).
+- `_extract_without_filter`'s existing `os.chmod` calls were left unchanged to keep the diff small, rather than also reusing the newly-captured `members` there (Ivan).
+- **Infra, recurring:** Pat's per-task review (`sonnet-run.sh`) failed with "OAuth token revoked" - the same deterministic headless-child OAuth issue recorded for PRD 00160 tasks 3/4 (coordinator `CLAUDE_CODE_OAUTH_TOKEN` not reaching the `claude -p` child). A workaround (injecting the token via a wrapper script) was blocked by warden as an unrecognized command. Recorded as `review: failed:oauth_token_revoked`; not re-attempted for later tasks in this batch. The mandatory PRD-level review phase covers this task's diff.
+- **Regression fix (step 7, after task 8):** the full suite caught 10 setup errors in `test_eval_tree_proofs.py`, all `git update-index --chmod` exit 128 on a file ("stale-artefact.txt" in that module's fixture) that the original repo force-committed despite a `.gitignore` rule. `git archive` still includes it, so `_set_index_modes` saw it in `members`, but in the fresh staging repo `git add -A` silently skips an as-yet-untracked, now-gitignored path - so `update-index --chmod` refuses the whole pathspec (it refuses an untracked path where `add -A` would have quietly skipped it). The regression-fix brief (written by the orchestrator, not from the design doc) proposed force-adding the file instead; Ivan tried it, found it broke three `prove_state` tests that rely on the ignored file staying OUT of the sealed commit (`git status --porcelain` must stay silent about it - that is the exact property those tests check), reverted the force-add, and instead filtered `_set_index_modes`'s own member list down to `git ls-files -z`'s tracked set - restoring the pre-task behavior for an ignored-but-archived member (stays untracked in the seal, still covered by `fresh_clone`/the manifest) while fixing the crash. Correctly treated the tests as the spec over the orchestrator's own (wrong) brief, per the implementor's standing rule; no test file was touched (Ivan).
+
+## 5: Create symlinks in a typed, native-separator second pass
+
+- **Adversarial finding (Devon), confirmed before implementation:** the original task-2 tests (all links landing on a directory, short dot-free names, forward archive order) left 5 distinct ways to type every link as a directory without actually resolving landings correctly. The tests were strengthened in response (see task 2's ledger entry above) before this task's implementation was written (Devon, then Ivan).
+- `_lay_links_typed` takes `(dest, members)` with no separate `written`/`written_dirs` set: by the time links are laid (a strict second pass, after every file and directory member is already on disk), `_land`'s own chain-walk already resolves a landing to a real (non-symlink) path, so `(dest / landing).is_dir()` alone gives the same answer the design's `written_dirs` check would, and also covers a directory that exists only as the parent of a file member (Ivan).
+- In `fresh_clone`'s second pass, symlinks under the template's `.git` directory (if any) are also re-laid, because the `copytree` ignore callback that skips symlinks in the first pass sees every directory, `.git` included (Ivan).
+- **Infra, recurring:** Pat's per-task review was not attempted for this task - the OAuth-revoked infra failure confirmed twice already this PRD (tasks 4 and this one's own first attempt would hit the same deterministic cause) is not re-attempted per the task-4 precedent. Recorded as `review: failed:oauth_token_revoked`. The mandatory PRD-level review phase covers this task's diff.
+
+## 6: Replace staging cleanup with read-only-aware removal
+
+- **Adversarial finding (Devon), confirmed before implementation:** the original task-3 regression left 7 distinct ways to pass without a real read-only-aware delete: renaming the undeletable staging aside instead of removing it, shelling out to `chmod -R`/`rm -rf` and ignoring the result, deleting via `os.remove` (unpatched) instead of `os.unlink`, swallowing a persistent cleanup failure, retrying on any error rather than only a read-only refusal, and discarding the original exception for an unrelated `TreeError`. The test was strengthened in response (a tightened `_names(tmp_path) == present` assertion, `os.remove` patched alongside `os.unlink`, an `excinfo.value is error or excinfo.value.__cause__ is error` check, and a new twin test for a refusal that never lifts) before this task's implementation was written (Devon, then Tess).
+- With a cleanup that never succeeds, the caller may see the `PermissionError` on top, chained to the injected error, or the reverse; the twin test's assertion accepts either order (Tess, strengthen round).
+- A refusal counts as "never lifts" by file basename, since `shutil.rmtree`'s fd mode passes bare names with `dir_fd`; Git's own read-only object files are refused and retried too, so the twin does not require `a.txt` specifically to be the file that surfaces (Tess, strengthen round).
+- Restoring permissions in the twin test's `request.addfinalizer` is test hygiene (so pytest's own tmp-dir cleanup can still delete the fixture), not new behavior under test (Tess, strengthen round).
+- Kept the `onerror` branch (Python 3.10/3.11) alongside the `onexc` branch (3.12+) per the design contract, though only the `onexc` branch is exercised on this runtime's Python 3.14 (Ivan).
+- One handler function serves both the `onexc` and `onerror` signatures; its third argument (the exception, or the `exc_info` tuple) is unused by either (Ivan).
+
+## 7: Make owner and mode checks host-neutral
+
+- `_sealed_modes` exists in `test_eval_tree_archive_safety.py` with the shape the brief describes; did not read that file directly (outside the allowlist), confirmed by the import resolving and the suite passing (Ivan).
+- Used `hasattr(os, "getuid")` as the one POSIX-vs-host guard for both the uid check and the raw `st_mode`/special-bit/`UNSAFE_DIRECTORY_BITS` checks, rather than a separate `hasattr(os, "chmod")`-style guard per check (Ivan).
+- The new sealed-mode assertion in the refusal-or-accept test runs only in the `else` (accept) branch, since a refused archive leaves no sealed tree at `dest` to read (Ivan).
+- Left `status.st_gid == dest.stat().st_gid` unguarded (runs on every host), since the brief named only the uid and mode-bit checks as POSIX-only (Ivan).
+
+## 8: Add extended-prefix normalization helper and apply it at both fixture assertions
+
+- The brief's top-of-file import for `test_eval_tree_state.py` is circular: `test_eval_tree_links.py` already imports from `test_eval_tree_state` at load time, so importing `_extended_prefix_stripped` back at the top of `test_eval_tree_state.py` fails in either module-load order (`ImportError: cannot import name ... from partially initialized module`, confirmed by running it). Moved the import inside the one test function that needs it instead, with a comment explaining why; the helper still lives only in `test_eval_tree_links.py` (Ivan).
+- Chose the parametrize ids (`extended-drive`, `extended-unc`, `short-drive`, `posix`) and the new unit test's name myself, since the brief did not specify them (Ivan).
+
+## 9: [D1] Keep the original build error, bound chmod argv, decode names, read host link text (review cycle 1)
+
+- The R19 regressions live in a new `test_eval_tree_host_links.py`, not `test_eval_tree_state.py`, because the latter is already 717 lines (Tess).
+- None of the host-link tests carries a symlink-capability skip; a host that cannot create symlinks errors rather than skips (Tess).
+- How stdin reaches git is not pinned; final index modes plus argv checks stand in for the payload. A group's call is recognised by its literal `--chmod=+x`/`--chmod=-x` flag and must carry `--stdin` and `-z` (Tess).
+- A held `.git/index.lock` makes `ls-files` succeed and `update-index` fail, so it stands in for an update-index failure (Tess, strengthen round).
+- `build_template` runs no `update-index` other than the two chmod groups (Tess, strengthen round).
+- `contained` answers the followed real path inside the clone (`clone/dir/f.txt` for `a -> b -> dir`), not the link's own name (Tess, strengthen round).
+- `_set_index_modes` calls `subprocess.run` directly for the stdin call instead of adding `input=` to `_git_bytes`: the `_serve_archive` fixture replaces `trees._git_bytes` with a fake that takes no keywords, and the `input=` variant failed 51 tests with `TypeError` (Ivan; Pat's LOW to use `_git_bytes` rejected on this evidence).
+- R1 relies on CPython breaking the context cycle when the original is re-raised inside the cleanup handler; covered by task 10's tests, not task 9's (Ivan).
+- The style fix extracted the tar block into one single-caller helper `_extract_bundle` inside `trees.py` (Ivan, style fix).
+
+## 10: [D1] Pin original-error identity in the cleanup tests (review cycle 1)
+
+- "Raised `from` an OSError" is built by setting `error.__cause__ = cause` directly, which sets the same `__cause__` and `__suppress_context__` as `raise ... from` (Ivan).
+- The new cause-chain test does not re-assert the retried refusal; the never-lifts test covers it (Ivan).
+- `_chain` was removed because the change left it without callers (Ivan).
+
+## 11: [D1] Move the link-typing tests into their own module (review cycle 1)
+
+- The `# -- fresh_clone --` section header stays in `test_eval_tree_links.py` for the fresh_clone test that remains there (Ivan).
