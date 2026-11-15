@@ -183,6 +183,8 @@ jobs:
         run: |
           status=0
           for skill in skills/*/; do
+            # braid projects only directories holding a SKILL.md file
+            [ -f "${skill}SKILL.md" ] || continue
             uv run python3 skills/create-skill/scripts/validate_skill.py "$skill" || status=1
           done
           exit $status
