@@ -448,17 +448,25 @@ def _outside_sentinel(tmp_path: Path) -> Path:
     return outside
 
 
+def _tree_entries(root: Path) -> set:
+    """Every path under `root`, `.git` directories included, in slash form."""
+    return {path.relative_to(root).as_posix() for path in root.rglob("*")}
+
+
 def _assert_refused_cleanly(tmp_path, built_repo, monkeypatch, members) -> None:
     repo = Path(built_repo["repo"])
     first = _task_start_commit(repo)
     outside = _outside_sentinel(tmp_path)
     _serve_archive(monkeypatch, _crafted_tar(members))
     dest = tmp_path / "template"
+    present = _tree_entries(tmp_path)
 
     with pytest.raises(trees.TreeError):
         trees.build_template(repo, first, dest)
 
-    assert list(dest.glob("*")) == []
+    # Nothing added anywhere: no dest, no staging tree, no copy of the archive.
+    assert _tree_entries(tmp_path) == present
+    assert not os.path.lexists(dest)
     # The escape did not happen: the outside directory holds what it held.
     assert sorted(p.name for p in outside.iterdir()) == ["secret.txt"]
     assert (outside / "secret.txt").read_bytes() == b"outside\n"
