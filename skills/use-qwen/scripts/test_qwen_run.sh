@@ -1394,6 +1394,7 @@ printf '%s\n%s\n%s\n' "$EV_HEAD" '{"type":"message_end","message":{"role":"assis
     '{"type":"agent_end","messages":[]}' > "$EV/error.jsonl"
 printf '%s\n%s\n%s\n' "$EV_HEAD" '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"  \n "}],"stopReason":"stop"}}' \
     '{"type":"agent_end","messages":[]}' > "$EV/blank-answer.jsonl"
+printf '%s\n%s\n%s\n' "$EV_HEAD" "$EV_ANSWER" '{"type":"agent_start"}' > "$EV/restarted-truncated.jsonl"
 
 # run_stream <name> <events-file> <pi-exit-status> [qwen-run args...] - sets
 # RC, OUT (stdout) and ERR (stderr). STREAM_STDERR, when set, is a line the
@@ -1507,6 +1508,14 @@ if [ "$RC" -ne 0 ] && grep -q "agent_end" <<< "$ERR"; then
     PASS "an event stream cut off before agent_end is a failed dispatch"
 else
     FAIL "an event stream cut off before agent_end is a failed dispatch" "rc=$RC; stdout: $OUT; stderr: $ERR"
+fi
+
+# T51b: a run that restarts after a completed answer and is cut off fails.
+run_stream t51b "$EV/restarted-truncated.jsonl" 0 -j -f "$PROMPT_FILE_T"
+if [ "$RC" -ne 0 ] && grep -q "agent_end" <<< "$ERR"; then
+    PASS "a restarted run cut off before its own agent_end is a failed dispatch"
+else
+    FAIL "a restarted run cut off before its own agent_end is a failed dispatch" "rc=$RC; stdout: $OUT; stderr: $ERR"
 fi
 
 # T52: a terminal error stop fails and names pi's error message.

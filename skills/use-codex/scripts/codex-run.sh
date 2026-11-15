@@ -271,10 +271,33 @@ run_codex_json_path() {
     return "$codex_exit"
 }
 
+# True when this process already runs inside a Seatbelt sandbox (run-agent).
+# macOS refuses to apply a second sandbox profile there, so codex's own
+# --sandbox read-only/workspace-write makes every command fail with
+# "sandbox_apply: Operation not permitted" (2026-11-15). Probed with a no-op
+# profile; hosts without sandbox-exec (Linux) are never nested.
+# ponytail: one probe per run, ~10 ms; cache it if dispatch volume ever matters.
+inside_outer_sandbox() {
+    command -v sandbox-exec &>/dev/null || return 1
+    ! sandbox-exec -p '(version 1)(allow default)' /usr/bin/true 2>/dev/null
+}
+
+NESTED_SANDBOX=""
+if inside_outer_sandbox; then
+    NESTED_SANDBOX=1
+fi
+
+warn_nested_sandbox() {
+    echo "WARNING: inside an outer sandbox; codex's own sandbox cannot nest, so it runs with --dangerously-bypass-approvals-and-sandbox and the outer sandbox confines it" >&2
+}
+
 run_codex() {
     # Map permission flags to codex sandbox policy.
     local sandbox=()
     if [ -n "$ALLOW_ALL" ]; then
+        sandbox=(--dangerously-bypass-approvals-and-sandbox)
+    elif [ -n "$NESTED_SANDBOX" ]; then
+        warn_nested_sandbox
         sandbox=(--dangerously-bypass-approvals-and-sandbox)
     elif [ -n "$ALLOW_TOOLS" ]; then
         sandbox=(--sandbox workspace-write)
@@ -322,6 +345,7 @@ run_codex_resume() {
     shift
     local model=("$@")
     local resume_sandbox=(-c sandbox_mode=read-only)
+    [ -n "$NESTED_SANDBOX" ] && resume_sandbox=(-c sandbox_mode=danger-full-access)
 
     local rc=0
     run_codex_json_path --fallback-id "$resume_id" \

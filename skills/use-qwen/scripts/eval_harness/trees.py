@@ -6,6 +6,7 @@ copy is still what was recorded before anything runs inside it. Nothing here
 trusts a path a task hands over - every write the harness makes is placed by
 `contained` first, and a tree whose symlinks reach past it is refused outright.
 """
+import errno
 import hashlib
 import io
 import os
@@ -285,8 +286,6 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
             member.issym() and _archive_name_escapes(member.linkname)
         ):
             raise TreeError("%s names a place outside the tree" % member.name)
-        if os.path.isabs(member.name):
-            raise TreeError("%s is absolute" % member.name)
         if _names_a_git_directory(member.name):
             raise TreeError("%s writes into a git directory" % member.name)
         if not (member.isfile() or member.isdir() or member.issym()):
@@ -530,10 +529,24 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
 
 
 def _discard_build(staging: Path, created_ancestor: Path | None) -> None:
-    """Remove a failed build's staging and any ancestor directory it created."""
-    for path in (staging, created_ancestor):
-        if path is not None and os.path.lexists(path):
-            _remove_tree(path)
+    """Remove a failed build's staging, then each ancestor directory it created
+    that is still empty. Another writer may have used a created ancestor
+    meanwhile; what it holds is not ours to delete."""
+    if os.path.lexists(staging):
+        _remove_tree(staging)
+    if created_ancestor is None:
+        return
+    parent = staging.parent
+    while True:
+        try:
+            parent.rmdir()
+        except OSError as cause:
+            if cause.errno in (errno.ENOTEMPTY, errno.EEXIST):
+                return
+            raise
+        if parent == created_ancestor:
+            return
+        parent = parent.parent
 
 
 def _remove_tree(path: Path) -> None:
@@ -671,6 +684,8 @@ def contained(root: Path, relpath: str) -> Path:
     root = Path(root)
     links = {name: _read_link(path) for name, path in _walk(root) if path.is_symlink()}
     landing = _land(links, relpath)
+    # A name-merging host also follows a link spelled in another case or form.
+    _land(links, relpath, fold=True)
     return root / landing
 
 

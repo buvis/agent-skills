@@ -447,8 +447,8 @@ PRD's funnel already produced - no data flows back into this PRD's modules.
    retired instinct pipeline (`rules/memory.md`: "encoded the repo path by
    replacing `/` alone while the harness also replaces `.`... every repo
    under `github.com/` landed in a phantom sibling directory") - observed
-   directly in this session's own catchup (`-Users-bob-git-src-github-com-buvis-claude-autopilot`
-   vs `-Users-bob-git-src-github.com-buvis-claude-autopilot` for what should
+   directly in this session's own catchup (`-Users-you-git-src-github-com-buvis-claude-autopilot`
+   vs `-Users-you-git-src-github.com-buvis-claude-autopilot` for what should
    be the same repo). Rejected: the encoding is not reliably invertible or
    re-derivable from outside the harness, and getting it wrong silently
    drops a project's transcripts rather than failing loudly.

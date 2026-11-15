@@ -570,6 +570,17 @@ def test_contained_refuses_a_path_that_crosses_a_symlink_out_of_the_tree(
 
 
 @NEEDS_SYMLINKS
+def test_contained_refuses_a_link_out_of_the_tree_named_in_another_case(tree_and_outside):
+    root, _ = tree_and_outside
+    os.symlink(os.path.join("..", "outside"), root / "Escape", target_is_directory=True)
+
+    # On macOS and Windows `escape` opens the link `Escape`. Judged on the raw
+    # spelling alone, the walk never meets the link and lets the read out.
+    with pytest.raises(trees.TreeError):
+        trees.contained(root, "escape/secret.txt")
+
+
+@NEEDS_SYMLINKS
 @pytest.mark.parametrize(
     "target",
     [r"\etc\passwd", "C:\\Windows\\System32\\x", r"\\host\share\x"],

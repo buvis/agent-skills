@@ -2,9 +2,9 @@
 
 Provider: llamacpp8002 | Run: 2026-08-31
 
-## Task 1: /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task1-collect-purge-devlocal.txt
+## Task 1: /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task1-collect-purge-devlocal.txt
 
-Verify: `cd /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/agent-skills/skills/brief-portfolio && uv run --with pytest pytest scripts/test_collect.py -q`
+Verify: `cd /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/agent-skills/skills/brief-portfolio && uv run --with pytest pytest scripts/test_collect.py -q`
 
 Gate exit code: 0 -> PASS
 
@@ -52,9 +52,9 @@ Note: the worktree carries this as an uncommitted modification (a light refactor
 ```
 </details>
 
-## Task 2: /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task2-executor-fail-loud.txt
+## Task 2: /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task2-executor-fail-loud.txt
 
-Verify: `cd /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/gems && uv run pytest tests/lib/pybase/updater/test_executor.py -q`
+Verify: `cd /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/gems && uv run pytest tests/lib/pybase/updater/test_executor.py -q`
 
 Gate exit code: 0 -> PASS
 
@@ -91,9 +91,9 @@ Done. The acceptance criteria are met — verified end-to-end.
 ```
 </details>
 
-## Task 3: /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task3-ddb-schema.txt
+## Task 3: /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task3-ddb-schema.txt
 
-Verify: `cd /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/ddb && cargo test -p ddb-core --lib`
+Verify: `cd /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/ddb && cargo test -p ddb-core --lib`
 
 Gate exit code: 0 -> PASS
 
@@ -126,7 +126,7 @@ UnreadableFile {
 <details><summary>verify command output</summary>
 
 ```
-   Compiling ddb-core v0.2.7 (/private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/ddb/ddb-core)
+   Compiling ddb-core v0.2.7 (/private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/ddb/ddb-core)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 3.14s
      Running unittests src/lib.rs (target/debug/deps/ddb_core-c54b75364caf613c)
 
@@ -1746,9 +1746,9 @@ test result: ok. 1546 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; f
 ```
 </details>
 
-## Task 4: /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task4-warden-env-danger.txt
+## Task 4: /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task4-warden-env-danger.txt
 
-Verify: `cd /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/claude-warden && pnpm exec vitest run src/__tests__/env-danger.test.ts`
+Verify: `cd /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/claude-warden && pnpm exec vitest run src/__tests__/env-danger.test.ts`
 
 Gate exit code: 0 -> PASS
 
@@ -1773,7 +1773,7 @@ One hiccup worth noting: my first draft had `LD_*/DYLD_*` inside the block comme
 
 ```
 
- RUN  v1.6.1 /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/claude-warden
+ RUN  v1.6.1 /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/claude-warden
 
  ✓ src/__tests__/env-danger.test.ts  (21 tests) 1ms
 
@@ -1784,9 +1784,9 @@ One hiccup worth noting: my first draft had `LD_*/DYLD_*` inside the block comme
 ```
 </details>
 
-## Task 5: /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task5-git-ferry-branch-diff-bats.txt
+## Task 5: /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task5-git-ferry-branch-diff-bats.txt
 
-Verify: `cd /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/claude-git-ferry && tests/lib/bats-core/bin/bats tests/branch-diff.bats`
+Verify: `cd /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/claude-git-ferry && tests/lib/bats-core/bin/bats tests/branch-diff.bats`
 
 Gate exit code: 0 -> PASS
 
@@ -1827,9 +1827,9 @@ ok 4 branch-diff: missing master base exits 1 with ERROR
 ```
 </details>
 
-## Task 6: /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task6-aegis-common-isatty.txt
+## Task 6: /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task6-aegis-common-isatty.txt
 
-Verify: `cd /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/claude-aegis && python -m pytest hooks/tests/test__common.py -q`
+Verify: `cd /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/claude-aegis && python -m pytest hooks/tests/test__common.py -q`
 
 Gate exit code: 0 -> PASS
 

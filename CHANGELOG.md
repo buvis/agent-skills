@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **sweep-fix**: when the sweep deadline expires on Windows, in-flight searches are killed at once, so several stalled `taskkill` calls no longer each add their own 5-second wait before the sweep exits.
+- **use-codex**: inside an outer Seatbelt sandbox (run-agent), `codex-run.sh` runs codex without its own sandbox instead of failing every file read with `sandbox_apply: Operation not permitted`, and says so on stderr.
+- **use-sonnet**: `sonnet-run.sh` loads the long-lived setup token from `~/.local/secrets/claude-setup-token` when `CLAUDE_CODE_OAUTH_TOKEN` is unset, so a nested `claude` no longer fails with "OAuth token revoked".
+
 - **build-mcp-server**: generated projects declare their package and development dependencies, load `.env` explicitly, and are installed and tested by the optional integration suite.
 
 - **publish-confluence-docs**: image placeholders preserve unrelated and nested macros, attachment names are XML-escaped, and uploads check curl failures using the platform's null device. CI runs the optional MCP and document conversion tests on Linux and Windows.
@@ -54,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **glean**: `scan` and `check-staged` label a hard secret hit by fixed category (`HARD:private-key`, `HARD:github-token`, `HARD:sk-key`, `HARD:aws-access-key`, `HARD:slack-token`) instead of the first four matched characters, which for an `sk-` key included one secret character. Because the keywords change, an existing ledger entry may resurface once; no ledger migration runs.
 - **survey**: a layer with no naming samples (all three counts zero) now shows `unknown` in the brief instead of claiming camelCase.
 - **distil-memory**: a transcript with non-object JSON lines or invalid UTF-8 no longer aborts the whole `funnel.py` scan; the damage is skipped with a stderr warning naming the file, and entries holding a raw U+2028, U+2029 or U+0085 inside a string are no longer dropped.
+- **distil-memory**: `docket.py unpublished` warns on stderr when the `--store` directory does not exist, even when it still lists unpublished ids, and when no kept queue entry belongs to that store, so a mistyped store no longer reads as fully published.
 - **distil-memory**: `write.py` refuses an absent `--store` with `store directory does not exist: <store>` instead of naming a temporary file, and creates nothing.
 - **distil-memory**: judge replies that are neither `transient` nor `durable` (empty output, an error string) are counted as `unclassified` in the yield report with a stderr warning; a run where every reply is unclassified skips the distil stage, writes its report, and exits 1.
 - **distil-memory**: `funnel.py` runs within the same second no longer overwrite each other's report; a taken name gets a `-2`, `-3`, ... suffix shared by the report and its proposals directory.

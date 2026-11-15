@@ -8,7 +8,7 @@ model_tier_rationale: Portable path serialization requires consumer compatibilit
 
 > **Held (2026-11-15):** every in-repository task is implemented (commit 71547eb). One task is open: the autocodex host writers under `~/.config/autocodex/` still write absolute paths into `docs/dev/project-management/autopilot/` and into the `autocodex_*_receipt:` lines of review files. That code is outside this repository and needs an operator hand-off. When it lands, remove the two matching exclusions from `scripts/test_public_doc_paths.py`, scrub the files they covered, and move this PRD to done.
 
-> **Gap found (2026-11-15):** the rewrite to `~/...` left the user name inside encoded project directory names (`~/.claude/projects/-Users-<name>-git-...`). Outside `autopilot/`, 7 tracked documents hold 27 such names, all published before this PRD. `scripts/test_public_doc_paths.py` does not match that form. Extend its pattern and rewrite those names before this PRD moves to done.
+> **Gap closed (2026-11-15):** the rewrite to `~/...` left the user name inside encoded directory names (`~/.claude/projects/-Users-<name>-git-...`). Outside `autopilot/`, 8 tracked documents held 28 such lines, all published before this PRD. They now read `-Users-you-...`, and `scripts/test_public_doc_paths.py` matches that form too. Inside `autopilot/` the form remains, under the same exclusion as the absolute paths.
 
 Source: `dev/local/audit-results/agoge-2026-10-25.md`, finding 46, audit dated 2026-10-25. User accepted option A on 2026-10-29. Status remains unverified: the audit combined static path searches with a writer code read, without a product run demonstrating a newly generated disclosure.
 

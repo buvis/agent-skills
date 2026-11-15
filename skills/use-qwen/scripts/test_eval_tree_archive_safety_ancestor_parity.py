@@ -310,3 +310,26 @@ def test_build_template_wraps_a_staging_mkdir_failure_as_treeerror_and_cleans_up
     assert not (tmp_path / "a").exists()
     after = sorted(path.name for path in tmp_path.iterdir())
     assert after == before
+
+
+def test_build_template_cleanup_keeps_what_another_writer_put_in_a_created_ancestor(
+    tmp_path, built_repo, monkeypatch
+):
+    # The build creates `a/b` for its staging, then fails. Meanwhile another
+    # process wrote into `a`. Cleanup owns the staging and empty parents only.
+    repo = Path(built_repo["repo"])
+    first = _task_start_commit(repo)
+    dest = tmp_path / "a" / "b" / "template"
+    foreign = tmp_path / "a" / "other.txt"
+
+    def write_beside_then_fail(bundle, staging):
+        foreign.write_bytes(b"not ours\n")
+        raise trees.TreeError("injected extraction failure")
+
+    monkeypatch.setattr(trees, "_extract_bundle", write_beside_then_fail)
+
+    with pytest.raises(trees.TreeError, match="injected"):
+        trees.build_template(repo, first, dest)
+
+    assert foreign.read_bytes() == b"not ours\n"
+    assert sorted(path.name for path in (tmp_path / "a").iterdir()) == ["other.txt"]

@@ -62,25 +62,6 @@ def check_deliverables(root: Path, out: Report, research_only: bool) -> None:
     out("research/snippets/ bank", bool(snippets), "snippet bank empty or missing")
 
 
-def _ident_pattern(min_len: int) -> "re.Pattern[str]":
-    """Custom ABAP identifiers: Z-prefixed, Y-prefixed (must contain an
-    underscore, so ordinary Y-words in prose do not match), and
-    /NAMESPACE/NAME. The namespace branch is case-sensitive so file paths
-    like /usr/bin never match."""
-    n = min_len
-    return re.compile(
-        r"(?<![A-Za-z0-9_/])(?:"
-        r"Z[A-Z0-9_]{%d,}"
-        r"|Y(?=[A-Z0-9]*_)[A-Z0-9_]{%d,}"
-        r"|(?-i:/[A-Z][A-Z0-9_]{1,9}/)[A-Z0-9_]{%d,}"
-        r")(?![A-Za-z0-9_])" % (n, n, max(n, 3)), re.I)
-
-
-def custom_idents(text: str, min_len: int) -> list[str]:
-    """Upper-cased custom identifiers found in text."""
-    return [m.upper() for m in _ident_pattern(min_len).findall(text)]
-
-
 def has_receipt(text: str) -> bool:
     """The receipt must be on the FIRST line, as the contract states."""
     first = text.lstrip("\ufeff").split("\n", 1)[0]
