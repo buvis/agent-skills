@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **sweep-fix**: when the sweep deadline expires on Windows, in-flight searches are killed at once, so several stalled `taskkill` calls no longer each add their own 5-second wait before the sweep exits.
 - **build-mcp-server**: generated projects declare their package and development dependencies, load `.env` explicitly, and are installed and tested by the optional integration suite.
 
 - **publish-confluence-docs**: image placeholders preserve unrelated and nested macros, attachment names are XML-escaped, and uploads check curl failures using the platform's null device. CI runs the optional MCP and document conversion tests on Linux and Windows.

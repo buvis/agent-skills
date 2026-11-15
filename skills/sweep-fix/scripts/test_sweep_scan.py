@@ -763,3 +763,28 @@ def test_kill_tree_bounds_windows_taskkill_to_kill_tree_timeout_not_scan_timeout
     assert calls[0]["timeout"] < sweep.DEFAULT_SCAN_TIMEOUT
 
 
+def test_kill_all_kills_every_process_at_once_so_stalled_kills_do_not_add_up(monkeypatch):
+    # Each fake kill waits until all three are in flight. Kills taken in turn
+    # never meet: the barrier times out and nothing is recorded.
+    procs = [object(), object(), object()]
+    together = threading.Barrier(len(procs), timeout=5)
+    killed = []
+
+    def _fake_kill_tree(proc):
+        try:
+            together.wait()
+        except threading.BrokenBarrierError:
+            return
+        killed.append(proc)
+
+    monkeypatch.setattr(sweep, "_kill_tree", _fake_kill_tree)
+    registry = sweep._ProcessRegistry()
+    registry.register("repo-a", procs[0])
+    registry.register("repo-a", procs[1])
+    registry.register("repo-b", procs[2])
+
+    registry.kill_all()
+
+    assert sorted(map(id, killed)) == sorted(map(id, procs))
+
+
