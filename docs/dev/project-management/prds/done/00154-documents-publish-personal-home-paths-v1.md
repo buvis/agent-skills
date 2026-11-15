@@ -81,7 +81,7 @@ Not scrubbed, pending the autocodex host-writer task below:
 - `docs/dev/project-management/autopilot/` (about 50 tracked files: loop state, metrics, ledgers, and hash-pinned review inputs and receipts). The host writers still emit absolute paths there, and the adapter's receipt checks read them. `scripts/test_public_doc_paths.py` excludes this directory with a commented reason naming this task.
 - `autocodex_<lens>_<provider>_receipt:` lines in review files (for example the 00089 and 00135 reviews), excluded line by line in the same test for the same reason.
 
-Residual, outside this PRD's prefix rule: Claude Code encodes a project directory as its absolute path with separators turned into `-`, so transcript paths such as `~/.claude/projects/-Users-<name>-.../<session>.jsonl` still carry the username in encoded form. Rewriting the encoded name would change the recorded transcript location, so it is left as is.
+Residual, outside this PRD's prefix rule: Claude Code encodes a project directory as its absolute path with separators turned into `-`, so transcript paths such as `~/.claude/projects/-Users-<name>-.../<session>.jsonl` carried the username in encoded form. That form was first left as is; it is now rewritten to `-Users-you-...` and covered by the test (see the closing note above).
 
 ### Module: Portable artifact paths
 
