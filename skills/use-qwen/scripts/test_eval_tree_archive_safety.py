@@ -528,6 +528,8 @@ def test_build_template_seals_a_real_git_archive_as_the_tree_before_the_task(
 
     assert sha == trees.head_sha(dest)
     assert trees._git(dest, "status", "--porcelain") == ""
+    # One commit: an earlier one would let a later checkout restore its tree.
+    assert trees._git(dest, "rev-list", "--count", "HEAD") == "1"
     # One tree id: the same paths, bytes and modes as the commit before `first`.
     assert trees._git(dest, "rev-parse", "HEAD^{tree}") == trees._git(
         repo, "rev-parse", "%s^^{tree}" % first
@@ -584,6 +586,7 @@ def _seal_control(tmp_path, built_repo, monkeypatch, filter_support, bundle) -> 
 
     assert sha == trees.head_sha(dest)
     assert trees._git(dest, "status", "--porcelain") == ""
+    assert trees._git(dest, "rev-list", "--count", "HEAD") == "1"
     assert _snapshot(outside) == before
     return dest
 
