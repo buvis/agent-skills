@@ -811,6 +811,46 @@ def test_apply_prints_no_dry_run_marker(
     assert DRY_RUN_MARKER not in err
 
 
+def test_preview_json_states_applied_false_and_writes_no_manifest(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, "old_junk.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "old_junk.log")
+
+    assert out["applied"] is False
+    assert [e["path"] for e in out["moved"]] == ["old_junk.log"]
+    assert p.is_file()
+    assert not (repo / "docs/dev/tmp/.trash/manifest.tsv").exists()
+
+
+def test_apply_json_states_applied_true_and_keeps_the_list_shapes(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, "old_junk.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys,
+                       "--apply", "old_junk.log", "tracked.log")
+
+    assert out["applied"] is True
+    assert [e["path"] for e in out["moved"]] == ["old_junk.log"]
+    assert [r["path"] for r in out["refused"]] == ["tracked.log"]
+    assert not p.exists()
+
+
+@pytest.mark.parametrize("apply", [False, True])
+def test_applied_reports_the_mode_not_whether_anything_moved(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str], apply: bool) -> None:
+    argv = ["--apply"] if apply else []
+
+    out, _ = _run_main(repo, monkeypatch, capsys, *argv, "tracked.log")
+
+    assert out["moved"] == []
+    assert len(out["refused"]) == 1
+    assert out["applied"] is apply
+
+
 def test_preview_moves_nothing(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
@@ -840,7 +880,7 @@ def test_preview_json_matches_the_apply_run(
 
     assert len(preview["moved"]) == 2
     assert len(preview["refused"]) == 2
-    assert preview == applied
+    assert preview == {**applied, "applied": False}
     assert manifest.exists()
     for entry in applied["moved"]:
         assert (repo / entry["trash"]).read_text() == "j"

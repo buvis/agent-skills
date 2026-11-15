@@ -7,6 +7,9 @@ brush moves too. The manifest's fourth field is store-relative (relative to
 docs/dev/tmp, e.g. ".trash/<date>/<rel>"), matching purge-devtmp's writer.
 Refuses tracked files, project-management records, docs, secrets, paths
 outside the repo, and anything fresher than --min-age-days.
+Stdout is JSON: "applied" is false for a preview (nothing moved; "moved" then
+lists what would move) and true for an --apply run; "moved" and "refused" list
+the per-path results.
 Restore: mv docs/dev/tmp/<fourth field> back to the original path (second
 to last manifest column).
 """
@@ -167,7 +170,8 @@ def main() -> int:
         moved.append({"path": rel, "trash": trash_rel})
     if not args.apply:
         print("DRY-RUN (use --apply)", file=sys.stderr)
-    print(json.dumps({"moved": moved, "refused": refused}, indent=2))
+    print(json.dumps({"applied": args.apply, "moved": moved,
+                      "refused": refused}, indent=2))
     return 0
 
 
