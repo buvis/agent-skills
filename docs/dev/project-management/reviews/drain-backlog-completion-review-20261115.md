@@ -116,7 +116,7 @@ slop".
 - Gate at 8816bb9: `PASS 4895 FAIL 0 SKIP 12 EXIT 0`.
 - Gate at 597b523 (final): `PASS 4899 FAIL 0 SKIP 12 EXIT 0`.
 - `test_qwen_run.sh`: 114 passed, 0 failed.
-- Hosted CI: CI_FINAL.
+- Hosted CI: no run for probe c28d32c (PR #28 closed first); run 43757648217 on master 285476f covers the fixes: success, all eight jobs, Windows included.
 
 ## Probe
 
