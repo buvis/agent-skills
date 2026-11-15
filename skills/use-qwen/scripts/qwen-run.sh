@@ -507,6 +507,7 @@ foreach ((inputs | [.]), null) as $item (
     else (try ($item[0] | fromjson) catch null) as $event
         | if ($event | type) != "object" then .malformed += 1
           elif $event.type == "agent_end" then .ended = true
+          elif $event.type == "agent_start" then .ended = false
           elif $event.type == "message_end" and ($event.message | type) == "object"
               and $event.message.role == "assistant" then
               .last = {stop: ($event.message.stopReason // "missing"),
