@@ -18,7 +18,7 @@ Diff range: `7254c47b6649feb03966a63c2f5527506c089b91..a2cf29c6af040960b2688e24e
 
 codex_rung_guard: not fired
 
-pack: unavailable this cycle (`engram pack` exited 1: "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv"). Every prompt that takes `{PACK_FILE}`/`{PACK_FINDINGS}` received the `(no pack available this cycle)` sentinel. The review is degraded on retrieval context, not invalid.
+pack: unavailable this cycle (`engram pack` exited 1: "not inside a registered repo; register it in ~/.config/gita/repos.csv"). Every prompt that takes `{PACK_FILE}`/`{PACK_FINDINGS}` received the `(no pack available this cycle)` sentinel. The review is degraded on retrieval context, not invalid.
 
 Consolidation: script (`consolidate_findings.py`), 4 agent outputs, no ledger flags (cycle 1 had no prior ledger).
 

@@ -4,7 +4,7 @@ Stage A prospect 3. Verdict: **eligible**.
 
 Kind: impl+test
 
-Repo: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+Repo: `~/git/src/github.com/buvis/gems` (Python)
 PRD: `dev/local/prds/done/00041-atomic-write-foundation-v1.md:40`
 
 Commit run: `a4fa75b1..30b42c3b` (2 commits: `a4fa75b1` test, `30b42c3b` fix)
@@ -84,7 +84,7 @@ file plus
 
 for the test file.
 
-`git -C /Users/bob/git/src/github.com/buvis/gems apply --check -v <patch>`:
+`git -C ~/git/src/github.com/buvis/gems apply --check -v <patch>`:
 clean, both files.
 
 Pretask: 079ccaedba67c1efa9e947d8f7d5c8a84a8a5af6

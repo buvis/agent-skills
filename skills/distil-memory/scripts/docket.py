@@ -7,6 +7,8 @@ import json
 import sys
 from pathlib import Path
 
+import portable
+
 PER_RUN_CAP = 10  # walkthrough decisions per sitting; unbased guess, tune after first real run (PRD Risks)
 RUBRIC_VERSION = "1"  # bump by hand when distil.py's _DISTIL_PROMPT changes meaningfully; re-opens drops made under the old value
 
@@ -39,8 +41,18 @@ def _save_queue(data: dict, path: Path) -> None:
 
 
 def slice_key(transcript, line_no):
-    """Build an entry id from a transcript path and line number."""
-    return f"{transcript}:{line_no}"
+    """Build an entry id from a transcript path and line number. A path under
+    the home is written home-relative, so the id is the same whether the
+    proposal carried the legacy absolute path or the portable one."""
+    return f"{portable.portable_text(str(transcript))}:{line_no}"
+
+
+def _same_slice(entry_id, key):
+    """Whether a stored entry id names the slice `key` names. Ids saved before
+    transcript paths were portable carry the absolute home path; they still
+    match the portable key for the same transcript and line."""
+    path, sep, line_no = entry_id.rpartition(":")
+    return (slice_key(path, line_no) if sep else entry_id) == key
 
 
 def load(path=None):
@@ -72,7 +84,7 @@ def load(path=None):
 
 def _dropped_at(entries, key, rubric_version):
     return any(
-        e["id"] == key and e["decision"] == "dropped" and e["rubric_version"] == rubric_version
+        _same_slice(e["id"], key) and e["decision"] == "dropped" and e["rubric_version"] == rubric_version
         for e in entries
     )
 
@@ -103,7 +115,7 @@ def save(proposals, path=None):
     for proposal in proposals:
         key = slice_key(proposal["transcript"], proposal["line_no"])
         blocked = any(
-            e["id"] == key and e["decision"] in ("undecided", "kept") for e in entries
+            _same_slice(e["id"], key) and e["decision"] in ("undecided", "kept") for e in entries
         )
         if blocked or _dropped_at(entries, key, RUBRIC_VERSION):
             continue
@@ -220,7 +232,7 @@ def unpublished(store, path=None) -> list[str]:
     for entry in data["entries"]:
         if entry["decision"] != "kept":
             continue
-        if (Path(entry["transcript"]).parent / "memory").resolve() != own_store:
+        if (portable.local_path(entry["transcript"]).parent / "memory").resolve() != own_store:
             continue
         try:
             target = write._target_stem(entry)[0]
@@ -246,7 +258,7 @@ def _has_kept_entries_for_store(store, path=None) -> bool:
     for entry in data["entries"]:
         if entry["decision"] != "kept":
             continue
-        if (Path(entry["transcript"]).parent / "memory").resolve() == own_store:
+        if (portable.local_path(entry["transcript"]).parent / "memory").resolve() == own_store:
             return True
     return False
 

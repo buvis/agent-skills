@@ -23,9 +23,9 @@
 # time and copies the canonical tests in first. Task 1's command is an
 # `&&`-chain: the executor runs the segments one at a time, each tree-relative.
 #
-/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt	test ! -e src/tools/bim/commands/doc/shared/atomic_write.py && ! rg -q "shared\.atomic_write|shared/atomic_write" src/tools/bim tests/tools/bim && uv run pytest tests/tools/bim/doc -q
-/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt	uv run pytest tests/tools/bim/tui/test_create_note.py tests/lib/pybase/test_result.py -q
-/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/3-repoint-zettel-save.prompt.txt	uv run pytest tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py -q
-/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/4-record-raw-source-sha.prompt.txt	uv run pytest tests/tools/bim/doc/test_promote.py -q
-/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/5-surface-reindex-skip-warnings.prompt.txt	cargo test -p ddb-core --lib -- service::mock_index_tests ffi::tests
-/Users/bob/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/6-cap-frontmatter-size.prompt.txt	cargo test -p ddb-core --lib parser
+~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/1-repoint-bim-doc-callers.prompt.txt	test ! -e src/tools/bim/commands/doc/shared/atomic_write.py && ! rg -q "shared\.atomic_write|shared/atomic_write" src/tools/bim tests/tools/bim && uv run pytest tests/tools/bim/doc -q
+~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/2-route-tui-create-note.prompt.txt	uv run pytest tests/tools/bim/tui/test_create_note.py tests/lib/pybase/test_result.py -q
+~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/3-repoint-zettel-save.prompt.txt	uv run pytest tests/lib/zettel/infrastructure/persistence/test_markdown_zettel_repository_writer.py -q
+~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/4-record-raw-source-sha.prompt.txt	uv run pytest tests/tools/bim/doc/test_promote.py -q
+~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/5-surface-reindex-skip-warnings.prompt.txt	cargo test -p ddb-core --lib -- service::mock_index_tests ffi::tests
+~/git/src/github.com/buvis/agent-skills/dev/local/tmp/00010-multifile-eval/tasks/6-cap-frontmatter-size.prompt.txt	cargo test -p ddb-core --lib parser

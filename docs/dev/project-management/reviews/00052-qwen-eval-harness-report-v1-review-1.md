@@ -22,7 +22,7 @@ codex_rung_guard: not fired
 
 consensus_engine: shadow — **workflow leg did not run this cycle.** The `review-fanout` workflow file exists at `~/.claude/workflows/review-fanout.workflow.js`, but the `Workflow` tool refused the call with "scriptPath must be a script path this tool returned, or a file you can already read (the working directory or a directory you have added)" — an environment/sandbox restriction on that path, not a missing file. Per SKILL.md step 5's "Engine unavailable" fallback, the cycle fell back to legacy Alice only, which gates the cycle as normal. No `consensus_run_id` this cycle.
 
-pack: skipped (`engram pack` exited 1 twice: "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv" — the same known, long-standing gap recorded in the project capsule, now 34 passes old)
+pack: skipped (`engram pack` exited 1 twice: "not inside a registered repo; register it in ~/.config/gita/repos.csv" — the same known, long-standing gap recorded in the project capsule, now 34 passes old)
 
 ## Summary
 

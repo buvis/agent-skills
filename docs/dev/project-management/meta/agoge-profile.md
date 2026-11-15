@@ -1,6 +1,6 @@
 # agoge strategy profile: agent-skills (master)
 
-Target `/Users/bob/git/src/github.com/buvis/agent-skills` (`<repo>`), branch `master`, HEAD
+Target `~/git/src/github.com/buvis/agent-skills` (`<repo>`), branch `master`, HEAD
 `f2b82d8372cceab04790e4fb183651a63de1e91d` (tagged `v0.2.0`, the tag also on `origin`). Recon
 2026-10-25. Shorthand: `UV` = `uv run --directory <repo>`; `<S>` = a lane scratch dir made with
 `mktemp -d -t agoge-<lane>.XXXXXX` (lands under `/var/folders/m6/.../T/`). Facts marked
@@ -283,7 +283,7 @@ third-party host is called; all writes under `<S>` with literal paths.
 7. **What leaves the process:** `gh` shim printing `token ghp_MARKER` on stderr for
    `collect_facts.py --fast` and for `list-dep-prs.sh` (its `gh pr list` stderr goes to
    `/dev/null`, `api user/repos` stderr does not); prompt-injection text in a transcript reaching a
-   `claude` shim via `funnel.py` (report `unverified`, no model run); `/Users/bob` leaking into
+   `claude` shim via `funnel.py` (report `unverified`, no model run); the absolute home path leaking into
    shareable reports.
 
 ## Mocking strategy

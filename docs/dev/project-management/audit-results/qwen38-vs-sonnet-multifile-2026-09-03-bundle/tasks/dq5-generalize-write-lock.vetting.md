@@ -10,7 +10,7 @@ substance is folded in below, under "Why this needed pinning").
 
 Kind: impl+test
 
-Repo: `/Users/bob/git/src/github.com/doogat/ddb` (Rust)
+Repo: `~/git/src/github.com/doogat/ddb` (Rust)
 PRD: `dev/local/prds/done/00169-poison-file-reindex-resilience-v1.md:163`
 
 Commit run: `fde545b..71e718d` (3 commits: `fde545b` test, `f9c1e26` refactor,
@@ -79,7 +79,7 @@ introduced - there are no later commits.
 
 No hand-written hunk is needed: all three files are `whole-file`.
 
-`git -C /Users/bob/git/src/github.com/doogat/ddb apply --check -v <patch>`:
+`git -C ~/git/src/github.com/doogat/ddb apply --check -v <patch>`:
 clean, all three files.
 
 What the revert puts back, read off `git show 9759c4c:ddb-core/src/git_ops/write_lock.rs`:

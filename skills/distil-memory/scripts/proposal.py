@@ -17,6 +17,8 @@ from typing import Protocol
 
 import yaml
 
+import portable
+
 NEW = "new"
 UPDATE_PREFIX = "update "
 EVIDENCE_EXCERPT_CHARS = 600
@@ -209,7 +211,7 @@ def _write_proposal_files(proposals: list[Proposal], staging: Path) -> list[dict
             {
                 "name": name,
                 "kind": candidate.kind,
-                "transcript": str(candidate.evidence.transcript),
+                "transcript": portable.portable_text(str(candidate.evidence.transcript)),
                 "line_no": candidate.evidence.line_no,
                 "evidence_text": candidate.evidence.text,
                 "existing_text": candidate.existing_text,
@@ -242,7 +244,7 @@ def _stage_run(
         json.dumps(
             [
                 {
-                    "transcript": str(discard.transcript),
+                    "transcript": portable.portable_text(str(discard.transcript)),
                     "line_no": discard.line_no,
                     "reason": discard.reason,
                 }

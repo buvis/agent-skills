@@ -176,9 +176,27 @@ def test_render_yield_orders_the_distil_lines_after_survivors_and_before_the_ver
         "slices_matched",
         "slices_kept",
         "survivors",
+        "unclassified",
         *_DISTIL_LABELS,
         "claude_checkup_version",
     ]
+
+
+@pytest.mark.parametrize("value, expected", [(2, "unclassified: 2"), (0, "unclassified: 0")])
+def test_render_yield_shows_the_unclassified_judge_reply_count_when_triage_ran(value, expected):
+    counts = _five_key_counts()
+    counts["unclassified"] = value
+
+    assert expected in funnel.render_yield(counts)
+
+
+@pytest.mark.parametrize("set_to_none", [False, True], ids=["key_missing", "key_none"])
+def test_render_yield_renders_unclassified_as_n_a_when_triage_did_not_run(set_to_none):
+    counts = _five_key_counts()
+    if set_to_none:
+        counts["unclassified"] = None
+
+    assert "unclassified: n/a" in funnel.render_yield(counts)
 
 
 @pytest.mark.parametrize("set_to_none", [False, True], ids=["key_missing", "key_none"])

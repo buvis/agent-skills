@@ -23,7 +23,7 @@ Autonomous: 15  |  Deferred: 2  |  Doubts: 0
 
 ### [autonomous] 2026-10-29T19:59:55Z
 
-**Decision**: The design doc added in this diff adds 11 new findings to the corpus, the same noise class this PRD removes. They are the example tokens `00042-`, `99999-` (line 166), `00057-` and `[[package]]` (line 218), `17278-` (line 359), `99999-` (line 383), `/Users/you/` (line 196), `/Users/bob/.codex/session` (line 198), `~/.claude/dev/local/` (lines 29 and 261) and the stale `prds/backlog/00118-...` path (line 289). The count drops from the design-time 244 to 197 only because of the checker fix. Add `link-ok:` to those lines (or reword the examples) so the new document adds no findings.
+**Decision**: The design doc added in this diff adds 11 new findings to the corpus, the same noise class this PRD removes. They are the example tokens `00042-`, `99999-` (line 166), `00057-` and `[[package]]` (line 218), `17278-` (line 359), `99999-` (line 383), `/Users/you/` (line 196), `~/.codex/session` (line 198), `~/.claude/dev/local/` (lines 29 and 261) and the stale `prds/backlog/00118-...` path (line 289). The count drops from the design-time 244 to 197 only because of the checker fix. Add `link-ok:` to those lines (or reword the examples) so the new document adds no findings.
 
 **Choice**: auto-fixed
 

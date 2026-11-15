@@ -49,16 +49,24 @@ def _iter_entries(path: Path) -> Iterator[tuple[int, dict]]:
     """Yield (line_no, entry) for each parseable JSON line. Skips blank
     lines and invalid JSON exactly like parser.py's parse_session loop
     (shape reused, not imported - this is a 6-line generator, not worth a
-    cross-module dependency for)."""
-    with path.open("r", encoding="utf-8") as fh:
-        for line_no, raw in enumerate(fh, 1):
-            raw = raw.strip()
-            if not raw:
-                continue
-            try:
-                yield line_no, json.loads(raw)
-            except ValueError:
-                continue
+    cross-module dependency for). The whole file is decoded as UTF-8 up
+    front so a bad byte anywhere in the file isolates the whole file
+    rather than only the lines after it. Lines split on "\\n" alone, as
+    JSONL defines them: str.splitlines() would also break at U+2028,
+    U+2029 and U+0085, which JSON allows raw inside a string."""
+    text = path.read_bytes().decode("utf-8")
+    for line_no, raw in enumerate(text.split("\n"), 1):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            parsed = json.loads(raw)
+        except ValueError:
+            continue
+        if not isinstance(parsed, dict):
+            print(f"{path}: line {line_no} is not a JSON object, skipping", file=sys.stderr)
+            continue
+        yield line_no, parsed
 
 
 def _assistant_text_blocks(entry: dict) -> list[str]:
@@ -151,10 +159,13 @@ def scan(transcripts: list[Path]) -> tuple[int, list[Slice]]:
     matched = 0
     kept: list[Slice] = []
     for path in transcripts:
-        for line_no, entry in _iter_entries(path):
-            entry_matched, entry_kept = _matches_and_slices_for_entry(line_no, entry, path)
-            matched += entry_matched
-            kept.extend(entry_kept)
+        try:
+            for line_no, entry in _iter_entries(path):
+                entry_matched, entry_kept = _matches_and_slices_for_entry(line_no, entry, path)
+                matched += entry_matched
+                kept.extend(entry_kept)
+        except UnicodeDecodeError:
+            print(f"{path}: could not be read as UTF-8, skipping", file=sys.stderr)
     return matched, kept
 
 
@@ -205,21 +216,26 @@ _TRIAGE_PROMPT = (
 
 def triage(
     slices: list[Slice], judge: Callable[[str, str], str] = judge
-) -> tuple[list[Slice], int]:
+) -> tuple[list[Slice], int, int]:
     """Cheap-tier pass: ask `judge` to classify each slice as transient or
-    durable, discarding transient ones. Fail-open - any response other than
-    an exact (case/whitespace-insensitive) match on "transient" keeps the
-    slice. Returns (survivors, discard_count)."""
+    durable, discarding transient ones. Replies are matched after case and
+    whitespace normalization. Fail-open - a reply that is neither label
+    (empty, an error string, prose) keeps the slice but is counted as
+    unclassified, not as a durable judgment. Returns (survivors,
+    discard_count, unclassified_count)."""
     survivors: list[Slice] = []
     discard_count = 0
+    unclassified_count = 0
     for slice_ in slices:
         prompt = _TRIAGE_PROMPT.format(transient=_TRANSIENT, durable=_DURABLE, text=json.dumps(slice_.text))
-        response = judge(prompt, "cheap")
-        if response.strip().lower() == _TRANSIENT:
+        label = judge(prompt, "cheap").strip().lower()
+        if label == _TRANSIENT:
             discard_count += 1
-        else:
-            survivors.append(slice_)
-    return survivors, discard_count
+            continue
+        if label != _DURABLE:
+            unclassified_count += 1
+        survivors.append(slice_)
+    return survivors, discard_count, unclassified_count
 
 
 def render_yield(counts: dict[str, object], proposals_dir: Path | None = None) -> str:
@@ -251,6 +267,7 @@ def render_yield(counts: dict[str, object], proposals_dir: Path | None = None) -
         f"slices_matched: {counts['slices_matched']}",
         f"slices_kept: {counts['slices_kept']}",
         f"survivors: {text('survivors')}",
+        f"unclassified: {text('unclassified')}",
         f"proposals: {text('proposals')}",
         f"discards: {text('discards')}",
         f"new_vs_update: {'n/a' if pair is None else f'{pair[0]}/{pair[1]}'}",
@@ -266,44 +283,87 @@ def render_yield(counts: dict[str, object], proposals_dir: Path | None = None) -
     return "\n".join(lines) + "\n"
 
 
-def _run_triage(kept_slices: list[Slice]) -> tuple[list[Slice], int | None, str | None]:
+def _run_triage(
+    kept_slices: list[Slice],
+) -> tuple[list[Slice], int | None, int | None, str | None]:
     """Cheap-tier triage with the model-call failure path folded in.
 
-    Returns (survivors, survivors_count, error_message), where the count is
-    always len(survivors) from the one triage pass, so the number reported
-    can never disagree with the slices handed back. On any failure reaching
-    the `claude` CLI there are no survivors and the count is None - rendered
-    "n/a", the same as a dry run, because no survivor count exists - and the
-    message is the failure text. The report still gets printed either way: a
-    run must never go silent.
+    Returns (survivors, survivors_count, unclassified_count, error_message),
+    where the survivor count is always len(survivors) from the one triage
+    pass, so the number reported can never disagree with the slices handed
+    back. On any failure reaching the `claude` CLI there are no survivors and
+    both counts are None - rendered "n/a", the same as a dry run, because no
+    count exists - and the message is the failure text. The report still gets
+    printed either way: a run must never go silent.
+
+    Unclassified replies keep their slices (fail-open) and are warned about on
+    stderr by count only, never echoing the reply or the snippet. When every
+    reply of a nonempty triage is unclassified, the judge answered nothing
+    usable: the counts stand, but the error message is set, so the run exits
+    1 and nothing downstream treats that triage as a success.
     """
     try:
-        survivors, _discard_count = triage(kept_slices)
-        return survivors, len(survivors), None
+        survivors, _discard_count, unclassified = triage(kept_slices)
     except subprocess.TimeoutExpired as exc:
-        return [], None, f"claude timed out after {exc.timeout}s"
+        return [], None, None, f"claude timed out after {exc.timeout}s"
     except (RuntimeError, OSError) as exc:
-        return [], None, str(exc)
+        return [], None, None, str(exc)
+    total = len(kept_slices)
+    labels = f"'{_TRANSIENT}' or '{_DURABLE}'"
+    if total and unclassified == total:
+        return survivors, len(survivors), unclassified, (
+            f"triage failed: none of the {total} judge replies was {labels}"
+        )
+    if unclassified:
+        print(
+            f"warning: {unclassified} of {total} judge replies were not {labels}; "
+            "those candidates were kept unclassified",
+            file=sys.stderr,
+        )
+    return survivors, len(survivors), unclassified, None
+
+
+def _repo_root() -> Path:
+    """The nearest ancestor of the cwd that contains a .git entry, falling
+    back to the cwd itself when none do. Computed at call time (not a module
+    constant) so it reflects the caller's cwd rather than the cwd at import
+    time."""
+    cwd = Path.cwd()
+    return next((p for p in (cwd, *cwd.parents) if (p / ".git").exists()), cwd)
 
 
 def _report_dir() -> Path:
-    """docs/dev/project-management/audit-results under the nearest ancestor of the cwd that
-    contains a .git entry, falling back to the cwd itself when none do.
-    Computed at call time (not a module constant) so it reflects the
-    caller's cwd rather than the cwd at import time."""
-    cwd = Path.cwd()
-    root = next((p for p in (cwd, *cwd.parents) if (p / ".git").exists()), cwd)
-    return root / "docs" / "dev" / "project-management" / "audit-results"
+    """docs/dev/project-management/audit-results under `_repo_root()`."""
+    return _repo_root() / "docs" / "dev" / "project-management" / "audit-results"
+
+
+def _select_run_id(report_dir: Path, timestamp: str) -> str:
+    """The run identity naming this run's report and proposals directory.
+
+    `timestamp` itself when neither of its artefacts exists yet, else the first
+    `<timestamp>-2`, `-3`, ... that is free for both, so a rerun within the
+    same second never lands on an earlier run's report or proposals. Both
+    names are checked together because they must share one identity.
+    """
+    run_id, number = timestamp, 2
+    while (report_dir / f"distil-memory-{run_id}.md").exists() or (
+        report_dir / f"distil-memory-{run_id}-proposals"
+    ).exists():
+        run_id, number = f"{timestamp}-{number}", number + 1
+    return run_id
 
 
 def _write_report(report: str, report_dir: Path, timestamp: str) -> Path:
     """Write `report` under report_dir named with the caller's `timestamp`
-    and return the path written. The stamp comes from the caller so every
-    artefact of one run carries the same one. Raises OSError if the
-    directory cannot be created or the file cannot be written."""
+    (the run identity) and return the path written. The stamp comes from the
+    caller so every artefact of one run carries the same one. The file is
+    created exclusively: a name another run took after this one chose it is
+    refused, never overwritten. Raises OSError if the directory cannot be
+    created or the file cannot be created or written."""
     report_dir.mkdir(parents=True, exist_ok=True)
     out_path = report_dir / f"distil-memory-{timestamp}.md"
-    out_path.write_text(report)
+    with out_path.open("x") as handle:
+        handle.write(report)
     return out_path
 
 
@@ -540,27 +600,32 @@ def main(argv: list[str] | None = None) -> int:
     matched_count, kept_slices = scan(transcripts)
 
     if args.dry_run:
-        survivors, survivors_count, triage_error = [], None, None
+        survivors, survivors_count, unclassified_count, triage_error = [], None, None, None
     else:
-        survivors, survivors_count, triage_error = _run_triage(kept_slices)
+        survivors, survivors_count, unclassified_count, triage_error = _run_triage(kept_slices)
 
     counts: dict[str, object] = {
         "transcripts_read": len(transcripts),
         "slices_matched": matched_count,
         "slices_kept": len(kept_slices),
         "survivors": survivors_count,
+        "unclassified": unclassified_count,
         "claude_checkup_version": resolved_version,
     }
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_dir = _report_dir()
+    run_id = _select_run_id(report_dir, timestamp)
     distil_counts, distil_error, publish_error, published_dir = _distil_if_enabled(
-        args, survivors, triage_error, report_dir / f"distil-memory-{timestamp}-proposals"
+        args, survivors, triage_error, report_dir / f"distil-memory-{run_id}-proposals"
     )
     counts.update(distil_counts)
+    # the report is a repository document: name the directory repo-relative,
+    # never by the absolute path that carries the operator's home
+    shown_dir = None if published_dir is None else published_dir.relative_to(_repo_root())
 
     return _report_outcome(
-        counts, report_dir, timestamp, (triage_error, distil_error, publish_error), published_dir
+        counts, report_dir, run_id, (triage_error, distil_error, publish_error), shown_dir
     )
 
 

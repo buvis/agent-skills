@@ -5,7 +5,7 @@ Verdict: **eligible**.
 
 Kind: impl+test
 
-Repo: `/Users/bob/git/src/github.com/buvis/gems` (Python)
+Repo: `~/git/src/github.com/buvis/gems` (Python)
 PRD: `dev/local/prds/done/00044-bim-doc-claim-dedup-integrity-v1.md:43`
 
 Commit run: `0188270a..b919d7ad` (2 commits: `0188270a` test, `b919d7ad` fix)
@@ -24,7 +24,7 @@ Raw test command:
     uv --directory <tree> run pytest tests/tools/bim/doc/test_promote.py -q
 
 Run once at `<base-sha>` against the source tree: **exit 0**. (It was run as
-part of `uv --directory /Users/bob/git/src/github.com/buvis/gems run pytest
+part of `uv --directory ~/git/src/github.com/buvis/gems run pytest
 tests/tools/bim/doc/test_pipeline.py tests/tools/bim/doc/test_promote.py -q`,
 `56 passed in 0.38s`, before the scope was narrowed; no test failed. The whole
 `tests/tools/bim/doc` directory also passed, `977 passed`.)
@@ -105,7 +105,7 @@ anyway is not penalised, because the gate does not read it.
 
 for the test file.
 
-`git -C /Users/bob/git/src/github.com/buvis/gems apply --check -v <patch>`:
+`git -C ~/git/src/github.com/buvis/gems apply --check -v <patch>`:
 clean, both files.
 
 Pretask: cada08ac7fd703e95887480ee45a5811e5f8b791

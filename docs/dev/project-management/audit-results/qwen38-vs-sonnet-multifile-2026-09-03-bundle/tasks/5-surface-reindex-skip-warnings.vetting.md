@@ -11,7 +11,7 @@ the vetting below changed; only the artifact names did
 
 Kind: impl+test
 
-Repo: `/Users/bob/git/src/github.com/doogat/ddb` (Rust)
+Repo: `~/git/src/github.com/doogat/ddb` (Rust)
 PRD: `dev/local/prds/done/00169-poison-file-reindex-resilience-v1.md:172`
 
 Commit run: `7d72015..48b9925` (4 commits: `7d72015` test, `085f096` feat,
@@ -37,7 +37,7 @@ exactly the two canonical test modules this task's diff touches
 (`service::mock_index_tests`, `ffi::tests`) instead of the whole crate.
 
 Verified once against the canonical source tree
-(`cargo test --manifest-path /Users/bob/git/src/github.com/doogat/ddb/Cargo.toml -p ddb-core --lib -- service::mock_index_tests ffi::tests`):
+(`cargo test --manifest-path ~/git/src/github.com/doogat/ddb/Cargo.toml -p ddb-core --lib -- service::mock_index_tests ffi::tests`):
 **exit 0**, `44 passed; 0 failed; 0 ignored; 0 measured; 1502 filtered out`
 (10 `service::mock_index_tests::*` cases, 34 `ffi::tests::*` cases - both
 modules ran).
@@ -157,7 +157,7 @@ and stays at today's (archived) state, never reverted. The previous
 hand-written `app_contract/mod.rs` hunk (see "Why app_contract/mod.rs needs a
 surgical revert" above) is obsolete history, kept for context only.
 
-`git -C /Users/bob/git/src/github.com/doogat/ddb apply --check <patch>`:
+`git -C ~/git/src/github.com/doogat/ddb apply --check <patch>`:
 clean, all 11 files (`mock_index_tests.rs` applies with an offset, no
 rejects, as before).
 

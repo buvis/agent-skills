@@ -48,7 +48,7 @@ PRD was implemented by Claude Sonnet).
 
 1. **The engram context pack was not generated, again.** `engram pack` exits 1
    with `not inside a registered repo; register it in
-   /Users/bob/.config/gita/repos.csv`. `(no pack available this cycle)` was
+   ~/.config/gita/repos.csv`. `(no pack available this cycle)` was
    substituted for `{PACK_FILE}` and `{PACK_FINDINGS}` in every prompt, per the
    skill's own fallback. No retry was attempted: the failure is deterministic
    (a registry-membership check, not a transient error) and was already

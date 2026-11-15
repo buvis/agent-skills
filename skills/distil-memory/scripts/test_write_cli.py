@@ -87,27 +87,19 @@ def test_main_write_prints_memory_md_unchanged_on_the_second_line_when_the_point
     assert (store_path / "widget-fact.md").read_text() == new_text
 
 
-def test_main_write_reports_the_write_errors_message_to_stderr_and_returns_one_when_the_store_path_does_not_exist(
+def test_main_write_names_the_missing_store_on_stderr_and_returns_one_when_the_store_path_does_not_exist(
     tmp_path, monkeypatch, capsys
 ):
     monkeypatch.chdir(tmp_path)
     missing_store = tmp_path / "does-not-exist"
     entry = _entry(name="widget-fact", kind="new")
-    try:
-        write.write_memory(entry, missing_store)
-    except write.WriteError as exc:
-        expected_message = str(exc)
-    else:
-        pytest.fail("expected write.write_memory to raise WriteError for a missing store path")
-
     monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(entry)))
 
     exit_code = write.main(["write", "--store", str(missing_store)])
 
     assert exit_code == 1
     captured = capsys.readouterr()
-    assert expected_message in captured.err
-    assert "Traceback" not in captured.err
+    assert captured.err == f"store directory does not exist: {missing_store}\n"
     assert captured.out == ""
     assert not missing_store.exists()
 

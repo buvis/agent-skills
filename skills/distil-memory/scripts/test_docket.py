@@ -1,6 +1,8 @@
 """Tests for docket.py: the proposal queue's persistence, undecided cursor,
 rejection record, and per-run decision cap."""
 
+import json
+
 import docket
 
 import pytest
@@ -88,6 +90,46 @@ def test_save_skips_resubmitting_a_slice_key_already_decided_dropped(queue_path)
 
     assert added == 0
     assert len(docket.load(path=queue_path)["entries"]) == 1
+
+
+def _legacy_queue(queue_path, transcript, line_no, decision):
+    """A queue an older run saved: its entry id carries the absolute path."""
+    entry = dict(_proposal(transcript=transcript, line_no=line_no))
+    entry.update(id=f"{transcript}:{line_no}", decision=decision, rubric_version=docket.RUBRIC_VERSION)
+    queue_path.write_text(json.dumps({"cursor": 0, "entries": [entry]}))
+
+
+@pytest.fixture
+def fake_home(tmp_path, isolate_home):
+    home = tmp_path / "fake-operator-7f3"
+    isolate_home(home)
+    return home
+
+
+def test_slice_key_names_a_transcript_under_the_home_home_relative(fake_home):
+    transcript = fake_home / ".claude" / "projects" / "proj" / "t.jsonl"
+
+    assert docket.slice_key(str(transcript), 3) == "~/.claude/projects/proj/t.jsonl:3"
+
+
+@pytest.mark.parametrize("decision", ["undecided", "kept", "dropped"])
+def test_save_treats_a_legacy_absolute_entry_and_a_home_relative_proposal_as_one_slice(
+    queue_path, fake_home, decision
+):
+    legacy = str(fake_home / ".claude" / "projects" / "proj" / "t.jsonl")
+    _legacy_queue(queue_path, legacy, 3, decision)
+
+    added = docket.save([_proposal(transcript="~/.claude/projects/proj/t.jsonl", line_no=3)], path=queue_path)
+
+    assert added == 0
+    assert len(docket.load(path=queue_path)["entries"]) == 1
+
+
+def test_rejected_finds_a_legacy_absolute_drop_by_the_home_relative_key(queue_path, fake_home):
+    legacy = str(fake_home / ".claude" / "projects" / "proj" / "t.jsonl")
+    _legacy_queue(queue_path, legacy, 3, "dropped")
+
+    assert docket.rejected("~/.claude/projects/proj/t.jsonl:3", docket.RUBRIC_VERSION, path=queue_path)
 
 
 def test_save_adds_a_new_entry_stamped_with_the_bumped_rubric_version_after_a_drop(

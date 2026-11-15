@@ -51,7 +51,7 @@ Autonomous: 7  |  Deferred: 0  |  Doubts: 0
 
 **Choice**: discarded (ledger: discarded, verified reason); no task
 
-**Rationale**: Cycle 2 decision gate: exit 127 is `command not found` — `braid` is not on the headless PATH (re-confirmed this session). The same check by absolute path, /Users/bob/.agents/bin/braid --check, exited 0 at HEAD 5552bd1 in the work phase and again in this session (0 drift). Environment artifact, not a repo defect; the other two queued checks exited 0.
+**Rationale**: Cycle 2 decision gate: exit 127 is `command not found` — `braid` is not on the headless PATH (re-confirmed this session). The same check by absolute path, ~/.agents/bin/braid --check, exited 0 at HEAD 5552bd1 in the work phase and again in this session (0 drift). Environment artifact, not a repo defect; the other two queued checks exited 0.
 
 ### [autonomous] 2026-09-21T05:40:34Z
 

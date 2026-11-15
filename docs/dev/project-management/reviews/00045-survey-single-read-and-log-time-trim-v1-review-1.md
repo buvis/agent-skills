@@ -22,7 +22,7 @@ Diff range: `370f43ba5633280fbbc9db2cc5656abfcb760f59..7a9c07e5c942b3b567c7a4c86
 
 codex_rung_guard: not fired
 
-pack: failed (engram pack exit 1: not inside a registered repo; run `gita add /Users/bob/git/src/github.com/buvis/agent-skills`)
+pack: failed (engram pack exit 1: not inside a registered repo; run `gita add ~/git/src/github.com/buvis/agent-skills`)
 
 Mechanical checks: 3 `[MECH]` findings from the fail-first replay (87 test functions checked in 6 test files, 0 tautological shapes). Replay: 85 touched tests ran against `370f43ba5633`, 36 failed there, 49 passed. The three replay lines are absorbed as findings R9-R11 below.
 

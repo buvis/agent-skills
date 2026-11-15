@@ -47,6 +47,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **glean**: a hand-edited ledger with the wrong shape (a list root, a non-object entry, a missing or invalid `decided` date, a non-string `git_dir` or `link_roots` element, a `git_dir` outside `$HOME`) now exits 1 with a message naming the file and field, instead of a traceback.
 - **glean**: `scan` and `check-staged` label a hard secret hit by fixed category (`HARD:private-key`, `HARD:github-token`, `HARD:sk-key`, `HARD:aws-access-key`, `HARD:slack-token`) instead of the first four matched characters, which for an `sk-` key included one secret character. Because the keywords change, an existing ledger entry may resurface once; no ledger migration runs.
 - **survey**: a layer with no naming samples (all three counts zero) now shows `unknown` in the brief instead of claiming camelCase.
+- **distil-memory**: a transcript with non-object JSON lines or invalid UTF-8 no longer aborts the whole `funnel.py` scan; the damage is skipped with a stderr warning naming the file, and entries holding a raw U+2028, U+2029 or U+0085 inside a string are no longer dropped.
+- **distil-memory**: `write.py` refuses an absent `--store` with `store directory does not exist: <store>` instead of naming a temporary file, and creates nothing.
+- **distil-memory**: judge replies that are neither `transient` nor `durable` (empty output, an error string) are counted as `unclassified` in the yield report with a stderr warning; a run where every reply is unclassified skips the distil stage, writes its report, and exits 1.
+- **distil-memory**: `funnel.py` runs within the same second no longer overwrite each other's report; a taken name gets a `-2`, `-3`, ... suffix shared by the report and its proposals directory.
+- **distil-memory**: proposal and discard manifests record a transcript under the home as `~/...`, and the yield report names its proposals directory repository-relative, so published artefacts no longer carry the operator's home path; `docket.py` reads both the new and the older absolute records for queue deduplication and store matching.
 
 ### Changed
 

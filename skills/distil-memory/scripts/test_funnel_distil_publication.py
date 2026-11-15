@@ -195,33 +195,69 @@ def test_main_stamps_the_report_file_and_the_proposals_directory_of_one_run_iden
     assert report_stamp.group(1) == directory_stamp.group(1)
 
 
-def test_main_writes_no_report_file_and_returns_nonzero_when_publishing_the_proposals_fails(
+def test_main_moves_past_an_earlier_runs_artefacts_at_the_same_stamp_and_leaves_them_untouched(
     make_corpus, monkeypatch, capsys
 ):
-    """A persisted report naming a directory that does not exist is worse than
-    no report, so a failed publication leaves stdout and stderr talking and the
-    disk silent. The clock is frozen so the run lands on a reserved directory
-    name, which is exactly how write_proposals refuses to overwrite a run.
-
-    The reserved directory is on disk, put there by this test rather than by the
-    run, so a report that guides its reader to it is guiding them to somebody
-    else's proposals. stderr may name it freely - that is the diagnostic - but
-    the "How to proceed:" line must not, because this run published nothing."""
+    """A run that lands on a stamp already in use takes the first suffix free
+    for BOTH its report and its proposals directory. Here the bare stamp holds
+    an earlier failed run's report and the `-2` stamp holds an earlier run's
+    proposals, so this run is `-3` throughout: its report names its own
+    directory, and neither earlier artefact changes."""
     built = make_corpus(slice_texts=(_SLICE_ONE,))
     monkeypatch.setattr(funnel.subprocess, "run", FakeClaudeCli({_SLICE_ONE: _PROPOSAL_ONE}))
     monkeypatch.setattr(
         funnel, "datetime", _counting_clock([], datetime(2020, 1, 2, 3, 4, 5, tzinfo=timezone.utc))
     )
-    (built.audit_dir / "distil-memory-20200102T030405Z-proposals").mkdir(parents=True)
+    built.audit_dir.mkdir(parents=True)
+    failed_report = built.audit_dir / "distil-memory-20200102T030405Z.md"
+    failed_report.write_bytes(b"an earlier failed run's report\n")
+    earlier_proposals = built.audit_dir / "distil-memory-20200102T030405Z-2-proposals"
+    earlier_proposals.mkdir()
+    (earlier_proposals / "proposals.json").write_bytes(b"[]\n")
+
+    exit_code = funnel.main(["--distil"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    report = built.audit_dir / "distil-memory-20200102T030405Z-3.md"
+    own_proposals = built.audit_dir / "distil-memory-20200102T030405Z-3-proposals"
+    assert Path(captured.out.splitlines()[-1]).resolve() == report.resolve()
+    assert _named_proposals_directory(_how_to_proceed(report.read_text())) == own_proposals.resolve()
+    assert (own_proposals / "proposals.json").is_file()
+    assert failed_report.read_bytes() == b"an earlier failed run's report\n"
+    assert sorted(p.name for p in earlier_proposals.iterdir()) == ["proposals.json"]
+    assert (earlier_proposals / "proposals.json").read_bytes() == b"[]\n"
+
+
+def test_main_refuses_rather_than_overwrites_a_proposals_directory_taken_after_the_name_was_chosen(
+    make_corpus, monkeypatch, capsys
+):
+    """A competing run can claim the chosen name between selection and
+    publication. write_proposals' exclusive reservation then refuses, and the
+    run fails with no report on disk, leaving the competitor's directory alone
+    and unnamed by the "How to proceed:" line."""
+    built = make_corpus(slice_texts=(_SLICE_ONE,))
+    monkeypatch.setattr(funnel.subprocess, "run", FakeClaudeCli({_SLICE_ONE: _PROPOSAL_ONE}))
+    monkeypatch.setattr(
+        funnel, "datetime", _counting_clock([], datetime(2020, 1, 2, 3, 4, 5, tzinfo=timezone.utc))
+    )
+    competitor = built.audit_dir / "distil-memory-20200102T030405Z-proposals"
+    real_select = funnel._select_run_id
+
+    def select_then_lose_the_race(report_dir, timestamp):
+        run_id = real_select(report_dir, timestamp)
+        competitor.mkdir(parents=True)
+        return run_id
+
+    monkeypatch.setattr(funnel, "_select_run_id", select_then_lose_the_race)
 
     exit_code = funnel.main(["--distil"])
 
     assert exit_code != 0
     captured = capsys.readouterr()
-    assert "transcripts_read: 1" in captured.out
-    assert "How to proceed:" in captured.out
     assert "proposals" in captured.err.lower()
-    assert "distil-memory-20200102T030405Z-proposals" not in _how_to_proceed(captured.out)
+    assert competitor.name not in _how_to_proceed(captured.out)
+    assert list(competitor.iterdir()) == []
     assert sorted(built.audit_dir.glob("distil-memory-*.md")) == []
 
 

@@ -25,10 +25,11 @@ an explicit per-entry decision.
   import); `assert_contract()` hard-fails below `0.2.2`, the release that
   fixed `d10ecb1`'s `promptSource=="sdk"` bug - older parsers over-count
   user prompts by roughly 41%. `funnel.py`'s `main()` exits non-zero on
-  three failure paths, each printing to stderr: an absent or stale cache
+  four failure paths, each printing to stderr: an absent or stale cache
   raises `StaleParserError`; a triage model-call failure (the `claude` CLI
-  errors, is missing, or times out); and a report-write failure. There is
-  no fallback for any of the three.
+  errors, is missing, or times out); a triage whose every reply was
+  unclassified; and a report-write failure. There is no fallback for any
+  of the four.
 - `encode-incident`, pointed at rather than invoked. It owns `feedback`
   memories; this skill emits `project` memories only, and neither skill reads
   or rewrites the other's type. Nothing here depends on it being installed.
@@ -84,8 +85,13 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
 3. **Triage** (`funnel.py:triage`, skipped on `--dry-run`): a cheap-tier
    (`haiku`) judge classifies each kept slice as `transient` (verifies
    something already known or already working) or `durable` (a new fact
-   worth remembering). Fail-open: any judge response other than an exact
-   `transient` match keeps the slice. What's left is `survivors`.
+   worth remembering). Replies are matched after case and whitespace
+   normalization. Fail-open: a reply that is neither label (empty output, an
+   error string, prose) keeps the slice, counts it as `unclassified`, and
+   prints a count-only warning to stderr. What's left is `survivors`. When
+   every reply of a nonempty triage is unclassified, the judge answered
+   nothing usable: the run skips the distil stage, still writes the report,
+   and exits 1.
 4. **Distil** (`funnel.py:_distil_and_publish`, runs only behind `--distil`):
    calls `distil.distil` at the `strong` tier to turn each surviving slice
    into either a complete memory file (a proposal, carrying the transcript
@@ -98,11 +104,12 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
    memory file on every proposal is the cost this two-step avoids.
 5. **Report** (`funnel.py:render_yield`): prints the yield report and
    writes it to `docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>.md`
-   (`%Y%m%dT%H%M%SZ`).
+   (`%Y%m%dT%H%M%SZ`). A rerun within the same second adds `-2`, `-3`, and
+   so on, so no run overwrites an earlier report or proposals directory.
 
 ## Yield report
 
-Nine counts, in order - four from stages 1-3, then five from the distil stage:
+Ten counts, in order - five from stages 1-3, then five from the distil stage:
 
 - `transcripts_read` - transcripts selected by step 1.
 - `slices_matched` - assistant-role text blocks carrying a raw marker hit
@@ -112,6 +119,8 @@ Nine counts, in order - four from stages 1-3, then five from the distil stage:
   filtering.
 - `survivors` - slices that survived judge triage (`n/a` on `--dry-run` and
   also `n/a` after a triage model-call failure).
+- `unclassified` - survivors kept only because the judge's reply was neither
+  `transient` nor `durable` (`n/a` when triage did not run).
 - `proposals` - complete memory files emitted by step 4.
 - `discards` - slices the distiller refused, each with a reason.
 - `new_vs_update` - the split of typed proposals, rendered `<new>/<update>`.
@@ -126,7 +135,7 @@ that ran and yielded nothing reports `0`.
 Written to `docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>.md`. The
 distil stage writes
 `docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>-proposals/` beside it,
-sharing the run's one timestamp: one `<name>.md` per proposal (the complete
+sharing the run's one timestamp and suffix: one `<name>.md` per proposal (the complete
 memory file) plus `proposals.json` and `discards.json`. That directory is
 published atomically - a reader sees a complete directory or none at all,
 never a partial one.
@@ -189,7 +198,10 @@ approval or rejection:
    ```
 
 5. For keep with no edit, record the decision, derive the store path as
-   `Path(entry["transcript"]).parent / "memory"`, then write the saved entry:
+   `portable.local_path(entry["transcript"]).parent / "memory"`, then write
+   the saved entry. Published transcript paths under the home read `~/...`;
+   `local_path` expands that against this machine's home and takes a legacy
+   absolute path as written, where a bare `Path(...)` would not expand `~`:
 
    ```bash
    python3 ~/.agents/skills/distil-memory/scripts/docket.py decide "<id>" kept --queue "<queue-path>"

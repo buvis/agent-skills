@@ -79,7 +79,7 @@ CHANGELOG entry and the overflow catch from the code alone. Bob's cycle-1 `R1/R7
 
 - **Carry-forward** (`checks-1.json`, 3 entries): `uv run pytest` exit 0, the skill validator exit 0,
   `braid --check` exit 127 → F1 above. The 127 is `command not found`: `braid` is not on the headless shell's
-  PATH (re-confirmed this session). The same check by absolute path, `/Users/bob/.agents/bin/braid --check`,
+  PATH (re-confirmed this session). The same check by absolute path, `~/.agents/bin/braid --check`,
   exited 0 at this HEAD in the work phase (`last-verification.json`) and again this session:
   `0 linked, 76 current, 20 ignored, 0 removed, 0 backed up, 0 drift`.
 - **Tautological shapes:** zero `[MECH]` lines — 41 test functions in 2 test files checked.
