@@ -41,7 +41,7 @@ from test_eval_tree_links import (
     bare_ci,
     built_repo,
 )
-from test_eval_tree_state import _host_carries_an_executable_bit
+from test_eval_tree_state import _assert_runs_nothing_of_its_own, _host_carries_an_executable_bit
 
 # A second content value, so a check that only ever sees one payload cannot
 # pass by remembering it.
@@ -530,6 +530,7 @@ def test_build_template_seals_a_real_git_archive_as_the_tree_before_the_task(
     assert trees._git(dest, "status", "--porcelain") == ""
     # One commit: an earlier one would let a later checkout restore its tree.
     assert trees._git(dest, "rev-list", "--count", "HEAD") == "1"
+    _assert_runs_nothing_of_its_own(dest)
     # One tree id: the same paths, bytes and modes as the commit before `first`.
     assert trees._git(dest, "rev-parse", "HEAD^{tree}") == trees._git(
         repo, "rev-parse", "%s^^{tree}" % first
@@ -587,6 +588,7 @@ def _seal_control(tmp_path, built_repo, monkeypatch, filter_support, bundle) -> 
     assert sha == trees.head_sha(dest)
     assert trees._git(dest, "status", "--porcelain") == ""
     assert trees._git(dest, "rev-list", "--count", "HEAD") == "1"
+    _assert_runs_nothing_of_its_own(dest)
     assert _snapshot(outside) == before
     return dest
 

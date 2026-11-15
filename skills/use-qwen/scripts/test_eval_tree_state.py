@@ -84,6 +84,18 @@ NEEDS_EXECUTABLE_BIT = pytest.mark.skipif(
 )
 
 
+def _assert_runs_nothing_of_its_own(root: Path) -> None:
+    """A sealed repository holds no hook but git's inert `*.sample` files and
+    sets neither `core.hooksPath` nor `core.fsmonitor` in its own config: `_walk`, `git add -A`
+    and `status --porcelain` all skip `.git`, so nothing else would notice."""
+    hooks = root / ".git" / "hooks"
+    live = [path.name for path in hooks.iterdir() if not path.name.endswith(".sample")]
+    assert live == [], "the sealed repository carries hooks: %s" % live
+    for key in ("core.hooksPath", "core.fsmonitor"):
+        done = subprocess.run(["git", "-C", str(root), "config", "--local", "--get", key], capture_output=True)
+        assert done.returncode == 1, (key, done.stdout)
+
+
 def _git_with_input(repo: Path, payload: str, *args: str) -> str:
     """Git's stdout for a command fed `payload` on stdin."""
     done = subprocess.run(
