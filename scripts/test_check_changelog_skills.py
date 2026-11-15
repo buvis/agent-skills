@@ -89,7 +89,9 @@ class TestFindMissing:
 
     def test_hyphenated_name_is_not_covered_by_a_longer_one(self, tmp_path):
         """'use-qwen' inside 'use-qwen-local' is not a distinct mention."""
-        skills_dir, changelog = _skills_tree(tmp_path, "# Changelog\n\n- **use-qwen-local**: added\n")
+        skills_dir, changelog = _skills_tree(
+            tmp_path, "# Changelog\n\n- **use-qwen-local**: added\n"
+        )
         _skill(skills_dir, "use-qwen")
 
         assert c.find_missing(skills_dir, changelog) == ["use-qwen"]
