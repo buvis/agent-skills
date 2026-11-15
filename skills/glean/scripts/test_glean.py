@@ -205,6 +205,41 @@ def test_hard_pattern_ignores_sk_inside_kebab_case_words():
     assert glean.scan_lines("key: sk-" + "a" * 40 + "\n")[0][1].startswith("HARD:")
 
 
+# Synthetic values only; two different suffixes per category must give one label.
+HARD_SAMPLES = [
+    ("HARD:private-key", ["-----BEGIN RSA PRIVATE KEY-----", "-----BEGIN OPENSSH PRIVATE KEY-----"]),
+    ("HARD:github-token", ["ghp_" + "Q" * 36, "gho_" + "7" * 36]),
+    ("HARD:sk-key", ["sk-" + "Zq" * 20, "sk-" + "9x" * 20]),
+    ("HARD:aws-access-key", ["AKIA" + "Q" * 16, "AKIA" + "7" * 16]),
+    ("HARD:slack-token", ["xoxb-" + "Zq" * 6, "xoxp-" + "9x" * 6]),
+]
+
+
+@pytest.mark.parametrize("label,secrets", HARD_SAMPLES)
+def test_hard_label_is_a_constant_category_never_secret_text(label, secrets):
+    for secret in secrets:
+        assert glean.scan_lines("pad\nkey: " + secret + "\n") == [(2, label)]
+
+
+@pytest.mark.parametrize("label,secrets", HARD_SAMPLES)
+def test_scan_and_check_staged_output_carries_no_secret_characters(home, label, secrets):
+    for secret in secrets:
+        (home / ".toolrc").write_text("pad\nkey: " + secret + "\n")
+        ledger = write_ledger(home, [])
+        scan = run_cli(home, ledger, "scan")
+        assert scan.returncode == 0, scan.stderr
+        hit = json.loads(scan.stdout)["candidates"][0]["secret_hits"][0]
+        assert hit == {"file": ".toolrc", "line": 2, "keyword": label}
+        git(home, "add", "-f", ".toolrc")
+        staged = run_cli(home, ledger, "check-staged")
+        assert staged.returncode == 1
+        assert json.loads(staged.stdout)["hard"] == [{"path": ".toolrc", "line": 2, "why": "credential pattern " + label[5:]}]
+        git(home, "rm", "-q", "--cached", ".toolrc")
+        for out in (scan.stdout, scan.stderr, staged.stdout, staged.stderr):
+            assert secret not in out
+            assert secret[:4] not in out  # the old label leaked this prefix
+
+
 def test_check_staged_passes_comment_mentions_as_soft(home):
     (home / ".toolrc").write_text("# keep secrets out of here\n")
     git(home, "add", ".toolrc")
@@ -301,7 +336,7 @@ def test_check_staged_flags_credential_in_non_ascii_path(home):
     assert r.returncode == 1
     body = json.loads(r.stdout)
     assert [h["path"] for h in body["hard"]] == [".café"]
-    assert body["hard"][0]["why"] == "credential pattern ghp_"
+    assert body["hard"][0]["why"] == "credential pattern github-token"
     assert body["staged"] == 1
 
 

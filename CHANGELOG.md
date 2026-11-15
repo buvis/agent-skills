@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **glean**: `scan` no longer crashes when the host denies `stat` or `lstat` on an untracked dotfile (seen in an agent sandbox on `~/.python_history`); the file is listed as a candidate with an `unreadable` hint.
 - **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
 - **glean**: a hand-edited ledger with the wrong shape (a list root, a non-object entry, a missing or invalid `decided` date, a non-string `git_dir` or `link_roots` element, a `git_dir` outside `$HOME`) now exits 1 with a message naming the file and field, instead of a traceback.
+- **glean**: `scan` and `check-staged` label a hard secret hit by fixed category (`HARD:private-key`, `HARD:github-token`, `HARD:sk-key`, `HARD:aws-access-key`, `HARD:slack-token`) instead of the first four matched characters, which for an `sk-` key included one secret character. Because the keywords change, an existing ledger entry may resurface once; no ledger migration runs.
 
 ### Changed
 

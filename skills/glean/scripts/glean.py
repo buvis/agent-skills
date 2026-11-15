@@ -39,9 +39,12 @@ SOFT = re.compile(
     r"api[_-]?key|secret|token|passw|bearer|private[_-]?key|oauth|client_id|credential",
     re.I,
 )
+# Each alternative is a named category; a hit's label is built from the group
+# name alone, so it never carries characters of the matched secret.
 HARD = re.compile(
-    r"BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{20,}|(?<![A-Za-z0-9-])sk-[A-Za-z0-9_-]{20,}"
-    r"|AKIA[0-9A-Z]{16}|xox[abpr]-[A-Za-z0-9-]{10,}"
+    r"(?P<private_key>BEGIN [A-Z ]*PRIVATE KEY)|(?P<github_token>gh[pousr]_[A-Za-z0-9]{20,})"
+    r"|(?P<sk_key>(?<![A-Za-z0-9-])sk-[A-Za-z0-9_-]{20,})"
+    r"|(?P<aws_access_key>AKIA[0-9A-Z]{16})|(?P<slack_token>xox[abpr]-[A-Za-z0-9-]{10,})"
 )
 NOISE_HINT = re.compile(
     r"cache|log|histor|session|state|\.lock$|\.sock$|tmp|backup|\.bak|\.db(-wal|-shm)?$|__pycache__",
@@ -164,7 +167,7 @@ def scan_lines(text: str) -> list[tuple[int, str]]:
     hits = []
     for n, line in enumerate(text.splitlines(), 1):
         if m := HARD.search(line):
-            hits.append((n, "HARD:" + m.group(0)[:4]))
+            hits.append((n, "HARD:" + m.lastgroup.replace("_", "-")))
         elif m := SOFT.search(line):
             hits.append((n, m.group(0).lower()))
     return hits
