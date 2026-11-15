@@ -96,10 +96,8 @@ and only after the user approves each one.
 
 ## Dependencies
 
-- `~/.agents/skills/brief-portfolio/scripts/collect.py`: provenance, not a
-  runtime import. `enumerate_repos()` copies its gita registry read shape
-  (parsing `~/.config/gita/repos.csv`) rather than importing it, because that
-  read is inline in `collect.py`'s `main()`; keep the two in step by hand.
+- gita registry: `enumerate_repos()` parses `~/.config/gita/repos.csv`
+  itself, with no skill or script dependency.
 - Claude Code's cartographer-echo hook (a host-local hook, not shipped with
   this skill, so it is not present on every host): its `_resolve_rg()`
   algorithm (cached PATH-then-execpath fallback, for the case where `rg` is
