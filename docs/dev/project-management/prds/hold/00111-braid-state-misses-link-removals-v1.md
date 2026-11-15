@@ -9,6 +9,8 @@ ledger: deferred/202610271200-deferred.json#71736f63801b
 
 > **Custody resolved (2026-10-30):** The four braid code/test commits were manually reverted after the automatic branch-and-revert conflicted with later telemetry. The later state-decoding fix and test remain. The `custody/00111-braid-state-misses-link-removals-v1` branch preserves the implementation for follow-up, and historical autopilot records remain on master. `--choice accept` closed the completed manual rollback; it did not accept the defective implementation. Validation: 4258 tests passed, 9 skipped; lint passed; `braid --check` reported zero drift. This PRD remains on hold because its original persistence defect is still unresolved.
 
+> **Triage (2026-11-15):** The custody branch is not mergeable as it stands. It still carries the 3/3 CRITICAL from review cycle 1 (`on_removal(managed)` in `_run_stages.py` drops ownership of stale links not yet processed) and fails `ruff check` (I001, UP035) and `ruff format --check`. Triage stubs 00140, 00141 and 00142 recorded those findings and are closed into this note, since none of that code is on master. PRD 00159 deletes the bundled braid package; once it runs, this defect leaves this repository with it. Do not repair the custody branch before deciding 00159. Whether the buvis-gems braid has the same defect is unchecked.
+
 
 Source: agoge report `dev/local/audit-results/agoge-2026-10-26.md`, finding 22,
 accepted option A on 2026-10-27. Related to finding 33 of the 2026-10-25 report,
