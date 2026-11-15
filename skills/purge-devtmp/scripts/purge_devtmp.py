@@ -106,7 +106,8 @@ def newest_file_mtime(directory: Path) -> float:
 
 
 def walk_store(store: Path) -> Iterator[tuple[Path, float]]:
-    """Yield relative path and mtime for files and repository units outside .trash."""
+    """Yield relative path and mtime for files, directory symlinks (lstat, never
+    followed) and repository units outside .trash."""
     for base, dirs, files in os.walk(store, followlinks=False):
         if Path(base) == store:
             dirs[:] = [name for name in dirs if name != TRASH_DIR]
@@ -114,7 +115,9 @@ def walk_store(store: Path) -> Iterator[tuple[Path, float]]:
             yield Path(base).relative_to(store), newest_file_mtime(Path(base))
             dirs[:] = []
             continue
-        for name in files:
+        # os.walk lists directory symlinks in dirs but never descends them.
+        links = [name for name in dirs if (Path(base) / name).is_symlink()]
+        for name in files + links:
             path = Path(base) / name
             try:
                 stat = path.lstat()
