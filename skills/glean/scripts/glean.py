@@ -97,6 +97,9 @@ def load_ledgers(local_path: Path) -> tuple[dict, list[dict]]:
         sys.exit(f"glean: {local_path} has a non-string 'public_ledger': {cfg['public_ledger']!r}")
     if "link_roots" in cfg and not isinstance(cfg["link_roots"], list):
         sys.exit(f"glean: {local_path} has a non-list 'link_roots': {cfg['link_roots']!r}")
+    for r in cfg.get("link_roots", []):
+        if not isinstance(r, str):
+            sys.exit(f"glean: {local_path} has a non-string 'link_roots' element: {r!r}")
     try:
         git_dir(cfg).relative_to(HOME)
     except ValueError:

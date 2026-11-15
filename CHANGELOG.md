@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **review-prd-backlog**: `check_links.py` no longer misreads UUID/dispatch-id fragments, quoted prior-run diagnostics, or backtick-wrapped `[[...]]` syntax examples and fenced "observed evidence" transcripts as dangling PRD or memory references.
 - **glean**: `scan` no longer crashes when the host denies `stat` or `lstat` on an untracked dotfile (seen in an agent sandbox on `~/.python_history`); the file is listed as a candidate with an `unreadable` hint.
 - **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
+- **glean**: a hand-edited ledger with the wrong shape (a list root, a non-object entry, a missing or invalid `decided` date, a non-string `git_dir` or `link_roots` element, a `git_dir` outside `$HOME`) now exits 1 with a message naming the file and field, instead of a traceback.
 
 ### Changed
 

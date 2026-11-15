@@ -819,6 +819,19 @@ def test_load_ledgers_rejects_non_string_git_dir_instead_of_crashing(home):
     assert str(ledger) in r.stderr
 
 
+@pytest.mark.parametrize("bad", [5, None, ["~/x"], {"a": 1}])
+def test_load_ledgers_rejects_non_string_link_roots_element_instead_of_crashing(home, bad):
+    ledger = write_raw(
+        home / "ledger.json",
+        {"config": {"git_dir": str(home / ".dots"), "link_roots": ["~/ok", bad]}, "entries": []},
+    )
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert str(ledger) in r.stderr
+    assert "link_roots" in r.stderr
+
+
 def test_scan_accepts_relative_git_dir_under_home(home):
     ledger = write_raw(home / "ledger.json", {"config": {"git_dir": ".dots"}, "entries": []})
     r = run_cli(home, ledger, "scan")
