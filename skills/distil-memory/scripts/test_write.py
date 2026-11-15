@@ -79,12 +79,13 @@ def test_write_memory_update_raises_when_the_target_file_is_absent(store_path):
     assert not (store_path / "widget-fact.md").exists()
 
 
-def test_write_memory_raises_and_creates_nothing_when_the_store_path_does_not_exist(store_path):
+def test_write_memory_names_the_missing_store_not_a_temporary_file_and_creates_nothing(store_path):
     entry = _entry(name="widget-fact", kind="new")
 
-    with pytest.raises(write.WriteError):
+    with pytest.raises(write.WriteError) as raised:
         write.write_memory(entry, store_path)
 
+    assert str(raised.value) == f"store directory does not exist: {store_path}"
     assert not store_path.exists()
 
 

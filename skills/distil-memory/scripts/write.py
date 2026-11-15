@@ -76,13 +76,21 @@ def write_memory(entry: dict, store_path: Path) -> Path:
     The file text's frontmatter must parse. A target that already holds
     exactly that text is returned untouched, new and update alike. Otherwise
     a new entry must not already have a file at its target; an update must.
-    Raises WriteError otherwise, or when the write itself fails (for example
-    because `store_path` does not exist).
+    Raises WriteError otherwise, when `store_path` does not exist (it is never
+    created here), or when the write itself fails.
     """
     try:
         proposal.parse_frontmatter(entry["file_text"])
     except proposal.ProposalError as exc:
         raise WriteError(str(exc)) from exc
+    # stat, not is_dir: is_dir answers False for a store this process may not
+    # search, and that must not be reported as absent
+    try:
+        store_path.stat()
+    except FileNotFoundError as exc:
+        raise WriteError(f"store directory does not exist: {store_path}") from exc
+    except OSError as exc:
+        raise WriteError(f"{store_path}: {exc}") from exc
     stem, is_new = _target_stem(entry)
     target = store_path / f"{stem}.md"
     exists = target.exists()
