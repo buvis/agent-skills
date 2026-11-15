@@ -65,6 +65,7 @@ If the proposal restates or refines one of them, answer with that memory's name 
 ### Module: tests and fakes
 - **Location**: `skills/distil-memory/scripts/test_distil.py`
 - **Location**: `skills/distil-memory/scripts/test_dedup_classify.py`
+- **Location**: `skills/distil-memory/scripts/test_dedup_prompt.py`
 - **Location**: `skills/distil-memory/scripts/funnel_test_helpers.py`
 - **Location**: `skills/distil-memory/scripts/test_funnel_distil.py`
 - **Location**: `skills/distil-memory/scripts/test_funnel_distil_dedup.py`

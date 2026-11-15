@@ -59,9 +59,10 @@ exclusion the scan already applies.
 
 ### Module: sweep
 - **Location**: `skills/sweep-fix/scripts/sweep.py`
-- **Responsibility**: parse the new flag, export the pre-image, run the control check on it, and skip saved reports in the control-term search.
+- **Location**: `skills/sweep-fix/scripts/sweep_preimage.py`
+- **Responsibility**: parse the new flag, export the pre-image, run the control check on it, and skip saved reports in the control-term search. The export lives in its own module (added at implementation, 2026-11-15) so that `skills/sweep-fix/scripts/sweep.py` stays under the size cap.
 - **Exports**: `main`, `verify_control`
-- New symbols: `--control-rev`, `_export_preimage`
+- New symbols: `--control-rev`, `_export_preimage`, `sweep_preimage.py`
 
 ### Module: control verification tests
 - **Location**: `skills/sweep-fix/scripts/test_sweep_control_rev.py`
