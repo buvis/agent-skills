@@ -71,7 +71,7 @@ def validate_entries(data: dict, path: Path) -> list[dict]:
         if not isinstance(e.get("path"), str):
             sys.exit(f"glean: entry in {path} has a missing or non-string 'path': {e!r}")
         v = e.get("verdict")
-        if v not in VOLATILE | STABLE:
+        if not isinstance(v, str) or v not in VOLATILE | STABLE:
             sys.exit(f"glean: unknown verdict {v!r} for {e.get('path')}")
         if v in VOLATILE:
             if not (e.get("sha256") or e.get("count_mtime")):

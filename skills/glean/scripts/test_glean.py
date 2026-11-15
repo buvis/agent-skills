@@ -440,6 +440,18 @@ def test_load_ledgers_rejects_non_object_entry_among_valid_ones(home):
     assert str(ledger) in r.stderr or "entries" in r.stderr.lower()
 
 
+@pytest.mark.parametrize("verdict", [["skip"], {"skip": 1}], ids=["list", "object"])
+def test_load_ledgers_rejects_a_non_string_verdict_instead_of_crashing(home, verdict):
+    ledger = write_raw(home / "ledger.json", {
+        "config": {"git_dir": str(home / ".dots")},
+        "entries": [{"path": ".odd-verdict", "verdict": verdict, "decided": TODAY}],
+    })
+    r = run_cli(home, ledger, "scan")
+    assert r.returncode == 1, r.stdout
+    assert "Traceback" not in r.stderr
+    assert ".odd-verdict" in r.stderr
+
+
 def test_load_ledgers_rejects_volatile_entry_missing_decided(home):
     ledger = write_raw(home / "ledger.json", {
         "config": {"git_dir": str(home / ".dots")},
