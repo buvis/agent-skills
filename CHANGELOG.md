@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **use-codex**: inside an outer Seatbelt sandbox (run-agent), `codex-run.sh` runs codex without its own sandbox instead of failing every file read with `sandbox_apply: Operation not permitted`, and says so on stderr.
+- **use-sonnet**: `sonnet-run.sh` loads the long-lived setup token from `~/.local/secrets/claude-setup-token` when `CLAUDE_CODE_OAUTH_TOKEN` is unset, so a nested `claude` no longer fails with "OAuth token revoked".
+
 - **build-mcp-server**: generated projects declare their package and development dependencies, load `.env` explicitly, and are installed and tested by the optional integration suite.
 
 - **publish-confluence-docs**: image placeholders preserve unrelated and nested macros, attachment names are XML-escaped, and uploads check curl failures using the platform's null device. CI runs the optional MCP and document conversion tests on Linux and Windows.

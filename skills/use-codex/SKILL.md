@@ -51,6 +51,7 @@ Every run is non-interactive. By default each call is a fresh, one-shot Codex se
    - `-f, --file FILE` to pass the prompt (preferred - avoids shell escaping)
    - `-a, --allow-tools` to auto-approve tool use (codex: workspace-write sandbox)
    - `-y, --yolo` for full permissions (codex: bypass approvals and sandbox)
+   - Inside an outer Seatbelt sandbox (run-agent), codex's own sandbox cannot nest, so the script uses the bypass for every mode and warns on stderr; the outer sandbox confines the run, and read-only intent rests on the prompt and hooks
    - `-d, --dir DIR` to allow access to a specific directory (repeatable)
    - `-o, --output FILE` to capture output to a file
    - `-s, --silent` for clean scripting output (copilot backend only; ignored on codex)

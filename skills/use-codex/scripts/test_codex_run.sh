@@ -118,6 +118,17 @@ exit 0
 STUB
 chmod +x "$STUBDIR/codex"
 
+# Stub `sandbox-exec`: codex-run.sh probes it to learn whether it already runs
+# inside a Seatbelt sandbox (where codex's own sandbox cannot be applied). It
+# succeeds unless STUB_SANDBOX_NESTED is set, so every case is deterministic
+# whether or not the test itself runs sandboxed.
+cat > "$STUBDIR/sandbox-exec" <<'STUB'
+#!/bin/bash
+[ -n "${STUB_SANDBOX_NESTED:-}" ] && { echo "sandbox_apply: Operation not permitted" >&2; exit 71; }
+exit 0
+STUB
+chmod +x "$STUBDIR/sandbox-exec"
+
 # codex-run.sh re-prepends mise's own PATH ahead of ours whenever `mise` is
 # reachable, and mise's PATH includes /opt/homebrew/bin (the REAL codex
 # binary), which would shadow the stub. Excluding mise's location from the
@@ -744,6 +755,45 @@ guard_case() {
 guard_case "AUTOPILOT_DISPATCH_DEPTH=1: refuses with exit 3, no codex call" AUTOPILOT_DISPATCH_DEPTH=1
 guard_case "CODEX_SESSION_ID set: refuses with exit 3, no codex call" CODEX_SESSION_ID=deadbeef
 guard_case "COPILOT_CLI set: refuses with exit 3, no codex call" COPILOT_CLI=1
+
+# =============================================================================
+# Nested Seatbelt: inside an outer sandbox (run-agent) macOS refuses codex's own
+# sandbox, so every read fails (2026-11-15). The wrapper then drops codex's
+# sandbox flag for the bypass, leaving confinement to the outer sandbox, and
+# says so on stderr. Outside a sandbox the mapping is unchanged (tests 2, 17).
+# =============================================================================
+nested_case() {
+    # $1 = label, $2 = argv token pair "A B" that must appear, $3.. = wrapper args
+    local label="$1" pair="$2"
+    shift 2
+    local outfile="$STUBDIR/nested.out" errfile="$STUBDIR/nested.stderr"
+    : > "$STUB_ARGV_FILE"
+    rm -f "$outfile"
+    PATH="$RUN_PATH" STUB_ARGV_FILE="$STUB_ARGV_FILE" STUB_STDIN_FILE="$STUB_STDIN_FILE" \
+        STUB_SANDBOX_NESTED=1 bash "$CODEX_RUN_SH" "$@" > /dev/null 2> "$errfile" < /dev/null
+    local first="${pair%% *}" second="${pair#* }" ok=1
+    if [ "$first" = "$second" ]; then
+        grep -qxF -- "$first" "$STUB_ARGV_FILE" || ok=0
+    else
+        argv_has_pair "$STUB_ARGV_FILE" "$first" "$second" || ok=0
+    fi
+    grep -qxF -- "--sandbox" "$STUB_ARGV_FILE" && ok=0
+    grep -qxF -- "sandbox_mode=read-only" "$STUB_ARGV_FILE" && ok=0
+    grep -qi "outer sandbox" "$errfile" || ok=0
+    if [ "$ok" -eq 1 ]; then
+        PASS "$label"
+    else
+        FAIL "$label" "argv: $(tr '\n' ' ' < "$STUB_ARGV_FILE") -- stderr: $(tr '\n' '|' < "$errfile")"
+    fi
+}
+
+# 42-44. Nested: default, -a and resume all bypass codex's own sandbox.
+nested_case "nested sandbox: default run bypasses codex's sandbox and warns" \
+    "--dangerously-bypass-approvals-and-sandbox --dangerously-bypass-approvals-and-sandbox" "nested default"
+nested_case "nested sandbox: -a run bypasses codex's sandbox and warns" \
+    "--dangerously-bypass-approvals-and-sandbox --dangerously-bypass-approvals-and-sandbox" -a "nested allow"
+nested_case "nested sandbox: resume uses sandbox_mode=danger-full-access and warns" \
+    "-c sandbox_mode=danger-full-access" --resume-thread "$RESUME_UUID" -o "$STUBDIR/nested.out" "nested resume"
 
 # =============================================================================
 echo ""
