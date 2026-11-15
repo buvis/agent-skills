@@ -148,14 +148,11 @@ def test_memory_source_included_for_a_root_reached_through_a_symlink(tmp_path, m
     monkeypatch.setattr(Path, "home", lambda: home)
     claude_root = home / ".claude"
     make_tree(claude_root)
-    mem = check_links.project_memory_dir(claude_root)
+    mem = check_links.project_memory_dir(claude_root.resolve())
     mem.mkdir(parents=True)
     (mem / "m.md").write_text("cites docs/dev/project-management/notes/vanished.md\n")
     link = tmp_path / "via-link"
-    try:
-        link.symlink_to(claude_root, target_is_directory=True)
-    except OSError:
-        pytest.skip("symlinks are not available")
+    link.symlink_to(claude_root, target_is_directory=True)
 
     findings, _ = check_links.run(link)
     assert any("vanished" in f[2] for f in findings)
