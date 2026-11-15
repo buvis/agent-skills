@@ -620,6 +620,90 @@ def _expected_trash(repo: Path, rel: str) -> str:
     return tu.trash_dest(root, rel, FROZEN_DATE).relative_to(root).as_posix()
 
 
+@pytest.mark.parametrize("apply", [False, True])
+def test_main_accepts_an_absolute_path_inside_the_repository(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str], apply: bool) -> None:
+    p = _old_file(repo, "old logs/run one.log")
+    argv = ["--apply"] if apply else []
+
+    out, _ = _run_main(repo, monkeypatch, capsys, *argv, str(p))
+
+    assert out["refused"] == []
+    assert [e["path"] for e in out["moved"]] == ["old logs/run one.log"]
+    assert p.exists() is not apply
+    if apply:
+        row = (repo / "docs/dev/tmp/.trash/manifest.tsv").read_text(
+        ).strip().split("\t")
+        assert row[2] == "old logs/run one.log"
+
+
+def test_main_refuses_an_absolute_path_outside_the_repository(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    outside = _old_file(repo.parent, "elsewhere/old_junk.log")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "--apply", str(outside))
+
+    assert out["moved"] == []
+    assert [r["reason"] for r in out["refused"]] == ["outside repo"]
+    assert outside.is_file()
+
+
+def test_main_does_not_reroot_an_absolute_path_onto_a_repository_decoy(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """A missing outside path must not select the repo file spelled alike."""
+    outside = repo.parent / "elsewhere" / "old_junk.log"
+    decoy = _old_file(repo, str(outside).lstrip("/\\"))
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "--apply", str(outside))
+
+    assert out["moved"] == []
+    assert [r["reason"] for r in out["refused"]] == ["outside repo"]
+    assert decoy.is_file()
+
+
+def test_main_refuses_an_absolute_path_that_escapes_through_a_symlink(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    target = _old_file(repo.parent, "linked/old_junk.log")
+    (repo / "link").symlink_to(target.parent, target_is_directory=True)
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "--apply",
+                       str(repo / "link" / "old_junk.log"))
+
+    assert out["moved"] == []
+    assert [r["reason"] for r in out["refused"]] == ["outside repo"]
+    assert target.is_file()
+
+
+def test_main_still_refuses_a_protected_absolute_path(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, "docs/dev/project-management/keep.bin", "k")
+
+    out, _ = _run_main(repo, monkeypatch, capsys, "--apply", str(p))
+
+    assert out["moved"] == []
+    assert [r["path"] for r in out["refused"]] == [
+        "docs/dev/project-management/keep.bin"]
+    assert p.read_text() == "k"
+
+
+def test_main_resolves_dotdot_in_an_absolute_path_before_the_veto(
+        repo: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    p = _old_file(repo, "old_junk.log")
+    (repo / "sub").mkdir()
+
+    out, _ = _run_main(repo, monkeypatch, capsys,
+                       str(repo / "sub" / ".." / "old_junk.log"))
+
+    assert [e["path"] for e in out["moved"]] == ["old_junk.log"]
+    assert p.exists()
+
+
 def test_dry_run_without_apply_reports_the_trash_dest_path(
         repo: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:

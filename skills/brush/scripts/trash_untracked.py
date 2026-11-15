@@ -139,7 +139,8 @@ def main() -> int:
     ap.add_argument("--min-age-days", type=int, default=3)
     ap.add_argument("--apply", action="store_true",
                     help="move files to .trash (default: dry-run)")
-    ap.add_argument("paths", nargs="+", help="repo-relative paths to trash")
+    ap.add_argument("paths", nargs="+", help="paths to trash: absolute paths inside the repo, or "
+                    "paths relative to the repo root")
     args = ap.parse_args()
 
     # Untested: root's .resolve() matches p's, for Windows 8.3 short names.
@@ -148,8 +149,8 @@ def main() -> int:
     date = datetime.date.today().isoformat()
     moved, refused = [], []
     for raw in args.paths:
-        raw = raw.strip("/\\" if os.name == "nt" else "/")
-        p = (root / raw).resolve()
+        cand = Path(raw)
+        p = (cand if cand.is_absolute() else root / cand).resolve()
         if not p.is_relative_to(root):
             refused.append({"path": raw, "reason": "outside repo"})
             continue
