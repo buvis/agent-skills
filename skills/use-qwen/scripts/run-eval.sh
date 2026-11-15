@@ -126,22 +126,17 @@ for entry in "${TASKS[@]}"; do
     prompt_file="${entry%%$'\t'*}"
     verify_cmd="${entry#*$'\t'}"
 
-    # eval-runbook.md #2: pin the provider, retry once on a mismatch or a
-    # dispatch that never actually ran pi (preflight/completion failure) -
-    # neither is evidence about the CANDIDATE, so neither is scored.
-    attempt=1
+    # eval-runbook.md #2: pin the provider and dispatch ONCE (PRD 00049). A
+    # failed dispatch may already have edited the task tree, so dispatching
+    # again here would score a contaminated tree as a fresh trial; a new trial
+    # needs a new invocation after the runbook's baseline restoration.
     DISPATCH_OK=""
-    OUT="" DISPATCH_RC=0 FIRST_LINE=""
-    while [ "$attempt" -le 2 ]; do
-        OUT="$(bash "$QWEN_RUN_SH" -P "$PROVIDER" -m "$MODEL" -f "$prompt_file" 2>&1)"
-        DISPATCH_RC=$?
-        FIRST_LINE="$(printf '%s\n' "$OUT" | head -n1)"
-        if [ "$FIRST_LINE" = "Using provider '$PROVIDER' model '$MODEL'" ] && [ "$DISPATCH_RC" -eq 0 ]; then
-            DISPATCH_OK="1"
-            break
-        fi
-        attempt=$((attempt + 1))
-    done
+    OUT="$(bash "$QWEN_RUN_SH" -P "$PROVIDER" -m "$MODEL" -f "$prompt_file" 2>&1)"
+    DISPATCH_RC=$?
+    FIRST_LINE="$(printf '%s\n' "$OUT" | head -n1)"
+    if [ "$FIRST_LINE" = "Using provider '$PROVIDER' model '$MODEL'" ] && [ "$DISPATCH_RC" -eq 0 ]; then
+        DISPATCH_OK="1"
+    fi
 
     GATE_PASS=""
     GATE_RC=""
@@ -165,7 +160,7 @@ for entry in "${TASKS[@]}"; do
         echo "Verify: \`$verify_cmd\`"
         echo ""
         if [ -z "$DISPATCH_OK" ]; then
-            echo "**DISCARDED** - dispatch never confirmed provider '$PROVIDER'/model '$MODEL' after 2 attempts (rc=$DISPATCH_RC, first line: \`$FIRST_LINE\`). Not scored; re-run this task once the backend is healthy."
+            echo "**DISPATCH FAILED** - qwen-run.sh returned rc=$DISPATCH_RC (first line: \`$FIRST_LINE\`); its diagnostic is in the output below. Not scored, gate not run. Not retried: the task tree may hold partial edits, so a new trial needs a new invocation after restoring and re-verifying the baseline (eval-runbook.md § 6)."
         else
             echo "Gate exit code: $GATE_RC -> $([ -n "$GATE_PASS" ] && echo PASS || echo FAIL)"
             if [ -n "$SUSPECT" ]; then

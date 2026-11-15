@@ -32,9 +32,27 @@ _DIRS+=("$WORK")
 # ── stub `pi` and `mise` on PATH (same contract as test_qwen_run.sh) ─────────
 STUBDIR="$WORK/stub"
 mkdir -p "$STUBDIR"
+# The pi stub emits a completed answer in pi's `--mode json` event shapes and
+# appends the prompt (its last argument) to STUB_CALLS_FILE. When the prompt
+# equals STUB_FAIL_PROMPT it first creates STUB_EDIT_MARKER (an edit to the
+# task tree), then fails as STUB_FAIL_SHAPE says: "exit" exits 1, "length"
+# exits 0 after a length-stopped answer.
 cat > "$STUBDIR/pi" <<'STUB'
 #!/bin/bash
-echo "stub-pi-ran"
+for arg; do prompt="$arg"; done
+[ -n "${STUB_CALLS_FILE:-}" ] && printf '%s\n' "$prompt" >> "$STUB_CALLS_FILE"
+stop="stop" rc=0
+if [ -n "${STUB_FAIL_PROMPT:-}" ] && [ "$prompt" = "$STUB_FAIL_PROMPT" ]; then
+    touch "${STUB_EDIT_MARKER:?}"
+    case "${STUB_FAIL_SHAPE:-exit}" in
+        length) stop="length" ;;
+        *) rc=1 ;;
+    esac
+fi
+printf '%s\n' '{"type":"agent_start"}' \
+    "{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"stub-pi-ran\"}],\"stopReason\":\"$stop\"}}" \
+    '{"type":"agent_end","messages":[]}'
+exit "$rc"
 STUB
 chmod +x "$STUBDIR/pi"
 cat > "$STUBDIR/mise" <<'STUB'
@@ -166,6 +184,46 @@ if [ ! -f "$WORK/ev5.md" ]; then
     PASS "no evidence log is written when the upfront check refuses (no task ever ran)"
 else
     FAIL "no evidence log is written when the upfront check refuses (no task ever ran)" "$(cat "$WORK/ev5.md")"
+fi
+
+# ══ T10-T11: one dispatch per task, never a same-tree retry (PRD 00049) ══════
+# A failed dispatch may already have edited the task tree, so a retry would
+# score a contaminated tree as a fresh trial. Every gate passes here, so only
+# the failed dispatch can keep the verdict from PASS.
+printf '%s\t%s\n' "$WORK/prompt1.txt" "true" > "$WORK/tasks6.tsv"
+for n in 2 3 4 5 6; do
+    printf '%s\t%s\n' "$WORK/prompt$n.txt" "true" >> "$WORK/tasks6.tsv"
+done
+for shape in exit length; do
+    : > "$WORK/registry.txt"
+    : > "$WORK/calls-$shape.txt"
+    rm -f "$WORK/edited-$shape"
+    OUT=$(STUB_CALLS_FILE="$WORK/calls-$shape.txt" STUB_FAIL_PROMPT="task 6 prompt" \
+        STUB_EDIT_MARKER="$WORK/edited-$shape" STUB_FAIL_SHAPE="$shape" \
+        run_eval -P regprov -m mock-candidate --tasks "$WORK/tasks6.tsv" --out "$WORK/ev-$shape.md" --commit 2>&1)
+    RC=$?
+    CALLS=$(grep -cFx "task 6 prompt" "$WORK/calls-$shape.txt")
+    if [ "$CALLS" = "1" ] && [ -f "$WORK/edited-$shape" ]; then
+        PASS "a dispatch that edits the tree then fails ($shape) is invoked exactly once for its task"
+    else
+        FAIL "a dispatch that edits the tree then fails ($shape) is invoked exactly once for its task" "calls=$CALLS; output: $OUT"
+    fi
+    if [ "$RC" -ne 0 ] && [ ! -s "$WORK/registry.txt" ]; then
+        PASS "a failed dispatch ($shape) withholds the PASS verdict and --commit leaves the registry untouched"
+    else
+        FAIL "a failed dispatch ($shape) withholds the PASS verdict and --commit leaves the registry untouched" "rc=$RC; registry: $(cat "$WORK/registry.txt")"
+    fi
+    if grep -q "rc=1" "$WORK/ev-$shape.md" && grep -q "Not retried" "$WORK/ev-$shape.md" \
+        && [ "$(grep -c "Gate exit code: 0 -> PASS" "$WORK/ev-$shape.md")" = "5" ]; then
+        PASS "the evidence log keeps the failed task's exit status and still records the other five tasks ($shape)"
+    else
+        FAIL "the evidence log keeps the failed task's exit status and still records the other five tasks ($shape)" "$(cat "$WORK/ev-$shape.md" 2>/dev/null || echo MISSING)"
+    fi
+done
+if grep -q "stopReason length" "$WORK/ev-length.md"; then
+    PASS "an incomplete answer's diagnostic from qwen-run.sh lands in the evidence log"
+else
+    FAIL "an incomplete answer's diagnostic from qwen-run.sh lands in the evidence log" "$(cat "$WORK/ev-length.md" 2>/dev/null || echo MISSING)"
 fi
 
 # ══════════════════════════════════════════════════════════════════════════

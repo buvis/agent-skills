@@ -61,11 +61,22 @@ _DIRS+=("$WORK")
 STUBDIR="$WORK/stub"
 mkdir -p "$STUBDIR"
 
+# By default it emits a completed answer in pi's `--mode json` event shapes;
+# STUB_PI_EVENTS names a fixture stream to emit instead, STUB_PI_STDERR a line
+# for stderr, and STUB_PI_RC its exit status.
 cat > "$STUBDIR/pi" <<'STUB'
 #!/bin/bash
 printf '%s\n' "$@" > "${STUB_ARGV_FILE:?}"
 cat > "${STUB_STDIN_FILE:?}"
-echo "stub-pi-ran"
+[ -n "${STUB_PI_STDERR:-}" ] && printf '%s\n' "$STUB_PI_STDERR" >&2
+if [ -n "${STUB_PI_EVENTS:-}" ]; then
+    cat "$STUB_PI_EVENTS"
+else
+    printf '%s\n' '{"type":"agent_start"}' \
+        '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"stub-pi-ran"}],"stopReason":"stop"}}' \
+        '{"type":"agent_end","messages":[]}'
+fi
+exit "${STUB_PI_RC:-0}"
 STUB
 chmod +x "$STUBDIR/pi"
 
@@ -167,6 +178,16 @@ if [ ! -f "$WORK/t3.argv" ]; then
     PASS "--preflight never dispatches pi (probe only)"
 else
     FAIL "--preflight never dispatches pi (probe only)" "stub pi ran with argv: $(tr '\n' ' ' < "$WORK/t3.argv")"
+fi
+
+# ══ T3b: dispatch runs pi without extensions ═════════════════════════════════
+# The pi-llama extension prints a localhost:8080 "failed to reach" warning on
+# every start; a dispatch never needs it (providers come from models.json).
+run_qwen t3b -f "$PROMPT_FILE_T"
+if [ "$RC" -eq 0 ] && grep -qx -- "--no-extensions" "$WORK/t3b.argv"; then
+    PASS "dispatch passes --no-extensions to pi"
+else
+    FAIL "dispatch passes --no-extensions to pi" "rc=$RC; argv: $(tr '\n' ' ' < "$WORK/t3b.argv" 2>/dev/null || echo MISSING); output: $OUT"
 fi
 
 # ══ T4: healthy dispatch reaches pi; child stdin is guarded ═══════════════════
@@ -1330,6 +1351,244 @@ if [ "$RC" -eq 0 ] && [ -f "$WORK/t44.argv" ] && grep -q "say hi" "$WORK/t44.arg
     PASS "absent-mise control: no mise binary on PATH, dispatch succeeds with no warning"
 else
     FAIL "absent-mise control: no mise binary on PATH, dispatch succeeds with no warning" "rc=$RC; argv: $(cat "$WORK/t44.argv" 2>/dev/null || echo MISSING); output: $OUT"
+fi
+
+# ══ T45-T56: completion is decided from pi's event stream (PRD 00049) ═════════
+# PRD 00010's task-5 trace ended with an assistant `stopReason: length`, then
+# compaction, no final answer, and pi exiting 0. Sanitized fixtures in the
+# event shapes `pi --mode json` emits (pi 1.5.2). Uses the healthy mise-fixture
+# backend; stdout and stderr are captured apart so text mode can be checked
+# for the final answer alone.
+EV="$WORK/events"
+mkdir -p "$EV"
+EV_HEAD='{"type":"session","version":3,"id":"fixture","timestamp":"2026-01-01T00:00:00.000Z","cwd":"/work"}
+{"type":"agent_start"}
+{"type":"turn_start"}
+{"type":"message_end","message":{"role":"user","content":[{"type":"text","text":"say hi"}],"timestamp":0}}'
+EV_TOOL_TURN='{"type":"message_start","message":{"role":"assistant","content":[],"stopReason":"stop"}}
+{"type":"message_update","usage":{"input":10,"output":5},"assistantMessageEvent":{"type":"toolcall_start","contentIndex":0,"id":"call-1","toolName":"read"}}
+{"type":"message_end","message":{"role":"assistant","content":[{"type":"toolCall","id":"call-1","name":"read","arguments":{"path":"src/a.py"}}],"stopReason":"toolUse"}}
+{"type":"tool_execution_start","toolCallId":"call-1","toolName":"read","args":{"path":"src/a.py"}}
+{"type":"tool_execution_end","toolCallId":"call-1","toolName":"read","result":{"content":[{"type":"text","text":"def f(): return 42"}]},"isError":false}
+{"type":"message_end","message":{"role":"toolResult","toolCallId":"call-1","toolName":"read","content":[{"type":"text","text":"def f(): return 42"}],"isError":false}}
+{"type":"turn_end","message":{"role":"assistant","content":[],"stopReason":"toolUse"},"toolResults":[]}'
+EV_ANSWER='{"type":"message_update","usage":{"input":20,"output":6},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"f returns 42."}}
+{"type":"message_end","message":{"role":"assistant","content":[{"type":"thinking","thinking":"read it"},{"type":"text","text":"f returns 42."}],"stopReason":"stop"}}
+{"type":"turn_end","message":{"role":"assistant","content":[],"stopReason":"stop"},"toolResults":[]}
+{"type":"agent_end","messages":[]}'
+EV_LENGTH='{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"Next I will edit src/a.py"}],"stopReason":"length"}}
+{"type":"turn_end","message":{"role":"assistant","content":[],"stopReason":"length"},"toolResults":[]}
+{"type":"agent_end","messages":[]}'
+EV_COMPACT='{"type":"compaction_start","reason":"threshold"}
+{"type":"compaction_end","reason":"threshold","result":{"summary":"The task is done and all tests pass."},"aborted":false,"willRetry":false}'
+printf '%s\n%s\n%s\n' "$EV_HEAD" "$EV_TOOL_TURN" "$EV_ANSWER" > "$EV/readonly-answer.jsonl"
+printf '%s\n%s\n' "$EV_HEAD" "$EV_TOOL_TURN" > "$EV/tool-only.jsonl"
+printf '{"type":"agent_end","messages":[]}\n' >> "$EV/tool-only.jsonl"
+printf '%s\n%s\n%s\n%s\n' "$EV_HEAD" "$EV_TOOL_TURN" "$EV_LENGTH" "$EV_COMPACT" > "$EV/length-compaction.jsonl"
+printf '%s\n%s\n%s\n%s\n' "$EV_HEAD" "$EV_LENGTH" '{"type":"compaction_start","reason":"overflow"}' \
+    '{"type":"compaction_end","reason":"overflow","result":{"summary":"earlier work"},"aborted":false,"willRetry":true}' > "$EV/recovered-compaction.jsonl"
+printf '%s\n%s\n' '{"type":"agent_start"}' "$EV_ANSWER" >> "$EV/recovered-compaction.jsonl"
+printf '%s\n%s\n%s\n' "$EV_HEAD" '{"type":"message_update","usage":{"input":1,"outp' "$EV_ANSWER" > "$EV/malformed.jsonl"
+printf '%s\n%s\n' "$EV_HEAD" '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"f returns 42."}],"stopReason":"stop"}}' > "$EV/truncated.jsonl"
+printf '%s\n%s\n%s\n' "$EV_HEAD" '{"type":"message_end","message":{"role":"assistant","content":[],"stopReason":"error","errorMessage":"Connection error."}}' \
+    '{"type":"agent_end","messages":[]}' > "$EV/error.jsonl"
+printf '%s\n%s\n%s\n' "$EV_HEAD" '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"  \n "}],"stopReason":"stop"}}' \
+    '{"type":"agent_end","messages":[]}' > "$EV/blank-answer.jsonl"
+
+# run_stream <name> <events-file> <pi-exit-status> [qwen-run args...] - sets
+# RC, OUT (stdout) and ERR (stderr). STREAM_STDERR, when set, is a line the
+# stub writes to its stderr.
+run_stream() {
+    local name="$1" events="$2" pi_rc="$3"
+    shift 3
+    OUT=$(STUB_ARGV_FILE="$WORK/$name.argv" STUB_STDIN_FILE="$WORK/$name.stdin" \
+        STUB_PI_EVENTS="$events" STUB_PI_RC="$pi_rc" STUB_PI_STDERR="${STREAM_STDERR:-}" \
+        PI_CODING_AGENT_DIR="$CFGDIR_MISE" PATH="$STUBDIR:$PATH" \
+        bash "$QWEN_RUN_SH" "$@" < /dev/null 2> "$WORK/$name.err")
+    RC=$?
+    ERR="$(cat "$WORK/$name.err")"
+}
+
+# T45: the 00010 shape (length stop, then compaction, pi exits 0) fails in
+# every output combination, and -o still captures the diagnostic.
+for combo in text text-o json json-o; do
+    args=(-f "$PROMPT_FILE_T")
+    case "$combo" in json*) args+=(-j) ;; esac
+    case "$combo" in *-o) args+=(-o "$WORK/t45-$combo.out") ;; esac
+    run_stream "t45-$combo" "$EV/length-compaction.jsonl" 0 "${args[@]}"
+    [ "$combo" = text ] && T45_TEXT_OUT="$OUT$ERR"
+    if [ "$RC" -ne 0 ] && grep -q "stopReason length" <<< "$OUT$ERR"; then
+        PASS "length stop then compaction with pi exiting 0 is a failed dispatch naming stopReason length ($combo)"
+    else
+        FAIL "length stop then compaction with pi exiting 0 is a failed dispatch naming stopReason length ($combo)" "rc=$RC; stdout: $OUT; stderr: $ERR"
+    fi
+    case "$combo" in
+        *-o)
+            if grep -q "stopReason length" "$WORK/t45-$combo.out" 2>/dev/null; then
+                PASS "-o captures the incomplete-dispatch diagnostic ($combo)"
+            else
+                FAIL "-o captures the incomplete-dispatch diagnostic ($combo)" "file: $(cat "$WORK/t45-$combo.out" 2>/dev/null || echo MISSING)"
+            fi
+            ;;
+    esac
+done
+case "$T45_TEXT_OUT" in
+    *"all tests pass"*) FAIL "text mode never relays a compaction summary as the answer" "output: $T45_TEXT_OUT" ;;
+    *) PASS "text mode never relays a compaction summary as the answer" ;;
+esac
+
+# T46: a completed read-only answer after tool calls succeeds with no edits,
+# in every output combination. Text mode prints the final answer alone; -j
+# forwards pi's events unchanged, with no envelope.
+for combo in text text-o json json-o; do
+    args=(-R -f "$PROMPT_FILE_T")
+    case "$combo" in json*) args+=(-j) ;; esac
+    case "$combo" in *-o) args+=(-o "$WORK/t46-$combo.out") ;; esac
+    run_stream "t46-$combo" "$EV/readonly-answer.jsonl" 0 "${args[@]}"
+    case "$combo" in
+        json*) EXPECTED="$(cat "$EV/readonly-answer.jsonl")" ;;
+        *) EXPECTED="f returns 42." ;;
+    esac
+    if [ "$RC" -eq 0 ] && [ "$OUT" = "$EXPECTED" ] && grep -qx -- "read,grep,find,ls" "$WORK/t46-$combo.argv"; then
+        PASS "a completed read-only answer exits 0 with the expected output ($combo)"
+    else
+        FAIL "a completed read-only answer exits 0 with the expected output ($combo)" "rc=$RC; stdout: $OUT; stderr: $ERR"
+    fi
+    case "$combo" in
+        *-o)
+            if [ "$(cat "$WORK/t46-$combo.out" 2>/dev/null)" = "$EXPECTED" ]; then
+                PASS "-o captures the same output the caller sees ($combo)"
+            else
+                FAIL "-o captures the same output the caller sees ($combo)" "file: $(cat "$WORK/t46-$combo.out" 2>/dev/null || echo MISSING)"
+            fi
+            ;;
+    esac
+done
+
+# T47: tool calls with no answer afterwards fail.
+run_stream t47 "$EV/tool-only.jsonl" 0 -f "$PROMPT_FILE_T"
+if [ "$RC" -ne 0 ] && grep -q "stopReason toolUse" <<< "$ERR"; then
+    PASS "tool calls with no final answer are a failed dispatch"
+else
+    FAIL "tool calls with no final answer are a failed dispatch" "rc=$RC; stdout: $OUT; stderr: $ERR"
+fi
+
+# T48: a length stop recovered by compaction and a later completed answer
+# succeeds.
+run_stream t48 "$EV/recovered-compaction.jsonl" 0 -f "$PROMPT_FILE_T"
+if [ "$RC" -eq 0 ] && [ "$OUT" = "f returns 42." ]; then
+    PASS "compaction followed by a completed answer is a successful dispatch"
+else
+    FAIL "compaction followed by a completed answer is a successful dispatch" "rc=$RC; stdout: $OUT; stderr: $ERR"
+fi
+
+# T49: provider-probe chatter on pi's stderr (the pi-llama localhost:8080
+# warning) stays on stderr and does not fail a completed answer.
+STREAM_STDERR="[llama-cpp] failed to reach http://localhost:8080/v1/models: fetch failed"
+run_stream t49 "$EV/readonly-answer.jsonl" 0 -f "$PROMPT_FILE_T"
+STREAM_STDERR=""
+if [ "$RC" -eq 0 ] && [ "$OUT" = "f returns 42." ] && grep -q "failed to reach" <<< "$ERR"; then
+    PASS "provider-probe chatter on stderr is kept apart from the event stream and is not a failure"
+else
+    FAIL "provider-probe chatter on stderr is kept apart from the event stream and is not a failure" "rc=$RC; stdout: $OUT; stderr: $ERR"
+fi
+
+# T50: a non-JSON line in the event stream fails, even with a later answer.
+run_stream t50 "$EV/malformed.jsonl" 0 -f "$PROMPT_FILE_T"
+if [ "$RC" -ne 0 ] && grep -q "malformed" <<< "$ERR"; then
+    PASS "a malformed event stream is a failed dispatch"
+else
+    FAIL "a malformed event stream is a failed dispatch" "rc=$RC; stdout: $OUT; stderr: $ERR"
+fi
+
+# T51: a stream that ends before agent_end fails.
+run_stream t51 "$EV/truncated.jsonl" 0 -j -f "$PROMPT_FILE_T"
+if [ "$RC" -ne 0 ] && grep -q "agent_end" <<< "$ERR"; then
+    PASS "an event stream cut off before agent_end is a failed dispatch"
+else
+    FAIL "an event stream cut off before agent_end is a failed dispatch" "rc=$RC; stdout: $OUT; stderr: $ERR"
+fi
+
+# T52: a terminal error stop fails and names pi's error message.
+run_stream t52 "$EV/error.jsonl" 0 -f "$PROMPT_FILE_T"
+if [ "$RC" -ne 0 ] && grep -q "stopReason error" <<< "$ERR" && grep -q "Connection error" <<< "$ERR"; then
+    PASS "a terminal error stop is a failed dispatch naming pi's error"
+else
+    FAIL "a terminal error stop is a failed dispatch naming pi's error" "rc=$RC; stdout: $OUT; stderr: $ERR"
+fi
+
+# T53: a stop with whitespace-only text is not an answer.
+run_stream t53 "$EV/blank-answer.jsonl" 0 -f "$PROMPT_FILE_T"
+if [ "$RC" -ne 0 ] && grep -q "no answer text" <<< "$ERR"; then
+    PASS "a final message with only whitespace text is a failed dispatch"
+else
+    FAIL "a final message with only whitespace text is a failed dispatch" "rc=$RC; stdout: $OUT; stderr: $ERR"
+fi
+
+# T54: pi's own nonzero exit wins even when its stream looks complete.
+run_stream t54 "$EV/readonly-answer.jsonl" 3 -f "$PROMPT_FILE_T"
+if [ "$RC" -eq 3 ]; then
+    PASS "pi's nonzero exit status is returned even after a complete-looking stream"
+else
+    FAIL "pi's nonzero exit status is returned even after a complete-looking stream" "rc=$RC; stdout: $OUT; stderr: $ERR"
+fi
+
+# T55: the hyphen-prompt stdin route is observed the same way.
+run_stream t55 "$EV/length-compaction.jsonl" 0 -f "$DASH_PROMPT_FILE_T"
+if [ "$RC" -ne 0 ] && [ "$(cat "$WORK/t55.stdin")" = "- [ ] say hi" ]; then
+    PASS "a hyphen-prefixed prompt still goes through stdin and an incomplete stream still fails"
+else
+    FAIL "a hyphen-prefixed prompt still goes through stdin and an incomplete stream still fails" "rc=$RC; stdin: $(cat "$WORK/t55.stdin" 2>/dev/null); stderr: $ERR"
+fi
+
+# T56: a caller's process-group timeout stops the wrapper, pi, the stream
+# observer and pi's own child writer together, after pi's events were
+# forwarded as they came rather than held until pi ended. The stub starts a
+# writer that would create a sentinel file 3 s later, prints 2000 events, then
+# hangs; the test kills the whole group as a `timeout` would.
+CANCEL_STUBDIR="$WORK/stub_cancel"
+mkdir -p "$CANCEL_STUBDIR"
+cp "$STUBDIR/mise" "$CANCEL_STUBDIR/mise"
+cat > "$CANCEL_STUBDIR/pi" <<'STUB'
+#!/bin/bash
+( sleep 3; echo late > "${STUB_SENTINEL:?}" ) &
+i=0
+while [ "$i" -lt 2000 ]; do
+    printf '%s\n' '{"type":"message_update","usage":{"input":1,"output":1},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}}'
+    i=$((i + 1))
+done
+sleep 30
+STUB
+chmod +x "$CANCEL_STUBDIR/pi"
+CANCEL_OUT="$WORK/t56.out"
+STUB_SENTINEL="$WORK/t56.sentinel" PI_CODING_AGENT_DIR="$CFGDIR_MISE" PATH="$CANCEL_STUBDIR:$PATH" \
+    python3 -c 'import os, sys; os.setpgrp(); os.execvp(sys.argv[1], sys.argv[1:])' \
+    bash "$QWEN_RUN_SH" -j -f "$PROMPT_FILE_T" < /dev/null > "$CANCEL_OUT" 2>/dev/null &
+CANCEL_PGID=$!
+i=0
+until [ "$(grep -c message_update "$CANCEL_OUT")" -ge 2000 ] || [ "$i" -ge 100 ]; do
+    i=$((i + 1))
+    sleep 0.1
+done
+FORWARDED="$(grep -c message_update "$CANCEL_OUT")"
+kill -TERM -- "-$CANCEL_PGID" 2>/dev/null
+wait "$CANCEL_PGID" 2>/dev/null
+sleep 4
+if [ "$FORWARDED" -ge 2000 ]; then
+    PASS "-j forwards pi's events while pi is still running (no accumulation until the end)"
+else
+    FAIL "-j forwards pi's events while pi is still running (no accumulation until the end)" "forwarded $FORWARDED of 2000 lines before the timeout"
+fi
+if kill -0 -- "-$CANCEL_PGID" 2>/dev/null; then
+    FAIL "a process-group timeout leaves no wrapper, pi, observer or writer running" "processes remain in group $CANCEL_PGID"
+    kill -KILL -- "-$CANCEL_PGID" 2>/dev/null
+else
+    PASS "a process-group timeout leaves no wrapper, pi, observer or writer running"
+fi
+if [ ! -e "$WORK/t56.sentinel" ]; then
+    PASS "pi's child writer makes no late write after the timeout"
+else
+    FAIL "pi's child writer makes no late write after the timeout" "sentinel was written after the group was killed"
 fi
 
 # ── summary ───────────────────────────────────────────────────────────────────
