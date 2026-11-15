@@ -513,6 +513,8 @@ def _check_run_shape(run, run_id: str, run_dir: Path) -> None:
     for engine in engines:
         if not isinstance(engine, dict) or "id" not in engine:
             fail("engine missing id")
+        if not isinstance(engine["id"], str):
+            fail("engine id is not a string")
     if "tasks" not in run:
         fail("missing tasks")
     tasks = run["tasks"]
@@ -521,10 +523,23 @@ def _check_run_shape(run, run_id: str, run_dir: Path) -> None:
     for task in tasks:
         if not isinstance(task, dict) or "id" not in task:
             fail("task missing id")
+        if not isinstance(task["id"], int) or isinstance(task["id"], bool):
+            fail("task id is not an integer")
+        for key in ("slug", "repo", "kind"):
+            if key not in task:
+                fail("task missing %s" % key)
     if "run_id" not in run:
         fail("missing run_id")
     if "started" not in run:
         fail("missing started")
+    for key in ("config", "versions", "server"):
+        if key not in run:
+            fail("missing %s" % key)
+        if not isinstance(run[key], dict):
+            fail("%s is not an object" % key)
+    for key in records.SERVER_KEYS:
+        if key not in run["server"]:
+            fail("server missing %s" % key)
 
 
 def render(root: Path, run_id: str) -> None:

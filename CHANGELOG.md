@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **create-prd**: `ground_prd.py` exits 2 with a clear message for an invalid `--root` or unreadable input; relative PRD paths are excluded relative to cwd.
 - **review-prd-backlog**: `check_links.py` no longer misreads UUID/dispatch-id fragments, quoted prior-run diagnostics, or backtick-wrapped `[[...]]` syntax examples and fenced "observed evidence" transcripts as dangling PRD or memory references.
 - **review-prd-backlog**: `check_links.py` scans a repository's home auto-memory files only when the root resolves to `~/.claude`, so broken references in external memory files no longer fail a clean repository check.
+- **use-qwen**: `render` refuses a `run.json` with a missing or mistyped task field, `config`, `versions`, `server` block or engine id with a one-line message instead of a Python traceback.
 - **glean**: `scan` no longer crashes when the host denies `stat` or `lstat` on an untracked dotfile (seen in an agent sandbox on `~/.python_history`); the file is listed as a candidate with an `unreadable` hint.
 - **glean**: directories over `MAX_DIR_FILES` now get a count+latest-mtime fallback fingerprint (`count_mtime`) instead of no fingerprint at all, so a skip/machine ledger decision on a large skipped directory stops resurfacing forever once it crosses the cap.
 
