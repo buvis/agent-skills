@@ -141,6 +141,26 @@ def test_memory_source_included_for_unresolved_claude_root_spellings(tmp_path, m
     assert any("vanished" in f[2] for f in findings_b)
 
 
+def test_memory_source_included_for_a_root_reached_through_a_symlink(tmp_path, monkeypatch):
+    """A symlink to ~/.claude resolves to the real root, so its memory files are scanned."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(Path, "home", lambda: home)
+    claude_root = home / ".claude"
+    make_tree(claude_root)
+    mem = check_links.project_memory_dir(claude_root)
+    mem.mkdir(parents=True)
+    (mem / "m.md").write_text("cites docs/dev/project-management/notes/vanished.md\n")
+    link = tmp_path / "via-link"
+    try:
+        link.symlink_to(claude_root, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks are not available")
+
+    findings, _ = check_links.run(link)
+    assert any("vanished" in f[2] for f in findings)
+
+
 def test_cli_clean_exit_for_ordinary_root_despite_dead_home_memory_refs(tmp_path, monkeypatch):
     """CLI regression: a clean ordinary repo exits 0 even though its home auto-memory file is broken."""
     home = tmp_path / "home"
@@ -154,6 +174,7 @@ def test_cli_clean_exit_for_ordinary_root_despite_dead_home_memory_refs(tmp_path
 
     env = dict(os.environ)
     env["HOME"] = str(home)
+    env["USERPROFILE"] = str(home)
     script = Path(check_links.__file__)
     result = subprocess.run(
         [sys.executable, str(script), "--root", str(ordinary_root), "--json"],
