@@ -6,10 +6,12 @@ import json
 import re
 import subprocess
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from types import ModuleType
 
 import corpus
 import funnel
+import pytest
 
 from funnel_test_helpers import FakeSessionData, make_transcript_parser_module, write_transcript
 
@@ -21,6 +23,51 @@ def test_write_report_names_the_file_with_the_timestamp_its_caller_supplied(tmp_
 
     assert out_path == report_dir / "distil-memory-20200102T030405Z.md"
     assert out_path.read_text() == "yield report body\n"
+
+
+def test_write_report_refuses_to_overwrite_a_report_that_already_has_the_name(tmp_path):
+    report_dir = tmp_path / "audit-results"
+    report_dir.mkdir()
+    existing = report_dir / "distil-memory-20200102T030405Z.md"
+    existing.write_bytes(b"an earlier run's report\n")
+
+    with pytest.raises(FileExistsError):
+        funnel._write_report("yield report body\n", report_dir, "20200102T030405Z")
+
+    assert existing.read_bytes() == b"an earlier run's report\n"
+
+
+def test_main_keeps_five_distinct_reports_for_five_runs_within_one_second(tmp_path, monkeypatch, capsys):
+    """The observed failure: rapid reruns all printed one timestamped path and
+    overwrote each other. The first run keeps the bare stamp; each later run in
+    the same second takes the next numeric suffix, and every earlier report
+    keeps its bytes."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(corpus, "select_transcripts", lambda **kwargs: [])
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (ModuleType("stub"), "0.2.2"))
+    monkeypatch.setattr(
+        funnel, "datetime", _counting_clock([], datetime(2020, 1, 2, 3, 4, 5, tzinfo=timezone.utc))
+    )
+    report_dir = tmp_path / "docs" / "dev" / "project-management" / "audit-results"
+    report_dir.mkdir(parents=True)
+    first = report_dir / "distil-memory-20200102T030405Z.md"
+    printed = []
+
+    for _ in range(5):
+        assert funnel.main(["--dry-run"]) == 0
+        printed.append(Path(capsys.readouterr().out.splitlines()[-1]).name)
+        if len(printed) == 1:
+            first.write_bytes(b"the first run's report, marked\n")
+
+    assert printed == [
+        "distil-memory-20200102T030405Z.md",
+        "distil-memory-20200102T030405Z-2.md",
+        "distil-memory-20200102T030405Z-3.md",
+        "distil-memory-20200102T030405Z-4.md",
+        "distil-memory-20200102T030405Z-5.md",
+    ]
+    assert sorted(p.name for p in report_dir.glob("distil-memory-*.md")) == sorted(printed)
+    assert first.read_bytes() == b"the first run's report, marked\n"
 
 
 def test_main_computes_one_utc_timestamp_for_the_run_and_hands_it_to_write_report(tmp_path, monkeypatch):

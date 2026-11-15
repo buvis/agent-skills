@@ -104,7 +104,8 @@ python3 ~/.agents/skills/distil-memory/scripts/funnel.py [--days N] [--all] [--p
    memory file on every proposal is the cost this two-step avoids.
 5. **Report** (`funnel.py:render_yield`): prints the yield report and
    writes it to `docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>.md`
-   (`%Y%m%dT%H%M%SZ`).
+   (`%Y%m%dT%H%M%SZ`). A rerun within the same second adds `-2`, `-3`, and
+   so on, so no run overwrites an earlier report or proposals directory.
 
 ## Yield report
 
@@ -134,7 +135,7 @@ that ran and yielded nothing reports `0`.
 Written to `docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>.md`. The
 distil stage writes
 `docs/dev/project-management/audit-results/distil-memory-<UTC timestamp>-proposals/` beside it,
-sharing the run's one timestamp: one `<name>.md` per proposal (the complete
+sharing the run's one timestamp and suffix: one `<name>.md` per proposal (the complete
 memory file) plus `proposals.json` and `discards.json`. That directory is
 published atomically - a reader sees a complete directory or none at all,
 never a partial one.

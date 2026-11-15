@@ -333,14 +333,33 @@ def _report_dir() -> Path:
     return root / "docs" / "dev" / "project-management" / "audit-results"
 
 
+def _select_run_id(report_dir: Path, timestamp: str) -> str:
+    """The run identity naming this run's report and proposals directory.
+
+    `timestamp` itself when neither of its artefacts exists yet, else the first
+    `<timestamp>-2`, `-3`, ... that is free for both, so a rerun within the
+    same second never lands on an earlier run's report or proposals. Both
+    names are checked together because they must share one identity.
+    """
+    run_id, number = timestamp, 2
+    while (report_dir / f"distil-memory-{run_id}.md").exists() or (
+        report_dir / f"distil-memory-{run_id}-proposals"
+    ).exists():
+        run_id, number = f"{timestamp}-{number}", number + 1
+    return run_id
+
+
 def _write_report(report: str, report_dir: Path, timestamp: str) -> Path:
     """Write `report` under report_dir named with the caller's `timestamp`
-    and return the path written. The stamp comes from the caller so every
-    artefact of one run carries the same one. Raises OSError if the
-    directory cannot be created or the file cannot be written."""
+    (the run identity) and return the path written. The stamp comes from the
+    caller so every artefact of one run carries the same one. The file is
+    created exclusively: a name another run took after this one chose it is
+    refused, never overwritten. Raises OSError if the directory cannot be
+    created or the file cannot be created or written."""
     report_dir.mkdir(parents=True, exist_ok=True)
     out_path = report_dir / f"distil-memory-{timestamp}.md"
-    out_path.write_text(report)
+    with out_path.open("x") as handle:
+        handle.write(report)
     return out_path
 
 
@@ -592,13 +611,14 @@ def main(argv: list[str] | None = None) -> int:
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_dir = _report_dir()
+    run_id = _select_run_id(report_dir, timestamp)
     distil_counts, distil_error, publish_error, published_dir = _distil_if_enabled(
-        args, survivors, triage_error, report_dir / f"distil-memory-{timestamp}-proposals"
+        args, survivors, triage_error, report_dir / f"distil-memory-{run_id}-proposals"
     )
     counts.update(distil_counts)
 
     return _report_outcome(
-        counts, report_dir, timestamp, (triage_error, distil_error, publish_error), published_dir
+        counts, report_dir, run_id, (triage_error, distil_error, publish_error), published_dir
     )
 
 
