@@ -124,4 +124,4 @@ is present in an interactive session.
 ## Non-goals
 
 Remote branch/tag lifecycle, history rewriting, secret scanning depth, CI
-config, cross-repo sweeps (run brush per repo; brief-portfolio reads state).
+config, cross-repo sweeps (run brush per repo).

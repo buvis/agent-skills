@@ -20,7 +20,7 @@ codex_rung_guard: not fired
 
 Scope: **incremental** — the rework commits from cycle 1's decision gate (tasks 4, 5, 6). 3 files, 47 insertions, 25 deletions. Bob resumed his cycle-1 codex thread (`--resume-thread 01a078a4-…`), so his verification of prior findings is against his own critique.
 
-pack: unavailable this cycle (`engram pack` exited 1: "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv"). `(no pack available this cycle)` was substituted for `{PACK_FILE}` and `{PACK_FINDINGS}` in every prompt that takes them. Same failure as cycle 1; it is a gita-registration gap, not a repo fault.
+pack: unavailable this cycle (`engram pack` exited 1: "not inside a registered repo; register it in ~/.config/gita/repos.csv"). `(no pack available this cycle)` was substituted for `{PACK_FILE}` and `{PACK_FINDINGS}` in every prompt that takes them. Same failure as cycle 1; it is a gita-registration gap, not a repo fault.
 
 ## Reviewers
 
@@ -63,7 +63,7 @@ No queue file written this cycle. Bob's single VERIFY item named the same three 
 
 - `uv run pytest` → exit 0 (1087 passed, 0 failed, 5 skipped)
 - `uv run python3 skills/create-skill/scripts/validate_skill.py skills/survey` → exit 0
-- `/Users/bob/.agents/bin/braid --check` → exit 0
+- `~/.agents/bin/braid --check` → exit 0
 
 Carl independently re-ran the first two plus `braid --check` during his own review and reported them green.
 

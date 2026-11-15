@@ -22,7 +22,7 @@ slot 5, with its raw test command narrowed to the two canonical test modules
 
 Kind: impl+test
 
-Repo: `/Users/bob/git/src/github.com/doogat/ddb` (Rust)
+Repo: `~/git/src/github.com/doogat/ddb` (Rust)
 PRD: `dev/local/prds/done/00169-poison-file-reindex-resilience-v1.md:172`
 
 Commit run: `7d72015..48b9925` (4 commits: `7d72015` test, `085f096` feat,
@@ -41,7 +41,7 @@ Raw test command:
     cargo test --manifest-path <tree>/Cargo.toml -p ddb-core --lib
 
 Run once at `<base-sha>` against the source tree
-(`cargo test --manifest-path /Users/bob/git/src/github.com/doogat/ddb/Cargo.toml -p ddb-core --lib`):
+(`cargo test --manifest-path ~/git/src/github.com/doogat/ddb/Cargo.toml -p ddb-core --lib`):
 **exit 0**, 1546 tests run, all `ok`.
 
 ## Required files
@@ -127,7 +127,7 @@ files from
 
 plus the hand-written `app_contract/mod.rs` hunk appended.
 
-`git -C /Users/bob/git/src/github.com/doogat/ddb apply --check -v <patch>`:
+`git -C ~/git/src/github.com/doogat/ddb apply --check -v <patch>`:
 clean, all 12 files.
 
 Pretask: b64d87b164b4da3ca2d333b40128bbd24ccbbcd4

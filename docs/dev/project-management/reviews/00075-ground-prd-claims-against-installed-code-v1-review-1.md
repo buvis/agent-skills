@@ -21,7 +21,7 @@ Diff range: `4acb735783e74f509f9c562e98816b11b96bbdf4..f169c266afdf46086ec2694d2
 
 codex_rung_guard: not fired
 
-pack: failed (engram pack exit 1: not inside a registered repo; run `gita add /Users/bob/git/src/github.com/buvis/agent-skills`)
+pack: failed (engram pack exit 1: not inside a registered repo; run `gita add ~/git/src/github.com/buvis/agent-skills`)
 
 Mechanical checks: 0 `[MECH]` findings (65 test functions checked in 2 test files; replay: 0 touched tests ran, 2 test files could not be collected at base).
 

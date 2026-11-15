@@ -16,3 +16,17 @@ def test_selftest_passes(name):
         capture_output=True, text=True, check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_check_trust_fails_loudly_without_document_skill(tmp_path):
+    scripts = tmp_path / "skills" / "review-abap-solution-documentation" / "scripts"
+    scripts.mkdir(parents=True)
+    copy = scripts / "check_trust.py"
+    copy.write_text((SCRIPTS / "check_trust.py").read_text(encoding="utf-8"), encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, "-B", str(copy), "--selftest"],
+        capture_output=True, text=True, check=False,
+        env={"HOME": str(tmp_path), "PATH": ""},
+    )
+    assert result.returncode != 0
+    assert "document-abap-solution" in result.stderr

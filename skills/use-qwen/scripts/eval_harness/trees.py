@@ -13,9 +13,11 @@ import posixpath
 import shutil
 import stat
 import subprocess
+import sys
 import tarfile
+import unicodedata
 from collections.abc import Iterator, Sequence
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 
 from eval_harness.runner import CommandResult, run_bounded
 
@@ -37,6 +39,12 @@ MISE_MARKERS = (".mise.toml", "mise.toml", ".tool-versions")
 _GIT_TIMEOUT_S = 120
 _APPLY_TIMEOUT_S = 120.0
 
+# The separator in link text this host reads back from disk. A module constant,
+# so a test can simulate another host without patching `os.sep` globally. It
+# governs reading only: `_lay_links_typed` and `_copytree_links_typed` write
+# with `os.sep`, so a simulated host needs the write side to be real too.
+_HOST_SEP = os.sep
+
 
 class TreeError(RuntimeError):
     """Raised when a tree, or a path inside one, is not one the harness may use."""
@@ -55,10 +63,14 @@ def _git(root: Path, *args: str, env: dict[str, str] | None = None) -> str:
     return done.stdout.rstrip("\n")
 
 
-def _git_bytes(root: Path, *args: str) -> bytes:
-    """Git's stdout in `root`, byte for byte: a patch is not a re-encoded string."""
+def _git_bytes(root: Path, *args: str, input: bytes | None = None) -> bytes:
+    """Git's stdout in `root`, byte for byte: a patch is not a re-encoded string.
+
+    `input`, when given, is written to git's stdin.
+    """
     done = subprocess.run(
         ["git", "-C", str(root), *args],
+        input=input,
         capture_output=True,
         check=True,
         timeout=_GIT_TIMEOUT_S,
@@ -79,7 +91,34 @@ def _walk(root: Path) -> Iterator[tuple[str, Path]]:
             yield path.relative_to(root).as_posix(), path
 
 
-def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()) -> str:
+def _fold(name: str) -> str:
+    """`name` as a name-merging host would key it, for comparison only.
+
+    A tar validated on one host is extracted on another, so the archive rules
+    have to judge for the host that merges names. Two mergings matter: case, so
+    that `A` and `a` are one place on macOS and Windows, and normalization form,
+    so that the composed and decomposed spellings of `é` are one place on APFS.
+
+    `str.lower`, not `str.casefold`: real filesystems do simple case folding,
+    and APFS and NTFS both keep `straße.txt` and `strasse.txt` as two files,
+    which full Unicode folding would merge. NFC rather than NFD because it is
+    the composed form most sources already emit; either direction works as long
+    as one is chosen and used on both sides of every comparison.
+
+    Comparison only: no separator handling and no `.`/`..` walking. Never write
+    or store the result.
+    """
+    return unicodedata.normalize("NFC", name).lower()
+
+
+def _land(
+    links: dict[str, str],
+    path: str,
+    active: frozenset[str] = frozenset(),
+    *,
+    fold: bool = False,
+    crossed: set[str] | None = None,
+) -> str:
     """Where `path` lands in a tree whose symlinks are `links` (relpath -> text).
 
     Followed hop by hop, each link from its own directory, the way the OS would
@@ -87,7 +126,15 @@ def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()
     `..` past the root is an escape and a link met again while it is still
     being followed is a cycle; both are refused as a TreeError, and the walk
     goes no deeper than the tree has distinct links.
+
+    `links` is always raw-keyed. With `fold=True` each hop is matched under
+    `_fold`, the way a name-merging host walks it, so a link pointing at such an
+    alias of itself is a cycle on that host. The landing returned keeps its raw
+    spelling either way - a folded value is a lookup key, never a path.
+    `crossed`, when given, collects the folded slot of every symlink the walk
+    passes through, at any depth and inside a link target's own resolution.
     """
+    keyed = {(_fold(key) if fold else key): key for key in links}
     landing = ""
     for name in Path(path).as_posix().split("/"):
         if name == ".":
@@ -98,17 +145,111 @@ def _land(links: dict[str, str], path: str, active: frozenset[str] = frozenset()
             landing = posixpath.dirname(landing)
             continue
         landing = posixpath.join(landing, name)
-        if landing not in links:
+        probe = _fold(landing) if fold else landing
+        if probe not in keyed:
             continue
-        if landing in active:
+        if crossed is not None:
+            crossed.add(probe)
+        if probe in active:
             raise TreeError("%s is a link cycle" % landing)
-        target = links[landing]
-        if posixpath.isabs(target) or PureWindowsPath(target).drive or target.startswith("\\"):
+        target = links[keyed[probe]]
+        if os.path.isabs(target) or _archive_name_escapes(target):
             raise TreeError("%s leaves the tree: %s" % (landing, target))
         landing = _land(
-            links, posixpath.join(posixpath.dirname(landing), target), active | {landing}
+            links, posixpath.join(posixpath.dirname(landing), target),
+            active | {probe}, fold=fold, crossed=crossed,
         )
     return landing
+
+
+def _archive_name_escapes(text: str) -> bool:
+    """True iff `text` (a member name or a symlink target, archive-domain
+    text - never a host path) names or reaches outside a tree root under
+    either the POSIX or the Windows path-reading rules.
+
+    Refuses, independent of the host OS:
+      - POSIX-absolute: starts with "/".
+      - Drive-absolute: matches `^[A-Za-z]:[/\\]`  (e.g. "C:\\x", "C:/x").
+      - Drive-relative: matches `^[A-Za-z]:[^/\\]` (e.g. "C:x") - no
+        leading separator after the drive letter.
+      - Rooted backslash: starts with "\\" but is not a UNC/extended prefix
+        below.
+      - UNC: starts with "\\\\" followed by a non-"?"/"." component
+        (`\\\\host\\share`).
+      - Extended-length prefixes: starts with "\\\\?\\" or "\\\\.\\".
+      - NTFS stream-like: a path component containing ":" after position 0
+        that is not the drive-letter colon already matched above (catches
+        `name:stream`) - checked on EVERY path component, not only the last.
+      - Any backslash at all, anywhere in the text: `"\\" in text`. `_land`
+        splits only on `/`, so a name like `sub\\..\\..\\outside\\file` is
+        one opaque component to it - no `/` means no `..`-climb is ever
+        seen - yet on an actual Windows filesystem `\\` IS a separator, so
+        the OS-level write this member eventually causes would climb for
+        real. Refusing any embedded backslash outright closes this.
+    Does not itself walk `..` segments - that stays `_land`'s job.
+    """
+    # Any backslash covers the rooted, UNC and extended-length forms; a colon
+    # past the first character of a component covers both drive forms (`C:`
+    # and `C:x` are components holding one) as well as an NTFS stream.
+    if text.startswith("/") or "\\" in text:
+        return True
+    return any(":" in component[1:] for component in text.split("/"))
+
+
+def _names_a_git_directory(text: str) -> bool:
+    """True iff a component of archive member name `text` is `.git` as some
+    host reads it: in any case, with trailing dots or spaces, or as the NTFS
+    short name `git~1`.
+
+    Git refuses to track such a path, so `git archive` never emits one. One
+    crafted into the archive would be extracted before `git init` and survive
+    it: a `.git/config` or hook in the sealed template runs in every clone.
+    """
+    return any(_fold(part).rstrip(". ") in (".git", "git~1") for part in text.split("/"))
+
+
+def _ancestor_crossing(members: Sequence[tarfile.TarInfo], links: dict[str, str]) -> None:
+    """Refuse any member whose path has an archive symlink as a proper
+    ancestor, judged on where that symlink itself *lands* - not on whether
+    its raw name textually prefixes the member's name.
+
+    `links` is the `{normalized member name: linkname}` map. Each symlink's own
+    location is its raw name with every segment but the last resolved through
+    `_land`, folded, so a chain of links earlier in its path redirects it in
+    full. Every proper prefix of every member's raw name is then landed the same
+    way, and the question is which symlink slots that walk crossed: a prefix
+    landed under `fold=True` dereferences the link it reaches, so the landing
+    alone can no longer say that it went through one.
+    """
+    symlink_landings: set[str] = set()
+    for member in members:
+        if member.issym():
+            segments = member.name.split("/")
+            symlink_landings.add(
+                _fold(
+                    posixpath.join(
+                        _land(links, "/".join(segments[:-1]), fold=True), segments[-1]
+                    )
+                )
+            )
+    for member in members:
+        segments = member.name.split("/")
+        for end in range(1, len(segments)):
+            crossed: set[str] = set()
+            _land(links, "/".join(segments[:end]), fold=True, crossed=crossed)
+            if crossed & symlink_landings:
+                raise TreeError("%s is beneath an archive symlink" % member.name)
+
+
+def _read_link(path: Path) -> str:
+    """The link text at `path` in slash form, as `_land` reads it.
+
+    Host-read text, not archive input: only the host's own separator becomes
+    `/`. On a `/` host the text is untouched, so a literal backslash in it is
+    still refused.
+    """
+    text = os.readlink(path)
+    return text if _HOST_SEP == "/" else text.replace(_HOST_SEP, "/")
 
 
 def _refuse_escaping_links(root: Path) -> None:
@@ -117,7 +258,7 @@ def _refuse_escaping_links(root: Path) -> None:
     `copytree(symlinks=True)` reproduces such a link faithfully, and a later
     write through it would reach the operator's own repository.
     """
-    links = {relpath: os.readlink(path) for relpath, path in _walk(root) if path.is_symlink()}
+    links = {relpath: _read_link(path) for relpath, path in _walk(root) if path.is_symlink()}
     for relpath in links:
         _land(links, relpath)
 
@@ -138,29 +279,213 @@ def _refuse_duplicate_or_crossing_members(members: Sequence[tarfile.TarInfo]) ->
     which one wins.
     """
     names = set()
-    originals: list[str] = []
+    folded = set()
     for member in members:
-        if posixpath.isabs(member.name) or PureWindowsPath(member.name).drive or member.name.startswith("\\"):
+        if _archive_name_escapes(member.name) or (
+            member.issym() and _archive_name_escapes(member.linkname)
+        ):
+            raise TreeError("%s names a place outside the tree" % member.name)
+        if os.path.isabs(member.name):
             raise TreeError("%s is absolute" % member.name)
+        if _names_a_git_directory(member.name):
+            raise TreeError("%s writes into a git directory" % member.name)
         if not (member.isfile() or member.isdir() or member.issym()):
             raise TreeError("%s is not a file, directory or symlink" % member.name)
         name = posixpath.normpath(member.name)
         if name in names:
             raise TreeError("%s is a duplicate member" % name)
+        # A name-merging filesystem lands these two names on one file.
+        if _fold(name) in folded:
+            raise TreeError("%s differs from another member only in case" % name)
         names.add(name)
-        originals.append(member.name)
+        folded.add(_fold(name))
     links = {posixpath.normpath(m.name): m.linkname for m in members if m.issym()}
+    _refuse_colliding_landings(members, links)
+    _ancestor_crossing(members, links)
+
+
+def _refuse_colliding_landings(members: Sequence[tarfile.TarInfo], links: dict[str, str]) -> None:
+    """Refuse two members that land in one place, or one beneath a file member."""
     landings: set[str] = set()
-    for member, original in zip(members, originals):
-        landing = _land(links, original)
-        # A symlink's own landing is wherever it points, by construction - not a
-        # second write to that place. Only content members (files, dirs) can
-        # collide over who writes last.
+    files: set[str] = set()
+    for member in members:
+        original = member.name
+        landing = _land(links, original, fold=True)
+        # Walked whole, a symlink lands wherever it points; the place it takes
+        # up itself is its own name, with only its parent walked.
         if member.issym():
-            continue
+            parent, _, last = original.rpartition("/")
+            landing = posixpath.join(_land(links, parent, fold=True), last)
         if landing in landings:
             raise TreeError("%s is a duplicate member" % original)
         landings.add(landing)
+        if member.isfile():
+            files.add(landing)
+    # A file at any ancestor of a landing: one of the two writes has to fail
+    # or replace the other, whichever comes first in the archive.
+    for landing in landings:
+        ancestor = posixpath.dirname(landing)
+        while ancestor:
+            if ancestor in files:
+                raise TreeError("%s is beneath a file member" % landing)
+            ancestor = posixpath.dirname(ancestor)
+
+
+def _safe_mode(mode: int) -> int:
+    """Strip setuid, setgid, sticky, and group/other write from a file mode.
+
+    Directory archive modes are ignored by the extractor.
+    """
+    return mode & ~(stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX | stat.S_IWGRP | stat.S_IWOTH)
+
+
+def _symlink_targets_a_directory(member: tarfile.TarInfo, members: Sequence[tarfile.TarInfo]) -> bool:
+    """`os.symlink`'s `target_is_directory` only matters on Windows, where a
+    link's reparse-point type is fixed at creation; the archive's own member
+    graph is the only sound source for it, never the link text alone.
+    """
+    links = {posixpath.normpath(m.name): m.linkname for m in members if m.issym()}
+    directories = {_fold(posixpath.normpath(m.name)) for m in members if m.isdir()}
+    directories.add(".")
+    for candidate in members:
+        parent = posixpath.dirname(posixpath.normpath(candidate.name))
+        while parent:
+            directories.add(_fold(parent))
+            parent = posixpath.dirname(parent)
+    parent = posixpath.dirname(member.name)
+    landing = _land(links, posixpath.join(parent, member.linkname), fold=True)
+    return _fold(posixpath.normpath(landing)) in directories
+
+
+def _extract_without_filter(
+    archive: tarfile.TarFile, dest: Path, members: Sequence[tarfile.TarInfo]
+) -> None:
+    """Extract `members` into `dest` with the policy `filter="data"` applies,
+    for a tarfile build with no `data_filter` at all.
+
+    The archive's uid, gid and owner names are never read: nothing here chowns,
+    whoever runs it. `members` holds no symlinks: `_lay_links_typed` lays
+    them once every file and directory exists.
+
+    Directory modes are ignored, as with `data_filter`: mkdir's default mode
+    and the process umask apply, including to implicitly created parents.
+    """
+    for member in members:
+        path = dest.joinpath(member.name)
+        try:
+            if member.isdir():
+                path.mkdir(parents=True, exist_ok=True)
+            elif member.isfile():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with archive.extractfile(member) as source, open(path, "wb") as target:
+                    shutil.copyfileobj(source, target)
+                # Owner read/write is floored on, the way `filter="data"`
+                # floors it, so a member mode of 0 still leaves the file one
+                # `git add` can read back.
+                os.chmod(path, _safe_mode(member.mode) | stat.S_IRUSR | stat.S_IWUSR)
+        except OSError as cause:
+            raise TreeError(f"{member.name}: {cause}") from cause
+
+
+def _set_index_modes(staging: Path, members: Sequence[tarfile.TarInfo]) -> None:
+    """Set the index mode of every regular-file member from its archive mode.
+
+    Read off the archive, never off the disk: a host where git ignores the
+    filesystem mode (`core.filemode=false`) records whatever landed as 100644.
+    Only the user's exec bit decides. `--chmod` with no path is a usage error,
+    so an empty group is skipped. A member the extracted `.gitignore` kept out
+    of the index stays out: `--chmod` refuses an untracked path.
+    """
+    listing = _git_bytes(staging, "ls-files", "-z").split(b"\0")
+    tracked = {name.decode("utf-8", "surrogateescape") for name in listing}
+    files = [member for member in members if member.isfile() and member.name in tracked]
+    for flag, paths in (
+        ("+x", [m.name for m in files if m.mode & stat.S_IXUSR]),
+        ("-x", [m.name for m in files if not m.mode & stat.S_IXUSR]),
+    ):
+        if paths:
+            # NUL-terminated on stdin, never on the command line: Windows caps
+            # a command line, and a thousand paths would pass it.
+            _git_bytes(
+                staging,
+                "update-index",
+                "--chmod=%s" % flag,
+                "-z",
+                "--stdin",
+                input=b"".join(path.encode("utf-8", "surrogateescape") + b"\0" for path in paths),
+            )
+
+
+def _lay_links_typed(dest: Path, members: Sequence[tarfile.TarInfo]) -> None:
+    """Create every symlink member under `dest`, in archive order, once every
+    file and directory member already exists there.
+
+    Windows types a link as a file or a directory when it is made, and tarfile
+    types it as a file whatever it names; the type comes from the archive's own
+    member graph. Windows also stores relative text verbatim, and a `/` in it
+    leaves the link unreadable, so the text is written in host-separator form:
+    separators only, every hop preserved.
+    """
+    for member in members:
+        if not member.issym():
+            continue
+        path = dest.joinpath(member.name)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            os.symlink(
+                member.linkname.replace("/", os.sep), path,
+                target_is_directory=_symlink_targets_a_directory(member, members),
+            )
+        except OSError as cause:
+            raise TreeError(f"{member.name}: {cause}") from cause
+
+
+def _extract_bundle(bundle: bytes, staging: Path) -> list[tarfile.TarInfo]:
+    """Extract the tar `bundle` into `staging`, and answer its members.
+
+    Files and directories first, through `filter="data"` where this tarfile
+    has one; the vetted links last, typed and in host-separator form.
+    """
+    with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
+        # Read off the archive rather than off an extracted tree: a host that
+        # cannot create a symlink at all still has to refuse one that escapes,
+        # and refusing here leaves no half-built template behind.
+        members = archive.getmembers()
+        _refuse_duplicate_or_crossing_members(members)
+        ordinary = [member for member in members if not member.issym()]
+        if callable(getattr(tarfile, "data_filter", None)):
+            try:
+                archive.extractall(staging, members=ordinary, filter="data")
+            except (tarfile.FilterError, OSError) as cause:
+                raise TreeError("extraction failed: %s" % cause) from cause
+        else:
+            _extract_without_filter(archive, staging, ordinary)
+    _lay_links_typed(staging, members)
+    return members
+
+
+def _topmost_missing_ancestor(path: Path) -> Path | None:
+    """The highest directory in `path`'s chain that does not exist yet, or `None`."""
+    missing = None
+    probe = path
+    while not probe.exists():
+        missing = probe
+        probe = probe.parent
+    return missing
+
+
+def _seal_template(staging: Path, members: Sequence[tarfile.TarInfo]) -> str:
+    """Commit the staged tree with a stable date and the archive's own
+    executable bits, translating git failures."""
+    dated = {**os.environ, "GIT_AUTHOR_DATE": SEAL_DATE, "GIT_COMMITTER_DATE": SEAL_DATE}
+    try:
+        _git(staging, *IDENTITY, "init")
+        _git(staging, "add", "-A")
+        _set_index_modes(staging, members)
+        _git(staging, *IDENTITY, "commit", "-m", "sealed pre-task tree", env=dated)
+        return head_sha(staging)
+    except (OSError, subprocess.SubprocessError) as cause:
+        raise TreeError("template seal failed: %s" % cause) from cause
 
 
 def build_template(repo: Path, first: str, dest: Path) -> str:
@@ -168,46 +493,97 @@ def build_template(repo: Path, first: str, dest: Path) -> str:
 
     The commit handed in is the one sealed, never the repo's current head: work
     that landed after the task must not reach the tree the task is measured on.
+
+    Raises TreeError, and leaves `dest` exactly as it was, if anything - a file,
+    a directory (empty or not), or a dangling symlink - already sits at `dest`
+    before extraction starts.
     """
     bundle = _git_bytes(repo, "archive", "--format=tar", "%s^" % first)
     dest = Path(dest)
-    dest.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(fileobj=io.BytesIO(bundle)) as archive:
-        # Read off the archive rather than off an extracted tree: a host that
-        # cannot create a symlink at all still has to refuse one that escapes,
-        # and refusing here leaves no half-built template behind.
-        members = archive.getmembers()
-        _refuse_duplicate_or_crossing_members(members)
-        links = {member.name: member.linkname for member in members if member.issym()}
-        # tarfile creates file symlinks on Windows, even for directory targets.
-        # Extract ordinary members first, then use the vetted final landing to
-        # supply the directory flag, including forward references and chains.
-        ordinary_members = [member for member in members if not member.issym()]
-        if hasattr(tarfile, "data_filter"):
-            archive.extractall(dest, members=ordinary_members, filter="data")
-        else:
-            archive.extractall(dest, members=ordinary_members)
-        for name, target in links.items():
-            where = dest / name
-            where.parent.mkdir(parents=True, exist_ok=True)
-            landing = dest / _land(links, name)
-            # Windows stores relative targets verbatim: forward slashes make
-            # the link unreadable. Change separators only; preserve every hop.
-            os.symlink(target.replace("/", os.sep), where, target_is_directory=landing.is_dir())
-    _git(dest, *IDENTITY, "init")
-    _git(dest, "add", "-A")
-    # Dated by a constant, never by the clock: the sha is signed into pretask.json, and the
-    # same tree sealed a second later has to carry the same one.
-    dated = {**os.environ, "GIT_AUTHOR_DATE": SEAL_DATE, "GIT_COMMITTER_DATE": SEAL_DATE}
-    _git(dest, *IDENTITY, "commit", "-m", "sealed pre-task tree", env=dated)
-    return head_sha(dest)
+    if os.path.lexists(dest):
+        raise TreeError(f"{dest} already exists")
+    # Built and sealed beside `dest`, then renamed into place: a failure at any
+    # step leaves no half-built template where the caller looks for one.
+    staging = dest.parent / (dest.name + ".staging-" + os.urandom(4).hex())
+    # staging.mkdir(parents=True) may create dest's absent ancestors; a
+    # failed build must remove those too, or a refusal leaves them behind.
+    created_ancestor = _topmost_missing_ancestor(dest.parent)
+    try:
+        try:
+            staging.mkdir(parents=True)
+        except OSError as cause:
+            raise TreeError("%s could not be staged: %s" % (staging, cause)) from cause
+        sealed = _seal_template(staging, _extract_bundle(bundle, staging))
+        try:
+            staging.rename(dest)
+        except OSError as cause:
+            raise TreeError("%s could not be published: %s" % (dest, cause)) from cause
+    except BaseException as original:
+        # A cleanup that fails must not mask why the build failed: the original
+        # is raised, with the cleanup failure as its `__context__`.
+        try:
+            _discard_build(staging, created_ancestor)
+        except Exception:
+            raise original
+        raise
+    return sealed
+
+
+def _discard_build(staging: Path, created_ancestor: Path | None) -> None:
+    """Remove a failed build's staging and any ancestor directory it created."""
+    for path in (staging, created_ancestor):
+        if path is not None and os.path.lexists(path):
+            _remove_tree(path)
+
+
+def _remove_tree(path: Path) -> None:
+    """Remove `path` and everything under it, clearing the read-only bit of an
+    entry that refuses removal and retrying it once.
+
+    Windows refuses to delete a read-only file, and git writes its own objects
+    read-only. A retry that fails again raises its own error: a cleanup that
+    could not finish must not pass for one that did.
+    """
+
+    def clear_readonly_and_retry(func, failing, _exc) -> None:
+        os.chmod(failing, stat.S_IWRITE)
+        func(failing)
+
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=clear_readonly_and_retry)
+    else:
+        shutil.rmtree(path, onerror=clear_readonly_and_retry)
 
 
 def fresh_clone(template: Path, dest: Path) -> Path:
     """Copy the sealed template to `dest`, bytes and symlinks alike."""
     _refuse_escaping_links(Path(template))
-    shutil.copytree(template, dest, symlinks=True)
+    _copytree_links_typed(Path(template), Path(dest))
     return Path(dest)
+
+
+def _copytree_links_typed(template: Path, dest: Path) -> None:
+    """Copy every file and directory of `template`, then lay its links, each
+    typed as a directory where the template's own link reaches one.
+
+    Typing off the template, never the half-built copy, makes the type right
+    whatever order the links are laid in. The text is written in host-separator
+    form: on Windows a link spelled with `/` does not resolve through a chain.
+    """
+    links: list[str] = []
+
+    def skip_links(directory: str, names: list[str]) -> list[str]:
+        skipped = [name for name in names if os.path.islink(os.path.join(directory, name))]
+        links.extend(os.path.join(directory, name) for name in skipped)
+        return skipped
+
+    shutil.copytree(template, dest, symlinks=True, ignore=skip_links)
+    for link in links:
+        os.symlink(
+            _read_link(Path(link)).replace("/", os.sep),
+            dest / os.path.relpath(link, template),
+            target_is_directory=os.path.isdir(link),
+        )
 
 
 def _digest(path: Path) -> str:
@@ -283,19 +659,19 @@ def contained(root: Path, relpath: str) -> Path:
     This guards where a write lands, so a path the tree does not hold yet is
     legal and comes back to be written. What is refused is leaving the tree:
     an absolute path, a climb out of it, or a walk through a link that points
-    outside - never a name that merely reads like one.
+    outside - never a name that merely reads like one. Judged the same way
+    the write-side ancestor walk is: by landing `relpath` through `root`'s own
+    links map via `_land`, never by resolving the path through the OS and
+    comparing prefixes, which a Windows-shaped link target (an absolute drive
+    or UNC path `Path.resolve()` would leave untouched on a POSIX host) can
+    walk straight past.
     """
     if os.path.isabs(relpath):
         raise TreeError("%s is absolute" % relpath)
-    destination = Path(root) / relpath
-    if os.name == "nt":
-        # Windows can lexically collapse `alias/..` before following alias.
-        # Vet link text explicitly so this cannot conceal a tree escape.
-        links = {name: os.readlink(path) for name, path in _walk(Path(root)) if path.is_symlink()}
-        _land(links, relpath)
-    if not destination.resolve().is_relative_to(Path(root).resolve()):
-        raise TreeError("%s lands outside the tree" % relpath)
-    return destination
+    root = Path(root)
+    links = {name: _read_link(path) for name, path in _walk(root) if path.is_symlink()}
+    landing = _land(links, relpath)
+    return root / landing
 
 
 def overlay_oracle(evidence_dir: Path, clone: Path, oracle: Sequence[str]) -> None:

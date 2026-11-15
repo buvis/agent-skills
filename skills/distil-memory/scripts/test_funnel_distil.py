@@ -7,6 +7,7 @@ import subprocess
 import dedup
 import distil
 import funnel
+import portable
 import proposal
 import pytest
 
@@ -141,6 +142,35 @@ def test_main_with_distil_and_dry_run_distils_nothing_and_says_so_on_stderr(make
     for label in _DISTIL_LABELS:
         assert f"{label}: n/a" in captured.out
     assert list(built.audit_dir.glob("*-proposals")) == []
+
+
+def test_main_with_distil_publishes_no_home_prefix_in_its_report_or_manifests(
+    make_corpus, monkeypatch, capsys, tmp_path, isolate_home
+):
+    """The report and both manifests are repository documents. With the corpus
+    under the operator's home, the manifests name the transcript home-relative
+    and the report names its proposals directory repo-relative, and each still
+    resolves to the real location."""
+    built = make_corpus(slice_texts=(_SLICE_ONE, _SLICE_THREE))
+    isolate_home(tmp_path)
+    monkeypatch.setattr(
+        funnel.subprocess,
+        "run",
+        FakeClaudeCli({_SLICE_ONE: _PROPOSAL_ONE, _SLICE_THREE: _DISCARD_ANSWER}),
+    )
+
+    assert funnel.main(["--distil"]) == 0
+    capsys.readouterr()
+
+    out_dir, records, discards = _published(built.audit_dir)
+    portable_form = "~/claude_projects/aaaa-myproj/t1.jsonl"
+    assert [record["transcript"] for record in records] == [portable_form]
+    assert [discard["transcript"] for discard in discards] == [portable_form]
+    assert portable.local_path(portable_form) == built.transcript
+    (report,) = built.audit_dir.glob("distil-memory-*.md")
+    report_text = report.read_text()
+    assert str(tmp_path) not in report_text
+    assert f"This run's proposals are in {out_dir.relative_to(tmp_path)}." in report_text
 
 
 def test_main_with_distil_publishes_the_proposals_directory_and_reports_integer_counts(

@@ -482,10 +482,10 @@ def test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs(
 ):
     # Real clock, real hung search process. The fake rg on PATH sleeps 5s in
     # repo_b and prints one hit anywhere else. scan() must stop waiting at
-    # the 1s deadline and must not wait out the still-running search on
+    # the 2s deadline and must not wait out the still-running search on
     # the way out: the deadline kills it, so pool shutdown stays prompt.
     # Fresh shim launches measured above 0.3s even for the fast repos;
-    # leave startup room while keeping the 2s return bound below the 5s hang.
+    # leave startup room while keeping the 4s return bound below the 5s hang.
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     shim = bin_dir / "rg"
@@ -504,12 +504,13 @@ def test_scan_returns_promptly_past_the_deadline_while_a_repo_still_hangs(
     repo_a, repo_b, repo_c = repos = _make_repos(tmp_path, ["repo_a", "repo_b", "repo_c"])
 
     started = time.monotonic()
+    # 2s, not 1s: full-suite load pushed fresh shim launches past a 1s budget.
     hits, _suppressed, failed = sweep.scan(
-        "PARALLELMARKER", "rg", repos, deadline=1
+        "PARALLELMARKER", "rg", repos, deadline=2
     )
     elapsed = time.monotonic() - started
 
-    assert elapsed < 2  # far short of the hung search's own 5s sleep
+    assert elapsed < 4  # still short of the hung search's own 5s sleep
     assert failed == {str(repo_b): sweep.DEADLINE_REASON}
     assert [h["repo"] for h in hits] == [str(repo_a), str(repo_c)]
 
@@ -629,11 +630,13 @@ def test_scan_kills_a_hung_search_and_its_grandchild_at_the_deadline_and_keeps_f
     started = time.monotonic()
     # The fast repo has 2 hits: cap=1 proves the per-repo cap still applies
     # on a run the deadline cut short.
-    hits, suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, cap=1, deadline=1)
+    # A 3s deadline leaves room for shell startup under full-suite load (1s let
+    # the fast repo miss it); the slow shim's 10s sleep still cannot finish.
+    hits, suppressed, failed = sweep.scan("PARALLELMARKER", "rg", repos, cap=1, deadline=3)
     elapsed = time.monotonic() - started
     spawned = _recorded_pids(shim_pid_dir, "shim") + _recorded_pids(shim_pid_dir, "grandchild")
 
-    assert elapsed < 3  # 1s deadline + 2s cleanup tolerance; the shim sleeps 10s
+    assert elapsed < 5  # 3s deadline + 2s cleanup tolerance; the shim sleeps 10s
     assert failed == {str(repo_slow): sweep.DEADLINE_REASON}
     assert suppressed == {str(repo_fast): 1}
     assert [(h["repo"], h["line"]) for h in hits] == [(str(repo_fast), 1)]
@@ -656,11 +659,12 @@ def test_scan_kills_a_hung_ast_grep_search_and_its_grandchild_at_the_deadline(
     (repo_slow / "sample.py").write_text("print(1)\n")
 
     started = time.monotonic()
-    hits, suppressed, failed = sweep.scan("print($X)", "astgrep", repos, deadline=1)
+    # 3s, not 1s: under full-suite load the shim may not reach its fork in 1s.
+    hits, suppressed, failed = sweep.scan("print($X)", "astgrep", repos, deadline=3)
     elapsed = time.monotonic() - started
     spawned = _recorded_pids(shim_pid_dir, "shim") + _recorded_pids(shim_pid_dir, "grandchild")
 
-    assert elapsed < 3  # 1s deadline + 2s cleanup tolerance; the shim sleeps 10s
+    assert elapsed < 5  # 3s deadline + 2s cleanup tolerance; the shim sleeps 10s
     assert (hits, suppressed) == ([], {})
     assert failed == {str(repo_slow): sweep.DEADLINE_REASON}
     assert _recorded_pids(shim_pid_dir, "grandchild")  # the shim really ran

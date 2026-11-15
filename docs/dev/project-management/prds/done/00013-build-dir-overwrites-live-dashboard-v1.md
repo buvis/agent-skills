@@ -27,7 +27,7 @@ off `--dir`.
 Inputs came from scratch (the epics.json warning names the scratch path),
 output went home:
 WARN: /…/T/agoge-walter/j4/epics.json not found
-then: wrote /Users/bob/.local/share/agents/portfolio-brief/portfolio-brief.html (345 kB)
+then: wrote ~/.local/share/agents/portfolio-brief/portfolio-brief.html (345 kB)
 The operator's real 691295-byte file was replaced. The sibling skill prints
 `--out OUT   output html (default: <dir>/debrief.html)`.
 ```

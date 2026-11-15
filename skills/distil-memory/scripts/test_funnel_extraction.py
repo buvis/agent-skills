@@ -100,6 +100,24 @@ def test_iter_entries_yields_valid_lines_in_order_with_one_indexed_line_numbers_
     ]
 
 
+@pytest.mark.parametrize("separator", [chr(0x2028), chr(0x2029), chr(0x85)], ids=["LS", "PS", "NEL"])
+def test_iter_entries_splits_only_on_newline_so_unicode_line_separators_inside_strings_keep_the_entry(
+    tmp_path, separator
+):
+    """JSON lets these characters stand raw inside a string, and real
+    transcripts carry them. str.splitlines() breaks a line at each of them,
+    turning one valid entry into two invalid halves that are silently dropped."""
+    entry = {"type": "assistant", "message": {"content": [{"type": "text", "text": f"we measured{separator}it"}]}}
+    path = tmp_path / "transcript.jsonl"
+    path.write_bytes(
+        (json.dumps(entry, ensure_ascii=False) + "\n" + json.dumps({"type": "user"}) + "\n").encode("utf-8")
+    )
+
+    result = list(funnel._iter_entries(path))
+
+    assert result == [(1, entry), (2, {"type": "user"})]
+
+
 def test_assistant_text_blocks_returns_single_element_list_when_content_is_a_plain_string():
     entry = {"type": "assistant", "message": {"content": "just a plain string reply"}}
 

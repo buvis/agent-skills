@@ -58,7 +58,9 @@ docs/dev/project-management/prds/backlog/
 
 ### Phase 0: Record the decision
 
-- [ ] Resolve as decision-only. Verify this record states the same-commit reminder, preserves history, and creates no new hook or policy-file work. Record completion as an applied decision rather than a code fix.
+- [x] Resolve as decision-only. Verify this record states the same-commit reminder, preserves history, and creates no new hook or policy-file work. Record completion as an applied decision rather than a code fix.
+
+Resolution (2026-11-15): applied decision, not a code fix. This record states the same-commit reminder, leaves history, tags, and release notes untouched, and adds no hook or policy-file change. The audit minute lives in the local audit report, which this public repository does not ship.
 
 Exit criteria: The accepted reminder has a durable PRD reference and audit minute. No runtime tests are required for this record.
 

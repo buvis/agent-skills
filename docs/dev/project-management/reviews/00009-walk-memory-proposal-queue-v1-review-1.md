@@ -30,7 +30,7 @@ autopilot commits directly onto `master` in this repo, so the script's default
 prescribes. No prior review file exists for this PRD; this is cycle 1.
 
 **Context pack: unavailable this cycle.** `engram pack` failed twice with
-`not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv`.
+`not inside a registered repo; register it in ~/.config/gita/repos.csv`.
 Per the skill this is non-fatal: `(no pack available this cycle)` was substituted
 for `{PACK_FILE}` and `{PACK_FINDINGS}` in every prompt that takes them. The
 review is degraded by the missing retrieval context, not invalid.

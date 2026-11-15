@@ -23,7 +23,7 @@ Diff range: `bde94d7872861cf65a1e3d11028bd377398dba18..217017a35926d8f36c6b45c54
 
 codex_rung_guard: not fired
 
-pack: failed (engram pack exit 1: not inside a registered repo; run `gita add /Users/bob/git/src/worktrees/agent-skills/prd-00079-survey-split`)
+pack: failed (engram pack exit 1: not inside a registered repo; run `gita add ~/git/src/worktrees/agent-skills/prd-00079-survey-split`)
 
 Mechanical checks: 0 `[MECH]` findings (34 test functions checked in 3 test files, 0 tautological shapes). Fail-first replay skipped: the runner hit `ModuleNotFoundError: No module named 'survey_test_helpers'` overlaying HEAD's tests on the base worktree, which lacks the new helper module. For a pure test move this is expected; Alice and Blake each confirmed body-hash equivalence against master instead.
 

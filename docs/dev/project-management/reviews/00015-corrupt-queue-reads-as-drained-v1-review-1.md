@@ -18,7 +18,7 @@ Diff range: `aaf190cae3aaf35b94b9c75518e46ca7750333ef..5ef8be11fdc299d360d553f0a
 
 codex_rung_guard: not fired
 
-pack: unavailable (`engram pack` exited 1 twice — "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv"). `{PACK_FILE}` and `{PACK_FINDINGS}` were substituted with `(no pack available this cycle)`. The review is degraded by the missing retrieval context, not invalid.
+pack: unavailable (`engram pack` exited 1 twice — "not inside a registered repo; register it in ~/.config/gita/repos.csv"). `{PACK_FILE}` and `{PACK_FINDINGS}` were substituted with `(no pack available this cycle)`. The review is degraded by the missing retrieval context, not invalid.
 
 ## Review Summary
 

@@ -61,7 +61,7 @@
     "severity": "low",
     "issue": "Cannot statically verify: pytest, skill validation, and braid checks pass",
     "file": "N/A",
-    "reason": "Resolved in-cycle with recorded evidence at this exact HEAD (1f70ca5b): `uv run pytest` exit 0 (1086 passed, 0 failed, 5 skipped) and `validate_skill.py skills/survey` exit 0, both from dev/local/autopilot/last-verification.json; `braid --check` run this cycle at /Users/bob/.agents/bin/braid reported '0 linked, 76 current, 20 ignored, 0 removed, 0 backed up, 0 drift'. The work phase's recorded exit 127 for a bare `braid --check` was PATH resolution, not a repo fault."
+    "reason": "Resolved in-cycle with recorded evidence at this exact HEAD (1f70ca5b): `uv run pytest` exit 0 (1086 passed, 0 failed, 5 skipped) and `validate_skill.py skills/survey` exit 0, both from dev/local/autopilot/last-verification.json; `braid --check` run this cycle at ~/.agents/bin/braid reported '0 linked, 76 current, 20 ignored, 0 removed, 0 backed up, 0 drift'. The work phase's recorded exit 127 for a bare `braid --check` was PATH resolution, not a repo fault."
   },
   {
     "cycle": 1,
@@ -85,6 +85,6 @@
     "severity": "low",
     "issue": "Cannot statically verify: cycle-2 tests, skill validation, and braid checks pass",
     "file": "N/A",
-    "reason": "Resolved in-cycle with recorded evidence at this exact reviewed HEAD (0c02b2fe, dev/local/autopilot/last-verification.json): `uv run pytest` exit 0 (1087 passed, 0 failed, 5 skipped), `validate_skill.py skills/survey` exit 0, `/Users/bob/.agents/bin/braid --check` exit 0. Carl independently re-ran all three during his own review and reported them green. Bob raises this line every cycle because his sandbox forbids execution; it is a sandbox limitation, not a defect."
+    "reason": "Resolved in-cycle with recorded evidence at this exact reviewed HEAD (0c02b2fe, dev/local/autopilot/last-verification.json): `uv run pytest` exit 0 (1087 passed, 0 failed, 5 skipped), `validate_skill.py skills/survey` exit 0, `~/.agents/bin/braid --check` exit 0. Carl independently re-ran all three during his own review and reported them green. Bob raises this line every cycle because his sandbox forbids execution; it is a sandbox limitation, not a defect."
   }
 ]

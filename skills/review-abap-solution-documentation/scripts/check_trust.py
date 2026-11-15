@@ -23,6 +23,26 @@ from datetime import datetime
 from pathlib import Path
 from typing import NamedTuple
 
+
+def _load_shared_idents():
+    """Import the identifier helper owned by document-abap-solution: the
+    sibling skill dir first (in-repo, and symlinked installs resolve there),
+    then ~/.agents/skills. Fail loudly when the skill is not installed."""
+    rel = Path("document-abap-solution") / "scripts"
+    roots = [Path(__file__).resolve().parents[2], Path.home() / ".agents" / "skills"]
+    for root in roots:
+        if (root / rel / "abap_idents.py").is_file():
+            sys.path.insert(0, str(root / rel))
+            from abap_idents import custom_idents
+            return custom_idents
+    raise SystemExit(
+        "check_trust.py needs the document-abap-solution skill "
+        "(~/.agents/skills/document-abap-solution/scripts/abap_idents.py); "
+        "install it and re-run -- the identifier checks cannot be skipped")
+
+
+custom_idents = _load_shared_idents()
+
 # ─── Types ─────────────────────────────────────────────────────────────────────
 
 class Finding(NamedTuple):
@@ -40,15 +60,6 @@ class Finding(NamedTuple):
 DOC_FILES = ["README.md", "architecture.md", "quick-start.md",
              "cookbook.md", "reference.md", "quick-reference.md"]
 
-# Custom ABAP identifiers: Z-prefixed, Y-prefixed (must contain an underscore, so
-# ordinary Y-words in prose do not match), and /NAMESPACE/NAME. The namespace
-# branch is case-sensitive so file paths like /usr/bin never match.
-IDENT_RE = re.compile(
-    r"(?<![A-Za-z0-9_/])(?:"
-    r"Z[A-Z0-9_]{6,}"
-    r"|Y(?=[A-Z0-9]*_)[A-Z0-9_]{6,}"
-    r"|(?-i:/[A-Z][A-Z0-9_]{1,9}/)[A-Z0-9_]{6,}"
-    r")(?![A-Za-z0-9_])", re.I)
 FETCH_TS_RE = re.compile(
     r'"?\s*Fetched:\s*\S+\s+(\d{4}-\d{2}-\d{2}T?\d{2}:\d{2})', re.I)
 ABAP_BLOCK_RE = re.compile(
@@ -77,7 +88,7 @@ def read(path: Path) -> str:
 
 def extract_identifiers(text: str) -> set[str]:
     """Extract all custom identifiers: Z, Y, /NAMESPACE/ (normalized to upper)."""
-    return {m.upper() for m in IDENT_RE.findall(text)}
+    return set(custom_idents(text, 6))
 
 
 def extract_counts(text: str, label: str = "") -> dict[str, list[int]]:

@@ -205,24 +205,39 @@ def _prefix_match(a: tuple[str, ...], b: tuple[str, ...]) -> bool:
     return True
 
 
+def _candidate_signature(key: tuple[str, ...]) -> tuple[str, ...]:
+    """Cheap invariant of `_prefix_match`: two keys that match share it. Per token it
+    is the whole token when numeric (numbers only match themselves), else the first
+    letter (an equal token or an initial both start with it)."""
+    return tuple(t if t.isdigit() else t[0] for t in key)
+
+
 def canonicalize(names: list[str]) -> tuple[dict[str, str], list[dict]]:
-    """Map every raw speaker string to one display name. Returns (mapping, merges)."""
+    """Map every raw speaker string to one display name. Returns (mapping, merges).
+
+    A new label is checked only against the groups sharing its candidate signature,
+    in creation order, so the first compatible group wins exactly as in a scan of
+    all groups. Labels that share a signature (same initials) are still compared
+    pairwise, so many names with identical initials stay quadratic."""
     counts: dict[str, int] = defaultdict(int)
     for name in names:
         counts[name] += 1
     groups: dict[tuple[str, ...], list[str]] = {}
+    by_signature: dict[tuple[str, ...], list[tuple[str, ...]]] = defaultdict(list)
     merges: list[dict] = []
     for raw in sorted(counts, key=lambda n: (-counts[n], n)):
         key = name_key(raw)
+        signature = _candidate_signature(key)
         hit = key if key in groups else None
         if hit is None:
-            hit = next((k for k in groups if _prefix_match(k, key)), None)
+            hit = next((k for k in by_signature[signature] if _prefix_match(k, key)), None)
             if hit is not None:
                 merges.append(
                     {"kind": "speaker-merge", "from": raw, "to": groups[hit][0]},
                 )
         if hit is None:
             groups[key] = [raw]
+            by_signature[signature].append(key)
         else:
             groups[hit].append(raw)
     mapping: dict[str, str] = {}

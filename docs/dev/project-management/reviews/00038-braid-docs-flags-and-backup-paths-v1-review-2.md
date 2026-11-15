@@ -18,7 +18,7 @@ Diff range: `a2cf29c6af040960b2688e24e11262d9675d1aa8..2bca306641dddee0bd8740c52
 
 codex_rung_guard: not fired
 
-pack: unavailable this cycle (`engram pack` exited 1: "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv"). Every prompt that takes `{PACK_FILE}`/`{PACK_FINDINGS}` received the `(no pack available this cycle)` sentinel. The review is degraded on retrieval context, not invalid. Same deterministic config failure as cycle 1, so no retry was spent.
+pack: unavailable this cycle (`engram pack` exited 1: "not inside a registered repo; register it in ~/.config/gita/repos.csv"). Every prompt that takes `{PACK_FILE}`/`{PACK_FINDINGS}` received the `(no pack available this cycle)` sentinel. The review is degraded on retrieval context, not invalid. Same deterministic config failure as cycle 1, so no retry was spent.
 
 Consolidation: script (`consolidate_findings.py`), 4 agent outputs, run with `--ledger dev/local/reviews/00038-braid-docs-flags-and-backup-paths-v1-ledger.json --ledger-dismiss BLAKE`. Nothing was auto-dismissed: Blake raised no findings this cycle.
 

@@ -20,7 +20,7 @@ Diff range: `32aafe3485cebb5b17922928aa9d9351a38b4844..cb9da87ed628d97c9de627745
 
 codex_rung_guard: not fired
 
-pack: failed (engram pack exit 1: not inside a registered repo; run `gita add /Users/bob/git/src/github.com/buvis/agent-skills`) — review degraded, not invalid.
+pack: failed (engram pack exit 1: not inside a registered repo; run `gita add ~/git/src/github.com/buvis/agent-skills`) — review degraded, not invalid.
 
 `codex_thread_id` omitted: Bob's usable output came from the inlined retry, which carries no `--emit-thread-id`; the first run's captured id belongs to the sandbox-refused attempt and would resume a useless thread. Cycle 2 runs Bob fresh.
 

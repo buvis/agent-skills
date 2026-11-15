@@ -102,6 +102,42 @@ def _registered_repos(tmp_path, names):
     return registry, repos
 
 
+@pytest.mark.parametrize(
+    ("setup_seconds", "expected_scan_deadline"),
+    [(2, 3), (10, 0)],
+    ids=["setup-reduces-budget", "setup-overrun-clamps-at-zero"],
+)
+def test_scan_budget_is_the_deadline_minus_the_time_setup_already_spent(
+    tmp_path, monkeypatch, setup_seconds, expected_scan_deadline
+):
+    clock = [1000.0]
+    monkeypatch.setattr(sweep.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(sweep, "resolve_rg", lambda: "rg")
+
+    def _slow_enumerate(registry, cwd):
+        clock[0] += setup_seconds
+        return [], []
+
+    deadlines = []
+
+    def _spy_scan(*args, **kwargs):
+        deadlines.append(kwargs["deadline"])
+        return [], {}, {}
+
+    monkeypatch.setattr(sweep, "enumerate_repos", _slow_enumerate)
+    monkeypatch.setattr(sweep, "scan", _spy_scan)
+    monkeypatch.setattr(sweep, "verify_control", lambda *a, **k: True)
+    registry, (repo,) = _registered_repos(tmp_path, ["repo-a"])
+    argv = _cli_argv(
+        registry, repo, tmp_path, "SETUPBUDGETMARKER", "SETUPBUDGETMARKER",
+        repo / "report.md", deadline=5,
+    )
+
+    sweep.main(argv)
+
+    assert deadlines == [expected_scan_deadline]
+
+
 @_POSIX_SHIM
 def test_cli_exits_within_cleanup_tolerance_of_the_deadline_and_reports_finished_hits(
     tmp_path, shim_pid_dir

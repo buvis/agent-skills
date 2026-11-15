@@ -58,7 +58,10 @@ def _memory_file(
 
 
 @pytest.fixture
-def evidence(tmp_path):
+def evidence(tmp_path, tmp_path_factory, isolate_home):
+    # Home sits outside tmp_path, so the transcript here is not under it and is
+    # published as written. On Windows tmp_path lies inside the real profile.
+    isolate_home(tmp_path_factory.mktemp("home"))
     transcript = tmp_path / "session.jsonl"
     transcript.write_text('{"type": "assistant"}\n')
     return proposal.Evidence(
@@ -253,6 +256,29 @@ def test_write_proposals_records_every_discard_with_its_location_and_reason(evid
         {"transcript": str(evidence.transcript), "line_no": 12, "reason": "no measured claim"},
         {"transcript": str(evidence.transcript), "line_no": 41, "reason": "already in memory"},
     ]
+
+
+def test_write_proposals_publishes_a_transcript_under_the_home_without_the_home_prefix(
+    tmp_path, isolate_home
+):
+    """Both manifests land in a public repository. A transcript under the
+    operator's home is recorded home-relative, so neither file carries the home
+    directory, and the record still names the same transcript."""
+    home = tmp_path / "fake-operator-7f3"
+    isolate_home(home)
+    transcript = home / ".claude" / "projects" / "proj" / "session.jsonl"
+    evidence = proposal.Evidence(transcript=transcript, line_no=7, text="we measured it")
+    discard = _Discard(transcript=transcript, line_no=9, reason="no measured claim")
+
+    published = proposal.write_proposals(
+        [_named(evidence, "cache-eviction-rule")], [discard], _run_dir(tmp_path)
+    )
+
+    portable_form = "~/.claude/projects/proj/session.jsonl"
+    assert _read_json(published, "proposals.json")[0]["transcript"] == portable_form
+    assert _read_json(published, "discards.json")[0]["transcript"] == portable_form
+    for manifest in ("proposals.json", "discards.json"):
+        assert "fake-operator-7f3" not in (published / manifest).read_text()
 
 
 @pytest.mark.parametrize(

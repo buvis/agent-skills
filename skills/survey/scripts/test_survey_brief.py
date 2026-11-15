@@ -64,6 +64,15 @@ def test_naming_maps_layer_to_case_counts(git_repo):
         ), f"naming entry must carry all three case counts: {line!r}"
 
 
+def test_naming_claims_no_convention_for_layer_without_samples():
+    lines = run._brief_naming_section({
+        "bin": {"camelCase": 0, "snake_case": 0, "PascalCase": 0},
+        "src": {"camelCase": 1, "snake_case": 4, "PascalCase": 2},
+    })
+    assert "- **bin**: unknown (camelCase=0, snake_case=0, PascalCase=0)" in lines
+    assert "- **src**: snake_case (camelCase=1, snake_case=4, PascalCase=2)" in lines
+
+
 # ---------------------------------------------------------------------------
 # Brief: size and sections
 # ---------------------------------------------------------------------------

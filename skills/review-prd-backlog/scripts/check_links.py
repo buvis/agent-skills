@@ -151,6 +151,7 @@ def scan_file(path: Path, root: Path, prds: set[str], memories: set[str]):
 
 
 def run(root: Path):
+    root = root.resolve()
     findings, errors = [], []
     prds = resolvable_numbers(root)
     mem_dir = project_memory_dir(root)
@@ -159,7 +160,7 @@ def run(root: Path):
     project_management = root / "docs/dev/project-management"
     if project_management.is_dir():
         sources += list(project_management.rglob("*.md"))
-    if mem_dir.is_dir():
+    if mem_dir.is_dir() and root == (Path.home() / ".claude").resolve():
         sources += sorted(mem_dir.glob("*.md"))
     for src in sources:
         f, e = scan_file(src, root, prds, memories)

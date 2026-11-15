@@ -18,7 +18,7 @@ Diff range: `927e70003ace82fdd0b03c1050ad42b8cf0c3d6f..1f70ca5b6ccacd7d8045e5373
 
 codex_rung_guard: not fired
 
-pack: unavailable this cycle (`engram pack` exited 1 twice: "not inside a registered repo; register it in /Users/bob/.config/gita/repos.csv"). `(no pack available this cycle)` was substituted for `{PACK_FILE}` and `{PACK_FINDINGS}` in every prompt that takes them.
+pack: unavailable this cycle (`engram pack` exited 1 twice: "not inside a registered repo; register it in ~/.config/gita/repos.csv"). `(no pack available this cycle)` was substituted for `{PACK_FILE}` and `{PACK_FINDINGS}` in every prompt that takes them.
 
 Diff-scope note: the branch is `master`, so `gather-context.sh` with no `--since` resolved the base to `master` itself and produced an EMPTY diff. Re-run with `--since <work_start_sha>`, which is the PRD's true full-review range under autopilot (`state.work_start_sha..HEAD`). The context file's "_Diff scope: incremental review_" label is therefore a mislabel of a full review, not an actual incremental cycle.
 
@@ -59,7 +59,7 @@ No queue file written this cycle. Bob's single VERIFY item named three commands,
 
 - `uv run pytest` → exit 0 at this exact HEAD (`dev/local/autopilot/last-verification.json`, sha `1f70ca5b`)
 - `uv run python3 skills/create-skill/scripts/validate_skill.py skills/survey` → exit 0 at the same sha
-- `braid --check` → run this cycle at `/Users/bob/.agents/bin/braid`: `0 linked, 76 current, 20 ignored, 0 removed, 0 backed up, 0 drift`. The work phase recorded exit 127 for the bare `braid --check`; that was PATH resolution, not a repo problem — `braid` is not on the session PATH but resolves at the absolute path above.
+- `braid --check` → run this cycle at `~/.agents/bin/braid`: `0 linked, 76 current, 20 ignored, 0 removed, 0 backed up, 0 drift`. The work phase recorded exit 127 for the bare `braid --check`; that was PATH resolution, not a repo problem — `braid` is not on the session PATH but resolves at the absolute path above.
 
 ## Alice
 

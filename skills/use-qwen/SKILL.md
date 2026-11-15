@@ -119,6 +119,7 @@ It rolls back automatically if the regression suite fails afterward. Promotion a
    - `--register-model` (with `-P/--provider`, plus optional `--name`) to onboard a brand-new model id into `~/.pi/agent/models.json` without hand-editing JSON: probes that provider's live `/v1/models` for the real id + context window and upserts it (never guesses from a filename/convention - see `references/onboarding-walkthrough.md` for the real story). Only adds to an already-configured provider; does not touch the approved registry. Full onboarding procedure (register -> eval -> promote to default): "Onboarding a New Model" above.
 3. Run the helper, capture output.
 4. **Verify the actual result - never trust the model's textual claim.** A local model may narrate "all tests pass" without having run them. Run the tests yourself, check the files on disk, then report.
+5. **Exit status means completion, not correctness.** A prompt dispatch reads pi's JSON event stream and exits 0 only when the final assistant message ended with `stopReason: stop` and non-blank text. A length stop, an error, a truncated stream, or a compaction with no later answer exits nonzero with `ERROR: dispatch incomplete: <reason>` on stderr, even when pi exited 0. The helper never continues or retries the session. A read-only answer with no edits can exit 0; step 4 still decides whether the work is right.
 
 ### Quick Reference
 

@@ -187,10 +187,11 @@ def test_triage_encodes_empty_and_hostile_snippets_as_untrusted_json_data_withou
         calls.append((prompt, tier))
         return "durable"
 
-    survivors, discard_count = funnel.triage(slices, judge=stub_judge)
+    survivors, discard_count, unclassified_count = funnel.triage(slices, judge=stub_judge)
 
     assert survivors == slices
     assert discard_count == 0
+    assert unclassified_count == 0
     assert len(calls) == len(texts)
     for (prompt, tier), text in zip(calls, texts, strict=True):
         instructions, data = prompt.rsplit("\n", 1)
@@ -213,26 +214,50 @@ def test_triage_keeps_durable_slice_and_discards_transient_slice_with_correct_di
     def stub_judge(prompt, tier):
         return "transient" if json.loads(prompt.rsplit("\n", 1)[-1]) == transient_slice.text else "durable"
 
-    survivors, discard_count = funnel.triage([transient_slice, durable_slice], judge=stub_judge)
+    survivors, discard_count, unclassified_count = funnel.triage([transient_slice, durable_slice], judge=stub_judge)
 
     assert survivors == [durable_slice]
     assert discard_count == 1
+    assert unclassified_count == 0
 
 
 @pytest.mark.parametrize(
     "response",
-    ["Durable.", "", "maybe", "not sure at all", "transiently", "not transient", "transient durable"],
+    [
+        "Durable.",
+        "",
+        "maybe",
+        "not sure at all",
+        "transiently",
+        "not transient",
+        "transient durable",
+        "Invalid API key",
+    ],
 )
-def test_triage_fail_open_survives_any_response_that_is_not_exactly_transient(response):
+def test_triage_keeps_but_counts_as_unclassified_any_reply_that_is_neither_label(response):
     slice_ = funnel.Slice(text="a snippet", transcript=Path("t.jsonl"), line_no=1, marker="measured")
 
     def stub_judge(prompt, tier):
         return response
 
-    survivors, discard_count = funnel.triage([slice_], judge=stub_judge)
+    survivors, discard_count, unclassified_count = funnel.triage([slice_], judge=stub_judge)
 
     assert survivors == [slice_]
     assert discard_count == 0
+    assert unclassified_count == 1
+
+
+@pytest.mark.parametrize("response", ["durable", "Durable", "DURABLE", "  durable  ", "durable\n"])
+def test_triage_counts_a_normalized_durable_reply_as_classified(response):
+    slice_ = funnel.Slice(text="a snippet", transcript=Path("t.jsonl"), line_no=1, marker="measured")
+
+    survivors, discard_count, unclassified_count = funnel.triage(
+        [slice_], judge=lambda prompt, tier: response
+    )
+
+    assert survivors == [slice_]
+    assert discard_count == 0
+    assert unclassified_count == 0
 
 
 @pytest.mark.parametrize(
@@ -245,17 +270,19 @@ def test_triage_discards_response_matching_transient_case_and_whitespace_insensi
     def stub_judge(prompt, tier):
         return response
 
-    survivors, discard_count = funnel.triage([slice_], judge=stub_judge)
+    survivors, discard_count, unclassified_count = funnel.triage([slice_], judge=stub_judge)
 
     assert survivors == []
     assert discard_count == 1
+    assert unclassified_count == 0
 
 
 def test_triage_returns_empty_survivors_and_zero_discards_for_empty_slice_list():
-    survivors, discard_count = funnel.triage([])
+    survivors, discard_count, unclassified_count = funnel.triage([])
 
     assert survivors == []
     assert discard_count == 0
+    assert unclassified_count == 0
 
 
 def test_triage_never_invokes_default_judges_subprocess_when_a_stub_judge_is_provided(monkeypatch):
@@ -269,7 +296,8 @@ def test_triage_never_invokes_default_judges_subprocess_when_a_stub_judge_is_pro
     def stub_judge(prompt, tier):
         return "durable"
 
-    survivors, discard_count = funnel.triage([slice_], judge=stub_judge)
+    survivors, discard_count, unclassified_count = funnel.triage([slice_], judge=stub_judge)
 
     assert survivors == [slice_]
     assert discard_count == 0
+    assert unclassified_count == 0

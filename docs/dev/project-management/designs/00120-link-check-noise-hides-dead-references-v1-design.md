@@ -195,7 +195,7 @@ rendering and exit code are untouched.
   twelve historical-provenance lines (below); no new waiver syntax needed.
 - `PLACEHOLDER` regex (existing) — not extended. link-ok: `/Users/you/` (one
   finding, `docs/dev/project-management/plans/skill-migration-bundle-plan.md:35`)
-  and link-ok: the `/Users/bob/.codex/session` repeats (thirteen findings, all in
+  and link-ok: the `~/.codex/session` repeats (thirteen findings, all in
   `autopilot/reports/*.md`, correctly quoting a codex health-probe's own
   "missing" diagnostic) are genuine, accurately-detected, single-purpose
   historical/example text outside `prds/`; adding exclusions for them would

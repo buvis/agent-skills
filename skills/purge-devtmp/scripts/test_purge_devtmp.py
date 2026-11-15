@@ -446,6 +446,107 @@ def test_relative_repo_argument_from_inside_docs_dev_does_not_crash(tmp_path, mo
     assert "stale-temp=1" in out
 
 
+def later() -> float:
+    """A `now` 40 days ahead, so links created just now count as old."""
+    return time.time() + 40 * gc.DAY
+
+
+def dir_link(tmp_path: Path, store: Path, name: str = "homelink") -> tuple[Path, Path]:
+    """A link in the store to an outside directory holding one sentinel."""
+    target = tmp_path / "outside"
+    target.mkdir()
+    sentinel = target / "sentinel.txt"
+    sentinel.write_text("keep")
+    link = store / name
+    link.symlink_to(target, target_is_directory=True)
+    return link, sentinel
+
+
+def test_walk_yields_a_directory_symlink_once_without_entering_the_target(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    link, _sentinel = dir_link(tmp_path, store)
+    entries =list(gc.walk_store(store))
+    assert [rel.as_posix() for rel, _ in entries] == ["homelink"]
+
+
+def test_preview_counts_an_old_directory_symlink_as_stale_temp(tmp_path, capsys):
+    _repo, store = repo_store(tmp_path)
+    link, sentinel = dir_link(tmp_path, store)
+    age(sentinel, 1)
+    gc.process_store("repo", store, args(verbose=True), later())
+    out = capsys.readouterr().out
+    assert "trash=1" in out and "stale-temp=1" in out
+    assert "stale-temp: homelink" in out
+    assert os.path.islink(link)
+
+
+def test_directory_symlink_age_comes_from_the_link_not_its_old_target(tmp_path, capsys):
+    _repo, store = repo_store(tmp_path)
+    _link, sentinel = dir_link(tmp_path, store)
+    age(sentinel, 60)
+    age(sentinel.parent, 60)
+    gc.process_store("repo", store, args(), time.time())
+    out = capsys.readouterr().out
+    assert "fresh=1" in out
+    assert "stale-temp=0" in out
+
+
+def test_live_prd_linked_directory_symlink_is_kept(tmp_path, capsys):
+    repo, store = repo_store(tmp_path)
+    prds = repo / "docs" / "dev" / "project-management" / "prds" / "wip"
+    prds.mkdir(parents=True)
+    (prds / "00123-feature.md").write_text("# Feature")
+    link, _sentinel = dir_link(tmp_path, store, "00123-home")
+    gc.process_store("repo", store, args(apply=True), later())
+    out = capsys.readouterr().out
+    assert "live-linked=1" in out and "stale-temp=0" in out
+    assert os.path.islink(link)
+
+
+def test_apply_trashes_the_directory_symlink_and_leaves_the_target_untouched(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    link, sentinel = dir_link(tmp_path, store)
+    now = later()
+    batch =time.strftime("%Y-%m-%d", time.localtime(now))
+    gc.process_store("repo", store, args(apply=True), now)
+    trashed = store / gc.TRASH_DIR / batch / "homelink"
+    assert not os.path.lexists(link)
+    assert os.path.islink(trashed)
+    assert os.path.samefile(trashed, sentinel.parent)
+    assert sentinel.read_text() == "keep"
+    assert f"stale-temp\thomelink\t.trash/{batch}/homelink" in (store / gc.TRASH_DIR / "manifest.tsv").read_text()
+
+
+def test_expiring_a_trash_batch_never_touches_a_trashed_symlinks_target(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    _link, sentinel = dir_link(tmp_path, store)
+    now = later()
+    gc.process_store("repo", store, args(apply=True), now)
+    removed = gc.empty_old_trash(store, now + 90 * gc.DAY, 30)
+    assert removed == 1
+    assert sentinel.read_text() == "keep"
+    assert sentinel.parent.is_dir()
+
+
+def test_directory_symlink_preview_is_read_only(tmp_path):
+    _repo, store = repo_store(tmp_path)
+    link, _sentinel = dir_link(tmp_path, store)
+    gc.process_store("repo", store, args(), later())
+    assert os.path.islink(link)
+    assert not (store / gc.TRASH_DIR).exists()
+
+
+def test_dangling_and_ordinary_entries_are_each_counted_once_beside_a_directory_symlink(tmp_path, capsys):
+    _repo, store = repo_store(tmp_path)
+    dir_link(tmp_path, store)
+    dangling = store / "dangling"
+    dangling.symlink_to(tmp_path / "missing")
+    plain = store / "old.txt"
+    plain.write_text("x")
+    gc.process_store("repo", store, args(), later())
+    assert "stale-temp=3" in capsys.readouterr().out
+
+
 def test_apply_keeps_live_linked_note_but_trashes_ordinary_stale_file(tmp_path, capsys):
     repo, store = linked_repo_store(tmp_path)
     add_prd(repo, "wip", "00999")

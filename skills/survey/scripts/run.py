@@ -287,7 +287,7 @@ def _compute_error_style(
 def _brief_naming_section(naming: dict[str, dict[str, int]]) -> list[str]:
     lines = ["## Naming conventions", ""]
     for layer_name, counts in naming.items():
-        dominant = max(counts, key=lambda k: counts[k])
+        dominant = max(counts, key=lambda k: counts[k]) if any(counts.values()) else "unknown"
         lines.append(
             f"- **{layer_name}**: {dominant} "
             f"(camelCase={counts['camelCase']}, snake_case={counts['snake_case']}, PascalCase={counts['PascalCase']})",

@@ -1,0 +1,162 @@
+[
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "With a failed cleanup the failure rides only on the original's `__context__`; Python hides it when the original was raised `from` a cause, and `raise original` overwrites an earlier implicit context. **DISCARD**: this is exactly the PRD contract (\"keep the original exception as the raised error\"), the tests pin it, and `__cause__` is kept. Informational.",
+  "file": "skills/use-qwen/scripts/eval_harness/trees.py:409",
+  "reason": "matches the PRD contract (keep the original as the raised error); pinned by tests"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "🟡",
+  "issue": "No `build_template`-level test fails the new `update-index` step: `_fail_seal_step` hooks `trees._git`, which `_set_index_modes` bypasses. **DISCARD single-voice** (the unit test `test_set_index_modes_surfaces_a_git_failure_instead_of_swallowing_it` pins the failure; cleanup itself is generic and tested).",
+  "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py:299",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "🟡",
+  "issue": "`test_link_text_separator_defaults_to_this_host_s_own` restates the constant's definition (`_HOST_SEP == os.sep`). **DISCARD single-voice**; it fails against base (the name is absent there).",
+  "file": "skills/use-qwen/scripts/test_eval_tree_host_links.py:59",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "🟡",
+  "issue": "The hostile climb, multi-segment-climb and chain-escape host-link cases use a bare `pytest.raises(trees.TreeError)`, so nothing pins which check refuses. **DISCARD single-voice**; the sibling accept test fails against base and pins the repair.",
+  "file": "skills/use-qwen/scripts/test_eval_tree_host_links.py:114",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "`_member_paths_on_the_command_line` matches member names by substring against every argv part, including the `-C` value. **DISCARD single-voice**; current names do not collide.",
+  "file": "skills/use-qwen/scripts/test_eval_tree_archive_safety_modes.py:555",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "`_simulate_windows_link_text` carries a bytes branch no test exercises. **DISCARD single-voice.**",
+  "file": "skills/use-qwen/scripts/test_eval_tree_host_links.py:29",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "Module docstring says \"Split from test_eval_tree_state.py\" though nothing was moved. **DISCARD single-voice** (wording).",
+  "file": "skills/use-qwen/scripts/test_eval_tree_host_links.py:9",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "`_tree_modes` duplicates the already-imported `_sealed_modes`. **DISCARD single-voice.**",
+  "file": "skills/use-qwen/scripts/test_eval_tree_archive_safety_modes.py:234",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "`_ignore_filesystem_mode` repeats the three `GIT_CONFIG_*` setenv lines of the safety module. **DISCARD single-voice.**",
+  "file": "skills/use-qwen/scripts/test_eval_tree_archive_safety_modes.py:259",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "`_set_index_modes` sends paths on stdin (`-z --stdin`) where the PRD text says `--` before the paths. **DISCARD**: a documented, tested, safe departure that closes the Windows command-line cap (cycle-1 R2).",
+  "file": "skills/use-qwen/scripts/eval_harness/trees.py:345",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "`_set_index_modes` skips members git did not track. **DISCARD**: required because `--chmod` refuses untracked paths; the settled cycle-1 deferral R15 covers it.",
+  "file": "skills/use-qwen/scripts/eval_harness/trees.py:335",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "`_lay_links_typed` keeps archive order and passes the type explicitly instead of reordering links target-first. **DISCARD**: settled cycle-1 deferral R27; outcome matches the spec.",
+  "file": "skills/use-qwen/scripts/eval_harness/trees.py:310",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "A failed `os.symlink` in `_copytree_links_typed` leaves a half-copied `dest` and `fresh_clone` never calls `_remove_tree`. **DISCARD single-voice**; the old `copytree` path behaved the same and the PRD does not ask for it.",
+  "file": "skills/use-qwen/scripts/eval_harness/trees.py:455",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "⚪",
+  "issue": "`_remove_tree`'s `os.chmod(failing, stat.S_IWRITE)` follows symlinks. **DISCARD single-voice**; the PRD prescribes this call and escaping links are refused first.",
+  "file": "skills/use-qwen/scripts/eval_harness/trees.py:424",
+  "reason": "single-voice"
+ },
+ {
+  "cycle": 2,
+  "disposition": "settled-deferral",
+  "severity": "🟡",
+  "issue": "`test_build_template_injected_extraction_failure_leaves_no_dest_and_siblings_untouched` hedges with `or`. **DISCARD**: line 266 predates this lane and is the settled cycle-1 deferral R20, untouched by the rework.",
+  "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py:266",
+  "reason": "settled cycle-1 deferral R20; line predates the lane"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "🟡",
+  "issue": "Two index-mode tests pass against the pre-change code (`test_set_index_modes_asks_git_once_per_non_empty_mode_group_with_paths_on_stdin`, `test_set_index_modes_surfaces_a_git_failure_instead_of_swallowing_it`). **DISCARD as expected**: the three non-empty params of the first fail at base; the empty-group param and the second pin PRD-mandated behavior base also had (a regression guard by design).",
+  "file": "skills/use-qwen/scripts/test_eval_tree_archive_safety_modes.py",
+  "reason": "expected: regression guards of PRD-mandated behavior base already had"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "🟡",
+  "issue": "`test_build_template_cleanup_leaves_no_readonly_staging_survives` passes against base. **DISCARD as expected**: it covers the cleanup-succeeds branch; the never-lifts twin and the own-cause test pin the repair and fail at base.",
+  "file": "skills/use-qwen/scripts/test_eval_tree_archive_staging.py",
+  "reason": "expected: covers the cleanup-succeeds branch; repair pinned by sibling tests"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "🟡",
+  "issue": "Eight host-link tests pass against base. **DISCARD as expected**: they are the refusal guards (base refused any backslash); the accept test and the `_HOST_SEP` default test fail at base.",
+  "file": "skills/use-qwen/scripts/test_eval_tree_host_links.py",
+  "reason": "expected: refusal guards; accept and default tests fail at base"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "🟡",
+  "issue": "Six `test_eval_tree_links_typed.py` tests pass against base. **DISCARD as expected**: moved verbatim out of `test_eval_tree_links.py` (cycle-1 R4); the typing fix predates base.",
+  "file": "skills/use-qwen/scripts/test_eval_tree_links_typed.py",
+  "reason": "expected: verbatim move out of test_eval_tree_links.py"
+ },
+ {
+  "cycle": 2,
+  "disposition": "discarded",
+  "severity": "🟡",
+  "issue": "Host-separator tests start from hand-built templates; none runs build → clone → contained through both extraction seams. **DISCARD single-voice**: verified that the tests use `_template_on_disk`. `fresh_clone` and `contained` do not depend on the extraction seam. The seam-dependent write side is only meaningful on a native Windows host, which R4 carries.",
+  "file": "skills/use-qwen/scripts/test_eval_tree_host_links.py:64",
+  "reason": "single-voice"
+ }
+]

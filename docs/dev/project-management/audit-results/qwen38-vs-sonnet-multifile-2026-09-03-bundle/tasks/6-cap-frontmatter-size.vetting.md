@@ -11,7 +11,7 @@ folded in below, under "Why this needed pinning").
 
 Kind: impl+test
 
-Repo: `/Users/bob/git/src/github.com/doogat/ddb` (Rust)
+Repo: `~/git/src/github.com/doogat/ddb` (Rust)
 PRD: `dev/local/prds/done/00169-poison-file-reindex-resilience-v1.md:175`
 
 Commit run: `38577e7..b1bc2ed` (3 commits: `38577e7` test, `7d28653` feat,
@@ -108,7 +108,7 @@ block states anyway.
 
 No hand-written hunk is needed: both files are `whole-file`.
 
-`git -C /Users/bob/git/src/github.com/doogat/ddb apply --check -v <patch>`:
+`git -C ~/git/src/github.com/doogat/ddb apply --check -v <patch>`:
 clean, both files.
 
 What the revert removes, read off `git -C <src> diff e5ec64a b1bc2ed --

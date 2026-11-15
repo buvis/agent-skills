@@ -14,7 +14,14 @@ import corpus
 import funnel
 import pytest
 
-from funnel_test_helpers import FakeSessionData, make_transcript_parser_module, write_transcript
+from funnel_test_helpers import (
+    _SLICE_ONE,
+    _SLICE_TWO,
+    FakeSessionData,
+    make_corpus,
+    make_transcript_parser_module,
+    write_transcript,
+)
 
 
 def test_main_passes_days_all_project_flags_through_to_select_transcripts(tmp_path, monkeypatch):
@@ -114,6 +121,7 @@ def test_main_normal_run_prints_and_writes_report_matching_render_yield_and_refl
         "slices_matched": 2,
         "slices_kept": 2,
         "survivors": 1,
+        "unclassified": 0,
         "claude_checkup_version": version,
     }
     expected_report = funnel.render_yield(expected_counts)
@@ -284,13 +292,14 @@ def test_run_triage_returns_the_surviving_slices_with_a_matching_count_and_no_er
 
     monkeypatch.setattr(funnel.subprocess, "run", fake_run)
 
-    survivors, survivors_count, error = funnel._run_triage(
+    survivors, survivors_count, unclassified_count, error = funnel._run_triage(
         [transient_slice, durable_slice, other_durable_slice]
     )
 
     assert survivors == [durable_slice, other_durable_slice]
     assert survivors_count == 2
     assert survivors_count == len(survivors)
+    assert unclassified_count == 0
     assert error is None
     # Each slice is judged once. Deriving the count from a second triage pass
     # would double the cheap-tier bill and let a judge that changed its mind
@@ -304,10 +313,12 @@ def test_run_triage_returns_no_slices_and_a_zero_count_for_an_empty_kept_list(mo
 
     monkeypatch.setattr(funnel.subprocess, "run", fail_if_called)
 
-    survivors, survivors_count, error = funnel._run_triage([])
+    survivors, survivors_count, unclassified_count, error = funnel._run_triage([])
 
+    # an empty candidate set is not an all-unclassified failure
     assert survivors == []
     assert survivors_count == 0
+    assert unclassified_count == 0
     assert error is None
 
 
@@ -326,10 +337,11 @@ def test_run_triage_returns_no_slices_and_a_none_count_when_the_judge_call_fails
     monkeypatch.setattr(funnel.subprocess, "run", fake_run)
     slice_ = funnel.Slice(text="we measured this", transcript=Path("t.jsonl"), line_no=1, marker="measured")
 
-    survivors, survivors_count, error = funnel._run_triage([slice_])
+    survivors, survivors_count, unclassified_count, error = funnel._run_triage([slice_])
 
     assert survivors == []
     assert survivors_count is None
+    assert unclassified_count is None
     assert expected_error_substring in error
 
 
@@ -371,6 +383,7 @@ def test_main_reports_persistence_failure_to_stderr_and_returns_nonzero_when_wri
         "slices_matched": 1,
         "slices_kept": 1,
         "survivors": 1,
+        "unclassified": 0,
         "claude_checkup_version": version,
     }
     expected_report = funnel.render_yield(expected_counts)
@@ -589,3 +602,158 @@ def test_main_stderr_still_states_the_timeout_duration_when_claude_cli_times_out
     captured = capsys.readouterr()
     assert sentinel not in captured.err
     assert "120" in captured.err
+
+
+def _triage_replies(replies: dict[str, str]):
+    """A `subprocess.run` stand-in answering each cheap-tier triage call with
+    the reply mapped to its snippet. Any other call fails the test: a run whose
+    triage produced nothing usable must not go on to distil."""
+
+    def fake_run(cmd, **kwargs):
+        if cmd[cmd.index("--model") + 1] != "haiku":
+            raise AssertionError("only the cheap-tier triage may be called")
+        snippet = json.loads(kwargs["input"].rsplit("\n", 1)[-1])
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout=replies[snippet], stderr="")
+
+    return fake_run
+
+
+@pytest.mark.parametrize("reply", ["", "Invalid API key"], ids=["empty", "auth_error"])
+def test_main_fails_with_a_written_report_and_no_distil_when_every_judge_reply_is_unclassified(
+    make_corpus, monkeypatch, capsys, reply
+):
+    """The observed failure: a judge printing nothing, or an auth error, with
+    exit 0 reported `survivors: 2` and returned 0, as if both candidates had
+    been judged durable."""
+    built = make_corpus()
+    monkeypatch.setattr(funnel.subprocess, "run", _triage_replies({_SLICE_ONE: reply, _SLICE_TWO: reply}))
+
+    exit_code = funnel.main(["--distil"])
+
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    assert "unclassified: 2" in captured.out
+    assert "proposals: n/a" in captured.out
+    assert "triage failed: none of the 2 judge replies was 'transient' or 'durable'" in captured.err
+    reports = sorted(built.audit_dir.glob("distil-memory-*.md"))
+    assert len(reports) == 1
+    assert "unclassified: 2" in reports[0].read_text()
+    assert sorted(built.audit_dir.glob("distil-memory-*-proposals")) == []
+    if reply:
+        assert reply not in captured.err
+
+
+def test_main_keeps_an_unclassified_candidate_in_a_mixed_run_and_warns_by_count_only(
+    make_corpus, monkeypatch, capsys
+):
+    make_corpus()
+    monkeypatch.setattr(
+        funnel.subprocess, "run", _triage_replies({_SLICE_ONE: "durable", _SLICE_TWO: "Invalid API key"})
+    )
+
+    exit_code = funnel.main([])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "survivors: 2" in captured.out
+    assert "unclassified: 1" in captured.out
+    assert "1 of 2 judge replies were not 'transient' or 'durable'" in captured.err
+    assert "Invalid API key" not in captured.err
+    assert _SLICE_TWO not in captured.err
+
+
+def test_main_dry_run_reports_unclassified_as_n_a_and_succeeds(make_corpus, monkeypatch, capsys):
+    make_corpus()
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("a dry run makes no model call")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fail_if_called)
+
+    exit_code = funnel.main(["--dry-run"])
+
+    assert exit_code == 0
+    assert "unclassified: n/a" in capsys.readouterr().out
+
+
+_DAMAGED_GOOD_LINE = json.dumps(
+    {"type": "assistant", "message": {"content": [{"type": "text", "text": "we measured this"}]}}
+)
+_DAMAGED_SECRET_TEXT = "we confirmed the production database password is s3cr3t-token"
+_DAMAGED_SECRET_LINE = json.dumps(
+    {"type": "assistant", "message": {"content": [{"type": "text", "text": _DAMAGED_SECRET_TEXT}]}}
+)
+
+
+def test_main_isolates_non_object_json_and_non_utf8_damage_per_file_and_still_reports_the_valid_transcripts(
+    tmp_path, monkeypatch, capsys
+):
+    """One corpus, four transcripts in this order: a valid transcript first, a
+    transcript whose JSON lines parse but are not objects (a bare int and a
+    list), a transcript that is not valid UTF-8 at all (its one JSON line
+    carries a secret string that must never reach stderr), and a second valid
+    transcript last. A scan that still raises on either kind of damage never
+    reaches the third or fourth file, so slices_kept would undercount and no
+    report would be written; a scan that stops isolating per file at the first
+    damaged transcript never reaches the valid transcript placed after it."""
+    monkeypatch.chdir(tmp_path)
+    projects_root = tmp_path / "claude_projects"
+    monkeypatch.setattr(corpus, "_PROJECTS_ROOT", projects_root)
+    project_dir = projects_root / "aaaa-myproj"
+    project_dir.mkdir(parents=True)
+
+    write_transcript(project_dir, "a_before.jsonl", _DAMAGED_GOOD_LINE + "\n")
+    (project_dir / "m_non_object.jsonl").write_bytes(
+        b"123\n" b'["a", "list"]\n' b'"a string"\n' + _DAMAGED_SECRET_LINE.encode() + b"\n"
+    )
+    (project_dir / "n_non_utf8.jsonl").write_bytes(b"\xff\xfe" + _DAMAGED_SECRET_LINE.encode() + b"\n")
+    write_transcript(project_dir, "z_after.jsonl", _DAMAGED_GOOD_LINE + "\n")
+
+    recent = FakeSessionData(latest=datetime.now(timezone.utc) - timedelta(days=1))
+    module, version = make_transcript_parser_module(
+        {
+            "a_before.jsonl": recent,
+            "m_non_object.jsonl": recent,
+            "n_non_utf8.jsonl": recent,
+            "z_after.jsonl": recent,
+        }
+    )
+    monkeypatch.setattr(corpus, "resolve_parser", lambda *a, **kw: (module, version))
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("a dry run must not invoke subprocess (no model calls of any tier)")
+
+    monkeypatch.setattr(funnel.subprocess, "run", fail_if_called)
+
+    exit_code = funnel.main(["--dry-run"])
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+
+    # The two valid transcripts' slices count, plus the valid secret-bearing
+    # line that follows the non-object lines in the third transcript (each
+    # bad line there is skipped per-entry, not treated as file-wide damage).
+    # The unreadable non-UTF-8 transcript still contributes nothing.
+    expected_counts = {
+        "transcripts_read": 4,
+        "slices_matched": 3,
+        "slices_kept": 3,
+        "survivors": None,
+        "claude_checkup_version": version,
+    }
+    expected_report = funnel.render_yield(expected_counts)
+    assert expected_report in captured.out
+
+    report_files = sorted(
+        (tmp_path / "docs" / "dev" / "project-management" / "audit-results").glob("distil-memory-*.md")
+    )
+    assert len(report_files) == 1
+    assert report_files[0].read_text() == expected_report
+
+    # The damaged files are named in the warning, and the secret text that
+    # only reached them must never leak into stderr.
+    assert "n_non_utf8.jsonl" in captured.err
+    assert "m_non_object.jsonl" in captured.err
+    assert "line 1" in captured.err
+    assert _DAMAGED_SECRET_TEXT not in captured.err
+    assert _DAMAGED_SECRET_TEXT not in captured.out
