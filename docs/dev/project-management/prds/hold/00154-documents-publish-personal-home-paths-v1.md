@@ -6,6 +6,8 @@ model_tier_rationale: Portable path serialization requires consumer compatibilit
 
 # Documents publish personal home paths
 
+> **Held (2026-11-15):** every in-repository task is implemented (commit 71547eb). One task is open: the autocodex host writers under `~/.config/autocodex/` still write absolute paths into `docs/dev/project-management/autopilot/` and into the `autocodex_*_receipt:` lines of review files. That code is outside this repository and needs an operator hand-off. When it lands, remove the two matching exclusions from `scripts/test_public_doc_paths.py`, scrub the files they covered, and move this PRD to done.
+
 Source: `dev/local/audit-results/agoge-2026-10-25.md`, finding 46, audit dated 2026-10-25. User accepted option A on 2026-10-29. Status remains unverified: the audit combined static path searches with a writer code read, without a product run demonstrating a newly generated disclosure.
 
 ## Problem
