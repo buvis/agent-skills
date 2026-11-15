@@ -399,7 +399,7 @@
     }
   ],
   "work_start_sha": "a30de2d9b31f5c2d9a52e6e111bdfb28fda6eaa8",
-  "repo_root": "/Users/bob/git/src/github.com/buvis/agent-skills",
+  "repo_root": ".",
   "review_lenses": {
     "consensus": "done",
     "blind": "done",

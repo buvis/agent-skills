@@ -228,7 +228,7 @@
       "commit_range": "6091e02c41e823f3bd061434edf8bd389ffea8d0..388ce5be5191c83068feffb1d717d197a4fcd8ae",
       "commits": 10,
       "branch": "master",
-      "repo_root": "/Users/bob/git/src/github.com/buvis/agent-skills",
+      "repo_root": ".",
       "git_dir": null,
       "prd": "00111-braid-state-misses-link-removals-v1.md"
     },

@@ -6,9 +6,7 @@ model_tier_rationale: Portable path serialization requires consumer compatibilit
 
 # Documents publish personal home paths
 
-> **Held (2026-11-15):** every in-repository task is implemented (commit 71547eb). One task is open: the autocodex host writers under `~/.config/autocodex/` still write absolute paths into `docs/dev/project-management/autopilot/` and into the `autocodex_*_receipt:` lines of review files. That code is outside this repository and needs an operator hand-off. When it lands, remove the two matching exclusions from `scripts/test_public_doc_paths.py`, scrub the files they covered, and move this PRD to done.
-
-> **Gap closed (2026-11-15):** the rewrite to `~/...` left the user name inside encoded directory names (`~/.claude/projects/-Users-<name>-git-...`). Outside `autopilot/`, 8 tracked documents held 28 such lines, all published before this PRD. They now read `-Users-you-...`, and `scripts/test_public_doc_paths.py` matches that form too. Inside `autopilot/` the form remains, under the same exclusion as the absolute paths.
+> **Closed (2026-11-15):** the operator retired autocodex for this repository, so its host writers under `~/.config/autocodex/` no longer write here and the last open task is moot. The remaining absolute paths in `docs/dev/project-management/autopilot/` and in the `autocodex_*_receipt:` lines of review files are rewritten, and `scripts/test_public_doc_paths.py` now checks every tracked project-management document with no exclusion. Receipts written by autocodex before this date no longer verify against its adapter; that is accepted. The encoded form (`-Users-<name>-...`) is rewritten and tested too. Commits before this PRD keep the old text; the operator chose not to rewrite published history. If autocodex is used here again, fix its writers first or this test fails.
 
 Source: `dev/local/audit-results/agoge-2026-10-25.md`, finding 46, audit dated 2026-10-25. User accepted option A on 2026-10-29. Status remains unverified: the audit combined static path searches with a writer code read, without a product run demonstrating a newly generated disclosure.
 

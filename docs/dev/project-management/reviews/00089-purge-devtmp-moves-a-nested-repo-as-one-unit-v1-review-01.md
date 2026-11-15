@@ -20,9 +20,9 @@ Diff range: `87e8be8d6b2952502ff588cf62551979c302a7c9..e2d0f855f07e06c8834a6645d
 
 codex_rung_guard: not fired
 provider_review_guard: satisfied
-autocodex_alice_anthropic_receipt: /Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/tmp/alice-output-00089-c1-resumed-20261025.txt.receipt.json
-autocodex_blake_anthropic_receipt: /Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/tmp/blake-output-00089-c1-resumed-20261025.txt.receipt.json
-autocodex_bob_anthropic_receipt: /Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/tmp/bob-output-00089-c1-resumed-20261025.txt.receipt.json
+autocodex_alice_anthropic_receipt: docs/dev/tmp/alice-output-00089-c1-resumed-20261025.txt.receipt.json
+autocodex_blake_anthropic_receipt: docs/dev/tmp/blake-output-00089-c1-resumed-20261025.txt.receipt.json
+autocodex_bob_anthropic_receipt: docs/dev/tmp/bob-output-00089-c1-resumed-20261025.txt.receipt.json
 
 The model-provider guard supersedes the legacy Codex/Eve guard. Eve did not run.
 All three independent Anthropic reviewers used fresh external sessions through the host helper, requested Opus/xhigh; raw metadata identifies claude-opus-5-5. Receipts preserve each actual session and source output. Carl was omitted: this change has no UI surface. The prior failed authentication attempt remains preserved.

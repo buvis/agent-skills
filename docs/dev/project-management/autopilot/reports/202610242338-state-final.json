@@ -60,7 +60,7 @@
   "lane_reason": "card_sized",
   "lane_effective": "fast-track",
   "work_start_sha": "87e8be8d6b2952502ff588cf62551979c302a7c9",
-  "repo_root": "/Users/bob/git/src/github.com/buvis/agent-skills",
+  "repo_root": ".",
   "tasks": [],
   "tasks_total": 0,
   "cycle": 1,
@@ -104,8 +104,8 @@
     }
   ],
   "applied_review_batches": [
-    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1-review-01.md::decision-gate",
-    "/Users/bob/git/src/github.com/buvis/agent-skills/docs/dev/project-management/reviews/00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1-review-01.md::tail-sweep"
+    "docs/dev/project-management/reviews/00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1-review-01.md::decision-gate",
+    "docs/dev/project-management/reviews/00089-purge-devtmp-moves-a-nested-repo-as-one-unit-v1-review-01.md::tail-sweep"
   ],
   "rework_task_ids": [
     "2",

@@ -30,7 +30,7 @@
     },
     {
       "type": "preexisting-suite-failure",
-      "issue": "uv run pytest fails 1 of 1010 tests: skills/distil-memory/scripts/test_proposal.py::test_validate_accepts_every_memory_file_in_the_calibration_corpus. The corpus file /Users/bob/.claude/projects/-Users-bob--claude/memory/project_gemini_copilot_reenabled.md has an unquoted colon in its description value, so its frontmatter is not valid YAML. The file lives outside this repo and predates this batch (dated 2026-09-03); no PRD 00026 commit touches distil-memory.",
+      "issue": "uv run pytest fails 1 of 1010 tests: skills/distil-memory/scripts/test_proposal.py::test_validate_accepts_every_memory_file_in_the_calibration_corpus. The corpus file ~/.claude/projects/-Users-you--claude/memory/project_gemini_copilot_reenabled.md has an unquoted colon in its description value, so its frontmatter is not valid YAML. The file lives outside this repo and predates this batch (dated 2026-09-03); no PRD 00026 commit touches distil-memory.",
       "severity": "medium",
       "file": "skills/distil-memory/scripts/test_proposal.py",
       "reason": "Pre-existing host-environment failure, not a PRD 00026 regression - the offending input is a hand-written memory file outside the repo. Fixing it means quoting the description value in that memory file, which is out of scope for this PRD and outside the unattended write fence. Recorded so the red suite is visible at batch end rather than lost.",

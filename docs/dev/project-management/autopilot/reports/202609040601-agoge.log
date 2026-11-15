@@ -17,10 +17,10 @@ Agoge run complete for the lane-brief worktree. Unattended mode, so the report i
 
 **Cleanup for you**
 
-- Recon left symlinks and a braid state file in `/Users/bob/.local/tmp/claude-dev/agoge-recon/`, outside the write fence. Remove it with:
+- Recon left symlinks and a braid state file in `~/.local/tmp/claude-dev/agoge-recon/`, outside the write fence. Remove it with:
 
 ```
-rm -rf /Users/bob/.local/tmp/claude-dev/agoge-recon
+rm -rf ~/.local/tmp/claude-dev/agoge-recon
 ```
 
 - Finding 12 (master CI red on sweep-fix tests needing `rg`/`ast-grep`/`mise`) is not this branch's defect but blocks any green check for it.

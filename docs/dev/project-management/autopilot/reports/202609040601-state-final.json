@@ -85,14 +85,14 @@
     "batch_id": "202609040601",
     "verdict": "unhealthy",
     "backend": "codex",
-    "detail": "hook_doctor: empty\t/Users/bob/.codex/hooks/analyze-instincts.py",
+    "detail": "hook_doctor: empty\t~/.codex/hooks/analyze-instincts.py",
     "hook_doctor": "summary\t3 ok, 7 stale, 2 broken",
     "checked_at": "2026-09-04T20:32:04Z"
   },
   "design_mode": "skipped",
   "tasks": [],
   "work_start_sha": "14da8539cc4de5ddcf3d9f07f6f532157efcfd1d",
-  "repo_root": "/Users/bob/git/src/github.com/buvis/agent-skills-lane-brief",
+  "repo_root": ".-lane-brief",
   "contract_card": "step: PRD 00033-smoke-sleep-becomes-poll-v1 CONVERGED at review cycle 3.\nReview gate is finished; handing off to the finalize session (Phase 9, done gate).\n\nstate: phase=done, next_phase=done, cycle=3, phases_completed=[\"review\"],\ntasks 5/5 completed, rework_task_ids=[], loop mode ON.\nHEAD 4a96fb5, work_start_sha 14da8539cc4de5ddcf3d9f07f6f532157efcfd1d.\nbatch 202609040601, 5 PRDs completed so far.\n\nwhat happened in cycle 3: Verdict 2 findings, no CRITICAL/HIGH.\n- Bob's \ud83d\udfe1 (flush test used an `observedWhilePending` flag) was SWEPT as task 5\n  `[D3]` via the micro lane, committed as 4a96fb5, Pat closed it `resolved`.\n- Blake's \u26aa (no CHANGELOG entry for the `fix`-typed commit a5d9c48) is DEFERRED\n  to batch end \u2014 the PRD is test-only and rules/changelog.md exempts `test`\n  commits, so the honest fix would break the rule the finding invokes; the real\n  defect is the landed commit's type, correctable only by rewriting history.\n  Recorded in state.deferred_decisions, the batch deferred JSON, and the ledger.\n- Carl unavailable all three cycles (both gemini backends dead). Denominator 3.\n- Suite green at HEAD: 44 passed, 0 failed, 0 skipped\n  (dev/local/autopilot/last-verification.json, sha 4a96fb5).\n\ninvariants that bind right now:\n- Phase 5 NEVER reopens after convergence. Do not run another review cycle,\n  do not increment cycle.\n- Loop mode: never AskUserQuestion; a per-PRD problem stalls or defers, it does\n  not write phase=\"paused\".\n- Every lifecycle `mv` is VERIFIED: confirm the PRD exists in the destination\n  before appending to batch.completed_prds. A failed move PAUSES (site mv_verify).\n- The batch report filename is built from state.batch.id (202609040601) \u2014 never\n  glob reports/*.md.\n\nnext: the finalize session runs Phase 9 (`references/phase-done.md`), reaching it\nvia Phase 4's loop-level skip (`\"review\"` is in phases_completed). It renders the\naudit log from the state decision arrays, moves the PRD wip -> done with the\n00033- prefix and verifies the move, appends to\nreports/202609040601-report.md, then either selects the next PRD\n(`phase-done --outcome more_prds`) or drains the batch\n(`phase-done --outcome drained`, empty next_phase).",
   "review_lenses": {
     "consensus": "done",
