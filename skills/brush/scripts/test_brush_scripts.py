@@ -655,7 +655,7 @@ def test_main_does_not_reroot_an_absolute_path_onto_a_repository_decoy(
         capsys: pytest.CaptureFixture[str]) -> None:
     """A missing outside path must not select the repo file spelled alike."""
     outside = repo.parent / "elsewhere" / "old_junk.log"
-    decoy = _old_file(repo, str(outside).lstrip("/\\"))
+    decoy = _old_file(repo, str(outside.relative_to(outside.anchor)))
 
     out, _ = _run_main(repo, monkeypatch, capsys, "--apply", str(outside))
 
