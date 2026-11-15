@@ -5,6 +5,9 @@ This repository is public. A path such as `/Users/<someone>/...`,
 machine, so documents write `~/...` or a repository-relative path instead.
 Generic placeholders (`/Users/you/...`, `/Users/.../`, `<name>` forms) and the
 CI runner account stay allowed.
+
+The same prefix also hides in directory names that encode a path by turning
+each separator into `-`, such as `~/.claude/projects/-Users-<someone>-git-...`.
 """
 
 import re
@@ -30,7 +33,14 @@ HOME_PREFIX = re.compile(
     r"(?<![\w.~-])(?:/Users/|/home/|[A-Za-z]:\\{1,2}Users\\{1,2})"
     r"(?P<name>[^/\\\s\"'`)\]]+)"
 )
+# A home path with every separator written as `-`. The name ends at the next
+# `-`, so a name that itself holds one is still caught by its first part.
+ENCODED_HOME_PREFIX = re.compile(r"(?<![\w.~])-(?:Users|home)-(?P<name>\w+)")
 GENERIC_NAMES = frozenset({"you", "...", "runneradmin", "RUNNER~1"})
+
+
+def _is_personal(name: str) -> bool:
+    return name not in GENERIC_NAMES and not name.startswith(("<", "."))
 
 
 def find_home_prefixes(text: str) -> list[int]:
@@ -39,12 +49,13 @@ def find_home_prefixes(text: str) -> list[int]:
     for line_no, line in enumerate(text.splitlines(), 1):
         if HOST_WRITER_RECEIPT_LINE.match(line):
             continue
-        for match in HOME_PREFIX.finditer(line):
-            name = match.group("name")
-            if name in GENERIC_NAMES or name.startswith(("<", ".")):
-                continue
+        names = (
+            match.group("name")
+            for pattern in (HOME_PREFIX, ENCODED_HOME_PREFIX)
+            for match in pattern.finditer(line)
+        )
+        if any(_is_personal(name) for name in names):
             hits.append(line_no)
-            break
     return hits
 
 
@@ -77,6 +88,10 @@ def test_tracked_project_management_documents_carry_no_personal_home_prefix():
         "file:///Users/jdoe/x",
         "C:\\Users\\jdoe\\AppData",
         '{"path": "C:\\\\Users\\\\jdoe\\\\x"}',
+        "~/.claude/projects/-Users-jdoe-git-src-example/session.jsonl",
+        "/private/tmp/claude-501/-Users-jdoe/scratchpad/x.txt",
+        "`-home-jdoe-project`",
+        "projects/C--Users-jdoe-project",
     ],
 )
 def test_find_home_prefixes_flags_a_personal_prefix_from_any_platform(text):
@@ -93,6 +108,9 @@ def test_find_home_prefixes_flags_a_personal_prefix_from_any_platform(text):
         "repo github.com/buvis/home/.config/x",
         "~/git/src/github.com/example/repo",
         "autocodex_alice_openai_receipt: /Users/jdoe/receipt.json",
+        "~/.claude/projects/-Users-you-git-src-example/session.jsonl",
+        "`~/.claude/projects/-Users-<name>-git-...`",
+        "a stay-at-home-office day, and the take-home-jdoe exam",
     ],
 )
 def test_find_home_prefixes_allows_generic_placeholders_and_host_writer_receipts(text):

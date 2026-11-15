@@ -777,7 +777,7 @@ whole evidence directory.
   addendum extends; § 2's provider-pin rule is why every dispatch carries
   `-P llamacpp8002`.
 - Prior prompt files
-  (`/private/tmp/claude-501/-Users-bob/fc24b46e-.../scratchpad/eval-prompts/task*.txt`,
+  (`/private/tmp/claude-501/-Users-you/fc24b46e-.../scratchpad/eval-prompts/task*.txt`,
   still on disk) - the prompt shape C3 generalises (task line + file list).
 - `dev/local/audit-results/qwen-eval-unsloth-Qwen3.8-27B-GGUF-UD-Q6_K_XL-2026-08-31.md`
   - the precedent report; its task-1/task-3 transcripts are the contamination

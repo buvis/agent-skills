@@ -2,9 +2,9 @@
 
 Provider: llamacpp8002 | Run: 2026-08-30
 
-## Task 1: /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task1-collect-purge-devlocal.txt
+## Task 1: /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task1-collect-purge-devlocal.txt
 
-Verify: `cd /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/agent-skills/skills/brief-portfolio && uv run --with pytest pytest scripts/test_collect.py -q`
+Verify: `cd /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/agent-skills/skills/brief-portfolio && uv run --with pytest pytest scripts/test_collect.py -q`
 
 Gate exit code: 0 -> PASS
 
@@ -33,9 +33,9 @@ Verified:
 ```
 </details>
 
-## Task 2: /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task2-executor-fail-loud.txt
+## Task 2: /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-prompts/task2-executor-fail-loud.txt
 
-Verify: `cd /private/tmp/claude-501/-Users-bob/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/gems && uv run pytest tests/lib/pybase/updater/test_executor.py -q`
+Verify: `cd /private/tmp/claude-501/-Users-you/fc24b46e-0bd9-4afb-9ed8-6447a550bda2/scratchpad/eval-worktrees/gems && uv run pytest tests/lib/pybase/updater/test_executor.py -q`
 
 Gate exit code: 0 -> PASS
 

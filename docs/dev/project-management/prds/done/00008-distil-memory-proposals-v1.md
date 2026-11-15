@@ -193,7 +193,7 @@ skills/
     `**How to apply:**` line are the same sentence is rejected with that reason.
 - [ ] Add the frontmatter-contract test against the real memory plane (depends
   on: PRD 00007 Phase 1)
-  - Premise: `~/.claude/projects/-Users-bob--claude/memory/` holds 70 memory
+  - Premise: `~/.claude/projects/-Users-you--claude/memory/` holds 70 memory
     files plus `MEMORY.md`, with types `user | feedback | project | reference`.
     Re-check at execution and use the live count; a changed count updates the
     fixture, not the contract.
