@@ -1,7 +1,7 @@
 ---
 name: publish-confluence-docs
 description: Convert Word, PDF, Markdown, and Confluence documents, render Mermaid diagrams, and publish attachments. Use when publishing to Confluence, converting downloaded SharePoint documents, exporting pages to Word, or embedding diagrams.
-compatibility: "Portable; needs Python 3.12+ with uv, Node 18.19+ or 20+ with npm for Mermaid (plus its Chromium prerequisites), curl for uploads, LibreOffice for legacy .doc, and caller-supplied Confluence access."
+compatibility: "Portable; needs Python 3.12+ with uv, Node 22.13+ with npm for Mermaid (plus its Chromium prerequisites), curl for uploads, LibreOffice for legacy .doc, and caller-supplied Confluence access."
 ---
 
 # Publish Confluence Docs

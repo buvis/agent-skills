@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **publish-confluence-docs**: image placeholders preserve unrelated and nested macros, attachment names are XML-escaped, and uploads check curl failures using the platform's null device. CI runs the optional MCP and document conversion tests on Linux and Windows.
 - **create-adr**: the template's outer fence preserves its nested diagram block.
+- **publish-confluence-docs**: Mermaid rendering works with mermaid-cli 12, which removed `-w`; `--width` now sets the PNG's largest side (before scale). Node 22.13 or newer is required.
 
 - **use-qwen**: use native separators in relative symlink targets; Windows links now remain readable through directory aliases without collapsing parent hops.
 - **use-qwen**: reject Windows root-relative archive member names before creating links, preserving archive containment when the Windows and archive-validation fixes are combined.
