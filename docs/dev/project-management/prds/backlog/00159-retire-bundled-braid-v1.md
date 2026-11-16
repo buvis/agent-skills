@@ -108,6 +108,7 @@ No dependencies - built first.
 **Tasks**:
 - [ ] Re-check the premise, then delete `src/agent_skills_braid/cli.py`, `src/agent_skills_braid/__init__.py`, `bin/braid`, `bin/braid.py`, `tests/test_braid.py`, `tests/test_braid_check.py`, and edit `pyproject.toml` and `uv.lock` as specified (no deps) - Acceptance: `test ! -e src/agent_skills_braid && test ! -e bin/braid.py`; `uv lock --check` exits 0; `uv run pytest tests/test_skill_placement.py tests/test_ci_workflow.py tests/test_conftest_fixtures.py` passes.
 - [ ] Apply the CI, README, AGENTS.md and CHANGELOG.md edits as specified (depends on: first task) - Acceptance: `rg -n "agent_skills_braid|agent-skills-braid|bin/braid|AGENT_SKILLS_CONFIG|config/agent-skills" --glob '!CHANGELOG.md' --glob '!docs/dev/**'` finds nothing; `rg -n "name: Lint$" .github/workflows/ci.yml` hits once.
+- [ ] Close held PRD 00111 (its braid ownership-state defect leaves with the deleted package): check whether gems braid can remove a union link and then refuse a later host path without saving state, file a buvis/gems issue if it can, then move 00111 from `hold/` to `done/` with a note naming this PRD and the issue (depends on: first task) - Acceptance: `test -f docs/dev/project-management/prds/done/00111-braid-state-misses-link-removals-v1.md`; its closing note names 00159 and the gems check result.
 
 **Exit Criteria**: Full gate green: `uv run pytest`, `uv run ruff check`, `uv run ruff format --check`.
 
