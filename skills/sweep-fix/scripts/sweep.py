@@ -681,7 +681,7 @@ def _verify_control_by(args, control_dir, deadline_at, expired, label=None):
     )
 
 
-def _verify_zero_hit_sweep(args, start):
+def _verify_zero_hit_sweep(args, start, repos):
     """Run the control check on what `--deadline` left since `start`.
     Raises `TimeoutError` when nothing is left for it to run.
 
@@ -698,6 +698,13 @@ def _verify_zero_hit_sweep(args, start):
     if not args.control_rev:
         return _verify_control_by(args, control_repo, deadline_at, expired)
     with tempfile.TemporaryDirectory(prefix="sweep-preimage-") as preimage:
+        if any(
+            Path(preimage).resolve().is_relative_to(_repo_cwd_and_targets(repo)[0].resolve())
+            for repo in repos
+        ):
+            raise RuntimeError(
+                "sweep unverified: temporary pre-image directory is inside a swept repo"
+            )
         try:
             _export_preimage(control_repo, args.control_rev, Path(preimage), deadline_at)
         except subprocess.TimeoutExpired as exc:
@@ -741,7 +748,7 @@ def main(argv=None):
         scan_deadline = _scan_deadline_after_setup(args, start)
         hits, suppressed, failed = scan(args.pattern, args.kind, repos, cap=args.cap, deadline=scan_deadline)
         # False means inconclusive: zero hits and the control term absent too.
-        unverified = not hits and _verify_zero_hit_sweep(args, start) is False
+        unverified = not hits and _verify_zero_hit_sweep(args, start, repos) is False
     except (RuntimeError, TimeoutError) as exc:
         print(exc, file=sys.stderr)
         return 1

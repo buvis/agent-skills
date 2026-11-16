@@ -2,7 +2,7 @@
 import os
 import subprocess
 import time
-from pathlib import PurePosixPath
+from pathlib import PureWindowsPath
 
 REGULAR_FILE_MODES = (b"100644", b"100755")
 
@@ -76,7 +76,8 @@ def _export_preimage(repo, rev, dest, deadline_at):
         size = int(data[pos:header_end].split(b" ")[2])
         body = data[header_end + 1 : header_end + 1 + size]
         pos = header_end + 1 + size + 1
-        if ".." in PurePosixPath(rel).parts:
+        path = PureWindowsPath(rel)
+        if path.anchor or ".." in path.parts:
             raise RuntimeError(f"{failure}: unsafe path {rel!r}")
         target = dest / rel
         try:

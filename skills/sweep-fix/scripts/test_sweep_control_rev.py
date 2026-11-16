@@ -234,6 +234,26 @@ def test_preimage_export_stops_once_the_deadline_has_passed(tmp_path):
     assert list(dest.iterdir()) == []
 
 
+@pytest.mark.parametrize("temp_repo", ["control", "other"])
+def test_preimage_refuses_a_temporary_root_inside_a_swept_repo(
+    tmp_path, sweep_argv, monkeypatch, capsys, temp_repo
+):
+    repo, _first = _fixed_repo(tmp_path)
+    other = tmp_path / "other"
+    other.mkdir()
+    _git(other, "init", "-q")
+    argv, out_path = sweep_argv(repo)
+    _write_registry(tmp_path / "repos.csv", [str(repo), str(other)])
+    scratch = (repo if temp_repo == "control" else other) / "scratch"
+    scratch.mkdir()
+    monkeypatch.setattr(sweep.tempfile, "tempdir", str(scratch))
+
+    assert sweep.main(argv) == 1
+    assert not out_path.exists()
+    assert list(scratch.iterdir()) == []
+    assert "temporary pre-image directory is inside a swept repo" in capsys.readouterr().err
+
+
 def _repo_state(repo):
     git_dir = repo / ".git"
     return {

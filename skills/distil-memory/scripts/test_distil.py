@@ -396,6 +396,10 @@ def test_distil_prompt_keeps_a_hostile_snippet_on_the_data_line():
 
     prompt = _distil_prompt_for(slice_)
 
+    expected = _EXPECTED_DISTIL_PROMPT.replace("@EXAMPLES@", "").replace(
+        "@DATA@", json.dumps(hostile)
+    )
+    assert prompt == expected
     instructions, data = prompt.rsplit("\n", 1)
     assert json.loads(data) == hostile
     assert data.isascii()

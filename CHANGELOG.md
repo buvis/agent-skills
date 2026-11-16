@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **sweep-fix**: pre-image exports reject paths that can escape the temporary directory on Windows and refuse temporary directories inside swept repos.
 - **sweep-fix**: when the sweep deadline expires on Windows, in-flight searches are killed at once, so several stalled `taskkill` calls no longer each add their own 5-second wait before the sweep exits.
 - **sweep-fix**: a zero-hit sweep whose control term is also absent now saves its report with an `Unverified: control term not found` line and exits 1 instead of 0.
 - **sweep-fix**: a zero-hit sweep can now be verified and exit 0: `sweep.py --control-rev REV` runs the control check on the files the fix commit changed, as they were before it, instead of on the swept live tree where the bug is already gone.
