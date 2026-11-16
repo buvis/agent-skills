@@ -9,8 +9,10 @@ import subprocess
 import sys
 
 # pytest's last line, with or without the `=` rails (`-q` drops them).
-_FINAL_RE = re.compile(r"^(?:=+ )?(\d+ [a-z]+(?:, \d+ [a-z]+)*) in [\d.]+s\b")
-_COUNT_RE = re.compile(r"(\d+) (passed|failed|skipped|errors?)\b")
+# A count may be one word (`3 passed`) or a subtest count (`4 subtests passed`).
+_FINAL_RE = re.compile(r"^(?:=+ )?(\d+ [a-z ]+?(?:, \d+ [a-z ]+?)*) in [\d.]+s\b")
+# Subtest passes and skips are not test results; a failed subtest is a failure.
+_COUNT_RE = re.compile(r"(\d+) (subtests failed|passed|failed|skipped|errors?)\b")
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 
@@ -22,7 +24,7 @@ def parse_counts(output: str) -> dict[str, int] | None:
         return None
     counts = {"passed": 0, "failed": 0, "skipped": 0}
     for number, kind in _COUNT_RE.findall(finals[-1]):
-        counts["failed" if kind.startswith("error") else kind] += int(number)
+        counts[kind if kind in counts else "failed"] += int(number)
     return counts
 
 
