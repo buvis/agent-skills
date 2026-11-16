@@ -63,8 +63,15 @@ Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchan
 - Worktree `~/git/src/worktrees/agent-skills/retire-braid`
   (`feature/retire-braid`) is clean, zero own commits, one behind master.
   Staged for PRD 00159; may belong to a live session, so leave it.
-- The 2026-10-30 closeout plans in `plans/` look executed: PR #17 merged
-  2026-11-09, #16 merged, #15 autoclosed, master CI green. Not yet removed.
+- The 2026-10-30 closeout plans in `plans/` are NOT finished. PRs #15-#17
+  are settled and archive PRDs 00155-00158 closed as fixed in `ff6e8af`, but
+  lane PRD 00163 (Windows residue, CI `-ra`) exists only on
+  `origin/ci/closeout-stage-1-*` and never reached master, and Session 4
+  verification never ran. 00161 reached master inside the #17 squash merge.
+- 00111 has no branch of its own: PRD 00159 (task 3) closes it, since
+  deleting the bundled braid deletes the defect.
+- 00050 waits on an operator calibration record
+  (`audit-results/qwen-ivan-calibration/protocol.md`); its eligibility fails.
 - Autocodex is retired here (2026-11-15); Claude autopilot stays.
 - Local-only branches kept on purpose: `custody/00111-*`, `custody/00135-*`
   (never push), `agoge/authored-tests-2026-10-26`. `docs/agoge-0.3.0` and
