@@ -3,6 +3,19 @@
   "extends": [
     "github>tbouska/renovate-config"
   ],
+  "customManagers": [
+    {
+      "description": "build-mcp-server docs quote the SDK pins; bump them in the same PR as its pyproject.",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^skills/build-mcp-server/.+\\.(md|py)$/"
+      ],
+      "matchStrings": [
+        "(?<depName>mcp|httpx2)(\\[cli\\])?==(?<currentValue>\\d+(\\.\\d+)*)"
+      ],
+      "datasourceTemplate": "pypi"
+    }
+  ],
   "packageRules": [
     {
       "description": "One PR per round: every bump needs one template rebuild, which CI enforces.",

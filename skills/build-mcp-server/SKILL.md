@@ -13,7 +13,7 @@ Also handles migration of existing v1 servers to v2.
 ## Dependencies
 
 Python 3.11+, uv, the target API specification, and the pinned SDK stack
-`mcp==2.3.0` with `httpx2==2.16.0` (v2 of the SDK depends on `httpx2`, not
+`mcp==2.3.0` with `httpx2==2.16.2` (v2 of the SDK depends on `httpx2`, not
 `httpx`; `httpx2` itself needs Python 3.11+). Dependency templates and test
 scaffolding are in `project-template.md`. If the API specification is
 unavailable, request it rather than invent endpoints.
@@ -179,7 +179,7 @@ upstream failure (HTTP 500 gives `is_error`) per tool; see `project-template.md`
 ### Step 6 — Generate Project Files
 
 Use templates from `project-template.md`:
-- `pyproject.toml`: `mcp[cli]==2.3.0`, `httpx2==2.16.0`, `pydantic>=2.12`, dev deps
+- `pyproject.toml`: `mcp[cli]==2.3.0`, `httpx2==2.16.2`, `pydantic>=2.12`, dev deps
 - `README.md`: description, prerequisites, quick start, env vars table, tools table, integration examples
 - `.env.example`: all required env vars with placeholder values
 
@@ -311,7 +311,7 @@ After mechanical migration:
 - Add `ToolAnnotations` to every tool
 - Add return type annotations for structured output
 - Add `Field(description=...)` to parameters
-- Update pyproject.toml: `mcp[cli]==2.3.0`, `httpx2==2.16.0`, `requires-python = ">=3.11"`
+- Update pyproject.toml: `mcp[cli]==2.3.0`, `httpx2==2.16.2`, `requires-python = ">=3.11"`
 - Remove deprecated features (logging, sampling push calls)
 
 ### Step 8 — Verify

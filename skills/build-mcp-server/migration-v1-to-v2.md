@@ -85,13 +85,13 @@ async def my_tool(x: int, ctx: Context) -> str:
 
 ```toml
 # v1
-dependencies = ["mcp==1.28.1", "httpx>=0.27"]
+dependencies = ["mcp>=1.28,<2", "httpx>=0.27"]
 
 # v2
-dependencies = ["mcp==2.3.0", "httpx2==2.16.0"]  # httpx2 replaces httpx; needs Python 3.11+
+dependencies = ["mcp==2.3.0", "httpx2==2.16.2"]  # httpx2 replaces httpx; needs Python 3.11+
 ```
 
-New required deps: `opentelemetry-api>=1.28.0`, `mcp-types` (exact-pinned), `httpx2` (2.16.0 verified; `mcp` 2.3.0 requires `>=2.10.0`)
+New required deps: `opentelemetry-api>=1.28.0`, `mcp-types` (exact-pinned), `httpx2` (`mcp` 2.3.0 requires `>=2.10.0`)
 Removed: `httpx`, `httpx-sse`, `websockets`
 
 ## httpx → httpx2

@@ -25,7 +25,7 @@ description = "<ONE_LINE_DESCRIPTION>"
 requires-python = ">=3.11"
 dependencies = [
     "mcp[cli]==2.3.0",
-    "httpx2==2.16.0",
+    "httpx2==2.16.2",
     "pydantic>=2.12",
 ]
 
