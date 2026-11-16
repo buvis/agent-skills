@@ -25,6 +25,11 @@ model_tier_rationale: three small, test-pinned repairs and one CI flag; the only
 >   and the four Q3 tests pass on the hosted Windows job with no skip marker.
 >   `native_cwd` and `_to_msys` never reached master. Not ported.
 > - **Task 4 (`-ra`): ported.**
+> - **Gate parser (not a PRD task).** The branch also carries `c4af62b`, a
+>   `build(gate)` fix to `scripts/gate.py`: the full suite now ends with
+>   `4 subtests passed`, which the gate rejected, so every gate run printed
+>   `EXIT 1` with zero counts. The fix was needed to verify this PRD. It
+>   changes no shipped skill, so it has no CHANGELOG entry.
 
 Source: `docs/dev/project-management/audit-results/repository-closeout-execution.md`,
 entry "Stage 1 — lanes built", section "Native run 41353724204". Continues
