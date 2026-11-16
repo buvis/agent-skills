@@ -37,6 +37,17 @@ def test_summary_line_reads_quiet_and_colored_summaries(final):
     assert summary_line(f"...s\n{final}\n", 0) == "PASS 3 FAIL 0 SKIP 1 EXIT 0"
 
 
+def test_summary_line_reads_a_final_line_that_reports_subtests():
+    # The repo's real full-suite line; subtest passes are not test passes.
+    output = "4937 passed, 12 skipped, 4 subtests passed in 448.54s (0:07:28)\n"
+    assert summary_line(output, 0) == "PASS 4937 FAIL 0 SKIP 12 EXIT 0"
+
+
+def test_summary_line_counts_a_failed_subtest_as_a_failure():
+    output = "==== 1 failed, 3 passed, 2 subtests failed, 1 subtests passed in 1.0s ====\n"
+    assert summary_line(output, 1) == "PASS 3 FAIL 3 SKIP 0 EXIT 1"
+
+
 def test_summary_line_never_reads_as_a_pass_without_a_summary():
     assert summary_line("no summary here\n", 0) == "PASS 0 FAIL 0 SKIP 0 EXIT 1"
     assert summary_line("no tests ran in 0.01s\n", 5) == "PASS 0 FAIL 0 SKIP 0 EXIT 5"
