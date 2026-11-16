@@ -1,6 +1,6 @@
 # Project Capsule: agent-skills
 
-Generated: 2026-10-30 (Git hygiene and unpublished-change review)
+Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchanged)
 
 ## Key Invariants
 
@@ -46,72 +46,48 @@ Generated: 2026-10-30 (Git hygiene and unpublished-change review)
   and `scripts/`; the shell CI job additionally runs the Bash suites.
 - Ruff excludes the skill and documentation trees intentionally. Validate
   changed skills with `skills/create-skill/scripts/validate_skill.py`.
-- The memory funnel's judge is the model invocation boundary. PRD 00133 will
-  restrict its tools and inherited MCP configuration; that work is unfinished.
-- Qwen evaluation templates are extracted from Git archives. The compatibility
-  extraction path still has confirmed containment risk; see held PRDs 00156
-  and 00158 and the unpublished review below.
+- The memory funnel's judge is the model invocation boundary. PRD 00133
+  (restrict its tools and inherited MCP config) is done.
+- Qwen evaluation templates are extracted from Git archives
+  (`use-qwen/scripts/eval_harness/trees.py`). PRDs 00156/00158 on its
+  containment risk are no longer in the store; status unverified this pass.
 
 ## Active Work
 
-- `plans/repository-closeout-plan.md` defines three execution sessions and a
-  fourth independent verification session. It covers archive safety, Windows
-  CI, and PRs #17/#15/#16; PRD 00133 implementation remains outside its scope.
-- Batch 202610271200 is stopped after 33 completed PRDs. PRD 00133 remains in
-  `wip/`, build phase, zero completed tasks. The interrupted run's telemetry
-  and unchanged backlog-to-wip move are committed.
-- The store contains 19 backlog, 1 wip, 20 hold, and 100 done PRDs.
-- PRD 00111's four code/test commits were manually reverted. Custody is closed;
-  the later state-decoding fix remains. Its original persistence defect remains
-  unresolved, and its custody branch is retained for follow-up.
-- Master retains the original 147 commits already published through the
-  migration branch, then 12 grouped local commits and the hygiene record.
-  The grouping preserved the pre-groom tree exactly; only the subsequent
-  capsule/report update changes documentation.
-- Migration PR #17 remains eight commits on base `6091e02`, tip `9249695`.
-  Its validator-consolidation PRD is now 00159, avoiding master's 00155.
-- Do not merge or discard the three fast-track branches: each carries a
-  separate held PRD's unmerged implementation. The audit test branch and
-  custody branch also retain deliberate recovery material.
+- Measured 2026-11-16: no wip PRD. Backlog: 00050 (qwen ivan capability
+  eval) and 00159 (retire bundled braid, gated by an `eligibility` check on
+  gems#272 shipping a braid without `--config-root`). Hold: 00111 only.
+- Recent focus: PRDs 00177-00179 done (sweep-fix pre-image verification,
+  distil-memory prompt framing); Renovate onboarding merged a dozen dep PRs
+  on 2026-11-16 (Node 26, jsdom 31, pymupdf 2, mermaid-cli 12, python-docx 1.2).
+- Worktree `~/git/src/worktrees/agent-skills/retire-braid`
+  (`feature/retire-braid`) is clean, zero own commits, one behind master.
+  Staged for PRD 00159; may belong to a live session, so leave it.
+- The 2026-10-30 closeout plans in `plans/` look executed: PR #17 merged
+  2026-11-09, #16 merged, #15 autoclosed, master CI green. Not yet removed.
+- Autocodex is retired here (2026-11-15); Claude autopilot stays.
+- Local-only branches kept on purpose: `custody/00111-*`, `custody/00135-*`
+  (never push), `agoge/authored-tests-2026-10-26`. `docs/agoge-0.3.0` and
+  `docs/structure-ignore-standard` also exist on origin, no open PR.
 
 ## Related context
 
-- `prds/wip/00133-transcript-judge-inherits-tools-v1.md:7` — score 0.0328;
-  the interrupted work's tool restriction boundary.
-- `prds/done/00072-distil-judge-no-persistence-v1.md:7` — score 0.0159;
-  related judge invocation history.
-- Topic: “Transcript instructions reach a judge without tool restrictions”.
-  Repo and portfolio queries ran. Portfolio status reports stale/dead rows
-  (memory 24/1, PRD 0/3087, transcripts 0/17604, code 54/21); portfolio
-  recall is incomplete. Review harvest succeeded partially; 89 files lacked
-  parseable frontmatter. No prior task session was available to restore.
+- No topic this session: on master with no wip PRD, so engram queries were
+  skipped. Review harvest ran: most review files upserted; many `*-audit.md`
+  logs reported `parse_failed` (no decision blocks).
 
 ## GitHub State
 
-- Remote master was observed at `6b52b2a` during closeout planning, after the
-  grooming session ended. The grouped history is now published.
-- Open PRs: #17 migration skills; #16 Node 26; #15 setup-uv 10.3.3.
-  All three remote branches have live PRs and are retained.
-- Latest remote-master CI, run 41032617118 at `6b52b2a`, failed on Windows:
-  61 failed, 4166 passed, 40 skipped. Linux 3.10/3.13, lint, Node, and shell
-  passed. Use its current logs instead of the older 60-failure baseline.
-- Migration run 41030058506 at `9249695`: Linux Python 3.10/3.13, lint,
-  Node, and shell jobs passed; Windows failed with 65 failed, 4062 passed,
-  and 43 skipped.
-- PR #17's body still names PRD 00150; its branch now carries PRD 00159.
-  Correct that description when next updating PR metadata.
-- One open issue: Dependency Dashboard. No GitHub releases were returned.
+- Measured 2026-11-16: 0 open issues, 0 open PRs.
+- Releases v0.1.0 and v0.2.0 (both 2026-11-10); 431 commits on master since
+  v0.2.0, unreleased.
+- Master CI: last 8 runs success or cancelled (superseded by later pushes).
+  Last failure 2026-11-10 (`f318ee2`): Windows, 2 failures in
+  `sweep-fix/test_sweep_main.py` control-verification test; later runs green.
 
 ## Project Health
 
-- Local recovery verification: 4258 tests passed, 9 skipped; Ruff passed;
-  all 12 affected skills validated; `braid --check` reported zero drift.
-- Migration verification: 4158 tests passed, 12 skipped, plus 4 subtests;
-  210 braid tests also passed against that branch's own source.
-- These green suites do not close the archive compatibility finding. A
-  disposable crafted-archive probe changed a sentinel outside the destination
-  with `data_filter` unavailable; the filtered path refused it.
-- See `audit-results/unpublished-review-2026-10-30.md` for review scope,
-  grouped commits, retained branches, and remaining release risks.
-- `audit-results/brush-report.md` records the Git hygiene outcome. Active
-  migration reference material remains local; the purge preview was withheld.
+- CI green on all jobs including Windows since 2026-11-16 runs.
+- Release cadence lags: 431 unreleased commits.
+- Stale remote branches (`docs/structure-ignore-standard`,
+  `ci/closeout-stage-1-20261103`) are 13 days old with no PR.
