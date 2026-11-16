@@ -2,7 +2,7 @@
   "name": "confluence-document-tools",
   "private": true,
   "engines": {
-    "node": "^18.19 || >=20.0"
+    "node": ">=22.13.0"
   },
   "dependencies": {
     "@mermaid-js/mermaid-cli": "12.2.0"

@@ -80,6 +80,20 @@ class PortabilityTests(unittest.TestCase):
             "npx", "--no-install", "--prefix", str(SCRIPTS.resolve().parent), "mmdc"
         ])
 
+    def test_mermaid_passes_size_because_cli_12_dropped_width(self):
+        module = load_script("mermaid_to_png.py")
+        refused = subprocess.CompletedProcess(
+            args=[], returncode=1, stdout="", stderr="Authored renderer refusal"
+        )
+        with tempfile.TemporaryDirectory() as output:
+            with patch("subprocess.run", return_value=refused) as invoked:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    module["render"]([("diagram", "graph TD; A-->B")], output, 800, 1)
+        command = invoked.call_args.args[0]
+        self.assertNotIn("-w", command)
+        self.assertNotIn("--width", command)
+        self.assertEqual(command[command.index("--size") + 1], "800")
+
     @NEEDS_DEPS
     def test_word_output_uses_neutral_style_and_unclassified_metadata(self):
         module = load_script("md_to_docx.py")

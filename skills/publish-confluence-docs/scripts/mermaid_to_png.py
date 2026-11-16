@@ -38,7 +38,7 @@ def render(blocks, output_dir, width, scale):
         png_path = os.path.join(output_dir, f'{name}.png')
         with open(mmd_path, 'w') as f:
             f.write(mermaid_src)
-        cmd = ['npx', '--no-install', '--prefix', str(Path(__file__).resolve().parents[1]), 'mmdc', '-i', mmd_path, '-o', png_path, '-b', 'white', '-w', str(width), '-s', str(scale)]
+        cmd = ['npx', '--no-install', '--prefix', str(Path(__file__).resolve().parents[1]), 'mmdc', '-i', mmd_path, '-o', png_path, '-b', 'white', '--size', str(width), '-s', str(scale)]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode == 0 and os.path.exists(png_path):
             size = os.path.getsize(png_path)
@@ -53,7 +53,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('input', help='Markdown file with mermaid blocks')
     p.add_argument('--output-dir', default=None, help='Output directory (default: same as input)')
-    p.add_argument('--width', type=int, default=1600, help='Image width in pixels (default: 1600)')
+    p.add_argument('--width', type=int, default=1600, help='Max image width or height in pixels, before scale (default: 1600)')
     p.add_argument('--scale', type=int, default=2, help='Scale factor for retina (default: 2)')
     args = p.parse_args(argv)
     out = args.output_dir or os.path.dirname(os.path.abspath(args.input))
