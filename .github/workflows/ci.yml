@@ -70,7 +70,7 @@ jobs:
         run: >-
           uv run --python 3.13
           --with mcp==2.3.0 --with httpx2==2.16.0
-          --with python-docx==1.1.2 --with pymupdf==1.25.3 --with pyyaml==6.0.2
+          --with python-docx==1.1.2 --with pymupdf==2.1 --with pyyaml==6.0.2
           pytest skills/build-mcp-server/tests skills/publish-confluence-docs/tests -q -rs
 
   # The same suite on a CRLF checkout and Windows path separators. 3.13 only:
