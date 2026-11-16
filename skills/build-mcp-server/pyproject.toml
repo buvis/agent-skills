@@ -1,0 +1,11 @@
+[project]
+name = "build-mcp-server-examples"
+version = "0.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp==2.3.0",
+    "httpx2==2.16.0",
+]
+
+[tool.uv]
+package = false

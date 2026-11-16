@@ -66,11 +66,17 @@ jobs:
       - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
       # Keep the SDK and converters out of braid's Python 3.10 environment,
       # while exercising the tests that otherwise skip without these extras.
+      # The pins live only in the skills' pyproject files, where Renovate bumps
+      # them, so CI tests what a bump PR proposes. `uv run --with-requirements`
+      # refuses a pyproject.toml, hence the compile step.
+      - name: Resolve the skills' pinned dependencies
+        run: >-
+          uv pip compile --python-version 3.13 --quiet
+          skills/build-mcp-server/pyproject.toml skills/publish-confluence-docs/pyproject.toml
+          -o ${{ runner.temp }}/skill-requirements.txt
       - name: Test MCP examples and document conversions
         run: >-
-          uv run --python 3.13
-          --with mcp==2.3.0 --with httpx2==2.16.0
-          --with python-docx==1.1.2 --with pymupdf==2.1 --with pyyaml==6.0.2
+          uv run --python 3.13 --with-requirements ${{ runner.temp }}/skill-requirements.txt
           pytest skills/build-mcp-server/tests skills/publish-confluence-docs/tests -q -rs
 
   # The same suite on a CRLF checkout and Windows path separators. 3.13 only:
