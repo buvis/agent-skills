@@ -68,6 +68,10 @@ Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchan
   lane PRD 00163 (Windows residue, CI `-ra`) exists only on
   `origin/ci/closeout-stage-1-*` and never reached master, and Session 4
   verification never ran. 00161 reached master inside the #17 squash merge.
+  2026-11-16: 00163 tasks 2 and 4 ported to `bugfix/windows-suite-residue`
+  (worktree `~/git/src/worktrees/agent-skills/windows-suite-residue`, with a
+  `scripts/gate.py` subtest-parsing fix); tasks 1 and 3 superseded on master.
+  Awaits review; delete `origin/ci/closeout-stage-1-*` once it merges.
 - 00111 has no branch of its own: PRD 00159 (task 3) closes it, since
   deleting the bundled braid deletes the defect.
 - 00050 waits on an operator calibration record
