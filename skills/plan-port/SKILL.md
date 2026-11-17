@@ -56,7 +56,7 @@ the plan until every row has one, and the refusal names the offending row.
 
 `port` and `redesign` rows are presented as one table for a single approval.
 Each `drop` row gets an individual packet with evidence, per
-`rules/communication.md`. The asymmetry is deliberate: a wrong `port` costs
+`AGENTS.md` "Final report and decisions". The asymmetry is deliberate: a wrong `port` costs
 effort, a wrong `drop` costs a feature.
 
 Before the first drop packet, the skill says once, and only once, that a
