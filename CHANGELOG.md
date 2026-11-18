@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **run-agoge** (documentation copy): every finding in the JSON sidecar carries `lanes`, the lanes merged into it, and the contract says `agoge-gym`'s scorer matches the finding's `title`. The gym notes point at the arm `bin/arm` prints, outside the gym, and say to copy a run's report out before re-arming. Mirrors the agoge plugin.
+- **run-agoge** (documentation copy): synced to agoge 0.3.1. Runs snapshot the target before and after the lanes and fail on any change, lanes follow a scratch contract, the report and sidecar carry the target's integrity, and emitted PRDs take create-prd's minimal shape.
 - **sweep-fix**: `sweep.py` scans every gita-registered repo in parallel instead of one at a time, bounded by the `--deadline` above (default 300s).
 - **debrief-meeting**: `assets/template.html` is rebuilt with svelte 5.57.3, vite 8.3.5, @sveltejs/vite-plugin-svelte 7.3.1, vite-plugin-singlefile 2.3.4 and jsdom 30.1.3; CI moves to actions/setup-node v7 and astral-sh/setup-uv v10.3.2.
 - **debrief-meeting**: speaker matching in `parse.py` compares a new label only with groups that share its initials, so transcripts with thousands of distinct speaker labels no longer take quadratic time; the resulting speaker names and merges are unchanged.

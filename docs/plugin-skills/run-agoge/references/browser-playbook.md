@@ -41,7 +41,7 @@ Report an orphan you could not kill as a finding against your own lane.
 ## Writing a probe
 
 You cannot write into the target repo and must not try. Put probe scripts in a
-scratch directory outside it (`"${TMPDIR:-/tmp}"/agoge-<lane>/`) and resolve the
+scratch file under the root the scratch contract gives you and resolve the
 browser out of the target's own dependencies, so there is one pinned version and
 no second dependency tree:
 
