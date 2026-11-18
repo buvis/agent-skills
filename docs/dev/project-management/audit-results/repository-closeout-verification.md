@@ -198,3 +198,43 @@ Related evidence: [execution record](repository-closeout-execution.md),
 [drain review](../reviews/drain-backlog-completion-review-20261115.md),
 [00163 review](../reviews/00163-windows-suite-residual-failures-v1-review-1.md),
 and [00133 review](../reviews/00133-transcript-judge-inherits-tools-v1-review-1.md).
+
+## Follow-up preparation, 2026-11-18 17:01 UTC
+
+Rechecked run 44299821325 directly while preparing the next-session prompt.
+All eight jobs succeeded at the original tested SHA `5be3433`. Retrieved the
+completed run logs. **V5 is resolved for that SHA**; V1-V4 and the overall
+FAIL remain. A later integrated source tip needs its own final CI evidence.
+
+| Hosted check | Result |
+|---|---|
+| Windows | 4,905 passed, 46 skipped; 1,329.21 s |
+| Linux 3.10 | 4,938 passed, 13 skipped; 557.03 s |
+| Linux 3.13 | 4,938 passed, 13 skipped; 409.02 s |
+| Optional integration, each OS | 31 passed, 7 subtests passed, 1 warning; no skips reported |
+| Shell suites | Dependency listing 17, Codex 44, Gemini 18, automation 31, Qwen 114, Sonnet 40 passed; zero failed |
+| Node | 62 passed, zero failed/skipped; build and template comparison succeeded |
+| Lint | Success |
+
+Read all 46 Windows skip reasons: optional MCP/document dependencies (3),
+missing calibration corpus (1), illegal TAB filenames (5), optional
+tree-sitter (8), POSIX search/process fixtures (27), and executable-bit
+semantics (2). The Windows job-object test is not skipped. These skips stay
+distinct from passes; optional integration runs cover MCP/document imports.
+
+Parallel ownership for the requested continuation:
+
+- The corrective session owns V1-V4, recognition of V5's completed evidence,
+  the plan, execution/verification records, capsule, and final integration.
+- A separate dependency session owns the picomatch advisory repair in
+  `bugfix/debrief-dependency-audit`, using a dedicated worktree under
+  `~/git/src/worktrees/agent-skills/debrief-dependency-audit`.
+  It writes its own review/evidence file, not the closeout records.
+- Build and review may proceed in parallel. The dependency session returns
+  reviewed commits and exact test evidence to the corrective coordinator.
+  Only that coordinator integrates; final independent verification starts
+  after both sessions finish and the combined tip passes its required checks.
+- The dependency session triages related install/build warnings, but a warning
+  alone does not authorize install-script approval or unrelated configuration changes.
+
+No repair session or worktree was started during prompt preparation.

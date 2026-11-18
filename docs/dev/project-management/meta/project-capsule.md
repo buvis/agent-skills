@@ -78,6 +78,8 @@ Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchan
   CI was still running at the polling cap. Reconcile these
   findings before repeating verification; see
   `audit-results/repository-closeout-verification.md`. The plan stays open.
+  Follow-up at 17:01 UTC: all eight exact-tip CI jobs passed; Windows had
+  4,905 passed and 46 skipped. V5 is resolved for `5be3433`; V1-V4 remain.
 - 00111 has no branch of its own: PRD 00159 (task 3) closes it, since
   deleting the bundled braid deletes the defect.
 - 00050 waits on an operator calibration record

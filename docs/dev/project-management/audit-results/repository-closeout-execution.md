@@ -2237,3 +2237,13 @@ Corrective handoff:
 `docs/dev/tmp/handoff-closeout-verification-correction-20261118.md`.
 Its durable copy is the verification report's Corrective handoff section.
 Resume reconciliation in a fresh session, then repeat independent verification.
+
+### Verification follow-up preparation, 2026-11-18 17:01 UTC
+
+Run 44299821325 has now completed successfully in all eight jobs. Windows:
+4,905 passed, 46 skipped. Read the completed logs and skip reasons; V5 is
+resolved for `5be3433`. The verification report's dated addendum contains
+the full hosted counts and the proposed parallel-session ownership. V1-V4
+remain open, so the overall verification stays FAIL. Dependency repair can
+run in its own worktree while the corrective session reconciles the records;
+integration and final independent verification follow both sessions.
