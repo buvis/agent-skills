@@ -2186,3 +2186,54 @@ four unrelated dirty paths. No push, remote write, Stage 3 or PR #17 edit.
 Next: review 00164, 00161, 00163 and held 00044, each in its own fresh
 session. Then the combined candidate review, then exact-SHA CI approval.
 R4 stays open until native Windows runs on that candidate.
+
+## Verification, 2026-11-18: FAIL
+
+Fresh independent Session 4 checked published master
+`5be3433cb27f4458b440837d1d8ccf114f461904`. The preceding entries are historical;
+their pending-work statements are not a current repository inventory.
+Full acceptance mapping, GitHub evidence, exact results, and corrective steps
+are in [repository-closeout-verification.md](repository-closeout-verification.md).
+
+Archive checks passed on Python 3.10.22, 3.12.16, and 3.13.18: 499 tests each,
+zero skips, deprecation warnings treated as errors, both extraction paths.
+The full local suite passed 4,939 tests and skipped 12. Optional integration
+coverage passed separately: 31 tests and 7 subtests, zero skips, six warnings.
+All 60 skill validators, Ruff, braid (161 current, 20 ignored, zero drift),
+Node build/template comparison, and 62 Node tests passed. Two local wrapper
+shell suites failed under their nested-dispatch guards: Codex 11 passed/33
+failed; Gemini 7 passed/11 failed. Other shell suites passed. Exact-tip hosted
+CI is run 44299821325. At 12:17:21Z, seven jobs had passed and Windows was
+still running. Polling stopped at the watch-ci skill's 15-minute cap; final
+Windows counts and skip reasons remain unverified (report V5).
+
+PR #17 merged at `d368288`; PR #16 merged at `dd3a44d`. PR #15 was autoclosed
+by Renovate; PR #32 supplies the requested setup-uv 10.3.3. The migration's
+follow-up became 00175 and is done; 00159 now owns braid retirement. Later
+archive/drain and 00163 reviews exist, but no Stage 3 handoff or consolidated
+integration/approval record was found.
+
+The original 147 published ancestors and all 60 private recovery files remain
+intact. Later recorded master tips `4103e99` and `0466054` are not ancestors
+of current master; the drain review records a public-history replacement.
+Excluded PRD 00133 is now done, and the live store targets paused 00135.
+These later dispositions require explicit reconciliation with this plan's
+unchanged preservation requirements. This verification does not restore old
+state or rewrite history.
+
+Current worktrees are the canonical checkout and unrelated `retire-braid`
+at `92ee7f9`; both were clean at entry. Origin has only master. The capsule's
+two custody branches and retire-braid branch remain; there are no stashes.
+No branch or worktree was created or removed. No recovery file, production
+file, or runtime state changed.
+Verification writes are limited to this entry, the report, a capsule reference,
+and ignored evidence/handoff files. The plan remains unarchived after FAIL.
+
+Additional finding: npm reports six high-severity dependency entries rooted
+in picomatch advisory GHSA-fc5q-39xc-vjpf. The report owns this deferred repair
+and the optional-integration warning/coverage limits. No dependency was changed.
+
+Corrective handoff:
+`docs/dev/tmp/handoff-closeout-verification-correction-20261118.md`.
+Its durable copy is the verification report's Corrective handoff section.
+Resume reconciliation in a fresh session, then repeat independent verification.

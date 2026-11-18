@@ -72,6 +72,12 @@ Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchan
   fix) reviewed, merged and closed after a green hosted Windows run (`4ddcc5a`);
   tasks 1 and 3 were superseded on master. `origin/ci/closeout-stage-1-*`
   deleted. Only the plan's Session 4 verification remains.
+  2026-11-18: Session 4 returned FAIL. Archive checks pass, but history and
+  PRD 00133 preservation differ from the plan, the Stage 3 record is missing,
+  and two local shell suites hit nested-dispatch guards. Exact-tip Windows
+  CI was still running at the polling cap. Reconcile these
+  findings before repeating verification; see
+  `audit-results/repository-closeout-verification.md`. The plan stays open.
 - 00111 has no branch of its own: PRD 00159 (task 3) closes it, since
   deleting the bundled braid deletes the defect.
 - 00050 waits on an operator calibration record
