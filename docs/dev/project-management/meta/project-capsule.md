@@ -75,9 +75,9 @@ Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchan
   2026-11-18: Session 4 returned FAIL. Archive checks pass, but history and
   PRD 00133 preservation differ from the plan, the Stage 3 record is missing,
   and two local shell suites hit nested-dispatch guards. Exact-tip Windows
-  CI was still running at the polling cap. Reconcile these
-  findings before repeating verification; see
-  `audit-results/repository-closeout-verification.md`. The plan stays open.
+  CI was still running at the polling cap. 2026-11-18: reconciled in the
+  execution record (V1-V5; CI run 44299821325 green, shell suites pass outside
+  the guards). Awaiting fresh Session 4 verification; plan stays open.
   Follow-up at 17:01 UTC: all eight exact-tip CI jobs passed; Windows had
   4,905 passed and 46 skipped. V5 is resolved for `5be3433`; V1-V4 remain.
 - 00111 has no branch of its own: PRD 00159 (task 3) closes it, since

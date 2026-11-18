@@ -2247,3 +2247,116 @@ the full hosted counts and the proposed parallel-session ownership. V1-V4
 remain open, so the overall verification stays FAIL. Dependency repair can
 run in its own worktree while the corrective session reconciles the records;
 integration and final independent verification follow both sessions.
+
+## Reconciliation, 2026-11-18
+
+Fresh session after the Session 4 FAIL. Master at entry: `e172ad8` (one commit
+ahead of `origin/master` `5be3433`; that commit is the Session 4 record).
+Ignored evidence: `docs/dev/tmp/closeout-reconcile/` (full CI log of run
+44299821325). No production file, history, PR, branch, recovery file or
+autopilot state changed. The earlier entries stay historical.
+
+### V2: history replacement (measured)
+
+- Master and the old line share `07c2852` (2026-11-10). The old line has 13
+  commits after it, ending at `0466054`; master has 226 commits after it.
+- The 13 old commits were re-created on master as scrubbed copies: the
+  `chore(autopilot)` state commits and the cycle-2 evidence commit differ by
+  home-path text, so their patch IDs differ; `6910fd4`, `a05bf0c`, `f193e7e`,
+  `89826cf`, `4277fe9`, `a3047b5` match 6 of them by patch ID, the other 7 were
+  collapsed into 4 scrubbed commits (`ab1d98d`, `3117786`, `2d56921`, `226d0b0`).
+- `4103e99` (the 2026-11-08 closeout lane tip) was never on master. Its content
+  reached master through the drain merges (below), not by ancestry.
+- The raw unscrubbed evidence is kept on local `custody/00135-raw-reviewer-evidence`
+  (`0466054`), never pushed.
+- Preserved: the 147 original published commits (`02a1423..6091e02`), `6091e02`
+  and `6b52b2a` remain ancestors. The plan's rule 4 ("do not repeat the
+  filter-branch operation") was overridden by a later public-master replacement
+  recorded only in the drain review (2026-11-15) and the capsule. **Authority
+  not found in tracked evidence.** Recorded as an unverified assumption: the
+  user decided it (the review says "force-replaced", and AGENTS.md reserves
+  that to explicit user approval). The user must confirm this in Session 4.
+- Current history is not rewritten to match the obsolete snapshot.
+
+### V1: integration order, reviewed trees, dispositions
+
+| Item | Reviewed tree | Published as | Review evidence |
+|---|---|---|---|
+| 00160 (+00155-00158) | lane `373be1f` (Stage 2 record above), then drain branch | `2357168`, `ee686f8` | Stage 2 recovery reviews; drain review (all three lenses, Codex doubt lens) |
+| 00162 | `73386d6` (ancestor of master) | `540a64d` | 00162 reviews 01/02; drain review |
+| 00164 | `b8db11f` (ancestor of master) | `d2e6c66` | drain review |
+| 00044 | held; README claim | `ee686f8`, done | drain review D4 (hosted run 43740319487) |
+| 00161 | `b6241bd` (not an ancestor) | inside PR #17 squash `d368288` | shipping review 2026-11-09; drain review judgement call 1 |
+| 00163 | `c4af62b` (cycle 1, four lenses) | `c8f582a`, `3e3a9e7`, `49bd5c8`, `4ddcc5a` (tasks 1/3 superseded) | `00163-...-review-1.md` |
+| PR #17 | head `3f5023d` | merged 2026-11-09, `d368288` | shipping review |
+| PR #15 | head `d74d47b` | closed by Renovate, superseded by #32 (`645f7e8`) | setup-uv 10.3.3 present |
+| PR #16 | head `018b551` | merged 2026-11-16, `dd3a44d` | CI Node 26 |
+
+Integration order differs from the plan (fixes, #17, #15, #16). Actual order:
+#17 (11-09), the drain merges with the archive/Windows lanes (11-15), #16 and
+Renovate batch including #32 (11-16), then 00163 (11-16/17). The plan's Stage 3
+entry was never written; this table is its reconstruction. No approval was
+invented. Approvals are as recorded in each source review and the PR history.
+
+Tree check: reviewed drain head `597b523` equals master at `ca94710` for every
+tracked path outside `docs/`, except one blank CHANGELOG line
+(`git diff 597b523 ca94710 -- . ':(exclude)docs'`). The two `docs/` differences
+are the 00135 review and the review record itself. So the reviewed tree is the
+published tree. Later source changes (36 files since `ca94710`) have their own
+reviews: 00133/00134/00135 (all 5 lenses, 2026-11-15), 00177-00179 (alice, blake,
+bob), 00163 (alice, blake, bob, carl); the remaining ones are Renovate PRs gated
+by CI and documentation syncs (`a030f93`, `dad4152`, `f58cff6`).
+
+Missing mandatory reviews: none found for plan scope, so none were run.
+Known deviations kept visible, not hidden: Bob always ran as Codex
+(`gpt-6-astra`, inlined after a nested-sandbox failure); the brief's rubric R5
+does not exist in the installed rubric; the original per-lane fresh-session
+reviews of 00164, 00161 and 00044 are replaced by the drain review's
+combined pass. Session 4 decides whether that substitution is acceptable.
+
+### V3: PRD 00133 and autopilot state
+
+- Original wip 00133 (SHA-256 `ad22e003...`) was completed by a later authorized
+  session: done on 2026-11-15, completion review `00133-...-review-1.md`,
+  now SHA-256 `c855857a...`. The plan's "leave ready for a later session"
+  no longer applies. Original stopped state is in the 60 recovery files and
+  `.git/recovery-20261030/` (intact).
+- The live store (`state.json`, SHA-256 `b85891ca...`) is paused on 00135, 3/3
+  tasks, cycle 2. 00135 is also in `done/`. Do not restore the old state.
+  Resume target: none from this store; start the next run with an explicit
+  `init` on a backlog PRD (00159 is gated on gems#272; 00050 is ineligible).
+
+### V4: shell suites, outside the nested guards
+
+Run from this session (Kiro CLI; `CODEX_SESSION_ID`, `COPILOT_CLI` and
+`AUTOPILOT_DISPATCH_DEPTH` are unset; guards unchanged):
+`test_codex_run.sh` 44 passed, 0 failed; `test_gemini_run.sh` 18 passed, 0 failed.
+The Session 4 failures came from running under Codex, where the guard fires by
+design. The suites' own guard cases pass.
+
+### V5: exact-SHA CI, run 44299821325 (`5be3433`)
+
+Completed `success`, all 8 jobs green. Windows finished 12:23:30Z: 4905 passed,
+46 skipped. Skip reasons: 17 POSIX process groups/`bash -lc` (Job Object branch
+is a separate task), 8 optional `tree_sitter_language_pack`, 8 POSIX `sh` search
+shims, 5 tab-in-filename, 2 no executable bit, 2 optional-dependency
+"SKIPPED, NOT PASSED" (docx/pymupdf), and one each: mcp, calibration corpus,
+non-Windows import statement, hand-wired POSIX process group. test (3.10) and test (3.13): 4938 passed, 13 skipped. Shell:
+17 / 44 / 18 / 40 passed, 0 failed (+ qwen suites). Node: 62 passed. No failure
+to diagnose. Log: `docs/dev/tmp/closeout-reconcile/run.log`.
+
+### GHSA-fc5q-39xc-vjpf
+
+No fix can be prepared now. The advisory has no patched version and
+affects `picomatch <= 4.0.7`; 4.0.7 is the latest on npm (checked 2026-11-18).
+`npm audit fix --force` would install vite 6.2.7, a downgrade; not applied.
+Only `skills/debrief-meeting/app` devDependencies are affected (build-time; the
+shipped `template.html` contains no picomatch). Closing step: when a patched
+picomatch is published, bump it in the lockfile (`npm update picomatch`),
+then run `npm ci`, `npm run build`, the template `cmp` check and `npm test`,
+in a separate PR. Renovate will likely open it.
+
+### Handoff
+
+Session 4: fresh independent verification of this record. The plan stays in
+`plans/` until that passes.
