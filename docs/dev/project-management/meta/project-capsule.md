@@ -77,9 +77,12 @@ Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchan
 - 00050 waits on an operator calibration record
   (`audit-results/qwen-ivan-calibration/protocol.md`); its eligibility fails.
 - Autocodex is retired here (2026-11-15); Claude autopilot stays.
-- Local-only branches kept on purpose: `custody/00111-*`, `custody/00135-*`
-  (never push), `agoge/authored-tests-2026-10-26`. `docs/agoge-0.3.0` and
-  `docs/structure-ignore-standard` also exist on origin, no open PR.
+- Branches as of 2026-11-18: origin holds `master` only. Local-only, kept on
+  purpose: `custody/00111-*` (defective 00111 attempt; delete once 00159
+  lands) and `custody/00135-*` (raw reviewer evidence with home paths; never
+  push). `docs/structure-ignore-standard` merged; `docs/agoge-0.3.0`
+  superseded by the 0.3.1 sync (`a030f93`); `agoge/authored-tests` deleted
+  (its 12 strict-xfail bug markers all pass on master).
 
 ## Related context
 
@@ -100,5 +103,3 @@ Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchan
 
 - CI green on all jobs including Windows since 2026-11-16 runs.
 - Release cadence lags: 431 unreleased commits.
-- Stale remote branches (`docs/structure-ignore-standard`,
-  `ci/closeout-stage-1-20261103`) are 13 days old with no PR.
