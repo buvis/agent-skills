@@ -241,10 +241,10 @@ No repair session or worktree was started during prompt preparation.
 
 ## Independent re-verification, 2026-11-24
 
-**FAIL.** V1 lacks two required review lenses on the final drain rework. V2
-requires confirmation of the original authorization to replace public `master`.
-V4 has passing Kiro and hosted evidence, with the requested independent local
-rerun still open. The plan stays in `plans/`.
+**FAIL.** V1 lacks two required review lenses on the final drain rework. V2 is
+resolved by the original operator shell record. V4 has passing Kiro and hosted
+evidence, with the requested independent local rerun still open. The plan stays
+in `plans/`.
 
 The clean checkout, fetched `origin/master`, and advertised GitHub `master`
 matched at `04da088a1f3e3edbfecb7120b21e583235810432`. Since the previous tested
@@ -255,7 +255,7 @@ both wrapper suites are byte-identical between the two tips.
 | Finding | Direct verification and disposition |
 |---|---|
 | V1 | The reviewed drain tip `597b523` and published `ca94710` differ outside `docs/` by one blank changelog line. The [drain review](../reviews/drain-backlog-completion-review-20261115.md) records Alice, Blake and Bob on the first pass and Bob alone on both rework passes. It covers 00164 and 00044 together, and the [shipping review](skill-migration-ship-review-2026-11-09.md) covers the migration that superseded 00161. The published trees and dispositions reconcile, but the final rework still lacks the required Alice and Blake evidence. |
-| V2 | `6091e02` and `6b52b2a` remain ancestors, and `02a1423..6091e02` counts 147 commits. The custody tip `0466054` and lane tip `4103e99` are outside current master ancestry. The local `master` reflog lists both tips. The available `origin/master` reflog lists neither as a remote tip. `git cherry` matches six of the thirteen custody commits after `07c2852` by patch ID. Original authorization remains unconfirmed. A full-history search across local refs found no private migration plan. |
+| V2 | `6091e02` and `6b52b2a` remain ancestors, and `02a1423..6091e02` counts 147 commits. The custody tip `0466054` and lane tip `4103e99` are outside current master ancestry. The local `master` reflog lists both tips. The available `origin/master` reflog lists neither as a remote tip. `git cherry` matches six of the thirteen custody commits after `07c2852` by patch ID. The original operator shell record establishes authority for the replacement. A full-history search across local refs found no private migration plan. |
 | V3 | Commit `285476f` records the separate completion of 00133 and its [five-lens review](../reviews/00133-transcript-judge-inherits-tools-v1-review-1.md). The done PRD and live state hashes match the previous report. The live store is paused on completed 00135, cycle 2, with three tasks complete. All 60 recovery files match the original SHA-256 manifest. The canonical, braid-retirement and dependency-audit worktrees were clean, and there were no stashes. Neither additional worktree belongs to the closeout. |
 | V4 | Hosted shell logs at both SHAs report Codex 44 passed and Gemini 18 passed, zero failures. The reconciliation records the same counts from Kiro. macOS Terminal access was blocked in this session, so the requested standalone local run was not repeated. Dispatch guards were left intact. |
 | V5 | All eight jobs passed in [run 44299821325 at `5be3433`](https://github.com/buvis/agent-skills/actions/runs/44299821325) and [run 45174245519 at `04da088`](https://github.com/buvis/agent-skills/actions/runs/45174245519). Each reports 4,905 passed and 46 skipped on Windows, and 4,938 passed and 13 skipped on each Linux Python version. Shell, lint, Node/template and both integration jobs passed on both tips. |
@@ -264,6 +264,14 @@ The `origin/master` reflog shows push updates from `2509cb5` to `26960be`
 on November 15 at 18:19:05 and 20:05:32 UTC, respectively. Both tips diverge
 by 15 commits from `07c2852`, and their trees match outside `docs/`. This
 corroborates the public history replacement documented by the drain review.
+
+The original November 15 Claude project transcript provides the authority
+evidence. At 20:04:28 UTC the agent explained the force push, the lease on
+`2509cb5`, and the intended new tip `26960be`. It handed execution to the
+operator because a hook blocked the agent from force pushing. At 20:05:24 UTC
+the operator entered the specified command in the user shell. At 20:05:34 UTC
+the recorded output showed GitHub's forced update from `2509cb5` to `26960be`.
+The private transcript stays local. No retrospective approval is required.
 
 GitHub confirms [PR #17](https://github.com/buvis/agent-skills/pull/17) merged
 at `d368288`, with 00175 named as its validator follow-up.
@@ -296,9 +304,8 @@ dependencies (11) and the Windows-only job-object case (1).
 
 1. Open a fresh review session for the drain rework ranges `fd01e31..142fd99` and `8816bb9..cb5616f`.
 2. Run the required roster and record Alice and Blake's independent conclusions.
-3. Record the owner's confirmation of the original November 15 history replacement authorization.
-4. Run both wrapper suites on current master from a standalone terminal outside Codex and Copilot.
-5. Record the tested commit, both exit codes, and each suite's pass and failure counts.
-6. Rerun the full local suite and investigate the sweep deadline test if it fails again.
-7. Verify the corrective evidence in a fresh session.
-8. Archive the plan after a verified PASS.
+3. Run both wrapper suites on current master from a standalone terminal outside Codex and Copilot.
+4. Record the tested commit, both exit codes, and each suite's pass and failure counts.
+5. Rerun the full local suite and investigate the sweep deadline test if it fails again.
+6. Verify the corrective evidence in a fresh session.
+7. Archive the plan after a verified PASS.
