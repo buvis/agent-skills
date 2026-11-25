@@ -309,3 +309,64 @@ dependencies (11) and the Windows-only job-object case (1).
 5. Rerun the full local suite and investigate the sweep deadline test if it fails again.
 6. Verify the corrective evidence in a fresh session.
 7. Archive the plan after a verified PASS.
+
+## Corrective evidence, 2026-11-25
+
+This corrective session does not verify. It records evidence for a fresh
+Session 4. The plan stays in `plans/`. No production code changed. The only
+change outside `docs/` is a set of CHANGELOG entries.
+
+### V1: drain rework review
+
+The [drain rework review](../reviews/drain-rework-completion-review-20261125.md)
+ran Alice, Blake and Bob on both rework deltas. Alice and Blake ran as native
+Claude subagents and Bob as the Codex CLI. Blake received only the PRD
+requirements. The eight original rework commits are on master with identical
+`git patch-id --stable` values. The review covers the contiguous published
+range `a10516b..f7a6ac7`.
+
+The outcome is a PASS with deferrals. Alice and Blake raised no HIGH finding.
+Bob raised two HIGH findings:
+
+- Restarted-run stale answer: confirmed as a logic gap, downgraded to MEDIUM and
+  deferred. A production fix needs its own build and review cycle.
+- Windows `taskkill` tolerance: rejected. Commit `0f90399` records the
+  operator's acceptance of the 5 s bound.
+
+Alice's CHANGELOG finding is fixed in this commit. Every other disposition is
+in the review file.
+
+A standalone `review-stage` gate at `f7a6ac7` reported `4899 passed, 0 failed,
+12 skipped`.
+
+### V4: wrapper suites
+
+Both suites ran at `7507c55d81b19d69a80677dc19d9127ccdf8f48f`, from a Claude Code
+session under the run-agent Seatbelt. This is not Codex or Copilot. The guards
+stayed enabled, and each suite's refusal cases passed.
+
+| Suite | Exit | Passed | Failed |
+|---|---|---|---|
+| `bash skills/use-codex/scripts/test_codex_run.sh` | 0 | 44 | 0 |
+| `bash skills/use-gemini/scripts/test_gemini_run.sh` | 0 | 18 | 0 |
+
+These suites did not run from a standalone macOS Terminal. If Session 4 needs
+that literal host, the user must run them there.
+
+### Full local suite
+
+`uv run pytest -ra` at `7507c55` returned exit 0: 4,939 passed, 0 failed,
+12 skipped, 4 subtests passed, in 473.25 s. Three reviewers ran at the same
+time, so the machine was under load. The sweep deadline test passed. The
+earlier failure did not reproduce, so it was not investigated further. The 12
+skips are the same as before: MCP (1), document conversion (2), tree-sitter
+(8) and the Windows job-object case (1).
+
+### Status for Session 4
+
+- V1: corrective evidence recorded.
+- V2 and V3: resolved on 2026-11-24.
+- V4: corrective evidence recorded.
+- V5: resolved.
+
+A fresh Session 4 must check this evidence before it archives the plan.
