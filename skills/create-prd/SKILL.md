@@ -22,7 +22,7 @@ Transform a plan or design document into an RPG-compliant PRD and save to the ba
 - Personal skill (reference only): `structure-git-repo` owns the
   `intake/new` -> `intake/processed` lifecycle rule that step 6.5 applies
   (`references/layout.md`); the step stands on its own when that skill is absent.
-- Scripts: scripts/ground_prd.py (step 5.55; tests in scripts/test_ground_prd.py); CLI: rg
+- Scripts: scripts/ground_prd.py (step 5.55; tests in scripts/test_ground_prd.py); CLI: rg, git (step 6)
 
 ## Workflow
 
@@ -202,19 +202,17 @@ Put NO comment on the `default_model:` line. The Phase-0 parser (`run-autopilot/
 
 This is authoring guidance, not structure - the `assets/` templates carry no frontmatter block and are unaffected.
 
-### 6. Save to backlog
+### 6. Save to backlog on the default branch
 
-```bash
-# Create directory if needed
-mkdir -p docs/dev/project-management/prds/backlog
+The default branch (`master` or `main`) is the one registry of PRD numbers. A PRD saved only on a feature branch or in a worktree is invisible to every other branch, so two branches hand out the same number. Rationale: on 2026-11-25 a gems worktree branch held engram PRDs 00163-00173 while master gained its own 00163-00169 through a merged PR; both sets collided on the next merge.
 
-# Determine the sequence number (see "Sequence Number Logic" below)
-# From an intake item: the first PRD keeps the item's NNNNN
-# Otherwise: scan prds/** (backlog, wip, done, hold), intake/*/ and the legacy
-# discovery/ for the highest NNNNN, increment, pad to 5 digits
+1. **Find the default branch.** `git symbolic-ref --short refs/remotes/origin/HEAD` and strip `origin/`. Without a remote, use the local `master`, else `main`.
+2. **Bring the current branch up to date.** `git fetch origin`. When the current branch is not the default branch, run `git merge --no-edit origin/<default>` into it BEFORE the scan, so the worktree sees every number the default branch holds. On the default branch itself, `git pull --ff-only`. A dirty tree that blocks the merge, a merge conflict, or an active autopilot run in this worktree (`docs/dev/project-management/autopilot/state.json` present) stops the save: report it as a blocker and keep the draft in `docs/dev/tmp/`. Never merge under a running loop.
+3. **Scan for the number** (see "Sequence Number Logic" below) in the updated tree, plus every ref, so a number claimed on an unmerged branch is not reused: `git log --all --name-only --format= -- docs/dev/project-management/prds docs/dev/project-management/intake docs/dev/project-management/discovery`.
+4. **Commit the PRD on the default branch.** Use the checkout that has the default branch (`git worktree list` shows it). When none has it, or that checkout has uncommitted changes under `docs/dev/project-management/`, create a temporary detached worktree from `origin/<default>` under `~/git/src/worktrees/<repo>/prd-<NNNNN>` and remove it after the push. There: `git pull --ff-only`, write `docs/dev/project-management/prds/backlog/<NNNNN>-<slug>-v<N>.md`, stage the step 6.5 intake move with it, commit (`docs(<scope>): add PRD <NNNNN> <slug>`), then `git push origin HEAD:<default>`.
+5. **Bring the PRD into the working branch.** When you started on another branch, `git merge --no-edit origin/<default>` there again, so the branch has the PRD.
 
-# Save PRD with sequence prefix
-```
+A rejected push means the default branch moved: `git pull --rebase`, re-run the scan, renumber on a collision, and push again. A repo without a remote commits on the local default branch and merges it into the working branch.
 
 **Concurrent-creation collision rule.** The scan-then-write is not atomic — a second `/create-prd` (or a machine PRD writer) running in parallel can claim the same `NNNNN` between your scan above and your save. So **after writing, re-run the sequence scan**: if your `NNNNN` now appears on a file you did NOT just write (a collision), renumber yours to the next free number, save under the new name, delete your original, and re-scan once more to confirm uniqueness. Best-effort, not a lock — two writers who re-scan at the exact same instant can still both pick the next number; `/review-prd-backlog` catches that residual case (it flags colliding prefixes).
 
@@ -225,7 +223,7 @@ When the source was an intake item under `docs/dev/project-management/intake/new
 1. `git mv docs/dev/project-management/intake/new/<group/>NNNNN-title docs/dev/project-management/intake/processed/<group/>NNNNN-title` - same name, same group.
 2. Point the PRD's `Source:` line (add one under the title when the draft has none) at the processed `discovery.md` path.
 3. Replace the idea file's `Status:` line with `Status: processed, specced as PRD <NNNNN>. Recorded <original date>.`, naming every PRD the item produced.
-4. Stage the move beside the PRD: a `Source:` line that still points at `new/` after the move is a dangling citation, and `/review-prd-backlog` flags it as Blocking.
+4. Stage the move beside the PRD, in the same commit on the default branch (step 6): a `Source:` line that still points at `new/` after the move is a dangling citation, and `/review-prd-backlog` flags it as Blocking.
 
 An item that splits into several PRDs moves once, after the last part is saved. Later Q&A stays with the processed item. A legacy `discovery/` file stays where it is; nothing moves it.
 
@@ -249,7 +247,7 @@ Examples:
 ## Sequence Number Logic
 
 1. A PRD created from an intake item `intake/*/NNNNN-title/` keeps that `NNNNN` for its first (or only) PRD: the item reserved it. Further parts of a split take fresh numbers from the scan below.
-2. Otherwise list every `NNNNN-*` entry, file or directory, in `docs/dev/project-management/prds/**`, `docs/dev/project-management/intake/*/` and the legacy `docs/dev/project-management/discovery/`
+2. Otherwise list every `NNNNN-*` entry, file or directory, in `docs/dev/project-management/prds/**`, `docs/dev/project-management/intake/*/` and the legacy `docs/dev/project-management/discovery/`, in the working tree after the step 6 merge and on every git ref (step 6.3)
 3. Extract leading 5-digit prefixes matching `^[0-9]{5}-`
 4. Find max sequence number (default 0 if none exist)
 5. New sequence = max + 1, zero-padded to 5 digits
@@ -278,7 +276,7 @@ docs/dev/project-management/prds/
 
 ## PRD Lifecycle
 
-1. **Create**: Save to `backlog/`
+1. **Create**: Save to `backlog/`, committed on the default branch (step 6)
 2. **Start work**: Move to `wip/`
 3. **Park** (optional): Move to `hold/`; a human moves it back to `backlog/` or `wip/` to resume
 4. **Complete**: Move to `done/`
