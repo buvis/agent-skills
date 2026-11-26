@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **elicit-requirements**: an intake item created in a worktree or on a feature branch no longer reuses a number another branch holds. The skill merges the default branch in first, scans every ref, commits the item on the default branch and merges it back.
 - **create-prd**: a PRD created in a worktree or on a feature branch no longer reuses a number another branch holds. The skill merges the default branch in first, scans every ref, commits the PRD on the default branch and merges it back.
 - **purge-devtmp**: manifest records are appended without newline translation, so on Windows a row no longer ends in `\r\n` and a later rewrite no longer keeps a stray `\r`.
 - **sweep-fix**: pre-image exports reject paths that can escape the temporary directory on Windows and refuse temporary directories inside swept repos.

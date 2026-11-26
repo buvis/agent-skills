@@ -14,6 +14,7 @@ Turn a rough idea into a validated discovery document that `/create-prd` can con
 
 - Personal skills: `spike` (the spike fork runs the spike loop on a second non-answer)
 - Harness tool: `AskUserQuestion`
+- CLI: git (step 5 numbers and commits on the default branch)
 - Optional pointers, suggested to the user but never invoked here: `review-discovery-doc`, `create-prd`
 - Personal skill (reference only): `structure-git-repo` owns the intake layout this skill writes into (`references/layout.md`); step 5 stands on its own when that skill is absent.
 - Plugin skills (`autopilot` plugin), the pipeline downstream of this skill, never invoked here:
@@ -90,9 +91,19 @@ Read `references/question-bank.md`. Select questions appropriate to the depth le
 
 Read `references/discovery-template.md`. Generate the discovery document at the classified depth.
 
+**Default branch first.** Intake items share one number series with PRDs, and the default branch (`master` or `main`) is its one registry. An item saved only on a feature branch or in a worktree is invisible to other branches, so two branches hand out the same number (gems, 2026-11-25: a worktree branch and master both held 00163-00169). Until the number is claimed, keep the working file with the Discovery Log in `docs/dev/tmp/`. Then:
+
+1. **Find the default branch:** `git symbolic-ref --short refs/remotes/origin/HEAD`, strip `origin/`. Without a remote, use the local `master`, else `main`.
+2. **Bring the current branch up to date:** `git fetch origin`. Off the default branch, `git merge --no-edit origin/<default>` into the current branch BEFORE the scan. On it, `git pull --ff-only`. A dirty tree that blocks the merge, a merge conflict, or an active autopilot run in this worktree (`docs/dev/project-management/autopilot/state.json` present) stops the save: report the blocker and leave the document in `docs/dev/tmp/`. Never merge under a running loop.
+3. **Number the item** (below), scanning the updated tree and every ref.
+4. **Commit the item on the default branch:** in the checkout that has it (`git worktree list`). When none has it, or that checkout has uncommitted changes under `docs/dev/project-management/`, use a temporary detached worktree from `origin/<default>` at `~/git/src/worktrees/<repo>/intake-<NNNNN>` and remove it after the push. There: `git pull --ff-only`, write `idea.md` and `discovery.md`, commit (`docs(<scope>): add intake <NNNNN> <slug>`), `git push origin HEAD:<default>`.
+5. **Merge back:** when you started on another branch, `git merge --no-edit origin/<default>` there again.
+
+A rejected push means the default branch moved: `git pull --rebase`, re-scan, renumber on a collision, push again. A repo without a remote commits on the local default branch and merges it into the working branch.
+
 **Sequence numbering:**
-1. An existing intake item keeps its `NNNNN` and slug; skip the scan.
-2. Otherwise list every `NNNNN-*` entry, file or directory, in `docs/dev/project-management/prds/**`, `docs/dev/project-management/intake/*/` and legacy `docs/dev/project-management/discovery/`
+1. An existing intake item keeps its `NNNNN` and slug; skip the scan, but still commit its new `discovery.md` on the default branch.
+2. Otherwise list every `NNNNN-*` entry, file or directory, in `docs/dev/project-management/prds/**`, `docs/dev/project-management/intake/*/` and legacy `docs/dev/project-management/discovery/`, in the updated working tree and on every ref: `git log --all --name-only --format= -- docs/dev/project-management/prds docs/dev/project-management/intake docs/dev/project-management/discovery`
 3. Extract leading 5-digit prefixes matching `^[0-9]{5}-`
 4. New sequence = max + 1, zero-padded to 5 digits
 
