@@ -1,0 +1,11 @@
+{
+  "batch_id": "202611271200",
+  "items": [
+    {
+      "type": "review-low",
+      "detail": "Eve delta LOWs in tests/test_retire_bundled_braid.py and README.md: line 112 assert cannot fail after line 111; stale test names test_changelog_unreleased_records_the_removal and test_pyproject_keeps_dev_tooling_unchanged; README .braidignore paragraph not rewrapped; half-applied legacy-string constants. VERIFY: windows CI lane must run the new test file after push.",
+      "source": "docs/dev/project-management/reviews/00159-retire-bundled-braid-v1-review-1.md",
+      "prd": "00159-retire-bundled-braid-v1.md"
+    }
+  ]
+}
