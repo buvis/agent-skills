@@ -140,7 +140,9 @@ def test_readme_install_points_at_gems_braid() -> None:
     assert INSTALL_BLOCK in install
     assert DOCS_SENTENCE in install
     assert (
-        install.index(INSTALL_SENTENCE) < install.index(INSTALL_BLOCK) < install.index(DOCS_SENTENCE)
+        install.index(INSTALL_SENTENCE)
+        < install.index(INSTALL_BLOCK)
+        < install.index(DOCS_SENTENCE)
     )
     assert "editable" not in install
     assert "bin" not in install

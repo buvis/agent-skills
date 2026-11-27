@@ -3,9 +3,9 @@ revision = 5
 requires-python = ">=3.10"
 
 [[package]]
-name = "agent-skills-braid"
+name = "agent-skills"
 version = "0.2.0"
-source = { editable = "." }
+source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [

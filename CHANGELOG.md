@@ -84,6 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **debrief-meeting**: speaker matching in `parse.py` compares a new label only with groups that share its initials, so transcripts with thousands of distinct speaker labels no longer take quadratic time; the resulting speaker names and merges are unchanged.
 - **debrief-meeting**: CI now fails when `assets/template.html` differs from a fresh `npm run build`, and Renovate groups the app's dependency bumps into one PR.
 
+### Removed
+
+- **braid**: the bundled agent-skills-braid package; install braid from buvis-gems and list sources in ~/.config/buvis/buvis-braid.yaml
+
 ## [0.2.0] - 2026-10-25
 
 ### Changed

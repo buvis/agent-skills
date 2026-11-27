@@ -1,8 +1,6 @@
 # agent-skills
 
-Portable personal skills for AI coding assistants, plus `braid`, the composer
-that assembles multiple source repositories and projects their skills into
-host-specific discovery paths.
+Portable personal skills for AI coding assistants. They reach each assistant through braid, the composer in [buvis-gems](https://github.com/buvis/gems).
 
 `~/.agents/skills` is the generated discovery view, not the canonical Git
 source. A skill is a directory containing `SKILL.md`; supporting `scripts/`,
@@ -10,22 +8,19 @@ source. A skill is a directory containing `SKILL.md`; supporting `scripts/`,
 
 ## Install
 
-Keep the repository as a normal checkout and install Braid in editable mode so
-the command continues to use that checkout as the personal source:
+If ~/.config/buvis/buvis-braid.yaml already exists, add - ~/git/src/github.com/buvis/agent-skills to its existing sources list before you run the commands below; appending a second sources: key makes the YAML invalid.
 
 ```bash
-git clone https://github.com/buvis/agent-skills \
-  ~/git/src/github.com/buvis/agent-skills
-cd ~/git/src/github.com/buvis/agent-skills
-uv tool install --editable .
+git clone https://github.com/buvis/agent-skills ~/git/src/github.com/buvis/agent-skills
+uv tool install buvis-gems
+mkdir -p ~/.config/buvis
+test -e ~/.config/buvis/buvis-braid.yaml || printf 'sources:\n  - ~/git/src/github.com/buvis/agent-skills\n' > ~/.config/buvis/buvis-braid.yaml
 braid --dry-run
 braid
 braid --check
 ```
 
-Without installation, run `python bin/braid.py`. On Windows, use
-`py bin\braid.py`; Braid falls back to NTFS junctions when directory symlink
-privileges are unavailable.
+braid usage, flags, machine-local sources, Kiro enrollment and Windows behavior are documented in buvis-gems (docs/source/tools/braid.rst).
 
 ## Source and overlay architecture
 
@@ -37,15 +32,13 @@ each ownership/security domain in its own normal checkout and compose them into
 ~/git/src/github.com/buvis/agent-skills/       # public personal source
 ~/git/src/<employer>/agent-skills/             # private internal source
 
-~/.config/agent-skills/sources.d/
-├── personal                                   # dotfiles-managed
-└── work                                       # work-machine only; never public
-
 ~/.agents/skills/
 ├── create-prd -> <personal-source>/skills/create-prd
 ├── company-release -> <work-source>/skills/company-release
 └── ...
 ```
+
+braid reads source repositories from the sources list in ~/.config/buvis/buvis-braid.yaml; machine-only sources go in ~/.local/.config/buvis/buvis-braid.yaml.
 
 The dotfiles repository should track only bootstrap/composition configuration,
 not a submodule gitlink for `~/.agents`. This avoids a second parent commit
@@ -108,125 +101,10 @@ Codex-specific installations. Do not make it the shared source and do not
 symlink it wholesale. User-authored cross-agent skills belong in
 `~/.agents/skills`.
 
-## braid
+## .braidignore
 
-Preview, apply, or verify the union and enrolled host projections:
-
-```bash
-braid --dry-run
-braid
-braid --check
-```
-
-Put one source path per line in files under
-`~/.config/agent-skills/sources.d/`. Lines may contain `#` comments. Keep the
-public source in a dotfiles-managed `personal` file and the employer source in
-a work-machine-only `work` file:
-
-```text
-# ~/.config/agent-skills/sources.d/personal
-~/git/src/github.com/buvis/agent-skills
-
-# ~/.config/agent-skills/sources.d/work
-~/git/src/<employer>/agent-skills
-```
-
-| Flag | Effect |
-|---|---|
-| `--source PATH` | Adds an ad hoc repository or `skills/` directory. |
-| `--policy PATH` | Repeatable extra `.braidignore` policy file, loaded with the repository, agents-root, config-root and per-source files. |
-| `--agents-root PATH` | Overrides the union root, ahead of `AGENTS_ROOT`. |
-| `--claude-root PATH` | Overrides the Claude root, ahead of `CLAUDE_ROOT`. |
-| `--kiro` | Enrolls Kiro at `~/.kiro` once; later runs remember enrollment. |
-| `--kiro-root PATH` | Enrolls an explicit Kiro root, ahead of `KIRO_ROOT` and saved enrollment. |
-| `--kiro-agent NAME` | Enrolls an existing `<kiro-root>/agents/NAME.json`; repeat for multiple agents. Implies Kiro enrollment. |
-| `--forget-kiro-agent NAME` | Stops checking/updating that custom agent; leaves its resources unchanged. |
-| `--no-kiro` | Skips Kiro for this invocation, preserving its links and enrollment. |
-| `--config-root PATH` | Overrides the config directory holding `sources.d`, ahead of `AGENT_SKILLS_CONFIG`. |
-| `--no-claude` | Skips the Claude projection; use with `--no-kiro` to update only the union. |
-
-`AGENTS_ROOT`, `CLAUDE_ROOT`, and `AGENT_SKILLS_CONFIG` override the default
-roots.
-
-### Enroll Kiro
-
-Enable Kiro once, selecting any existing custom agents that should receive the
-shared skills. Use authored agent configs, not temporary/generated agent views:
-
-```bash
-braid --kiro --kiro-agent my-agent --dry-run
-braid --kiro --kiro-agent my-agent
-braid --check
-```
-
-Omit `--kiro-agent` for the default Kiro agent. Later `braid`, `braid --dry-run`
-and `braid --check` include the saved Kiro root and selected custom agents without
-repeating the flags. Enrollment is recorded only by a successful apply, never
-by a preview or check. `KIRO_ROOT` also explicitly enables Kiro. Merely finding
-a `.kiro` directory does not enable it or prove an IDE/CLI is installed.
-
-Each portable skill gets a link under `<kiro-root>/skills/`, using the same
-symlink/Windows-junction backend, backup rules and stale-link ownership checks
-as Claude. Kiro receives the entire shared inventory: `.braidignore` exclusions
-are for Claude's plugin duplicates and do not apply to Kiro. Unmanaged skills
-with other names remain in place. Name collisions are backed up before linking.
-Kiro link backups live in `<kiro-root>/skills-backup/<run>/project/`.
-
-For selected custom agents, Braid appends one `skill://` resource for the global
-skills view to the existing `resources` array. An equivalent existing resource
-for the shared union or Kiro view is retained without duplication. Other fields
-and resources are preserved. A changed JSON file is reformatted and backed up
-byte-for-byte under `<kiro-root>/agent-backup/<run>/agents/`, then replaced
-atomically with its original file permissions. Symlinked, missing or malformed
-selected configs are refused before composition. Braid never scans every custom
-agent and changes its skill scope implicitly.
-
-`--check` reports missing links/resources with a nonzero exit; `--dry-run` reports
-intended changes without writing. `--no-kiro` skips both links and custom agents
-for that run. To stop managing one config, use `--forget-kiro-agent NAME`; remove
-its resource manually if it should no longer discover these skills. Saved root
-relocation is refused rather than applying old ownership records to a new folder.
-
-The existing version-1 state is accepted. Kiro enrollment uses an optional `kiro`
-record alongside `hosts.kiro`; an older Braid can discard that enrollment record
-when rewriting state, so re-enroll after downgrading and upgrading. Braid remains
-an explicit command, not a filesystem watcher. Restart Kiro after enrollment and
-confirm the skill is available; link/config checks do not prove host discovery.
-See [Kiro skill scope and custom agents](https://kiro.dev/docs/skills/#skill-scope).
-
-### Maintain host links
-
-For each non-ignored canonical skill, `braid` creates an absolute symlink at
-`~/.claude/skills/<name>`. If that name is already a real directory or points
-somewhere else, it is moved first to
-`~/.claude/skills-backup/<timestamp>-<pid>/project/`. The union side backs up
-the same way to `<agents-root>/backups/<timestamp>-<pid>/compose/`. Claude-only
-destination entries are untouched. Restart the assistant after changing
-skills if its current session does not notice the update.
-
-`--check` and `--dry-run` also report two things sync will not repair, and count
-both as drift. `MISMATCH ORPHAN` marks a link the state file no longer records
-that still points into a source's `skills/` directory or into the union, such as
-one left behind when the state file was lost; the scan covers the union, the
-Claude projection and, when Kiro is enrolled, its skills root. `MISMATCH CHANGED`
-marks a recorded link that is no longer wanted and was replaced by hand (a link
-that is still wanted is backed up and relinked by sync instead). Braid removes
-neither: delete an orphan yourself, and restore or delete a changed path before
-the next sync, which refuses to clean it. On Windows the scan recognises symlinks
-only, so an orphaned junction is not reported.
-
-On Windows, Braid tries directory symlinks first and falls back to NTFS
-junctions if Developer Mode or elevated symlink privileges are unavailable.
-The same Python CLI and flags work on macOS, Linux, and Windows; no Bash runtime
-is required.
-
-CI runs the full Python suite on `windows-latest` (Python 3.13) and on Ubuntu.
-On Windows, the tests of Bash-backed skill scripts need Git Bash; Braid itself
-does not. The junction fallback is stub-tested only: its test fakes the symlink
-refusal and the junction command, so CI never creates a real junction.
-
-`.braidignore` is intentional policy, not an error list. Braid loads it from
-the tool repository, `~/.agents`, every source repository, and the machine-local
+`.braidignore` is intentional policy, not an error list. braid loads it from
+~/.agents, every source repository, and the machine-local
 config directory. It holds exactly one class of name: a skill Claude gets from a
 plugin, where a standalone copy would become a duplicate unnamespaced command.
 Those copies still run on Codex and Copilot, so they stay in the union view and

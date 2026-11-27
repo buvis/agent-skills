@@ -13,7 +13,7 @@ change.
 A skill is a directory under `skills/` holding `SKILL.md`, plus optional
 `scripts/`, `references/`, and `assets/`.
 
-`skills/` is the only directory braid scans (`_skills_directory`), and every
+`skills/` is the only directory braid (buvis-gems) scans for skills, and every
 host discovers what braid links from it. Putting a `SKILL.md` there advertises
 it as runnable on Claude Code, Codex, and Copilot alike. Prose that documents a
 procedure without shipping the code to run it belongs in `docs/plugin-skills/`,
@@ -108,7 +108,7 @@ uv run python3 skills/create-skill/scripts/validate_skill.py skills/<changed-ski
 braid --check
 ```
 
-`uv run pytest` collects `tests/` for braid plus every `test_*.py` a skill
+`uv run pytest` collects `tests/` plus every `test_*.py` a skill
 ships under `skills/`. Autopilot's full-suite gate command is
 `uv run python scripts/gate.py`: it runs the same suite and ends with the
 `PASS n FAIL n SKIP n EXIT n` line `autopilot verify` parses. A skill that
