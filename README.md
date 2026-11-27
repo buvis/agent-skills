@@ -104,8 +104,8 @@ symlink it wholesale. User-authored cross-agent skills belong in
 ## .braidignore
 
 `.braidignore` is intentional policy, not an error list. braid loads it from
-~/.agents, every source repository, and the machine-local
-config directory. It holds exactly one class of name: a skill Claude gets from a
+~/.agents, every source repository, each file listed under `policies` in
+`buvis-braid.yaml`, and each file passed with `--policy`. It holds exactly one class of name: a skill Claude gets from a
 plugin, where a standalone copy would become a duplicate unnamespaced command.
 Those copies still run on Codex and Copilot, so they stay in the union view and
 are skipped only on the way to `~/.claude/skills`.
