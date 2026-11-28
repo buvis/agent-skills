@@ -3169,3 +3169,28 @@
 {"id":"466afc62","ended_at":1794347533,"elapsed_s":13,"outcome":"error","detail":"exit 3: refusing nested dispatch (already inside a CLI agent)"}
 {"id":"0be092eb","ended_at":1794347653,"elapsed_s":240,"outcome":"error","detail":"mixed-provider roster incomplete: Anthropic Bob SIGILL; OpenAI output retained"}
 {"kind":"handoff","site":"review","edge":"leave","at":1794347669,"phase":"paused","prd":"00135-historical-tag-awaits-green-ci-v1.md"}
+{"kind":"handoff","site":"build","edge":"resume","at":1795819126,"phase":"build","prd":"00159-retire-bundled-braid-v1.md"}
+{"id":"bda137e6","kind":"fast-track:tess","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795819215,"prompt_bytes":41187}
+{"id":"bda137e6","ended_at":1795819278,"elapsed_s":63,"outcome":"ok","detail":null}
+{"id":"cab6c1e8","kind":"fast-track:ivan","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795819320,"prompt_bytes":17923}
+{"id":"cab6c1e8","ended_at":1795819384,"elapsed_s":64,"outcome":"ok","detail":null}
+{"id":"7c3a7e5e","kind":"fast-track:alice","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795820480,"prompt_bytes":6229}
+{"id":"93b127d0","kind":"fast-track:blake","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795820481,"prompt_bytes":14647}
+{"id":"237f1691","kind":"fast-track:eve","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795820483,"prompt_bytes":9675}
+{"id":"3efa4fb1","kind":"fast-track:bob","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795820484,"prompt_bytes":9389}
+{"id":"d4fc8f85","kind":"fast-track:carl","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795820485,"prompt_bytes":6585}
+{"id":"7c3a7e5e","ended_at":1795820532,"elapsed_s":52,"outcome":"ok","detail":null}
+{"id":"3efa4fb1","ended_at":1795820540,"elapsed_s":56,"outcome":"ok","detail":null}
+{"id":"c1d9b489","kind":"fast-track:bob","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795820549,"prompt_bytes":37492}
+{"id":"93b127d0","ended_at":1795820554,"elapsed_s":73,"outcome":"ok","detail":null}
+{"id":"c1d9b489","ended_at":1795820607,"elapsed_s":58,"outcome":"ok","detail":null}
+{"id":"d4fc8f85","ended_at":1795820660,"elapsed_s":175,"outcome":"ok","detail":null}
+{"id":"237f1691","ended_at":1795820992,"elapsed_s":509,"outcome":"ok","detail":null}
+{"id":"12a1f789","kind":"fast-track:victor","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795821027,"prompt_bytes":2268}
+{"id":"12a1f789","ended_at":1795821049,"elapsed_s":22,"outcome":"ok","detail":null}
+{"id":"2c47dc91","kind":"fast-track:ivan","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795821067,"prompt_bytes":13721}
+{"id":"2c47dc91","ended_at":1795821107,"elapsed_s":40,"outcome":"ok","detail":null}
+{"id":"b88a7b9c","kind":"fast-track:delta","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795821122,"prompt_bytes":5348}
+{"id":"b88a7b9c","ended_at":1795821907,"elapsed_s":785,"outcome":"ok","detail":null}
+{"kind":"handoff","site":"build","edge":"leave","at":1795821984,"phase":"done","prd":"00159-retire-bundled-braid-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1795862527,"phase":"done","prd":"00159-retire-bundled-braid-v1.md"}

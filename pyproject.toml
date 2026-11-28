@@ -1,16 +1,12 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
-name = "agent-skills-braid"
+name = "agent-skills"
 version = "0.2.0"
-description = "Compose multi-source Agent Skills and project them into AI assistant discovery paths"
+description = "Portable agent skills for AI coding assistants"
 requires-python = ">=3.10"
 license = "MIT"
 
-[project.scripts]
-braid = "agent_skills_braid.cli:entrypoint"
+[tool.uv]
+package = false
 
 [dependency-groups]
 dev = [
@@ -18,9 +14,6 @@ dev = [
   "pyyaml>=6",
   "ruff>=0.9",
 ]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/agent_skills_braid"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers"

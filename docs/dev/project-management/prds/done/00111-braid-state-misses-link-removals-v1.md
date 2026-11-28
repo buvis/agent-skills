@@ -11,6 +11,8 @@ ledger: deferred/202610271200-deferred.json#71736f63801b
 
 > **Triage (2026-11-15):** The custody branch is not mergeable as it stands. It still carries the 3/3 CRITICAL from review cycle 1 (`on_removal(managed)` in `_run_stages.py` drops ownership of stale links not yet processed) and fails `ruff check` (I001, UP035) and `ruff format --check`. Triage stubs 00140, 00141 and 00142 recorded those findings and are closed into this note, since none of that code is on master. PRD 00159 deletes the bundled braid package; once it runs, this defect leaves this repository with it. Do not repair the custody branch before deciding 00159. Whether the buvis-gems braid has the same defect is unchecked.
 
+> **Closed (2026-11-28) by PRD 00159:** PRD 00159 deleted the bundled braid package, so this defect no longer exists in this repository. Gems check result: a live reproduction against temp roots showed gems braid has both parts of the defect. A sync removed the union link `zz-two`, then refused the changed Claude path with exit 2 and left the state file byte-identical, still recording the removed link. An unchanged sync on a read-only agents root failed with `cannot write Braid state ... Permission denied`, exit 2. Filed as buvis/gems#300, which carries this PRD's requirements. The `custody/00111-braid-state-misses-link-removals-v1` branch is not needed for that fix; it targets deleted code.
+
 
 Source: agoge report `dev/local/audit-results/agoge-2026-10-26.md`, finding 22,
 accepted option A on 2026-10-27. Related to finding 33 of the 2026-10-25 report,

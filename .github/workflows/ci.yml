@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
-      # Keep the SDK and converters out of braid's Python 3.10 environment,
+      # Keep the SDK and converters out of the suite's Python 3.10 environment,
       # while exercising the tests that otherwise skip without these extras.
       # The pins live only in the skills' pyproject files, where Renovate bumps
       # them, so CI tests what a bump PR proposes. `uv run --with-requirements`
@@ -176,7 +176,7 @@ jobs:
       # for every event this workflow triggers on.
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
 
-      - name: Lint braid
+      - name: Lint
         run: uv run ruff check
 
       - name: Check formatting
