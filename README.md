@@ -105,10 +105,11 @@ symlink it wholesale. User-authored cross-agent skills belong in
 
 `.braidignore` is intentional policy, not an error list. braid loads it from
 ~/.agents, every source repository, each file listed under `policies` in
-`buvis-braid.yaml`, and each file passed with `--policy`. It holds exactly one class of name: a skill Claude gets from a
-plugin, where a standalone copy would become a duplicate unnamespaced command.
-Those copies still run on Codex and Copilot, so they stay in the union view and
-are skipped only on the way to `~/.claude/skills`.
+`buvis-braid.yaml`, and each file passed with `--policy`. It holds exactly one
+class of name: a skill Claude gets from a plugin, where a standalone copy would
+become a duplicate unnamespaced command. Those copies still run on Codex and
+Copilot, so they stay in the union view and are skipped only on the way to
+`~/.claude/skills`.
 
 It is not a way to hide a skill from Codex or Copilot. Those two read the union
 directly, so an exclusion never reaches them; the only lever is what braid links

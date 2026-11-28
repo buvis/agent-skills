@@ -53,15 +53,14 @@ SOURCES_SENTENCE = (
 OLD_MODULE = "agent_skills_" + "braid"
 OLD_DIST = "agent-skills-" + "braid"
 OLD_LAUNCHER = "bin/" + "braid"
+OLD_ENV = "AGENT_SKILLS_" + "CONFIG"
+OLD_CONFIG_DIR = "config/agent-" + "skills"
 CHANGELOG_ENTRY = (
     f"- **braid**: the bundled {OLD_DIST} package; install braid from "
     "buvis-gems and list sources in ~/.config/buvis/buvis-braid.yaml"
 )
 
-STALE = re.compile(
-    OLD_MODULE + "|" + OLD_DIST + "|" + OLD_LAUNCHER + "|AGENT_SKILLS_" + "CONFIG"
-    "|config/agent-" + "skills"
-)
+STALE = re.compile("|".join((OLD_MODULE, OLD_DIST, OLD_LAUNCHER, OLD_ENV, OLD_CONFIG_DIR)))
 
 
 def read(rel: str) -> str:
@@ -104,12 +103,11 @@ def test_pyproject_drops_build_and_script_tables() -> None:
     assert "hatch" not in data.get("tool", {})
 
 
-def test_pyproject_keeps_dev_tooling_unchanged() -> None:
+def test_pyproject_keeps_dev_tooling() -> None:
     data = pyproject()
     assert "dependency-groups" in data
     assert "ini_options" in data["tool"]["pytest"]
     assert "lint" in data["tool"]["ruff"]
-    assert "ruff" in data["tool"]
 
 
 def test_lockfile_describes_the_renamed_project() -> None:
@@ -150,7 +148,7 @@ def test_readme_names_the_buvis_braid_sources_file() -> None:
     readme = read("README.md")
     assert SOURCES_SENTENCE in readme
     assert "sources.d" not in readme
-    assert "~/.config/agent-" + "skills" not in readme
+    assert "~/." + OLD_CONFIG_DIR not in readme
 
 
 def test_readme_replaces_braid_manual_with_braidignore_heading() -> None:
@@ -174,7 +172,7 @@ def test_agents_md_describes_gems_braid_scan() -> None:
     assert "_skills_directory" not in agents
 
 
-def test_changelog_unreleased_records_the_removal() -> None:
+def test_changelog_records_the_removal() -> None:
     changelog = read("CHANGELOG.md")
     assert CHANGELOG_ENTRY in changelog.splitlines()
 
