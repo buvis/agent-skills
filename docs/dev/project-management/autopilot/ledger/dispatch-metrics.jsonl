@@ -3193,3 +3193,4 @@
 {"id":"b88a7b9c","kind":"fast-track:delta","task":"00159-retire-bundled-braid-v1-c1","queued_at":1795821122,"prompt_bytes":5348}
 {"id":"b88a7b9c","ended_at":1795821907,"elapsed_s":785,"outcome":"ok","detail":null}
 {"kind":"handoff","site":"build","edge":"leave","at":1795821984,"phase":"done","prd":"00159-retire-bundled-braid-v1.md"}
+{"kind":"handoff","site":"done","edge":"resume","at":1795862527,"phase":"done","prd":"00159-retire-bundled-braid-v1.md"}

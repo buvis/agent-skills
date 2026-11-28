@@ -54,15 +54,18 @@ Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchan
 
 ## Active Work
 
-- Measured 2026-11-16: no wip PRD. Backlog: 00050 (qwen ivan capability
-  eval) and 00159 (retire bundled braid, gated by an `eligibility` check on
-  gems#272 shipping a braid without `--config-root`). Hold: 00111 only.
+### Batch 202611271200
+- [x] 00159-retire-bundled-braid-v1 (1 cycle, fast-track lane)
+- [ ] 00050-qwen-ivan-capability-eval-v1 (backlog; eligibility fails, see below)
+
+Observations: 00159 lives on `feature/retire-braid` in worktree
+`~/git/src/worktrees/agent-skills/retire-braid`, not yet merged to master.
+One LOW review deferral (Windows CI must run the new test file after push)
+is in `autopilot/deferred/202611271200-deferred.json`.
+
 - Recent focus: PRDs 00177-00179 done (sweep-fix pre-image verification,
   distil-memory prompt framing); Renovate onboarding merged a dozen dep PRs
   on 2026-11-16 (Node 26, jsdom 31, pymupdf 2, mermaid-cli 12, python-docx 1.2).
-- Worktree `~/git/src/worktrees/agent-skills/retire-braid`
-  (`feature/retire-braid`) is clean, zero own commits, one behind master.
-  Staged for PRD 00159; may belong to a live session, so leave it.
 - The 2026-10-30 closeout plans in `plans/` are NOT finished. PRs #15-#17
   are settled and archive PRDs 00155-00158 closed as fixed in `ff6e8af`, but
   lane PRD 00163 (Windows residue, CI `-ra`) exists only on
