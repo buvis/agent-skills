@@ -59,9 +59,8 @@ Generated: 2026-11-16 (catchup on master; Key Invariants and Architecture unchan
 - [ ] 00050-qwen-ivan-capability-eval-v1 (backlog; eligibility fails, see below)
 
 Observations: 00159 lives on `feature/retire-braid` in worktree
-`~/git/src/worktrees/agent-skills/retire-braid`, not yet merged to master.
-One LOW review deferral (Windows CI must run the new test file after push)
-is in `autopilot/deferred/202611271200-deferred.json`.
+`~/git/src/worktrees/agent-skills/retire-braid`, open as PR #43 with all CI
+jobs green (Windows included), not yet merged to master.
 
 - Recent focus: PRDs 00177-00179 done (sweep-fix pre-image verification,
   distil-memory prompt framing); Renovate onboarding merged a dozen dep PRs
